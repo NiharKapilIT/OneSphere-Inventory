@@ -934,7 +934,6 @@ export class ChequesOnhand implements OnInit {
       totalPages: total > 10 ? Math.ceil(total / 10) : p.totalPages
     }));
     this.totalElements = total;
-
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
