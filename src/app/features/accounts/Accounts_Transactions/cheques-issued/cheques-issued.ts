@@ -203,7 +203,6 @@ export class ChequesIssued implements OnInit {
   brsfromConfig: any = {};
   brstoConfig: any = {};
   today = new Date();
-  pDatepickerMaxDate: Date = new Date();
   clearMinToDate = new Date(1900, 0, 1);
   returnMinToDate = new Date(1900, 0, 1);
   cancelMinToDate = new Date(1900, 0, 1);
@@ -308,7 +307,7 @@ export class ChequesIssued implements OnInit {
 
     this.ChequesIssuedForm = this.fb.group({
       ptransactiondate: [new Date(), Validators.required],
-      bankname: [''], pfrombrsdate: [''], ptobrsdate: [''],
+      bankname: ['', Validators.required], pfrombrsdate: [''], ptobrsdate: [''],
       pchequesOnHandlist: [], SearchClear: [''], pCreatedby: [''],
       schemaname: [this._commonService.getschemaname()],
       pipaddress: [this._commonService.getIpAddress()],
@@ -1524,29 +1523,60 @@ export class ChequesIssued implements OnInit {
       }))
     });
 
-    const payload = {
+    // const payload = {
+    //   global_schema: this._commonService.getschemaname(),
+    //   branch_schema: this._commonService.getbranchname(),
+    //   companycode: this._commonService.getCompanyCode(),
+    //   branchcode: this._commonService.getBranchCode(),
+    //   pCreatedby: this._commonService.getCreatedBy() || 0,
+    //   ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
+    //   // ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
+    //   pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
+    //   pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
+    //   ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
+    //   _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
+    //   chequestype: this.modeofreceipt || '', banknameForLegal: this.selectedBankName() || '',
+    //   pchequesOnHandlist: this.DataForSaving.map(mapCheque),
+    //   pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
+    //   pchequesotherslist: this.OtherChequesData().map((item: any) => ({
+    //     ptransactionnumber: item.ptransactionnumber || '', ptransactiondate: item.ptransactiondate || '',
+    //     particulars: item.particulars || '', debitamount: String(item.debitamount || '0'),
+    //     creditamount: String(item.creditamount || '0'), accountname: item.accountname || '',
+    //     chequereturncharges: String(item.chequereturncharges || '0')
+    //   })),
+    //   auto_brs_type_name: formVal.auto_brs_type || 'Upload'
+    // };
+
+
+
+     const payload = {
       global_schema: this._commonService.getschemaname(),
       branch_schema: this._commonService.getbranchname(),
       companycode: this._commonService.getCompanyCode(),
       branchcode: this._commonService.getBranchCode(),
       pCreatedby: this._commonService.getCreatedBy() || 0,
-      ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
+      ptransactiondate: this.datepipe.transform(formVal.ptransactiondate,'dd-MM-yyyy') || '',
+      // ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
       pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
-      pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
-      ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
+      // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
+      pfrombrsdate: formVal.pfrombrsdate ? this.datepipe.transform(formVal.pfrombrsdate,'dd-MM-yyyy') : '',
+      ptobrsdate: formVal.ptobrsdate ? this.datepipe.transform(formVal.ptobrsdate,'dd-MM-yyyy') : '',
+      // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
+      // ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
       _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
       chequestype: this.modeofreceipt || '', banknameForLegal: this.selectedBankName() || '',
       pchequesOnHandlist: this.DataForSaving.map(mapCheque),
       pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
       pchequesotherslist: this.OtherChequesData().map((item: any) => ({
-        ptransactionnumber: item.ptransactionnumber || '', ptransactiondate: item.ptransactiondate || '',
+        ptransactionnumber: item.ptransactionnumber || '',
+         ptransactiondate: this.datepipe.transform( item.ptransactiondate,'dd-MM-yyyy') || '',
+        //  ptransactiondate: item.ptransactiondate || '',
         particulars: item.particulars || '', debitamount: String(item.debitamount || '0'),
         creditamount: String(item.creditamount || '0'), accountname: item.accountname || '',
         chequereturncharges: String(item.chequereturncharges || '0')
       })),
       auto_brs_type_name: formVal.auto_brs_type || 'Upload'
     };
-
     this._accountingtransaction.SaveChequesIssued(JSON.stringify(payload)).subscribe({
       next: (data: any) => {
         if (data) { this._commonService.showSuccessMsg('Saved successfully'); this.Clear(); }
@@ -1579,57 +1609,186 @@ export class ChequesIssued implements OnInit {
     }));
   }
 
+  // pdfOrprint(printorpdf: string): void {
+  //   forkJoin([
+  //     this._accountingtransaction.GetChequesIssued(
+  //       this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
+  //       this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
+  //       this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
+  //     this._accountingtransaction.DataFromBrsDatesChequesIssued(
+  //       this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
+  //       this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
+  //   ]).subscribe(([r0, r1]: any) => {
+  //     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
+  //     const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
+  //     const rows: any[] = [];
+  //     gd.forEach((e: any) => {
+  //       const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
+  //       let dd = this._commonService.getFormatDateGlobal(e.pdepositeddate); if (!dd) dd = '--NA--';
+  //       let amt = ''; if (e.ptotalreceivedamount) { amt = this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(e.ptotalreceivedamount)); }
+  //       rows.push(isCRC
+  //         ? [e.pChequenumber, amt, e.preceiptid, dr, dd, e.ptypeofpayment, e.ppartyname]
+  //         : [e.pChequenumber, amt, e.preceiptid, dr, e.ptypeofpayment, e.ppartyname]);
+  //     });
+  //     this._commonService._downloadchequesReportsPdf('Cheques Issued', rows, [], {}, 'landscape', '', '', '', printorpdf,
+  //       this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(this.amounttotal())));
+  //   });
+  // }
+
+  // export(): void {
+  //   forkJoin([
+  //     this._accountingtransaction.GetChequesIssued(
+  //       this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
+  //       this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
+  //       this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
+  //     this._accountingtransaction.DataFromBrsDatesChequesIssued(
+  //       this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
+  //       this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
+  //   ]).subscribe(([r0, r1]: any) => {
+  //     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
+  //     const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
+  //     const rows: any[] = [];
+  //     gd.forEach((e: any) => {
+  //       const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
+  //       const dd = this._commonService.getFormatDateGlobal(e.pdepositeddate) || '--NA--';
+  //       const amt = e.ptotalreceivedamount || 0;
+  //       rows.push(isCRC
+  //         ? { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, [`${this.pdfstatus} Date`]: dd, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname }
+  //         : { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname });
+  //     });
+  //     this._commonService.exportAsExcelFile(rows, 'Cheques Issued');
+  //   });
+  // }
+
+
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PDF / PRINT  ← mirrors Cheques In Bank pdfOrprint() exactly
+  // ─────────────────────────────────────────────────────────────────────────
   pdfOrprint(printorpdf: string): void {
-    forkJoin([
-      this._accountingtransaction.GetChequesIssued(
-        this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
-        this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
-        this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
-      this._accountingtransaction.DataFromBrsDatesChequesIssued(
-        this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
-        this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
-    ]).subscribe(([r0, r1]: any) => {
-      const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
-      const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
-      const rows: any[] = [];
-      gd.forEach((e: any) => {
-        const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
-        let dd = this._commonService.getFormatDateGlobal(e.pdepositeddate); if (!dd) dd = '--NA--';
-        let amt = ''; if (e.ptotalreceivedamount) { amt = this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(e.ptotalreceivedamount)); }
-        rows.push(isCRC
-          ? [e.pChequenumber, amt, e.preceiptid, dr, dd, e.ptypeofpayment, e.ppartyname]
-          : [e.pChequenumber, amt, e.preceiptid, dr, e.ptypeofpayment, e.ppartyname]);
-      });
-      this._commonService._downloadchequesReportsPdf('Cheques Issued', rows, [], {}, 'landscape', '', '', '', printorpdf,
-        this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(this.amounttotal())));
+    const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
+
+    // Use already-loaded in-memory data — no API calls needed
+    const gd: any[] = isCRC
+      ? this.ChequesClearReturnData
+      : [...this.ChequesIssuedData, ...this.OtherChequesData()];
+
+    if (!gd || gd.length === 0) {
+      this._commonService.showWarningMessage('No data available');
+      return;
+    }
+
+    let Totlaamount = 0;
+
+    // ── Build headers (same pattern as Cheques In Bank) ──
+    const headers: string[] = [
+      'Cheque/\nReference No.',
+      'Amount',
+      'Payment Id',
+      'Payment Date',
+      ...(isCRC ? [`${this.pdfstatus} Date`] : []),
+      'Transaction Mode',
+      'Party'
+    ];
+
+    // ── Column styles (same pattern as Cheques In Bank) ──
+    const colStyles: Record<number, any> = {
+      0: { cellWidth: 30, halign: 'center' },
+      1: { cellWidth: 28, halign: 'right' },
+      2: { cellWidth: 22, halign: 'center' },
+      3: { cellWidth: 22, halign: 'center' },
+    };
+    if (isCRC) {
+      colStyles[4] = { cellWidth: 22, halign: 'center' };
+      colStyles[5] = { cellWidth: 28, halign: 'center' };
+      colStyles[6] = { cellWidth: 50, halign: 'left' };
+    } else {
+      colStyles[4] = { cellWidth: 28, halign: 'center' };
+      colStyles[5] = { cellWidth: 55, halign: 'left' };
+    }
+
+    // ── Build data rows ──
+    const data: any[][] = [];
+    gd.forEach((e: any) => {
+      const amt = Number(e?.ptotalreceivedamount || 0);
+      Totlaamount += amt;
+      const dr = e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '';
+      const dd = e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '--NA--';
+      const cls = e?.pCleardate ? this._commonService.getFormatDateGlobal(e.pCleardate) : '';
+      data.push([
+        e?.pChequenumber || '',
+        this._commonService.convertAmountToPdfFormat(amt),
+        e?.preceiptid || '',
+        dr,
+        ...(isCRC ? [cls || dd] : []),
+        e?.ptypeofpayment || '',
+        e?.ppartyname || ''
+      ]);
     });
+
+    // ── Total row (same pattern as Cheques In Bank) ──
+    const totalRow: any[] = [
+      { content: 'Total', colSpan: 1, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } },
+      { content: this._commonService.convertAmountToPdfFormat(Totlaamount), styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } }
+    ];
+    for (let i = 0; i < headers.length - 2; i++) totalRow.push('');
+    data.push(totalRow);
+
+    this._commonService._downloadchequesReportsPdf(
+      'Cheques Issued',
+      data,
+      headers,
+      colStyles,
+      'landscape',
+      this.bankname || '',
+      this.brsdate() || '',
+      this.pdfstatus || '',
+      printorpdf,
+      ' '
+    );
   }
 
   export(): void {
-    forkJoin([
-      this._accountingtransaction.GetChequesIssued(
-        this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
-        this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
-        this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
-      this._accountingtransaction.DataFromBrsDatesChequesIssued(
-        this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
-        this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
-    ]).subscribe(([r0, r1]: any) => {
-      const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
-      const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
-      const rows: any[] = [];
-      gd.forEach((e: any) => {
-        const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
-        const dd = this._commonService.getFormatDateGlobal(e.pdepositeddate) || '--NA--';
-        const amt = e.ptotalreceivedamount || 0;
-        rows.push(isCRC
-          ? { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, [`${this.pdfstatus} Date`]: dd, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname }
-          : { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname });
-      });
-      this._commonService.exportAsExcelFile(rows, 'Cheques Issued');
-    });
-  }
+    const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
 
+    // Use already-loaded in-memory data (same approach as Cheques In Bank)
+    const gd: any[] = isCRC
+      ? this.ChequesClearReturnData
+      : [...this.ChequesIssuedData, ...this.OtherChequesData()];
+
+    if (!gd || gd.length === 0) {
+      this._commonService.showWarningMessage('No data available');
+      return;
+    }
+
+    const rows: any[] = gd.map((e: any) => {
+      const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
+      const dd = this._commonService.getFormatDateGlobal(e.pdepositeddate) || '--NA--';
+      const amt = e.ptotalreceivedamount || 0;
+      if (isCRC) {
+        return {
+          'Cheque/ Reference No.': e.pChequenumber || '',
+          'Amount': amt,
+          'Payment Id': e.preceiptid || '',
+          'Payment Date': dr,
+          [`${this.pdfstatus} Date`]: dd,
+          'Transaction Mode': e.ptypeofpayment || '',
+          'Party': e.ppartyname || ''
+        };
+      } else {
+        return {
+          'Cheque/ Reference No.': e.pChequenumber || '',
+          'Amount': amt,
+          'Payment Id': e.preceiptid || '',
+          'Payment Date': dr,
+          'Transaction Mode': e.ptypeofpayment || '',
+          'Party': e.ppartyname || ''
+        };
+      }
+    });
+
+    this._commonService.exportAsExcelFile(rows, 'Cheques Issued');
+  }
   checkDuplicateValues(_event: any, rowIndex: number, row: any): void {
     const value = _event?.target?.value || '';
     const bool = this.gridData().filter(item => item.pchequestatus === 'P').some(el => {

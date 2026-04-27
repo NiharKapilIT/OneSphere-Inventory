@@ -1,4 +1,4 @@
-import { Component, DestroyRef, HostListener, OnInit } from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
@@ -13,6 +13,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SosHelpComponent } from '../../sos-help/sos-help.component';
+import { VoiceAssistantComponent } from '../../voice-assistant/voice-assistant.component';
 
 export interface Theme {
   id: string;
@@ -35,11 +36,13 @@ export interface RecentForm {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent],
+  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })
-export class MainLayoutComponent implements OnInit {
+export class MainLayoutComponent implements OnInit, AfterViewInit {
+  @ViewChild('moduleScroller') private moduleScroller?: ElementRef<HTMLElement>;
+
   modules: Module[] = [];
   selectedModule: Module | null = null;
   selectedSubModule: SubModule | null = null;
@@ -61,6 +64,8 @@ export class MainLayoutComponent implements OnInit {
   showRecentForms = false;
   showFlyoutSearch = false;
   showThemeDropdown = false;
+  showModuleScrollLeft = false;
+  showModuleScrollRight = false;
 
   flyoutSearchQuery = '';
   megaMenuSearch = '';
@@ -102,6 +107,7 @@ export class MainLayoutComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((module: Module | null) => {
         this.selectedModule = module;
+        this.queueModuleScrollStateUpdate(true);
       });
 
     this.navigationService.selectedSubModule$
@@ -136,6 +142,10 @@ export class MainLayoutComponent implements OnInit {
 
     // Set General Receipt as default selection
     // this.setDefaultSelection();
+  }
+
+  ngAfterViewInit(): void {
+    this.queueModuleScrollStateUpdate(true);
   }
 
   private setDefaultSelection(): void {
@@ -177,7 +187,9 @@ export class MainLayoutComponent implements OnInit {
     return this.themes.find(theme => theme.id === this.activeTheme)?.name || 'Sky';
   }
 
-  selectModule(module: Module): void {
+  selectModule(module: Module, event?: Event): void {
+    this.scrollModuleTabIntoView(event);
+
     if (this.selectedModule?.id === module.id) {
       this.toggleSidebar();
       return;
@@ -290,6 +302,65 @@ export class MainLayoutComponent implements OnInit {
 
     this.sidebarCollapsed = false;
     this.saveSidebarState();
+  }
+
+  private scrollModuleTabIntoView(event?: Event): void {
+    const element = event?.currentTarget as HTMLElement | null;
+
+    element?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+
+    this.queueModuleScrollStateUpdate();
+  }
+
+  scrollModuleTabs(direction: 'left' | 'right'): void {
+    const scroller = this.moduleScroller?.nativeElement;
+    if (!scroller) return;
+
+    const distance = Math.max(180, Math.round(scroller.clientWidth * 0.72));
+    scroller.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth'
+    });
+
+    this.queueModuleScrollStateUpdate();
+  }
+
+  onModuleTabsScroll(): void {
+    this.updateModuleScrollState();
+  }
+
+  private queueModuleScrollStateUpdate(scrollSelected = false): void {
+    window.requestAnimationFrame(() => {
+      if (scrollSelected) {
+        this.scrollActiveModuleTabIntoView();
+      }
+
+      this.updateModuleScrollState();
+    });
+  }
+
+  private scrollActiveModuleTabIntoView(): void {
+    const activeTab = this.moduleScroller?.nativeElement.querySelector('.module-tab.active') as HTMLElement | null;
+    activeTab?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'center'
+    });
+  }
+
+  private updateModuleScrollState(): void {
+    const scroller = this.moduleScroller?.nativeElement;
+    if (!scroller) return;
+
+    const maxScrollLeft = scroller.scrollWidth - scroller.clientWidth;
+    const hasOverflow = maxScrollLeft > 2;
+
+    this.showModuleScrollLeft = hasOverflow && scroller.scrollLeft > 2;
+    this.showModuleScrollRight = hasOverflow && scroller.scrollLeft < maxScrollLeft - 2;
   }
 
   private applyDefaultMenuState(): void {
@@ -529,6 +600,11 @@ export class MainLayoutComponent implements OnInit {
   onEscape(): void {
     this.closeAllPanels();
     this.closeFlyoutSearch();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.queueModuleScrollStateUpdate();
   }
 
   logout(): void {

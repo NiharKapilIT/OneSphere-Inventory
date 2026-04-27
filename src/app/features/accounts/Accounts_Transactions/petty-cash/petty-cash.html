@@ -283,7 +283,7 @@
                 }
             </div>
 
-              <div class="col-12 col-md-6">
+              <!-- <div class="col-12 col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label" for="pactualpaidamount">Amount Paid <span class="required">*</span></label>
                   <input id="pactualpaidamount" class="erp-input text-end font-bold" type="text" placeholder="0.00"
@@ -294,10 +294,10 @@
                   }
                 </div>
                 <span class="erp-balance-chip">{{ partyBalance || '0 Dr' }}</span>
-              </div>
+              </div> 
               @if (paymentVoucherForm.get('ppaymentsslistcontrols.ppartyid')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.ppartyid')?.touched) {
                 <div class="erp-field-error">Please Select Party</div>
-              }
+              }-->
             </div>
 
             <div class="col-12 col-md-6">
@@ -347,7 +347,7 @@
               <h4 class="m-0 text-sm font-bold uppercase tracking-wider text-primary">GST Information</h4>
             </div>
             <div class="row g-2">
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">State <span class="required">*</span></label>
                   @if (statelist.length === 1) {
@@ -367,7 +367,7 @@
                 </div>
               </div>
 
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">GST No.</label>
                   <input type="text" class="erp-input uppercase" maxlength="15" id="pgstno" formControlName="pgstno"
@@ -379,7 +379,7 @@
                 </div>
               </div>
 
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">GST (%) <span class="required">*</span></label>
                   <ng-select [items]="gstlist" bindLabel="pgstpercentage" bindValue="pgstpercentage"
@@ -465,7 +465,7 @@
 
 
 
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">Section <span class="required">*</span></label>
                   <select class="erp-input" id="pTdsSection" formControlName="pTdsSection" [class.erp-input--invalid]="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched &&
@@ -501,7 +501,7 @@
 
 
 
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">Percentage <span class="required">*</span></label>
                   <select class="erp-input" id="pTdsPercentage" formControlName="pTdsPercentage"
@@ -520,7 +520,7 @@
                 </div>
               </div>
 
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">TDS Amount</label>
                   <div class="erp-value-pill">
@@ -639,25 +639,25 @@
 
             <div class="col-md-6">
               <div class="erp-form-group">
-              <label class="erp-label" for="pnarration">Narration <span class="required">*</span></label>
-              <textarea class="erp-textarea" rows="5" id="pnarration" title="Narration" formControlName="pnarration"
-                maxlength="250" placeholder="Enter narration"
-                (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"
-                [ngClass]="{'ng-invalid': paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid}">
+                <label class="erp-label" for="pnarration">Narration <span class="required">*</span></label>
+                <textarea class="erp-textarea" rows="5" id="pnarration" title="Narration" formControlName="pnarration"
+                  maxlength="250" placeholder="Enter narration"
+                  (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"
+                  [ngClass]="{'ng-invalid': paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid}">
               </textarea>
-              @if (paymentVoucherForm.get('pnarration')?.touched &&
-              paymentVoucherForm.get('pnarration')?.errors?.['required']) {
-              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration is required</div>
-              }
-              @if (paymentVoucherForm.get('pnarration')?.touched &&
-              paymentVoucherForm.get('pnarration')?.errors?.['maxlength']) {
-              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration cannot exceed 250
-                characters</div>
-              }
-              <div class="char-count" style="text-align: right; font-size: 11px; color: #94a3b8; margin-top: 4px;">
-                {{ paymentVoucherForm.get('pnarration')?.value?.length || 0 }} / 250
+                @if (paymentVoucherForm.get('pnarration')?.touched &&
+                paymentVoucherForm.get('pnarration')?.errors?.['required']) {
+                <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration is required</div>
+                }
+                @if (paymentVoucherForm.get('pnarration')?.touched &&
+                paymentVoucherForm.get('pnarration')?.errors?.['maxlength']) {
+                <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration cannot exceed 250
+                  characters</div>
+                }
+                <div class="char-count" style="text-align: right; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                  {{ paymentVoucherForm.get('pnarration')?.value?.length || 0 }} / 250
+                </div>
               </div>
-            </div>
 
               <div class="erp-form-group mt-3">
                 <label class="erp-label">Upload Document</label>

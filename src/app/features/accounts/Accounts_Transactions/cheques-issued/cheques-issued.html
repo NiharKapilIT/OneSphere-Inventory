@@ -53,7 +53,7 @@
             <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker formControlName="ptransactiondate" id="ptransactiondate" dateFormat="dd-M-yy"
               placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+              inputStyleClass="erp-input icon-pad w-100"  ></p-datepicker>
           </div>
         </div>
 
@@ -162,106 +162,179 @@
 
       <!-- DataTable -->
       <div class="tbl-wrap">
-        <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
+
+
+
+      <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
           [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
-          <!-- Header -->
+          <!-- HEADER -->
           <ng-template pTemplate="header">
             <tr>
-              <th style="width: 150px;">Actions</th>
-              <th style="min-width: 180px;" class="th-center">
-                <div class="th-cell">
-                  Cheque/Reference No.
+
+              @if (!showhidegridcolumns()) {
+              <th class="th-center th-action-sm">
+                <div class="th-cell th-cell--center">Clear</div>
+              </th>
+              <th class="th-center th-action-sm">
+                <div class="th-cell th-cell--center">Return</div>
+              </th>
+              <th class="th-ref">
+                <div class="th-cell">Reference No</div>
+              </th>
+              @if (status() !== 'autobrs') {
+              <th class="th-center th-action-sm">
+                <div class="th-cell th-cell--center">Cancel</div>
+              </th>
+              }
+              }
+
+              <th>
+                <div class="th-cell th-cell--center">Cheque / Reference No.</div>
+              </th>
+              <th class="th-right">
+                <div class="th-cell th-cell--right">
+                  <i class="pi pi-indian-rupee"></i> Amount
                 </div>
               </th>
-              <th style="min-width: 200px;">
-                <div class="th-cell">Party</div>
+              <th>
+                <div class="th-cell">
+                  <i class="pi pi-user"></i> Party
+                </div>
               </th>
-              <th style="min-width: 140px;">
-                <div class="th-cell">Payment Date</div>
+              <th>
+                <div class="th-cell">
+                  <i class="pi pi-file"></i> Payment Id
+                </div>
               </th>
-              <th style="min-width: 120px;">
-                <div class="th-cell">Payment ID</div>
+              <th>
+                <div class="th-cell">
+                  <i class="pi pi-calendar"></i> Payment Date
+                </div>
               </th>
-              <th style="min-width: 140px;" class="th-right">
-                <div class="th-cell">Amount</div>
+              <th>
+                <div class="th-cell">
+                  <i class="pi pi-credit-card"></i> Transaction Mode
+                </div>
               </th>
-              <th style="min-width: 120px;">
-                <div class="th-cell">Status</div>
-              </th>
-              <th style="min-width: 160px;">
-                <div class="th-cell">Transaction Mode</div>
-              </th>
+
             </tr>
           </ng-template>
 
-          <!-- Body -->
-          <ng-template pTemplate="body" let-row>
+          <!-- BODY -->
+          <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
             <tr>
-              <td class="td-actions">
-                <div class="action-group">
-                  @if (!showhidegridcolumns()) {
-                  <button class="erp-btn btn-outline btn-sm btn-icon" title="Clear">
-                    <i class="pi pi-check"></i>
-                  </button>
-                  @if (status() !== 'autobrs') {
-                  <button class="erp-btn btn-outline btn-sm btn-icon" title="Return">
-                    <i class="pi pi-arrow-left"></i>
-                  </button>
-                  <button class="erp-btn btn-outline btn-sm btn-icon" title="Cancel">
-                    <i class="pi pi-times"></i>
-                  </button>
-                  }
-                  }
+
+              @if (!showhidegridcolumns()) {
+
+              <td class="td-center td-action-sm">
+                <div class="td-checkbox-wrap">
+                  <input type="checkbox" class="erp-checkbox erp-checkbox--clear"
+                    [checked]="row.pdepositstatus === true && row.pchequestatus === 'P'"
+                    (change)="checkedClear($event, row)" />
                 </div>
               </td>
+
+              <td class="td-center td-action-sm">
+                <div class="td-checkbox-wrap">
+                  <input type="checkbox" class="erp-checkbox erp-checkbox--return"
+                    [checked]="row.preturnstatus === true" (change)="checkedReturn($event, row)" />
+                </div>
+              </td>
+
+              <td class="td-ref">
+                <input type="text" class="erp-input erp-input--ref" [value]="row.preferencetext || ''"
+                  placeholder="Ref No." (change)="checkDuplicateValueslatest($event, rowIndex, row)"
+                  (blur)="checkDuplicateValueslatest($event, rowIndex, row)" />
+              </td>
+
+              @if (status() !== 'autobrs') {
+              <td class="td-center td-action-sm">
+                <div class="td-checkbox-wrap">
+                  <input type="checkbox" class="erp-checkbox erp-checkbox--cancel"
+                    [checked]="row.pcancelstatus === true" (change)="checkedCancel($event, row)" />
+                </div>
+              </td>
+              }
+
+              }
+
               <td class="td-center">
-                <span class="receipt-no">{{ row.pChequenumber || row.preferencenumber || '--' }}</span>
+                <span class="cheque-ref">{{ row.pChequenumber || row.preferencenumber || '--' }}</span>
               </td>
-              <td>{{ row.ppartyname || row.partyname || row.pBankName || '--' }}</td>
-              <td>
-                <div class="td-date">
-                  <i class="pi pi-calendar text-muted"></i>
-                  {{ row.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '--' }}
-                </div>
-              </td>
-              <td>
-                <span class="receipt-no">#{{ row.preceiptid || '--' }}</span>
-              </td>
+
               <td class="td-right">
                 <div class="amount-cell">
                   <span class="amt-sym">{{ currencySymbol() }}</span>
-                  <span class="amt-num">{{ (row.ptotalreceivedamount || 0) | number:'1.2-2' }}</span>
+                  <span class="amt-num">{{ row.ptotalreceivedamount | number:'1.2-2' }}</span>
                 </div>
               </td>
+
+              <td>{{ row.ppartyname || row.partyname || row.pBankName || '--' }}</td>
+
+              <td>{{ row.preceiptid || '--' }}</td>
+
               <td>
-                <span class="erp-badge" [class.badge-success]="row.status === 'Cleared'"
-                  [class.badge-warning]="row.status === 'Returned'" [class.badge-danger]="row.status === 'Cancelled'"
-                  [class.badge-info]="row.status !== 'Cleared' && row.status !== 'Returned' && row.status !== 'Cancelled'">
-                  {{ row.pchequestatus || '--' }}
-                </span>
+                <div class="td-date">
+                  {{ row.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '--' }}
+                </div>
               </td>
-              <td>
-                <span class="erp-badge badge-neutral">{{ row.ptypeofpayment || '--' }}</span>
-              </td>
+
+              <td>{{ row.ptypeofpayment || '--' }}</td>
+
             </tr>
           </ng-template>
 
-          <!-- Empty Message -->
+          <!-- FOOTER -->
+          <ng-template pTemplate="footer">
+            @if (gridData().length > 0) {
+            <tr>
+              @if (!showhidegridcolumns()) {
+              <td></td>
+              <td></td>
+              <td></td>
+              @if (status() !== 'autobrs') {
+              <td></td>
+              }
+              }
+              <td class="td-center td-footer-label">Total</td>
+              <td class="td-right">
+                <div class="amount-cell amount-cell--total">
+                  <span class="amt-sym">{{ currencySymbol() }}</span>
+                  <span class="amt-num">{{ amounttotal() | number:'1.2-2' }}</span>
+                </div>
+              </td>
+              <td colspan="4"></td>
+            </tr>
+            }
+          </ng-template>
+          
+
+
+    
+
+          <!-- EMPTY -->
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="8" class="p-5">
-                <div class="text-center text-muted">
-                  <i class="pi pi-inbox fs-2 mb-2 d-block"></i>
-                  <p>No cheques found for the selected criteria</p>
+              <td colspan="11">
+                <div class="tbl-empty">
+                  <i class="pi pi-inbox tbl-empty__icon"></i>
+                  <p class="tbl-empty__text">No cheques found</p>
                 </div>
               </td>
             </tr>
           </ng-template>
 
         </p-table>
+
+
+
+
+
+
+
       </div>
 
     </div>

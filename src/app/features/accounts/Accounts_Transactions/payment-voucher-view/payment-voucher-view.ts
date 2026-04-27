@@ -2333,8 +2333,8 @@ import { DatePickerModule } from 'primeng/datepicker';
   providers: [DecimalPipe, CurrencyPipe, DatePipe],
 })
 export class PaymentVoucherView implements OnInit, OnDestroy {
-  pDatepickerMaxDate: Date = new Date();
-  pDatepickerMinDate: Date = new Date();
+  pDatepickerMaxDate: any = new Date();
+  pDatepickerMinDate: any = new Date();
   // pDatepickerMinDate: Date = new Date(new Date().setFullYear(new Date().getFullYear() - 1));
 
   // ─── Injected Services ────────────────────────────────────────────────────
@@ -3833,6 +3833,7 @@ addPaymentDetails(): void {
   }
 
   private savePaymentRow(row: any, ctrl: FormGroup): void {
+    debugger
     this.paymentsList.push(row);
     this.paymentsList1 = [...this.paymentsList1, row];
     this.getPartyJournalEntryData();

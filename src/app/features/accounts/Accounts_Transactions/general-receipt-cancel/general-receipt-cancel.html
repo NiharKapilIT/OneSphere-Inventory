@@ -31,11 +31,10 @@
                 <ng-select id="receiptid" [items]="receiptdata()" bindLabel="receiptnumber" bindValue="receiptid"
                   formControlName="receiptid" [searchable]="true" [clearable]="true" placeholder="Select"
                   appendTo="body" (change)="getreceiptdata($event)" [class.ng-invalid]="
-                    GeneralReceiptCancelForm.get('receiptid')?.invalid &&
-                    (GeneralReceiptCancelForm.get('receiptid')?.touched ||
-                      GeneralReceiptCancelForm.get('receiptid')?.dirty)
-                  "></ng-select>
-                @if (GeneralReceiptCancelForm.get('receiptid')?.errors?.['required']) {
+  GeneralReceiptCancelForm.get('receiptid')?.invalid && showValidation()
+"></ng-select>
+
+                @if (GeneralReceiptCancelForm.get('receiptid')?.errors?.['required'] && showValidation()) {
                 <span class="erp-field-error">Receipt No. is required</span>
                 }
               </div>
@@ -47,11 +46,13 @@
                 <div class="flex-grow-1">
                   <div class="erp-form-group">
                     <label class="erp-label" for="ppaymentdate">Date <span class="required">*</span></label>
+                   
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
-                      <p-datepicker formControlName="ppaymentdate" id="ppaymentdate" dateFormat="dd-M-yy"
-                        placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                        inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                      <p-datepicker [(ngModel)]="testDate" [ngModelOptions]="{standalone: true}" id="ppaymentdate"
+                        dateFormat="dd-M-yy" [readonlyInput]="true" [disabled]="true" appendTo="body"
+                        styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
+                      </p-datepicker>
                     </div>
                   </div>
                 </div>

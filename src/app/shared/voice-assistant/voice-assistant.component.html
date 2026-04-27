@@ -1,0 +1,53 @@
+<button
+  type="button"
+  class="voice-fab"
+  [class.active]="open()"
+  [class.listening]="listening()"
+  (click)="listening() ? stopListening() : startListening()"
+  aria-label="Voice assistant">
+  <i class="pi" [ngClass]="listening() ? 'pi-stop-circle' : 'pi-microphone'"></i>
+</button>
+
+@if (open()) {
+  <section class="voice-panel" aria-label="Voice assistant panel">
+    <header class="voice-header">
+      <div>
+        <span class="voice-kicker">Assistant</span>
+        <h3>Voice Command</h3>
+      </div>
+
+      <button type="button" class="voice-icon-btn" (click)="close()" aria-label="Close voice assistant">
+        <i class="pi pi-times"></i>
+      </button>
+    </header>
+
+    <div class="voice-body">
+      <div class="voice-orb" [class.listening]="listening()">
+        <i class="pi pi-microphone"></i>
+      </div>
+
+      <div class="voice-state">
+        <span>{{ status() }}</span>
+        @if (transcript()) {
+          <strong>{{ transcript() }}</strong>
+        }
+        @if (matchedLabel()) {
+          <em>{{ matchedLabel() }}</em>
+        }
+      </div>
+
+      @if (!supported()) {
+        <p class="voice-error">Voice recognition is not available in this browser.</p>
+      }
+
+      <button
+        type="button"
+        class="voice-action"
+        [disabled]="!supported()"
+        (click)="listening() ? stopListening() : startListening()">
+        <i class="pi" [ngClass]="listening() ? 'pi-stop' : 'pi-microphone'"></i>
+        {{ listening() ? 'Stop' : 'Speak' }}
+      </button>
+    </div>
+  </section>
+}

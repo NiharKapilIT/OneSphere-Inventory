@@ -113,18 +113,66 @@ input {
   text-transform: uppercase;
 }
 
+.nav-module-strip {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: calc(100vw - 560px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .nav-modules {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   overflow-x: auto;
-  padding: 4px 2px;
+  overflow-y: hidden;
+  padding: 4px 8px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
 
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+.module-scroll-btn {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--primary-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s ease, background 0.16s ease, opacity 0.16s ease;
+
+  &:hover {
+    background: #ffffff;
+    transform: scale(1.06);
+  }
+
+  &.left {
+    order: 0;
+  }
+
+  &.right {
+    order: 2;
+  }
+}
+
+.nav-modules {
+  order: 1;
 }
 
 .module-tab {
@@ -143,6 +191,8 @@ input {
   cursor: pointer;
   transition: 0.22s ease;
   box-shadow: var(--shadow-sm);
+  scroll-snap-align: center;
+  flex: 0 0 auto;
 
   &:hover {
     background: var(--module-pill-hover);
@@ -154,6 +204,21 @@ input {
     border-color: transparent;
     color: var(--text-white);
     box-shadow: var(--shadow-md);
+    animation: moduleTabSettle 0.28s ease;
+  }
+}
+
+@keyframes moduleTabSettle {
+  0% {
+    transform: translateY(0) scale(0.98);
+  }
+
+  55% {
+    transform: translateY(-1px) scale(1.03);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -243,6 +308,7 @@ input {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .nav-action-group {
