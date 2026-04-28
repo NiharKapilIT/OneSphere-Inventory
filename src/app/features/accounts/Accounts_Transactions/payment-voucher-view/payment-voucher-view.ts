@@ -2511,7 +2511,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   private buildPaymentLineControls(): FormGroup {
     return this.fb.group({
-      psubledgerid: [null,Validators.required],
+      psubledgerid: [null, Validators.required],
       // psubledgerid: [null],
       psubledgername: [''],
       pledgerid: [null, Validators.required],
@@ -3607,7 +3607,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   validateAddPaymentDetails(currentRow: any): boolean {
     debugger;
-      let isValid = true;
+    let isValid = true;
     try {
       const { pledgername, psubledgername, psubledgerid, ppartyid } =
         currentRow;
@@ -3670,7 +3670,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
 
-addPaymentDetails(): void {
+  addPaymentDetails(): void {
     debugger;
     const round = (n: number) =>
       Math.round((n + Number.EPSILON) * 100) / 100;
@@ -4118,11 +4118,11 @@ addPaymentDetails(): void {
         )
       );
 
-    if (!this.validatesavePaymentVoucher()) {
-      this.disableSaveButton.set(false);
-      this.saveButtonLabel.set('Save');
-      return;
-    }
+    // if (!this.validatesavePaymentVoucher()) {
+    //   this.disableSaveButton.set(false);
+    //   this.saveButtonLabel.set('Save');
+    //   return;
+    // }
 
     const accountIds = this.paymentsList.map((p) => p.psubledgerid).join(',');
     const transDate = this.commonService.getFormatDateNormal(
@@ -4185,7 +4185,7 @@ addPaymentDetails(): void {
 
         this.paymentVoucherForm.get('pipaddress')?.setValue('192.168.2.177');
         this.paymentVoucherForm.get('pCreatedby')?.setValue(9);
-console.log(this.paymentVoucherForm.value , "formval");
+        console.log(this.paymentVoucherForm.value, "formval");
 
         const payload = this.buildSavePayload(
           this.paymentVoucherForm.getRawValue()
@@ -4343,8 +4343,8 @@ console.log(this.paymentVoucherForm.value , "formval");
       ppaymentid: safe(formVal.ppaymentid),
       // ppaymentdate: safe(this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')),
       ppaymentdate: formVal.ppaymentdate
-  ? this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')
-  : "",
+        ? this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')
+        : "",
       pjvdate: safe(this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')),
       // ppaymentdate: safe(this.commonService.getFormatDateNormal(formVal.ppaymentdate)),
       // pjvdate: safe(this.commonService.getFormatDateNormal(formVal.ppaymentdate)),

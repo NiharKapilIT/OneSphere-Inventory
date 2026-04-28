@@ -93,7 +93,7 @@
             <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label" id="pCardNumber" [title]="displayCardName">
-                  {{ displayCardName }} 
+                  {{ displayCardName }}
                 </label>
                 <!-- <span class="required">*</span> -->
                 <ng-select appendTo="body" [items]="debitCardList" formControlName="pCardNumber" bindLabel="pCardNumber"
@@ -655,13 +655,8 @@
             <div class="erp-form-group">
               <label class="erp-label" id="pDocStorePath" title="Upload Document">Upload Document</label>
               <div class="erp-file-upload">
-                <input
-                  type="text"
-                  class="erp-input erp-file-input"
-                  formControlName="pDocStorePath"
-                  [value]="imageResponse?.name"
-                  readonly
-                  placeholder="No file selected">
+                <input type="text" class="erp-input erp-file-input" formControlName="pDocStorePath"
+                  [value]="imageResponse?.name" readonly placeholder="No file selected">
                 <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                   <i class="pi pi-upload"></i> Upload
                 </button>

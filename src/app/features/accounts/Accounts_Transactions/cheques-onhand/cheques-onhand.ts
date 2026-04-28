@@ -509,7 +509,7 @@ export class ChequesOnhand implements OnInit {
       this.bankid = 0;
       this.bankname.set(null);
       this.banknameshowhide.set(false);
-      this.ChequesOnHandValidation.update(v => ({ ...v, bankname: 'Please Select Bank Name' }));
+      this.ChequesOnHandValidation.update(v => ({ ...v, bankname: 'Bank Name is required' }));
     } else {
       this.bankdetails = event;
       this.banknameshowhide.set(true);
