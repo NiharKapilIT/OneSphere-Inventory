@@ -217,3 +217,48 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+:host ::ng-deep .cheque-bank-select .ng-select-container {
+  display: flex !important;
+  align-items: center !important;
+}
+
+:host ::ng-deep .cheque-bank-select .ng-value-container {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+:host ::ng-deep .cheque-bank-select .ng-arrow-wrapper {
+  margin-left: auto !important;
+  padding-right: 12px !important;
+}
+
+.cheque-form-footer {
+  align-items: center;
+  border-top: 1px solid rgba(219, 232, 249, 0.6);
+  background: rgba(248, 250, 252, 0.96);
+}
+
+.cheque-form-footer .erp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 110px;
+}
+
+.cheque-form-footer .erp-btn .cheque-btn-label {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.cheque-form-footer .erp-btn.btn-primary .cheque-btn-label {
+  color: #fff !important;
+}
+
+.cheque-form-footer .erp-btn.btn-secondary .cheque-btn-label {
+  color: var(--clr-p1, #0c4a6e) !important;
+}

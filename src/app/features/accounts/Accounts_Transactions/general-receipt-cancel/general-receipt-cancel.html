@@ -34,7 +34,8 @@
   GeneralReceiptCancelForm.get('receiptid')?.invalid && showValidation()
 "></ng-select>
 
-                @if (GeneralReceiptCancelForm.get('receiptid')?.errors?.['required'] && showValidation()) {
+                @if (GeneralReceiptCancelForm.get('receiptid')?.errors?.['required']
+                 && showValidation()) {
                 <span class="erp-field-error">Receipt No. is required</span>
                 }
               </div>

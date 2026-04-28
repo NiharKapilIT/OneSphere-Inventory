@@ -46,13 +46,13 @@
       <div class="col-12 col-md-6">
         <div class="erp-form-group">
           <label class="erp-label" for="pCountryId">Country <span class="required">*</span></label>
-          <ng-select id="pCountryId" [items]="countryDetails()" bindLabel="country_name"
+          <ng-select id="pCountryId" [items]="countryDetails()" bindLabel="country_name" bindValue="tbl_mst_country_id"
             formControlName="pCountryId" placeholder="Select Country" [searchable]="true" [clearable]="true"
             appendTo="body" (change)="pCountry_Change($event)"
-            [ngClass]="{'ng-invalid': errorOf('pCountry') && addressForm.get('pCountryId')?.touched}">
+            [ngClass]="{'ng-invalid': errorOf('pCountryId') && addressForm.get('pCountryId')?.touched}">
           </ng-select>
-          @if (errorOf('pCountry')) {
-          <span class="erp-field-error">{{ errorOf('pCountry') }}</span>
+          @if (errorOf('pCountryId')) {
+          <span class="erp-field-error">{{ errorOf('pCountryId') }}</span>
           }
         </div>
       </div>
@@ -61,7 +61,7 @@
       <div class="col-12 col-md-6">
         <div class="erp-form-group">
           <label class="erp-label" for="pStateId">State <span class="required">*</span></label>
-          <ng-select id="pStateId" [items]="stateDetails()" bindLabel="state_name"
+          <ng-select id="pStateId" [items]="stateDetails()" bindLabel="state_name" bindValue="tbl_mst_state_id"
             formControlName="pStateId" placeholder="Select State" [searchable]="true" [clearable]="true"
             appendTo="body" (change)="pState_Change($event)"
             [ngClass]="{'ng-invalid': errorOf('pState') && addressForm.get('pStateId')?.touched}">
@@ -76,7 +76,7 @@
       <div class="col-12 col-md-6">
         <div class="erp-form-group">
           <label class="erp-label" for="pDistrictId">District <span class="required">*</span></label>
-          <ng-select id="pDistrictId" [items]="districtDetails()" bindLabel="district_name"
+          <ng-select id="pDistrictId" [items]="districtDetails()" bindLabel="district_name" bindValue="tbl_mst_district_id" 
             formControlName="pDistrictId" placeholder="Select District" [searchable]="true" [clearable]="true"
             appendTo="body" (change)="pDistrict_Change($event)"
             [ngClass]="{'ng-invalid': errorOf('pDistrict') && addressForm.get('pDistrictId')?.touched}">

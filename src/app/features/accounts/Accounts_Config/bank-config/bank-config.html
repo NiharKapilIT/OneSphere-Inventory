@@ -1,24 +1,12 @@
 <div class="module-page">
 
-  <div class="d-flex justify-between align-center gap-4 mb-0 p-4">
-    <div>
-      <h1 class="page-title">
-        <i class="pi pi-building"></i> Bank Configuration
-      </h1>
-      <p class="page-subtitle">Manage and configure bank accounts and payment settings</p>
-    </div>
-
-    <a routerLink="/dashboard/accounts/accounts-config/bank-config-view" class="erp-btn btn-primary btn-lg"
-      style="margin-top: auto; white-space: nowrap;">
-      <i class="pi pi-list"></i> View Configs
-    </a>
-  </div>
-
   <div class="erp-card">
     <div class="card-header">
-      <div class="card-title">
-        <i class="pi pi-cog"></i> New Bank Account
-      </div>
+      <h2 class="card-title"><i class="pi pi-building"></i> New Bank Account</h2>
+      <span class="erp-spacer"></span>
+      <a routerLink="/dashboard/accounts/accounts-config/bank-config-view" class="erp-btn btn-white btn-sm">
+        <i class="pi pi-list"></i> View
+      </a>
     </div>
 
     <div class="card-body p-4">
@@ -168,12 +156,11 @@
                   <div class="setup-content">
                     <div class="toggle-section">
                       <div class="toggle-section__header">
-                        <span class="toggle-section__label">Card Status</span>
-                        <div class="material-switch">
+                        <label class="erp-checkbox mb-0">
                           <input type="checkbox" id="debitcard" formControlName="pIsdebitcardapplicable"
                             (change)="bankdebitcardchecked($event)" />
-                          <label for="debitcard" class="erp-badge-success"></label>
-                        </div>
+                          <span>Card Status</span>
+                        </label>
                       </div>
                     </div>
 
@@ -265,12 +252,11 @@
                   <div class="setup-content">
                     <div class="toggle-section">
                       <div class="toggle-section__header">
-                        <span class="toggle-section__label">UPI Status</span>
-                        <div class="material-switch">
+                        <label class="erp-checkbox mb-0">
                           <input type="checkbox" id="upi" formControlName="pIsupiapplicable"
                             (change)="bankupichecked($event)" />
-                          <label for="upi" class="erp-badge-success"></label>
-                        </div>
+                          <span>UPI Status</span>
+                        </label>
                       </div>
                     </div>
 

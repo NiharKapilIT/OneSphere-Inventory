@@ -23,12 +23,14 @@
               <label class="erp-label" for="bankName">
                 Select Bank <span class="required">*</span>
               </label>
-              <ng-select appendTo="body" inputId="bankName" [items]="bankdetails()" bindLabel="bankName"
-                bindValue="bankName" placeholder="-- Select --" formControlName="bankName" [loading]="isLoadingBanks()"
-                loadingText="Loading banks..." notFoundText="No banks found" [ngClass]="{
-                  'ng-invalid ng-touched': bankNameCtrl.touched && bankNameCtrl.invalid
-                }" (change)="onBankChange($event)" aria-label="Select Bank">
-              </ng-select>
+              <div class="erp-input-wrap">
+                <ng-select class="cheque-bank-select w-100" appendTo="body" inputId="bankName" [items]="bankdetails()"
+                  bindLabel="bankName" bindValue="bankName" placeholder="-- Select --" formControlName="bankName"
+                  [loading]="isLoadingBanks()" loadingText="Loading banks..." notFoundText="No banks found" [ngClass]="{
+                    'ng-invalid ng-touched': bankNameCtrl.touched && bankNameCtrl.invalid
+                  }" (change)="onBankChange($event)" aria-label="Select Bank">
+                </ng-select>
+              </div>
               @if (bankNameCtrl.touched && bankNameCtrl.invalid) {
               <div class="erp-field-error" role="alert">
                 Bank is required
@@ -203,7 +205,7 @@
       </div>
 
       <!-- FORM FOOTER -->
-      <div class="p-4 d-flex gap-2 justify-end">
+      <div class="p-4 d-flex gap-2 justify-end cheque-form-footer">
         <button type="button" class="erp-btn btn-secondary" (click)="clear()" title="Reset entire form"
           aria-label="Clear form">
           <i class="pi pi-times"></i> Clear
@@ -216,7 +218,7 @@
           } @else {
           <i class="pi pi-spin pi-spinner"></i>
           }
-          {{ buttonname() }}
+          <span class="cheque-btn-label">{{ buttonname() || 'Save' }}</span>
         </button>
 
         <button type="button" class="erp-btn btn-primary" [disabled]="disablesaveactivebutton()"
@@ -226,7 +228,7 @@
           } @else {
           <i class="pi pi-spin pi-spinner"></i>
           }
-          {{ buttonnameactive() }}
+          <span class="cheque-btn-label">{{ buttonnameactive() || 'Save & Generate' }}</span>
         </button>
       </div>
 

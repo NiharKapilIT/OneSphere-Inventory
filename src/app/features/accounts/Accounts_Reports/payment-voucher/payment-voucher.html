@@ -22,7 +22,7 @@
             <!-- Voucher Header -->
             <div class="voucher-header d-flex align-items-start border-bottom pb-3 mb-4">
               <div class="company-logo me-4">
-                <img src="assets/images/kapillogo.png" height="70" alt="Logo" />
+                <img [src]="getKapilGroupLogo()" height="70" alt="Logo" />
               </div>
               <div class="company-info flex-grow-1">
                 <h4 class="mb-1 font-bold text-primary" style="font-size: 22px;">{{ companyName() }}</h4>
@@ -208,4 +208,4 @@
     .report-print-card { border: none !important; box-shadow: none !important; }
     .page-break-after { page-break-after: always; }
   }
-</style>
+</style>

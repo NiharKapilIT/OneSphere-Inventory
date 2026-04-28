@@ -66,6 +66,14 @@ export class JournalVoucher implements OnInit {
     this.readRouteParams();
   }
 
+  getKapilGroupLogo() {
+debugger
+let img:string='';
+let Company = this.commonService._getCompanyDetails();
+  img = Company.companyLogo;
+    return img;
+  }
+
   // ── Route params ──────────────────────────────────────────────────────────────
   private readRouteParams(): void {
     this.activatedRoute.paramMap.pipe(take(1)).subscribe(params => {

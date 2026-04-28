@@ -32,10 +32,13 @@
                     PettyCashCancel.get('receiptid')?.invalid &&
                     (PettyCashCancel.get('receiptid')?.touched ||
                       PettyCashCancel.get('receiptid')?.dirty)
+                      
                   "></ng-select>
 
                 @if (
-                PettyCashCancel.get('receiptid')?.errors?.['required'] && showClicked()
+                PettyCashCancel.get('receiptid')?.errors?.['required']
+                 && showClicked()
+
                 ) {
                 <span class="erp-field-error">Receipt No. is required</span>
                 }

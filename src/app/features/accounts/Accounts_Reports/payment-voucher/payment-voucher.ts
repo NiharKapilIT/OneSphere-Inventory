@@ -207,6 +207,13 @@ export class PaymentVoucher implements OnInit {
         index === self.findIndex((t: any) => t[key] === item[key])
     );
   }
+  getKapilGroupLogo() {
+debugger
+let img:string='';
+let Company = this.commonService._getCompanyDetails();
+  img = Company.companyLogo;
+    return img;
+  }
 
   private computeTotals(list: any[]): any[] {
     const result = list.map((x: any) => {
