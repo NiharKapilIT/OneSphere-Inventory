@@ -635,6 +635,7 @@ export class ChequesOnhand implements OnInit {
     this.PopupData = data;
 
     if (isChecked) {
+      debugger
       const receiptdate = this._commonService.getDateObjectFromDataBase(gridtemp[0].preceiptdate);
       const transactiondate = this.ChequesOnHandForm.controls['ptransactiondate'].value;
 
@@ -876,6 +877,7 @@ export class ChequesOnhand implements OnInit {
   }
 
   Deposited1() {
+    debugger
     this.modeofreceipt = 'DEPOSIT';
     this.status.set('deposited');
     this.pdfstatus = 'Deposited';
@@ -923,7 +925,7 @@ export class ChequesOnhand implements OnInit {
     this.gridData.set(JSON.parse(JSON.stringify(grid)));
     this.gridDatatemp.set(this.gridData());
     this.showicons.set(this.gridData().length > 0);
-
+    debugger
     const total = this._countData && +this._countData['clear_count'] > 0
       ? +this._countData['clear_count']
       : this.gridData().length;
@@ -985,6 +987,7 @@ export class ChequesOnhand implements OnInit {
     this.BrsDateForm.controls['frombrsdate'].updateValueAndValidity();
     this.BrsDateForm.controls['tobrsdate'].updateValueAndValidity();
 
+    debugger
     const grid = this.ChequesClearReturnData
       .filter(i => i.pchequestatus === 'C')
       .map(i => ({
@@ -1016,6 +1019,9 @@ export class ChequesOnhand implements OnInit {
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
   }
+
+
+
 
 
   pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
@@ -1381,7 +1387,6 @@ export class ChequesOnhand implements OnInit {
 
   Save() {
     debugger
-    console.log('Save() called');
     this.count = 0;
     this.DataForSaving = [];
     let isValid = true;
@@ -1393,12 +1398,11 @@ export class ChequesOnhand implements OnInit {
       return;
     }
 
-    console.log('bankid:', this.bankid);
 
     const hasSelectedRows = this.gridData().some(
       row => row.pdepositstatus === true || row.pcancelstatus === true
     );
-    console.log('hasSelectedRows:', hasSelectedRows);
+
 
     if (!hasSelectedRows) {
       this._commonService.showWarningMessage('Please Select Atleast One Record');
@@ -1408,14 +1412,14 @@ export class ChequesOnhand implements OnInit {
     this.gridData().forEach(aa => {
       if ((aa.pchequestatus || '').trim() === 'P') deposit++;
     });
-    console.log('deposit count:', deposit);
+
 
     let validationcount = 0;
     this.gridData().forEach(row => {
       const s = (row.pchequestatus || '').trim();
       if ((s === 'P' || s === 'C') && row.selfchequestatus === true) validationcount++;
     });
-    console.log('validationcount:', validationcount);
+    // console.log('validationcount:', validationcount);
 
     const control = this.ChequesOnHandForm.get('bankname');
     if (deposit > 0 && validationcount > 0) {
@@ -1426,7 +1430,7 @@ export class ChequesOnhand implements OnInit {
     control?.updateValueAndValidity();
 
     const formValid = this.checkValidations(this.ChequesOnHandForm, isValid);
-    console.log('formValid:', formValid);
+    //console.log('formValid:', formValid);
 
     if (formValid) {
       const addedReceiptIds = new Set<string>();
@@ -1445,8 +1449,8 @@ export class ChequesOnhand implements OnInit {
         }
       });
 
-      console.log('DataForSaving length:', this.DataForSaving.length);
-      console.log('DataForSaving:', this.DataForSaving);
+      // console.log('DataForSaving length:', this.DataForSaving.length);
+      // console.log('DataForSaving:', this.DataForSaving);
 
       if (this.DataForSaving.length === 0) {
         setTimeout(() => this._commonService.showWarningMessage('No Data to Save'), 0);
@@ -1455,7 +1459,7 @@ export class ChequesOnhand implements OnInit {
 
       const dataSnapshot = [...this.DataForSaving];
       const userConfirmed = confirm('Do You Want To Save ?');
-      console.log('userConfirmed:', userConfirmed);
+      // console.log('userConfirmed:', userConfirmed);
 
       if (!userConfirmed) {
         this.checked = false;
@@ -1532,6 +1536,8 @@ export class ChequesOnhand implements OnInit {
       });
     }
   }
+
+
 
   private _mapRowToSavePayload(row: any, status: string): any {
     const str = (v: any) => v?.toString() || '';
