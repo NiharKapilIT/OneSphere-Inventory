@@ -2,14 +2,14 @@
 <div class="module-page">
 
   <!-- Breadcrumb Section -->
-  <div class="d-flex justify-between align-center gap-4 mb-2 p-4">
+  <!-- <div class="d-flex justify-between align-center gap-4 mb-2 p-4">
     <div>
       <h1 class="page-title">
         <i class="pi pi-list"></i> Cheques Issued
       </h1>
       <p class="page-subtitle">Track and manage all issued cheques and online payments</p>
     </div>
-  </div>
+  </div> -->
 
   <!-- Main Card -->
   <div class="erp-card">
@@ -169,7 +169,7 @@
           [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines"
-          [resizableColumns]="true">
+          [resizableColumns]="true" columnResizeMode="expand">
 
           <!-- HEADER -->
           <ng-template pTemplate="header">

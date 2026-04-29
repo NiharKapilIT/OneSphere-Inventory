@@ -1,0 +1,144 @@
+<div class="module-page">
+  <div class="erp-card">
+    <div class="card-body p-0">
+
+      <div class="card-header">
+        <div>
+          <h4 class="card-title">KHC Details</h4>
+          <p class="card-subtitle">Manage employee policy and KHC information</p>
+        </div>
+      </div>
+
+      <!-- Employee Grid -->
+      <div class="p-4">
+        <p-table
+          [value]="employeeList"
+          [paginator]="true"
+          [rows]="5"
+          [rowsPerPageOptions]="[5, 10, 20]"
+          [responsiveLayout]="'scroll'"
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 110px">Actions</th>
+              <th>Employee ID</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Select" (click)="onSelectEmployee(row)">
+                  <i class="pi pi-check"></i>
+                </button>
+              </td>
+              <td>{{ row.employeeId }}</td>
+              <td>{{ row.employeeName }}</td>
+              <td>{{ row.designation }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4">
+                <div class="grn-table-empty">
+                  <i class="pi pi-inbox"></i>
+                  <div>No data to display</div>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Employee Basic Details -->
+      <div class="p-4">
+        <div class="row g-3">
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Employee ID</label>
+              <input type="text" class="erp-input" [(ngModel)]="formData.employeeId" readonly />
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Employee Name</label>
+              <input type="text" class="erp-input" [(ngModel)]="formData.employeeName" readonly />
+            </div>
+          </div>
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Present Designation</label>
+              <input type="text" class="erp-input" [(ngModel)]="formData.presentDesignation" readonly />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Policy Details -->
+      <div class="p-4">
+        <h5 class="section-title mb-3">Employee Policy Details</h5>
+        <div class="row g-3">
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Kapil Group Join Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.kapilGroupJoinDate" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">K.H.C No <span class="required">*</span></label>
+              <input type="text" class="erp-input" [(ngModel)]="formData.khcNo" placeholder="Enter KHC No" />
+              <div class="erp-field-error" *ngIf="submitted && !formData.khcNo">K.H.C No Required</div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Employee Policy Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.employeePolicyDate" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Renewal Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.renewalDate" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-4">
+            <div class="erp-form-group">
+              <label class="erp-label">Policy Amount <span class="required">*</span></label>
+              <input type="number" class="erp-input" [(ngModel)]="formData.policyAmount" placeholder="Amount" />
+              <div class="erp-field-error" *ngIf="submitted && !formData.policyAmount">Policy Amount Required</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-footer d-flex justify-end gap-2">
+        <button type="button" class="erp-btn btn-white" (click)="onClear()">
+          <i class="pi pi-times"></i> Clear
+        </button>
+        <button type="button" class="erp-btn btn-primary" (click)="onSave()">
+          <i class="pi pi-check"></i> Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

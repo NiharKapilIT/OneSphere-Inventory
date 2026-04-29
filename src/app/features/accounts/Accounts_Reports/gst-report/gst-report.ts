@@ -82,7 +82,7 @@ export class GstReport implements OnInit {
   paymentsSortColumn    = '';
   paymentsSortDirection: 1 | -1 = 1;
   private rawPaymentsData: any[] = [];
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   private loginBranchSchema: any;
 

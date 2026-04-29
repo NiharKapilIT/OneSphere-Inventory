@@ -36,8 +36,9 @@
 
             <!-- Cheques Info Toggle -->
             <div class="col-12 col-md-auto">
-              <div class="erp-form-group mb-2">
-                <label class="erp-checkbox">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
+                <label class="erp-checkbox m-0">
                   <input type="checkbox" id="chequesInfo" (change)="onChequesInfoChange($event)" />
                   <span>Cheques Info</span>
                 </label>
@@ -86,9 +87,9 @@
             }
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-auto">
+            <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="submit" class="erp-btn btn-primary">
+                <button type="submit" class="erp-btn btn-primary w-100">
                   <i class="pi pi-search"></i> {{ savebutton() }}
                 </button>
               </div>
@@ -230,7 +231,7 @@
                   </div>
 
                   <!-- Reconciliation Form Fields -->
-                  <div class="row g-3">
+                  <div class="row g-2 align-items-end">
                     <div class="col-md-6">
                       <div class="erp-form-group">
                         <label class="erp-label required">Verified Bank Balance <span class="required">*</span></label>
@@ -244,10 +245,10 @@
                     <div class="col-md-6">
                       <div class="erp-form-group">
                         <label class="erp-label">Support Document (Passbook/Statement)</label>
-                        <div class="erp-input-wrap">
-                          <input type="text" class="erp-input pe-5 bg-light" formControlName="pFilename" readonly placeholder="No file selected" />
-                          <button type="button" class="erp-btn btn-primary btn-sm position-absolute end-0 top-50 translate-middle-y me-1" (click)="fileInput.click()" style="height: 28px;">
-                            <i class="pi pi-upload small"></i> Browse
+                        <div class="erp-file-upload">
+                          <input type="text" class="erp-input erp-file-input" formControlName="pFilename" readonly placeholder="No file selected" />
+                          <button type="button" class="erp-file-btn" (click)="fileInput.click()">
+                            <i class="pi pi-upload"></i> Browse
                           </button>
                           <input hidden type="file" #fileInput (change)="uploadAndProgress($event)" />
                         </div>

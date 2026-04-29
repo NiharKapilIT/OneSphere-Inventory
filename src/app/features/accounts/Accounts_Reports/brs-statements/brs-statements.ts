@@ -88,7 +88,7 @@ export class BrsStatements implements OnInit {
   dpConfig: any = {};
   dpConfig1: any = {};
   form!: FormGroup<BrsForm>;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
    today = new Date(new Date().setHours(0, 0, 0, 0));
 
   constructor() {

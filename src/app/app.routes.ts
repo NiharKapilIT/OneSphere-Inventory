@@ -33,6 +33,10 @@ export const routes: Routes = [
       {
         path: 'accounts',
         loadChildren: () => import('./features/accounts/accounts_routs').then(m => m.accountsRoutes)
+      },
+      {
+        path: 'hrms',
+        loadChildren: () => import('./features/HRMS/hrms_routs').then(m => m.hrmsRoutes)
       }
     ]
   },

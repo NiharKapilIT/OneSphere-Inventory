@@ -82,7 +82,7 @@ export class Brs implements OnInit {
   kycFileName: any;
 
   pageCriteria = new PageCriteria();
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   // ── Datepicker configs ───────────────────────────────────────────────────────
   dpConfig: any = {};
