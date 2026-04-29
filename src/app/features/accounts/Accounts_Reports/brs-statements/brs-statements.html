@@ -13,16 +13,16 @@
         <div class="p-4 border-bottom">
 
           <!-- View Mode Toggle -->
-          <div class="row g-2 mb-4">
+          <div class="row g-2 align-items-end mb-4">
             <div class="col-12">
               <div class="erp-form-group">
                 <label class="erp-label mb-2">Select Statement Type</label>
                 <div class="d-flex gap-4 p-3 border rounded bg-light-subtle">
-                  <label class="erp-radio">
+                  <label class="erp-radio m-0">
                     <input type="radio" formControlName="Bank" value="CREDIT" (change)="onBankTypeChange('CREDIT')">
                     <span class="font-bold">Bank Credit (Receipts)</span>
                   </label>
-                  <label class="erp-radio">
+                  <label class="erp-radio m-0">
                     <input type="radio" formControlName="Bank" value="DEBIT" (change)="onBankTypeChange('DEBIT')">
                     <span class="font-bold">Bank Debit (Payments)</span>
                   </label>

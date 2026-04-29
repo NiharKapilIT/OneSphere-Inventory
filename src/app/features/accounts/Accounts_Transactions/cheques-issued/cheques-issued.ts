@@ -884,6 +884,7 @@ export class ChequesIssued implements OnInit {
   }
 
   OnlinePayments(): void {
+    debugger
     this.fromdate = null; this.todate = null;
     this.brsdateshowhidereturned.set(false);
     this.brsdateshowhidecleared.set(false);
@@ -902,6 +903,7 @@ export class ChequesIssued implements OnInit {
     if (this.page.totalElements > 10) this.page.totalPages = Math.ceil(this.page.totalElements / 10);
   }
   OnlinePayments1(): void {
+    debugger
     this.brsdateshowhidereturned.set(false);
     this.brsdateshowhidecleared.set(false);
     this.brsdateshowhidecancelled.set(false);
@@ -914,6 +916,7 @@ export class ChequesIssued implements OnInit {
   }
 
   Cleared(): void {
+    debugger
     if (!this.bankid || this.bankid === 0) { this._commonService.showWarningMessage('Please Select Bank first'); return; }
     this.fromdate = null; this.todate = null;
     this.today = new Date(); this.clearMinToDate = new Date(1900, 0, 1);
@@ -940,6 +943,7 @@ export class ChequesIssued implements OnInit {
     if (this.page.totalElements > 10) this.page.totalPages = Math.ceil(this.page.totalElements / 10);
   }
   Cleared1(): void {
+    debugger
     this.datetitle.set('Cleared Date'); this.status.set('cleared'); this.pdfstatus = 'Cleared'; this.modeofreceipt = 'CLEAR';
     this.showOrHideOtherChequesGrid.set(false);
     this.showOrHideAllChequesGrid.set(false);
@@ -1549,18 +1553,18 @@ export class ChequesIssued implements OnInit {
 
 
 
-     const payload = {
+    const payload = {
       global_schema: this._commonService.getschemaname(),
       branch_schema: this._commonService.getbranchname(),
       companycode: this._commonService.getCompanyCode(),
       branchcode: this._commonService.getBranchCode(),
       pCreatedby: this._commonService.getCreatedBy() || 0,
-      ptransactiondate: this.datepipe.transform(formVal.ptransactiondate,'dd-MM-yyyy') || '',
+      ptransactiondate: this.datepipe.transform(formVal.ptransactiondate, 'dd-MM-yyyy') || '',
       // ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
       pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
       // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
-      pfrombrsdate: formVal.pfrombrsdate ? this.datepipe.transform(formVal.pfrombrsdate,'dd-MM-yyyy') : '',
-      ptobrsdate: formVal.ptobrsdate ? this.datepipe.transform(formVal.ptobrsdate,'dd-MM-yyyy') : '',
+      pfrombrsdate: formVal.pfrombrsdate ? this.datepipe.transform(formVal.pfrombrsdate, 'dd-MM-yyyy') : '',
+      ptobrsdate: formVal.ptobrsdate ? this.datepipe.transform(formVal.ptobrsdate, 'dd-MM-yyyy') : '',
       // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
       // ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
       _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
@@ -1569,7 +1573,7 @@ export class ChequesIssued implements OnInit {
       pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
       pchequesotherslist: this.OtherChequesData().map((item: any) => ({
         ptransactionnumber: item.ptransactionnumber || '',
-         ptransactiondate: this.datepipe.transform( item.ptransactiondate,'dd-MM-yyyy') || '',
+        ptransactiondate: this.datepipe.transform(item.ptransactiondate, 'dd-MM-yyyy') || '',
         //  ptransactiondate: item.ptransactiondate || '',
         particulars: item.particulars || '', debitamount: String(item.debitamount || '0'),
         creditamount: String(item.creditamount || '0'), accountname: item.accountname || '',

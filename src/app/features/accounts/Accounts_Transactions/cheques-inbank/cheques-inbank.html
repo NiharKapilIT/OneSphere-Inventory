@@ -4,8 +4,8 @@
   <div class="module-page">
 
     <!-- Breadcrumb Section -->
-    <div class="d-flex justify-between align-center gap-4 mb-0">
-      <div class="flex-1">
+    <!-- <div class="d-flex justify-between align-center gap-4 mb-0">
+      <div style="flex: 1;">
         <nav class="erp-breadcrumb">
           <button class="bc-item"><i class="pi pi-home"></i> Home</button>
           <span class="bc-sep">›</span>
@@ -20,7 +20,7 @@
         </h1>
         <p class="page-subtitle">Track and manage all cheques deposited in bank transactions</p>
       </div>
-    </div>
+    </div> -->
 
     <!-- Main Card -->
     <div class="erp-card">
@@ -68,16 +68,13 @@
             <input type="text" class="erp-input icon-pad w-100" [value]="today2 | date:'dd-MMM-yyyy'" readonly />
           </div>
         </div>
-
         <div class="filter-field filter-field--sm">
           <label class="filter-lbl">
             Cheque Clear Date <span class="required">*</span>
           </label>
           <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker [(ngModel)]="chequeClearDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-              dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              inputStyleClass="erp-input icon-pad w-100"
+              dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
               (onSelect)="ChequesInBankForm.get('pchequecleardate')?.setValue($event)">
             </p-datepicker>
           </div>
@@ -177,11 +174,12 @@
               <label class="erp-label">BRS From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
             </div>
           </div>
@@ -190,11 +188,12 @@
               <label class="erp-label">BRS To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
               @if (validatebrsdateclear) {
               <div class="erp-field-error">BRS To Date should be greater than From Date</div>
@@ -220,11 +219,12 @@
               <label class="erp-label">BRS From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsReturnFromDateModel" [ngModelOptions]="{standalone: true}"
-                  [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsReturnFromDateModel" [ngModelOptions]="{standalone: true}"
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
             </div>
           </div>
@@ -233,11 +233,12 @@
               <label class="erp-label">BRS To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
-                  [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
               @if (validatebrsdatereturn) {
               <div class="erp-field-error">BRS To Date should be greater than From Date</div>
@@ -274,69 +275,69 @@
           <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
             [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-            styleClass="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true">
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
             <!-- Header -->
             <ng-template pTemplate="header">
               <tr>
                 @if (!showhidegridcolumns) {
-                <th pResizableColumn class="th-checkbox">
+                <th class="th-checkbox">
                   <div class="th-cell">
                     <input type="checkbox" [checked]="preferdrows" (change)="selectAllClear($event)" />
                   </div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Clear</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns2) {
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Return</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns) {
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Reference No</div>
                 </th>
                 }
 
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Cheque/Reference No.</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Branch Name</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Amount</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Party</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Receipt Date</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Deposited Date</div>
                 </th>
 
                 @if (!hiddendate) {
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">{{ datetitle }}</div>
                 </th>
                 }
 
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Receipt Id</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Transaction Mode</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Cheque Bank Name</div>
                 </th>
-                <th pResizableColumn>
+                <th>
                   <div class="th-cell">Cheque Branch Name</div>
                 </th>
               </tr>
@@ -368,44 +369,44 @@
                 }
 
                 <td class="td-center">
-                  <span class="cheque-ref">{{ row?.pChequenumber || '--' }}</span>
+                  <span class="cheque-ref">{{ row?.pChequenumber || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.pbranchname || '--' }}</td>
+                <td>{{ row?.pbranchname || '-- NA --' }}</td>
                 <td class="td-right">
                   <div class="amount-cell">
                     <span class="amt-sym">{{ currencySymbol ?? '' }}</span>
                     <span class="amt-num">{{ (row?.ptotalreceivedamount ?? 0) | number:'1.2-2' }}</span>
                   </div>
                 </td>
-                <td>{{ row?.ppartyname || '--' }}</td>
+                <td>{{ row?.ppartyname || '-- NA --' }}</td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
 
                 @if (status === 'cleared') {
-                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
                 @if (status === 'returned') {
-                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
 
                 <td>
-                  <span class="receipt-no">#{{ row?.preceiptid || '--' }}</span>
+                  <span class="receipt-no">#{{ row?.preceiptid || '-- NA --' }}</span>
                 </td>
                 <td>
-                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '--' }}</span>
+                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.cheque_bank || '--' }}</td>
-                <td>{{ row?.receipt_branch_name || '--' }}</td>
+                <td>{{ row?.cheque_bank || '-- NA --' }}</td>
+                <td>{{ row?.receipt_branch_name || '-- NA --' }}</td>
               </tr>
               }
             </ng-template>
@@ -455,7 +456,7 @@
       </div>
 
       <!-- Card Footer -->
-      <div class="card-footer">
+      <!-- <div class="card-footer">
         <div class="d-flex gap-2 flex-wrap">
           <button (click)="Clear()" class="erp-btn btn-secondary">
             <i class="pi pi-times"></i> Clear
@@ -463,12 +464,25 @@
           <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
             <i class="pi pi-check"></i>
 
-            <!-- {{ buttonname ?? 'Save' }} -->
+           
+            {{ buttonname }}
+          </button>
+        </div>
+      </div> -->
+      <!-- Card Footer -->
+      @if (status !== 'cleared' && status !== 'returned') {
+      <div class="card-footer">
+        <div class="d-flex gap-2 flex-wrap">
+          <button (click)="Clear()" class="erp-btn btn-secondary">
+            <i class="pi pi-times"></i> Clear
+          </button>
+          <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
+            <i class="pi pi-check"></i>
             {{ buttonname }}
           </button>
         </div>
       </div>
-
+      }
     </div>
   </div>
 </form>

@@ -3082,7 +3082,7 @@ let Company = this._getCompanyDetails();
 
 
           doc.setFont('times', 'bold');
-          doc.setFontSize(14);
+          doc.setFontSize(10);
           doc.text(`Bank Reconciliation - ${bankname}`, centerX, 34, { align: 'center' });
 
           doc.setFontSize(10);

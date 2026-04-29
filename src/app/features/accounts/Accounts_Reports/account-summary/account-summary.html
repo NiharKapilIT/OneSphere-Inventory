@@ -14,11 +14,12 @@
           <div class="row g-2 align-items-end">
 
             <!-- As On Toggle -->
-            <div class="col-12 col-md-auto">
-              <div class="erp-form-group mb-2">
-                <label class="erp-checkbox">
+            <div class="col-12 col-md-2">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
+                <label class="erp-checkbox m-0">
                   <input type="checkbox" formControlName="asOn" (change)="onDateModeChange()" />
-                  <span>As On</span>
+                  <span> As On</span>
                 </label>
               </div>
             </div>
@@ -59,22 +60,18 @@
             <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label required">Ledger <span class="required">*</span></label>
-                <p-multiSelect
-                  [options]="ledgerList()"
-                  optionLabel="pledgername"
-                  optionValue="pledgerid"
+                <ng-select
+                  [items]="ledgerList()"
+                  bindLabel="pledgername"
+                  bindValue="pledgerid"
                   formControlName="ledgerId"
                   placeholder="Select Ledgers"
-                  display="chip"
-                  [filter]="true"
-                  [appendTo]="'body'"
-                  [maxSelectedLabels]="2"
-                  selectedItemsLabel="{0} Ledgers selected"
-                  styleClass="erp-multiselect w-100"
-                  [panelStyle]="{'width': '100%', 'max-width': '400px'}"
-                  class="erp-ng-select-wrap"
-                  [class.is-invalid]="f['ledgerId'].errors && submitted">
-                </p-multiSelect>
+                  [multiple]="true"
+                  [searchable]="true"
+                  [clearable]="true"
+                  appendTo="body"
+                  [class.ng-invalid]="f['ledgerId'].errors && submitted">
+                </ng-select>
                 @if (submitted && f['ledgerId'].errors?.['required']) {
                   <div class="erp-field-error">Ledger selection is required</div>
                 }

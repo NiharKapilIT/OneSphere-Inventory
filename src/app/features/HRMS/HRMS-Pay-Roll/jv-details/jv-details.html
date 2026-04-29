@@ -1,0 +1,83 @@
+<div class="module-page">
+  <div class="erp-card">
+    <div class="card-body p-0">
+
+      <div class="card-header">
+        <div>
+          <h4 class="card-title">JV Details</h4>
+          <p class="card-subtitle">Select year, month and JV type to view details</p>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="row g-3">
+
+          <div class="col-xl-2 col-lg-3 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Year <span class="required">*</span></label>
+              <ng-select
+                [items]="yearOptions"
+                [(ngModel)]="selectedYear"
+                placeholder="Select Year"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+              <div class="erp-field-error" *ngIf="submitted && !selectedYear">
+                Year Required
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-3 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Month <span class="required">*</span></label>
+              <ng-select
+                [items]="monthOptions"
+                [(ngModel)]="selectedMonth"
+                bindLabel="label"
+                bindValue="value"
+                placeholder="Select Month"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+              <div class="erp-field-error" *ngIf="submitted && !selectedMonth">
+                Month Required
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12"></div>
+
+          <div class="col-xl-6 col-lg-7 col-md-8">
+            <div class="erp-form-group">
+              <label class="erp-label">JV Type <span class="required">*</span></label>
+              <ng-select
+                [items]="jvTypeOptions"
+                [(ngModel)]="selectedJvType"
+                bindLabel="label"
+                bindValue="value"
+                placeholder="Select JV Type"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+              <div class="erp-field-error" *ngIf="submitted && !selectedJvType">
+                JV Type Required
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-3 col-md-4 d-flex align-items-end">
+            <div class="erp-form-group w-100">
+              <button type="button" class="erp-btn btn-primary w-100" (click)="onShow()">
+                <i class="pi pi-eye"></i> Show
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1496,7 +1496,7 @@ export class JournalVoucher implements OnInit {
 
     this.paymentVoucherForm = this.fb.group({
       ppaymentid: [''],
-      pjvdate: [{value:this.today,disabled:true}, Validators.required],
+      pjvdate: [{ value: this.today, disabled: true }, Validators.required],
 
       ptotalpaidamount: [''],
       pnarration: ['', [Validators.required, Validators.maxLength(250)]],
