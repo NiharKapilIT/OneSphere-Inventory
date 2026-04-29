@@ -70,16 +70,17 @@ export class BankBook implements OnInit {
   sortColumn      = '';
   sortDirection: 1 | -1 = 1;
   expandedRows: Record<string, boolean> = {};
-
+toDateMinDate: Date | null = null;
   private rawData: any[] = [];
 
   pageCriteria = new PageCriteria();
+  today = new Date(new Date().setHours(0, 0, 0, 0));
 
   // ── Form ────────────────────────────────────────────────────────────────────
   bankBookForm = this.fb.nonNullable.group(
     {
-      fromDate: [new Date(), Validators.required],
-      toDate:   [new Date(), Validators.required],
+      fromDate: [this.today, Validators.required],
+      toDate:   [this.today, Validators.required],
       pbankname: ['',        Validators.required]
     },
     { validators: this.dateRangeValidator() }
@@ -105,6 +106,16 @@ export class BankBook implements OnInit {
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadBankNames();
+    const initialFrom = this.bankBookForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.bankBookForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.bankBookForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.bankBookForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Validators ───────────────────────────────────────────────────────────────

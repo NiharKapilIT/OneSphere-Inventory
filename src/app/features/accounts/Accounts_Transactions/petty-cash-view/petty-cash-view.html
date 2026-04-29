@@ -64,41 +64,42 @@
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         (onPage)="onPageChange($event)"
         responsiveLayout="scroll"
-        styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+        styleClass="gr-table p-datatable-sm p-datatable-gridlines"
+        [resizableColumns]="true">
 
         <!-- Header -->
         <ng-template pTemplate="header">
           <tr>
-            <th class="th-actions">Actions</th>
-            <th pSortableColumn="paymentDate">
+            <th pResizableColumn class="th-actions">Actions</th>
+            <th pResizableColumn pSortableColumn="paymentDate">
               <div class="th-cell">
                 <i class="pi pi-calendar"></i>
                 Payment Date
                 <p-sortIcon field="paymentDate"></p-sortIcon>
               </div>
             </th>
-            <th pSortableColumn="paymentId" class="th-center">
+            <th pResizableColumn pSortableColumn="paymentId" class="th-center">
               <div class="th-cell" style="justify-content:center">
                 <i class="pi pi-hashtag"></i>
                 Voucher No.
                 <p-sortIcon field="paymentId"></p-sortIcon>
               </div>
             </th>
-            <th pSortableColumn="modeOfPayment">
+            <th pResizableColumnpSortableColumn="modeOfPayment">
               <div class="th-cell">
                 <i class="pi pi-credit-card"></i>
                 Payment Mode
                 <p-sortIcon field="modeOfPayment"></p-sortIcon>
               </div>
             </th>
-            <th pSortableColumn="totalPaidAmount" class="th-right">
+            <th pResizableColumn pSortableColumn="totalPaidAmount" class="th-right">
               <div class="th-cell" style="justify-content:flex-end">
                 <i class="pi pi-indian-rupee"></i>
                 Paid Amount
                 <p-sortIcon field="totalPaidAmount"></p-sortIcon>
               </div>
             </th>
-            <th>
+            <th pResizableColumn>
               <div class="th-cell">
                 <i class="pi pi-building"></i>
                 Bank Name

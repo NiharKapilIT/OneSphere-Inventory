@@ -10,9 +10,7 @@
         <p class="card-subtitle">Void or cancel general receipt transactions and reverse entries</p>
       </div>
       <span class="erp-spacer"></span>
-      <!-- <a routerLink="/dashboard/accounts/accounts-transactions/general-receipt-view" class="erp-btn btn-white btn-sm">
-        <i class="pi pi-arrow-left"></i> Back
-      </a> -->
+
     </div>
 
     <!-- Card Body -->
@@ -35,7 +33,7 @@
 "></ng-select>
 
                 @if (GeneralReceiptCancelForm.get('receiptid')?.errors?.['required']
-                 && showValidation()) {
+                && showValidation()) {
                 <span class="erp-field-error">Receipt No. is required</span>
                 }
               </div>
@@ -47,12 +45,12 @@
                 <div class="flex-grow-1">
                   <div class="erp-form-group">
                     <label class="erp-label" for="ppaymentdate">Date <span class="required">*</span></label>
-                   
+
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
                       <p-datepicker [(ngModel)]="testDate" [ngModelOptions]="{standalone: true}" id="ppaymentdate"
-                        dateFormat="dd-M-yy" [readonlyInput]="true" [disabled]="true" appendTo="body"
-                        styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
+                        dateFormat="dd-M-yy" [readonlyInput]="true" [disabled]="true" appendTo="body" styleClass="w-100"
+                        inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
                       </p-datepicker>
                     </div>
                   </div>
@@ -91,18 +89,19 @@
           <div class="tbl-wrap">
             <p-table [value]="lstdetails()" [paginator]="true" [rows]="pageCriteria().pageSize"
               [totalRecords]="pageCriteria().totalrows" (onPage)="onPrimePageChange($event)"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines" [scrollable]="true" scrollHeight="400px">
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines" [scrollable]="true" scrollHeight="400px"
+              [resizableColumns]="true">
 
               <ng-template pTemplate="header">
                 <tr>
-                  <th class="th-actions" style="width: 60px;">S.No</th>
-                  <th class="th-cell">
+                  <th pResizableColumn class="th-actions" style="width: 60px;">S.No</th>
+                  <th pResizableColumn class="th-cell">
                     <div class="th-cell">
                       <i class="pi pi-align-left"></i>
                       Particulars
                     </div>
                   </th>
-                  <th class="th-right" style="width: 150px;">
+                  <th pResizableColumn class="th-right" style="width: 150px;">
                     <div class="th-cell" style="justify-content:flex-end">
                       <i class="pi pi-indian-rupee"></i>
                       Amount
@@ -139,14 +138,60 @@
           </div>
         </div>
 
-        <!-- NOTES/REMARKS SECTION -->
+
         <div class="p-4">
-          <div class="erp-form-group">
-            <label class="erp-label" for="remarks">Cancel Remarks</label>
-            <textarea id="remarks" class="erp-textarea" placeholder="Enter reason for cancellation"
-              formControlName="remarks" rows="3"></textarea>
+          <div class="row g-2 align-items-start">
+
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label class="erp-label">
+                  Cancellation Reason <span class="required">*</span>
+                </label>
+                <div class="pb-3">
+                  <textarea class="erp-input w-100" rows="3" formControlName="cancellationreason"
+                    placeholder="Enter cancellation reason..." [class.ng-invalid]="
+              GeneralReceiptCancelForm.get('cancellationreason')?.invalid &&
+              GeneralReceiptCancelForm.get('cancellationreason')?.touched
+            ">
+          </textarea>
+
+                  @if (GeneralReceiptCancelForm.get('cancellationreason')?.invalid &&
+                  GeneralReceiptCancelForm.get('cancellationreason')?.touched) {
+                  <span class="erp-field-error">
+                    Cancellation reason is required
+                  </span>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="erp-form-group">
+                <label class="erp-label">
+                  Cancelled By <span class="required">*</span>
+                </label>
+                <div class="pb-3">
+                  <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
+                    bindValue="subintroducedid" formControlName="autorizedcontactid" [typeahead]="contactSearchevent"
+                    placeholder="Select" [class.ng-invalid]="
+              GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&
+              GeneralReceiptCancelForm.get('autorizedcontactid')?.touched
+            ">
+                  </ng-select>
+
+                  @if (GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&
+                  GeneralReceiptCancelForm.get('autorizedcontactid')?.touched) {
+                  <span class="erp-field-error">
+                    Cancelled By is required
+                  </span>
+                  }
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
+
         }
 
       </form>

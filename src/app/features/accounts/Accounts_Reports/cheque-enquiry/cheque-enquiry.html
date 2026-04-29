@@ -88,6 +88,7 @@
                   <i class="pi pi-list me-1"></i> Issued Cheques: <strong class="ms-1">{{ issuedData().length }}</strong>
                 </div>
               </div>
+               @if (showReceivedCheques()) {
               <div class="tb-right">
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
                   <i class="pi pi-file-pdf"></i> PDF
@@ -95,7 +96,7 @@
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
                   <i class="pi pi-print"></i> Print
                 </button>
-              </div>
+              </div>}
             </div>
 
             <div class="tbl-wrap">

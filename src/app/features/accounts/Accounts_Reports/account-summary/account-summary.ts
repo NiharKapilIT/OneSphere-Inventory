@@ -81,10 +81,13 @@ export class AccountSummary implements OnInit {
     containerClass: 'theme-dark-blue',
     maxDate: new Date()
   };
+  toDateMinDate: Date | null = null;
+  today = new Date();
 
   // ── Lifecycle ───────────────────────────────────────────────
   ngOnInit(): void {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     this.accountSummaryForm = this.fb.group(
       {
@@ -97,12 +100,36 @@ export class AccountSummary implements OnInit {
     );
 
     this.betweendates = 'As On';
-    this.betweenfrom  = this.datePipe.transform(today, 'dd-MMM-yyyy') ?? '';
+    this.betweenfrom  = this.datePipe.transform(this.today, 'dd-MMM-yyyy') ?? '';
+    const initialFrom = this.accountSummaryForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
 
+  this.accountSummaryForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.accountSummaryForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.accountSummaryForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
     this.loadLedgerAccounts();
+  }
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.accountSummaryForm.patchValue({
+        fromDate: this.today,
+        toDate:   this.today
+      });
+    }, 0);
   }
 
   get f() { return this.accountSummaryForm.controls; }
+  onFromDateSelect(date: Date): void {
+  this.toDateMinDate = date;
+  const toDate = this.accountSummaryForm.get('toDate')?.value;
+  if (toDate && toDate < date) {
+    this.accountSummaryForm.get('toDate')?.setValue(null as unknown as Date);
+  }
+}
 
   // ── Validators ──────────────────────────────────────────────
   private dateRangeValidator(group: AbstractControl) {
@@ -113,6 +140,7 @@ export class AccountSummary implements OnInit {
     }
     return null;
   }
+ 
 
   // ── Data Loading ────────────────────────────────────────────
   private loadLedgerAccounts(): void {

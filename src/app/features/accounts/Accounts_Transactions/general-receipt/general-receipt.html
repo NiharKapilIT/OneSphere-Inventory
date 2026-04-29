@@ -67,41 +67,42 @@
         <p-table [value]="filteredData()" [paginator]="true" [rows]="pageSize()" [totalRecords]="filteredData().length"
           [showCurrentPageReport]="true" [rowsPerPageOptions]="rowsPerPageOptions" (onPage)="onPageChange($event)"
           currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries" responsiveLayout="scroll"
-          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom">
+          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
+          [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
-              <th class="th-actions">Actions</th>
-              <th pSortableColumn="receipt_date">
+              <th pResizableColumn class="th-actions">Actions</th>
+              <th pResizableColumn pSortableColumn="receipt_date">
                 <div class="th-cell">
                   <i class="pi pi-calendar"></i>
                   Receipt Date
                   <p-sortIcon field="receipt_date"></p-sortIcon>
                 </div>
               </th>
-              <th pSortableColumn="receipt_number" class="th-center">
+              <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
                 <div class="th-cell" style="justify-content:center">
                   <i class="pi pi-hashtag"></i>
                   Receipt No.
                   <p-sortIcon field="receipt_number"></p-sortIcon>
                 </div>
               </th>
-              <th pSortableColumn="modeof_receipt">
+              <th pResizableColumn pSortableColumn="modeof_receipt">
                 <div class="th-cell">
                   <i class="pi pi-credit-card"></i>
                   Payment Mode
                   <p-sortIcon field="modeof_receipt"></p-sortIcon>
                 </div>
               </th>
-              <th pSortableColumn="totalreceivedamount" class="th-right">
+              <th pResizableColumn pSortableColumn="totalreceivedamount" class="th-right">
                 <div class="th-cell" style="justify-content:flex-end">
                   <i class="pi pi-indian-rupee"></i>
                   Received Amount
                   <p-sortIcon field="totalreceivedamount"></p-sortIcon>
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-align-left"></i>
                   Narration

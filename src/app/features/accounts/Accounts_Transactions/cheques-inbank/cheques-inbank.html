@@ -32,12 +32,11 @@
         </div>
 
         <!-- Search in header -->
-        <div class="header-search" style="flex: 1; max-width: 300px;">
+        <div class="header-search">
           <div class="erp-input-wrap">
             <i class="pi pi-search erp-input-icon"></i>
-            <input type="search" class="erp-input icon-pad" placeholder="Search cheques..."
-              style="font-size: 12px; color: #374151;" (input)="onSearch($any($event.target).value)"
-              (search)="onSearch($any($event.target).value)" />
+            <input type="search" class="erp-input icon-pad search-input" placeholder="Search cheques..."
+              (input)="onSearch($any($event.target).value)" (search)="onSearch($any($event.target).value)" />
           </div>
         </div>
 
@@ -56,13 +55,11 @@
         </div>
       </div>
 
-
       <!-- Filter Bar -->
-      <!-- <div class="filter-bar" style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; padding:12px 16px;"> -->
-      <div class="filter-bar"
-        style="display:flex; flex-wrap:wrap; align-items:flex-start; gap:12px; padding:12px 16px;">
 
-        <div style="display:flex; flex-direction:column; min-width:180px; max-width:200px;">
+      <div class="filter-bar filter-bar--wrap" style="align-items: flex-start;">
+
+        <div class="filter-field filter-field--sm">
           <label class="filter-lbl">
             Transaction Date <span class="required">*</span>
           </label>
@@ -71,22 +68,19 @@
             <input type="text" class="erp-input icon-pad w-100" [value]="today2 | date:'dd-MMM-yyyy'" readonly />
           </div>
         </div>
-
-        <div style="display:flex; flex-direction:column; min-width:180px; max-width:200px;">
+        <div class="filter-field filter-field--sm">
           <label class="filter-lbl">
             Cheque Clear Date <span class="required">*</span>
           </label>
           <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker [(ngModel)]="chequeClearDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-              dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              inputStyleClass="erp-input icon-pad w-100"
+              dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
               (onSelect)="ChequesInBankForm.get('pchequecleardate')?.setValue($event)">
             </p-datepicker>
           </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; min-width:200px; max-width:250px;">
+        <div class="filter-field filter-field--md" style="min-height: 70px;">
           <label class="filter-lbl">
             Bank <span class="required">*</span>
           </label>
@@ -96,12 +90,11 @@
           @if (ChequesInBankValidation['bankname']) {
           <div class="erp-field-error">{{ ChequesInBankValidation['bankname'] }}</div>
           }
-
         </div>
 
         @if (banknameshowhide) {
-        <div style="display:flex; flex-direction:column; min-width:220px; max-width:320px;">
-          <div class="filter-info-card" style="margin:0;">
+        <div class="filter-field filter-field--lg">
+          <div class="filter-info-card">
             <div class="info-header">
               <span class="info-bank-name">{{ bankname }}</span>
             </div>
@@ -135,7 +128,7 @@
 
       </div>
 
-      <!-- Status Tabs (Horizontal) -->
+      <!-- Status Tabs -->
       <div class="tabs-section">
         <div class="tabs-nav">
           @if (tabsShowOrHideBasedOnfromFormName) {
@@ -171,7 +164,7 @@
         </div>
       </div>
 
-      <!-- BRS Filter Sections - Cleared -->
+      <!-- BRS Filter - Cleared -->
       @if (brsdateshowhidecleared) {
       <div class="p-4 brs-section">
         <h3 class="section-title mb-3">Cleared - Date Range Filter</h3>
@@ -181,11 +174,12 @@
               <label class="erp-label">BRS From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
             </div>
           </div>
@@ -194,11 +188,12 @@
               <label class="erp-label">BRS To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
               @if (validatebrsdateclear) {
               <div class="erp-field-error">BRS To Date should be greater than From Date</div>
@@ -214,50 +209,50 @@
       </div>
       }
 
-      <!-- BRS Filter Sections - Returned -->
-      
-        @if (brsdateshowhidereturned) {
-        <div class="p-4 brs-section">
-          <h3 class="section-title mb-3">Returned - Date Range Filter</h3>
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">BRS From Date</label>
+      <!-- BRS Filter - Returned -->
+      @if (brsdateshowhidereturned) {
+      <div class="p-4 brs-section">
+        <h3 class="section-title mb-3">Returned - Date Range Filter</h3>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">BRS From Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
                 <div class="erp-input-wrap erp-date-wrap">
-                  <i class="pi pi-calendar erp-input-icon"></i>
                   <p-datepicker [(ngModel)]="brsReturnFromDateModel" [ngModelOptions]="{standalone: true}"
-                    [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                    inputStyleClass="erp-input icon-pad w-100"
-                    (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
                   </p-datepicker>
                 </div>
               </div>
-            </div>
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">BRS To Date</label>
-                <div class="erp-input-wrap erp-date-wrap">
-                  <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
-                    [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                    inputStyleClass="erp-input icon-pad w-100"
-                    (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
-                  </p-datepicker>
-                </div>
-                @if (validatebrsdatereturn) {
-                <div class="erp-field-error">BRS To Date should be greater than From Date</div>
-                }
-              </div>
-            </div>
-            <div class="col-12">
-              <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsReturn()">
-                <i class="pi pi-search"></i> Show
-              </button>
             </div>
           </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">BRS To Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
+              </div>
+              @if (validatebrsdatereturn) {
+              <div class="erp-field-error">BRS To Date should be greater than From Date</div>
+              }
+            </div>
+          </div>
+          <div class="col-12">
+            <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsReturn()">
+              <i class="pi pi-search"></i> Show
+            </button>
+          </div>
         </div>
-        }
-     
+      </div>
+      }
 
       <!-- Card Body -->
       <div class="card-body p-0">
@@ -270,12 +265,11 @@
             </span>
           </div>
           <div class="tb-right">
-            <span class="text-muted text-small">
+            <!-- <span class="text-muted text-small">
               Currency: <strong class="text-primary">{{ currencySymbol ?? '' }}</strong>
-            </span>
+            </span> -->
           </div>
         </div>
-
 
         <div class="tbl-wrap">
           <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
@@ -287,41 +281,34 @@
             <ng-template pTemplate="header">
               <tr>
                 @if (!showhidegridcolumns) {
-                <!-- col index 0 -->
                 <th class="th-checkbox">
                   <div class="th-cell">
                     <input type="checkbox" [checked]="preferdrows" (change)="selectAllClear($event)" />
                   </div>
                 </th>
-                <!-- col index 1 -->
                 <th>
                   <div class="th-cell">Clear</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns2) {
-                <!-- col index 2 -->
                 <th>
                   <div class="th-cell">Return</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns) {
-                <!-- col index 3 -->
                 <th>
                   <div class="th-cell">Reference No</div>
                 </th>
                 }
 
-                <!-- col index 4 (or 0 when hidden) -->
                 <th>
                   <div class="th-cell">Cheque/Reference No.</div>
                 </th>
-                <!-- col index 5 (or 1) -->
                 <th>
                   <div class="th-cell">Branch Name</div>
                 </th>
-                <!-- col index 6 (or 2) → AMOUNT -->
                 <th>
                   <div class="th-cell">Amount</div>
                 </th>
@@ -360,7 +347,6 @@
             <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
               @if (row) {
               <tr>
-
                 @if (!showhidegridcolumns) {
                 <td></td>
                 <td class="td-actions">
@@ -383,45 +369,44 @@
                 }
 
                 <td class="td-center">
-                  <span class="cheque-ref">{{ row?.pChequenumber || '--' }}</span>
+                  <span class="cheque-ref">{{ row?.pChequenumber || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.pbranchname || '--' }}</td>
+                <td>{{ row?.pbranchname || '-- NA --' }}</td>
                 <td class="td-right">
                   <div class="amount-cell">
                     <span class="amt-sym">{{ currencySymbol ?? '' }}</span>
                     <span class="amt-num">{{ (row?.ptotalreceivedamount ?? 0) | number:'1.2-2' }}</span>
                   </div>
                 </td>
-                <td>{{ row?.ppartyname || '--' }}</td>
+                <td>{{ row?.ppartyname || '-- NA --' }}</td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
 
                 @if (status === 'cleared') {
-                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
                 @if (status === 'returned') {
-                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
 
                 <td>
-                  <span class="receipt-no">#{{ row?.preceiptid || '--' }}</span>
+                  <span class="receipt-no">#{{ row?.preceiptid || '-- NA --' }}</span>
                 </td>
                 <td>
-                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '--' }}</span>
+                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.cheque_bank || '--' }}</td>
-                <td>{{ row?.receipt_branch_name || '--' }}</td>
-
+                <td>{{ row?.cheque_bank || '-- NA --' }}</td>
+                <td>{{ row?.receipt_branch_name || '-- NA --' }}</td>
               </tr>
               }
             </ng-template>
@@ -430,22 +415,20 @@
             <ng-template pTemplate="emptymessage">
               <tr>
                 <td colspan="13" class="p-4">
-                  <div style="text-align: center; color: #94a3b8; padding: 20px;">
-                    <i class="pi pi-inbox"
-                      style="font-size: 28px; opacity: 0.5; display: block; margin-bottom: 8px;"></i>
-                    <p style="margin: 0; font-size: 14px;">No cheques found</p>
+                  <div class="empty-state">
+                    <i class="pi pi-inbox empty-state__icon"></i>
+                    <p class="empty-state__text">No cheques found</p>
                   </div>
                 </td>
               </tr>
             </ng-template>
 
-
+            <!-- Footer -->
             <ng-template pTemplate="footer">
-              <!-- Footer for Cleared / Returned tabs: showhidegridcolumns = true -->
               @if (showhidegridcolumns) {
               <tr class="footer-total-row">
                 <td colspan="2" class="td-right grid-cell-total footer-label">
-                  <strong> Total</strong>
+                  <strong>Total</strong>
                 </td>
                 <td class="td-right grid-cell-total">
                   <strong>{{ currencySymbol ?? '' }}&nbsp;{{ getCurrentPageTotal(dt) | number:'1.2-2' }}</strong>
@@ -454,7 +437,6 @@
               </tr>
               }
 
-              <!-- Footer for All / Cheques Deposited / Online Receipts tabs: showhidegridcolumns = false -->
               @if (!showhidegridcolumns) {
               <tr class="footer-total-row">
                 <td colspan="6" class="td-right grid-cell-total footer-label">
@@ -474,31 +456,44 @@
       </div>
 
       <!-- Card Footer -->
-      <div class="card-footer">
+      <!-- <div class="card-footer">
         <div class="d-flex gap-2 flex-wrap">
           <button (click)="Clear()" class="erp-btn btn-secondary">
             <i class="pi pi-times"></i> Clear
           </button>
           <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
             <i class="pi pi-check"></i>
+
+           
             {{ buttonname }}
           </button>
         </div>
-      </div>
-
+      </div> -->
+       <!-- Card Footer -->
+@if (status !== 'cleared' && status !== 'returned') {
+<div class="card-footer">
+  <div class="d-flex gap-2 flex-wrap">
+    <button (click)="Clear()" class="erp-btn btn-secondary">
+      <i class="pi pi-times"></i> Clear
+    </button>
+    <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
+      <i class="pi pi-check"></i>
+      {{ buttonname }}
+    </button>
+  </div>
+</div>
+}
     </div>
-
   </div>
 </form>
 
 <!-- Return Charges Modal -->
-<div class="modal right slideInRight" id="add-detail" tabindex="-1" role="dialog" [class.show]="showReturnModal"
-  [style.display]="showReturnModal ? 'block' : 'none'"
-  style="position: fixed; top: 0; right: 0; left: auto; height: 100vh; width: 400px; z-index: 9999;">
 
-  <div class="modal-dialog" style="margin-right:0px !important; height:100%;">
+<div class="modal right slideInRight modal-drawer" id="add-detail" tabindex="-1" role="dialog"
+  [class.show]="showReturnModal" [style.display]="showReturnModal ? 'block' : 'none'">
 
-    <div class="model-cst modal-content" style="height:100%; border-radius:0;">
+  <div class="modal-dialog modal-dialog--drawer">
+    <div class="model-cst modal-content modal-content--full">
 
       <div class="modal-body">
 
@@ -507,26 +502,30 @@
         </button>
 
         <div class="erp-form-group">
-
           <label class="erp-label">
             Enter The Return Amount Charges For The Cheque:
             <strong>{{ chequenumber ?? '' }}</strong>
           </label>
 
-          <div class="erp-input-wrap">
+          <div class="erp-input-wrap" style="max-width: 100%; box-sizing: border-box;">
             <i class="pi pi-indian-rupee erp-input-icon"></i>
-
-            <input type="text" class="erp-input icon-pad" name="cancelcharges" maxlength="6" id="cancelcharges"
+            <input type="text" class="erp-input icon-pad w-100" name="cancelcharges" maxlength="6" id="cancelcharges"
               #cancelRef (input)="returnCharges_Change($event)" />
           </div>
+
+          <!-- @if (returnChargesError) {
+            <div class="erp-field-error">
+              &#9888; Minimum amount should be &#8377;{{ minimumReturnCharge ?? 250 }}
+            </div>
+          } -->
 
           @if (returnChargesError) {
           <div class="erp-field-error">
             &#9888; Minimum amount should be &#8377;{{ minimumReturnCharge }}
           </div>
           }
-
         </div>
+
         <br />
 
         <div class="d-flex justify-content-end mt-4">
@@ -536,7 +535,6 @@
         </div>
 
       </div>
-
     </div>
   </div>
 </div>

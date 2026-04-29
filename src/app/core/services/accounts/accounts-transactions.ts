@@ -1183,7 +1183,7 @@ export class AccountsTransactions {
   getgeneralReceiptNumber(): Observable<any[]> {
     debugger;
     const params = new HttpParams().set('GlobalSchema', 'global').set('BranchSchema', 'accounts')
-      .set('CompanyCode', 'KAPILCHITS').set('BranchCode', 'KLC01');
+      .set('CompanyCode', this._CommonService.getCompanyCode()).set('BranchCode', this._CommonService.getBranchCode());
     return this._CommonService.getAPI('/Accounts/GetgeneralReceiptNumber', params, 'YES');
   }
 

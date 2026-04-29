@@ -35,6 +35,7 @@ interface LedgerRow {
 
 export class LedgerExtract implements OnInit {
   pDatepickerMaxDate: Date = new Date();
+  toDateMinDate: Date | null = null;
 
 
   // ── Dependencies via inject() ─────────────────────────────────────────────
@@ -68,9 +69,17 @@ export class LedgerExtract implements OnInit {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.rc.FromDate = today;
     this.rc.ToDate = today;
+    this.toDateMinDate = today;
   }
+  onFromDateChange(val: Date | null): void {
+  this.toDateMinDate = val ?? null;
+  if (this.rc.ToDate && val && this.rc.ToDate < val) {
+    this.rc.ToDate = null;
+  }
+}
 
   // ── Public actions ────────────────────────────────────────────────────────
   print(): void {

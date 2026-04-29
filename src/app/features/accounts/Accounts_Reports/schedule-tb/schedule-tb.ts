@@ -66,7 +66,9 @@ export class ScheduleTb implements OnInit {
   };
 
   ngOnInit(): void {
-    this.asOnDate = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    this.asOnDate = today;
   }
 
   // ── Print / Generate ──────────────────────────────────────────────────

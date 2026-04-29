@@ -2326,7 +2326,7 @@ import { DatePickerModule } from 'primeng/datepicker';
     CurrencyPipe,
     NgSelectModule,
     TableModule,
-    ValidationMessageComponent,
+    // ValidationMessageComponent,
     ButtonModule,
     RouterModule,
   ],
@@ -2511,7 +2511,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   private buildPaymentLineControls(): FormGroup {
     return this.fb.group({
-      psubledgerid: [null,Validators.required],
+      psubledgerid: [null, Validators.required],
       // psubledgerid: [null],
       psubledgername: [''],
       pledgerid: [null, Validators.required],
@@ -3099,17 +3099,35 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
             accountbalance: item.accountbalance,
           }));
 
-          const subCtrl = group.get('psubledgername');
+          // const subCtrl = group.get('psubledgername');
+          // if (this.subLedgerAccountsList.length > 0) {
+          //   this.showSubledger.set(true);
+          //   subCtrl?.setValidators(Validators.required);
+          // } else {
+          //   this.showSubledger.set(false);
+          //   subCtrl?.clearValidators();
+          //   group.get('psubledgerid')?.setValue(pledgerid);
+          //   subCtrl?.setValue(group.get('pledgername')?.value);
+          //   this.formValidationMessages['psubledgername'] = '';
+          // }
+          // subCtrl?.updateValueAndValidity();
+
+
+          const subCtrl = group.get('psubledgerid');
+
           if (this.subLedgerAccountsList.length > 0) {
             this.showSubledger.set(true);
             subCtrl?.setValidators(Validators.required);
           } else {
             this.showSubledger.set(false);
             subCtrl?.clearValidators();
+
             group.get('psubledgerid')?.setValue(pledgerid);
-            subCtrl?.setValue(group.get('pledgername')?.value);
-            this.formValidationMessages['psubledgername'] = '';
+            group.get('psubledgername')?.setValue(group.get('pledgername')?.value);
+
+            this.formValidationMessages['psubledgerid'] = '';
           }
+
           subCtrl?.updateValueAndValidity();
         },
         error: (err) => this.commonService.showErrorMessage(err),
@@ -3607,7 +3625,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   validateAddPaymentDetails(currentRow: any): boolean {
     debugger;
-      let isValid = true;
+    let isValid = true;
     try {
       const { pledgername, psubledgername, psubledgerid, ppartyid } =
         currentRow;
@@ -3670,7 +3688,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
 
-addPaymentDetails(): void {
+  addPaymentDetails(): void {
     debugger;
     const round = (n: number) =>
       Math.round((n + Number.EPSILON) * 100) / 100;
@@ -3832,17 +3850,36 @@ addPaymentDetails(): void {
     this.addButtonLabel.set('Add');
   }
 
+  // private savePaymentRow(row: any, ctrl: FormGroup): void {
+  //   debugger
+  //   this.paymentsList.push(row);
+  //   this.paymentsList1 = [...this.paymentsList1, row];
+  //   this.getPartyJournalEntryData();
+  //   this.clearPaymentDetailsParticular();
+  //   this.getPaymentListColumnWiseTotals();
+  //   ctrl.reset();
+  //   ctrl.markAsUntouched();
+  //   ctrl.markAsPristine();
+  //   ctrl.updateValueAndValidity();
+  //   this.resetAddButton();
+  // }
+
   private savePaymentRow(row: any, ctrl: FormGroup): void {
-    debugger
     this.paymentsList.push(row);
     this.paymentsList1 = [...this.paymentsList1, row];
     this.getPartyJournalEntryData();
-    this.clearPaymentDetailsParticular();
     this.getPaymentListColumnWiseTotals();
-    ctrl.reset();
+
+    // ✅ Mark clean BEFORE reset so valueChanges subscribers don't fire validation
     ctrl.markAsUntouched();
     ctrl.markAsPristine();
-    ctrl.updateValueAndValidity();
+    ctrl.reset();
+    ctrl.updateValueAndValidity({ emitEvent: false }); // ✅ suppress valueChanges
+
+    // ✅ Clear after everything so no stale messages remain
+    this.formValidationMessages = {};
+
+    this.clearPaymentDetailsParticular(); // this also sets formValidationMessages = {}
     this.resetAddButton();
   }
 
@@ -4185,7 +4222,7 @@ addPaymentDetails(): void {
 
         this.paymentVoucherForm.get('pipaddress')?.setValue('192.168.2.177');
         this.paymentVoucherForm.get('pCreatedby')?.setValue(9);
-console.log(this.paymentVoucherForm.value , "formval");
+        console.log(this.paymentVoucherForm.value, "formval");
 
         const payload = this.buildSavePayload(
           this.paymentVoucherForm.getRawValue()
@@ -4343,8 +4380,8 @@ console.log(this.paymentVoucherForm.value , "formval");
       ppaymentid: safe(formVal.ppaymentid),
       // ppaymentdate: safe(this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')),
       ppaymentdate: formVal.ppaymentdate
-  ? this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')
-  : "",
+        ? this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')
+        : "",
       pjvdate: safe(this.datePipe.transform(formVal.ppaymentdate, 'dd-MMM-yyyy')),
       // ppaymentdate: safe(this.commonService.getFormatDateNormal(formVal.ppaymentdate)),
       // pjvdate: safe(this.commonService.getFormatDateNormal(formVal.ppaymentdate)),

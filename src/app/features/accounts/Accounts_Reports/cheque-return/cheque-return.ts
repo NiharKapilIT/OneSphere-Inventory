@@ -75,16 +75,29 @@ export class ChequeReturn implements OnInit {
   pageCriteria = new PageCriteria();
 
   private rawData: any[] = [];
+  toDateMinDate: Date | null = null;
 
   ngOnInit(): void {
     this.initializeDatePickers();
     this.buildForm();
     this.setPageModel();
     this.updateFormattedDates();
+    const initialFrom = this.FrmChequeReturn.get('fromdate')?.value as Date | null;
+this.toDateMinDate = initialFrom ?? null;
+
+this.FrmChequeReturn.get('fromdate')?.valueChanges.subscribe((val: unknown) => {
+  const fromVal = val as Date | null;
+  this.toDateMinDate = fromVal ?? null;
+  const toDate = this.FrmChequeReturn.get('todate')?.value as Date | null;
+  if (toDate && fromVal && toDate < fromVal) {
+    this.FrmChequeReturn.get('todate')?.setValue(null as unknown as Date);
+  }
+});
   }
 
   private buildForm(): void {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.FrmChequeReturn = this.fb.group({
       fromdate: [today, Validators.required],
       todate: [today, Validators.required]

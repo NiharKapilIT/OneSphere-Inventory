@@ -22,13 +22,14 @@
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
                 <p-datepicker formControlName="pjvdate" id="pjvdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-                  [defaultDate]="pDatepickerMaxDate" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"
+                   [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" 
                   [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('pjvdate')?.invalid && paymentVoucherForm.get('pjvdate')?.touched}">
                 </p-datepicker>
               </div>
-              @if (formValidationMessages?.['pjvdate']) {
-              <div class="erp-field-error">{{ formValidationMessages['pjvdate'] }}</div>
+              @if (paymentVoucherForm.get('pjvdate')?.touched &&
+              paymentVoucherForm.get('pjvdate')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Date is required</div>
               }
             </div>
           </div>
@@ -54,8 +55,9 @@
                 </div>
                 <span class="erp-balance-chip">{{ partyBalance || '0 Dr' }}</span>
               </div>
-              @if (formValidationMessages?.['ppartyid']) {
-              <div class="erp-field-error">{{ formValidationMessages['ppartyid'] }}</div>
+              @if (paymentVoucherForm.get('ppaymentsslistcontrols.ppartyid')?.touched &&
+              paymentVoucherForm.get('ppaymentsslistcontrols.ppartyid')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Party is required</div>
               }
             </div>
           </div>
@@ -67,7 +69,7 @@
                 <div class="erp-flex-1">
                   <ng-select appendTo="body" id="pledgername" title="Ledger" [items]="ledgeraccountslist"
                     formControlName="pledgerid" groupBy="pAccounttype" bindLabel="pledgername" bindValue="pledgerid"
-                    placeholder="Select" [searchable]="true" [clearable]="false" (change)="ledgerName_Change($event)"
+                    placeholder="Select" [searchable]="true" [clearable]="true" (change)="ledgerName_Change($event)"
                     [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.dirty)}">
                     <ng-template ng-optgroup-tmp let-item="item">
                       {{ item.pAccounttype }}
@@ -76,8 +78,9 @@
                 </div>
                 <span class="erp-balance-chip">{{ ledgerBalance || '0 Dr' }}</span>
               </div>
-              @if (formValidationMessages?.['pledgerid']) {
-              <div class="erp-field-error">{{ formValidationMessages['pledgerid'] }}</div>
+              @if (paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.touched &&
+              paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Ledger is required</div>
               }
             </div>
           </div>
@@ -97,8 +100,9 @@
                 </div>
                 <span class="erp-balance-chip">{{ subledgerBalance || '0 Dr' }}</span>
               </div>
-              @if (formValidationMessages?.['psubledgerid']) {
-              <div class="erp-field-error">{{ formValidationMessages['psubledgerid'] }}</div>
+              @if (paymentVoucherForm.get('ppaymentsslistcontrols.psubledgerid')?.touched &&
+              paymentVoucherForm.get('ppaymentsslistcontrols.psubledgerid')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Sub Ledger is required</div>
               }
             </div>
           </div>
@@ -112,8 +116,9 @@
                 (blur)="pamount_change(); formatCurrency('pdebitamount')" (input)="allowNumberOnly($event)"
                 appRoundecimal="12@2" appMyCurrencyFormatorincludingzero
                 [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.dirty)}" />
-              @if (formValidationMessages?.['pdebitamount']) {
-              <div class="erp-field-error">{{ formValidationMessages['pdebitamount'] }}</div>
+              @if (paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.touched &&
+              paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Debit amount is required</div>
               }
             </div>
           </div>
@@ -127,8 +132,9 @@
                 (blur)="pamount_change(); formatCurrency('pcreditamount')" (input)="allowNumberOnly($event)"
                 appRoundecimal="12@2" appMyCurrencyFormatorincludingzero
                 [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.dirty)}" />
-              @if (formValidationMessages?.['pcreditamount']) {
-              <div class="erp-field-error">{{ formValidationMessages['pcreditamount'] }}</div>
+              @if (paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.touched &&
+              paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Credit amount is required</div>
               }
             </div>
           </div>
@@ -486,39 +492,48 @@
           <!-- Narration + Upload -->
           <div class="col-12 col-md-6">
             <h3 class="section-title mb-3">Narration & Attachment</h3>
-            <div class="row">
-              <div class="col-12 mb-0">
-                <div class="erp-form-group">
-                  <label class="erp-label" for="pnarration">Narration <span class="required">*</span></label>
-                  <textarea class="erp-textarea" rows="4" id="pnarration" title="Narration" formControlName="pnarration"
-                    maxlength="250" placeholder="Enter narration"
-                    (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"
-                    [ngClass]="{'ng-invalid': paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid}">
-                  </textarea>
-                  @if (formValidationMessages?.['pnarration']) {
-                  <div class="erp-field-error">{{ formValidationMessages['pnarration'] }}</div>
-                  }
-                  <div class="char-count" style="text-align: right; font-size: 11px; color: #94a3b8; margin-top: 4px;">
-                    {{ paymentVoucherForm.get('pnarration')?.value?.length || 0 }} / 250
-                  </div>
-                </div>
+
+            <!-- Narration -->
+            <div class="erp-form-group">
+              <label class="erp-label" for="pnarration">Narration <span class="required">*</span></label>
+              <textarea class="erp-textarea" rows="5" id="pnarration" title="Narration" formControlName="pnarration"
+                maxlength="250" placeholder="Enter narration"
+                (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"
+                [ngClass]="{'ng-invalid': paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid}">
+              </textarea>
+              @if (paymentVoucherForm.get('pnarration')?.touched &&
+              paymentVoucherForm.get('pnarration')?.errors?.['required']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration is required</div>
+              }
+              @if (paymentVoucherForm.get('pnarration')?.touched &&
+              paymentVoucherForm.get('pnarration')?.errors?.['maxlength']) {
+              <div class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Narration cannot exceed 250
+                characters</div>
+              }
+              <div class="char-count" style="text-align: right; font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                {{ paymentVoucherForm.get('pnarration')?.value?.length || 0 }} / 250
               </div>
-              <div class="col-12">
-                <div class="erp-form-group">
-                  <label class="erp-label">Upload Attachment</label>
-                  <div class="erp-file-upload">
-                    <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse?.name" readonly placeholder="No file selected">
-                    <button type="button" class="erp-file-btn" (click)="fileInput.click()">
-                      <i class="pi pi-upload"></i> Upload
-                    </button>
-                    <input type="file" hidden (change)="uploadAndProgress($event, fileInput.files)" #fileInput
-                      accept=".jpg,.jpeg,.png" />
-                  </div>
-                  <div class="erp-hint-text" style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
-                    Accepted formats: JPG, JPEG, PNG
-                  </div>
-                </div>
+            </div>
+
+            <!-- Upload Document -->
+            <div class="erp-form-group">
+              <label class="erp-label">Upload Attachment</label>
+              <div class="erp-file-upload">
+                <input
+                  type="text"
+                  class="erp-input erp-file-input"
+                  formControlName="pFilename"
+                  [value]="imageResponse?.name"
+                  readonly
+                  placeholder="No file selected">
+                <button type="button" class="erp-file-btn" (click)="fileInput.click()">
+                  <i class="pi pi-upload"></i> Upload
+                </button>
+                <input type="file" hidden (change)="uploadAndProgress($event, fileInput.files)" #fileInput
+                  accept=".jpg,.jpeg,.png" />
+              </div>
+              <div class="erp-hint-text" style="font-size: 11px; color: #94a3b8; margin-top: 4px;">
+                Accepted formats: JPG, JPEG, PNG
               </div>
             </div>
           </div>

@@ -23,7 +23,7 @@
                   placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
-              @if (formValidationMessages?.['ppaymentdate']) {
+              @if (formValidationMessages['ppaymentdate']) {
               <div class="erp-field-error">{{ formValidationMessages['ppaymentdate'] }}</div>
               }
             </div>
@@ -46,7 +46,7 @@
             <span class="button-label">Bank - {{ currencySymbol || '' }} {{ bankBalance || '' }}</span>
           </label>
         </div>
-        @if (formValidationMessages?.['pmodofpayment']) {
+        @if (formValidationMessages['pmodofpayment']) {
         <div class="erp-field-error">{{ formValidationMessages['pmodofpayment'] }}</div>
         }
 
@@ -86,7 +86,7 @@
                     'ng-dirty':   paymentVoucherForm.get('pbankname')?.touched && !paymentVoucherForm.get('pbankname')?.value
                   }">
                 </ng-select>
-                @if (formValidationMessages?.['pbankname']) {
+                @if (formValidationMessages['pbankname']) {
                 <div class="erp-field-error">{{ formValidationMessages['pbankname'] }}</div>
                 }
               </div>
@@ -108,7 +108,7 @@
                     'ng-dirty':   paymentVoucherForm.get('pCardNumber')?.touched && !paymentVoucherForm.get('pCardNumber')?.value
                   }">
                 </ng-select>
-                @if (formValidationMessages?.['pCardNumber']) {
+                @if (formValidationMessages['pCardNumber']) {
                 <div class="erp-field-error">{{ formValidationMessages['pCardNumber'] }}</div>
                 }
               </div>
@@ -131,7 +131,7 @@
                   <option [value]="t.ptypeofpayment">{{ t.ptypeofpayment }}</option>
                   }
                 </select>
-                @if (formValidationMessages?.['ptypeofpayment']) {
+                @if (formValidationMessages['ptypeofpayment']) {
                 <div class="erp-field-error">{{ formValidationMessages['ptypeofpayment'] }}</div>
                 }
               </div>
@@ -149,7 +149,7 @@
                   [class.erp-input--invalid]="paymentVoucherForm.get('pbranchname')?.touched && !paymentVoucherForm.get('pbranchname')?.value"
                   type="text" placeholder="Branch Name" formControlName="pbranchname"
                   (blur)="paymentVoucherForm.get('pbranchname')?.markAsTouched()" />
-                @if (formValidationMessages?.['pbranchname']) {
+                @if (formValidationMessages['pbranchname']) {
                 <div class="erp-field-error">{{ formValidationMessages['pbranchname'] }}</div>
                 }
               </div>
@@ -180,7 +180,7 @@
                   <option [value]="u.pUpiname">{{ u.pUpiname }}</option>
                   }
                 </select>
-                @if (formValidationMessages?.['pUpiname']) {
+                @if (formValidationMessages['pUpiname']) {
                 <div class="erp-field-error">{{ formValidationMessages['pUpiname'] }}</div>
                 }
               </div>
@@ -197,7 +197,7 @@
                   <option [value]="u.pUpiid">{{ u.pUpiid }}</option>
                   }
                 </select>
-                @if (formValidationMessages?.['pUpiid']) {
+                @if (formValidationMessages['pUpiid']) {
                 <div class="erp-field-error">{{ formValidationMessages['pUpiid'] }}</div>
                 }
               </div>
@@ -227,7 +227,7 @@
                   (keypress)="allowNumberOnly($event)"
                   (blur)="chequeNumber_Change(); paymentVoucherForm.get('pChequenumber')?.markAsTouched()" />
                 }
-                @if (formValidationMessages?.['pChequenumber']) {
+                @if (formValidationMessages['pChequenumber']) {
                 <div class="erp-field-error">{{ formValidationMessages['pChequenumber'] }}</div>
                 }
 
@@ -260,15 +260,15 @@
                     formControlName="ppartyid" bindLabel="ppartyname" bindValue="ppartyid" placeholder="Select"
                     [searchable]="true" [clearable]="true" (change)="partyName_Change($event)"
                     (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyid'])?.markAsTouched()" [ngClass]="{
-                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyid'])?.invalid,
-                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyid'])?.invalid
+                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyname'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyname'])?.invalid,
+                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyname'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','ppartyname'])?.invalid
                     }">
                   </ng-select>
                 </div>
                 <span class="erp-balance-chip">{{ partyBalance }}</span>
               </div>
-              @if (formValidationMessages?.['ppartyid']) {
-              <div class="erp-field-error">{{ formValidationMessages['ppartyid'] }}</div>
+              @if (formValidationMessages['ppartyname']) {
+              <div class="erp-field-error">{{ formValidationMessages['ppartyname'] }}</div>
               }
             </div>
           </div>
@@ -282,17 +282,18 @@
                   <ng-select appendTo="body" id="pledgername" title="Ledger" [items]="ledgerAccountsList"
                     formControlName="pledgerid" groupBy="pAccounttype" bindLabel="pledgername" bindValue="pledgerid"
                     placeholder="Select" [searchable]="true" [clearable]="true" (change)="ledgerName_Change($event)"
-                    (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pledgerid'])?.markAsTouched()" [ngClass]="{
-                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pledgerid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgerid'])?.invalid,
-                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pledgerid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgerid'])?.invalid
+                    (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.markAsTouched()"
+                    [ngClass]="{
+                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.invalid,
+                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.invalid
                     }">
                     <ng-template ng-optgroup-tmp let-item="item">{{ item.pAccounttype }}</ng-template>
                   </ng-select>
                 </div>
                 <span class="erp-balance-chip">{{ ledgerBalance }}</span>
               </div>
-              @if (formValidationMessages?.['pledgerid']) {
-              <div class="erp-field-error">{{ formValidationMessages['pledgerid'] }}</div>
+              @if (formValidationMessages['pledgername']) {
+              <div class="erp-field-error">{{ formValidationMessages['pledgername'] }}</div>
               }
             </div>
           </div>
@@ -328,13 +329,13 @@
                 </div>
                 <span class="erp-balance-chip">{{ subLedgerBalance }}</span>
               </div>
-              <!--
-                Error message: shows when field is touched AND invalid.
-                Because setSubledgerValidation(true) adds Validators.required,
-                the control will be invalid when psubledgerid is null/empty.
-              -->
-              @if (formValidationMessages?.['psubledgerid']) {
+
+              <!-- @if (formValidationMessages['psubledgerid']) {
               <div class="erp-field-error">{{ formValidationMessages['psubledgerid'] }}</div>
+              } -->
+              @if (paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.touched
+              && paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.hasError('required')) {
+              <div class="erp-field-error">Sub Ledger Required</div>
               }
             </div>
           </div>
@@ -350,7 +351,7 @@
                 id="pactualpaidamount" title="Amount Paid" formControlName="pactualpaidamount"
                 (blur)="pamount_change(); paymentVoucherForm.get(['ppaymentsslistcontrols','pactualpaidamount'])?.markAsTouched()"
                 (keypress)="allowNumberOnly($event)" appRoundecimal="12@2" appMycurrencyFormatter placeholder="0" />
-              @if (formValidationMessages?.['pactualpaidamount']) {
+              @if (formValidationMessages['pactualpaidamount']) {
               <div class="erp-field-error">{{ formValidationMessages['pactualpaidamount'] }}</div>
               }
             </div>
@@ -407,7 +408,7 @@
               <input type="text" class="erp-input" [class.erp-input--invalid]="formValidationMessages['pgstno']"
                 maxlength="15" appAlphanumeric appUppercase formControlName="pgstno" (blur)="gstNo_Change()"
                 placeholder="GSTIN" />
-              @if (formValidationMessages?.['pgstno']) {
+              @if (formValidationMessages['pgstno']) {
               <div class="erp-field-error">{{ formValidationMessages['pgstno'] }}</div>
               }
             </div>
@@ -429,7 +430,7 @@
                 <ng-option [value]="g.pgstpercentage">{{ g.pgstpercentage }}</ng-option>
                 }
               </ng-select>
-              @if (formValidationMessages?.['pgstpercentage']) {
+              @if (formValidationMessages['pgstpercentage']) {
               <div class="erp-field-error">{{ formValidationMessages['pgstpercentage'] }}</div>
               }
             </div>
@@ -473,7 +474,7 @@
                   'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.invalid
                 }">
               </ng-select>
-              @if (formValidationMessages?.['pTdsSection']) {
+              @if (formValidationMessages['pTdsSection']) {
               <div class="erp-field-error">{{ formValidationMessages['pTdsSection'] }}</div>
               }
             </div>
@@ -490,7 +491,7 @@
                   'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.invalid
                 }">
               </ng-select>
-              @if (formValidationMessages?.['pTdsPercentage']) {
+              @if (formValidationMessages['pTdsPercentage']) {
               <div class="erp-field-error">{{ formValidationMessages['pTdsPercentage'] }}</div>
               }
             </div>
@@ -641,7 +642,7 @@
                     [class.erp-input--invalid]="paymentVoucherForm.get('pnarration')?.touched && !paymentVoucherForm.get('pnarration')?.value"
                     rows="5" formControlName="pnarration" maxlength="250" placeholder="Enter narration"
                     (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"></textarea>
-                  @if (formValidationMessages?.['pnarration']) {
+                  @if (formValidationMessages['pnarration']) {
                   <div class="erp-field-error">{{ formValidationMessages['pnarration'] }}</div>
                   }
                   <div style="text-align:right;font-size:11px;color:#94a3b8;margin-top:4px;">

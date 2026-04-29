@@ -48,7 +48,7 @@ export class Address implements OnInit {
       paddress2: [''],
       pcity: ['', Validators.required],
       pRecordid: [0],
-      pCountryId: [''],
+      pCountryId: ['',Validators.required],
       pStateId: [''],
       pDistrictId: [''],
       pCountry: ['', Validators.required],

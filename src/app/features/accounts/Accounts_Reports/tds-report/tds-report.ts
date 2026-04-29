@@ -75,6 +75,7 @@ export class TdsReport implements OnInit {
 
   readonly currencySymbol = signal('');
   readonly branchSchema = signal<string | null>(null);
+  toDateMinDate: Date | null = null;
 
   // ── Totals (computed) ────────────────────────────────────────────────────────
   readonly totalLedger = computed(() =>
@@ -97,6 +98,16 @@ export class TdsReport implements OnInit {
     this.currencySymbol.set(
       String(this.commonService.datePickerPropertiesSetup('currencysymbol'))
     );
+    const initialFrom = this.TdsReportForm.get('fromdate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.TdsReportForm.get('fromdate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.TdsReportForm.get('todate')?.value;
+    if (toDate && val && toDate < val) {
+      this.TdsReportForm.get('todate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Initializers ─────────────────────────────────────────────────────────────
@@ -112,12 +123,14 @@ export class TdsReport implements OnInit {
   }
 
   private initializeForm(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.TdsReportForm = this.fb.group(
       {
         sectionid: [null, Validators.required],
         sectionname: [''],
-        fromdate: [new Date()],
-        todate: [new Date()],
+        fromdate: [today],
+        todate: [today],
         reportType: ['']
       },
       { validators: this.dateRangeValidator() }

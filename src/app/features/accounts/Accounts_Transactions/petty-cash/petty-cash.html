@@ -23,7 +23,7 @@
                   <p-datepicker formControlName="ppaymentdate" id="ppaymentdate" dateFormat="dd-M-yy"
                     placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
                     inputStyleClass="erp-input icon-pad w-100" [disabled]="!disabletransactiondate"
-                    [maxDate]="maxDate"></p-datepicker>
+                    ></p-datepicker>
                 </div>
                 @if (formValidationMessages?.['ppaymentdate']) {
                 <div class="erp-field-error">{{ formValidationMessages['ppaymentdate'] }}</div>
@@ -483,12 +483,12 @@
             styleClass="gr-table p-datatable-sm p-datatable-gridlines"  [resizableColumns]="true" columnResizeMode="expand">
             <ng-template pTemplate="header">
               <tr>
-                <th class="text-center">Actions</th>
-                <th>Party</th>
-                <th>Ledger</th>
-                <th class="text-end">Amount</th>
-                <th class="text-end">GST</th>
-                <th class="text-end">TDS</th>
+                <th pResizableColumn class="text-center">Actions</th>
+                <th pResizableColumn>Party</th>
+                <th pResizableColumn>Ledger</th>
+                <th pResizableColumn class="text-end">Amount</th>
+                <th pResizableColumn class="text-end">GST</th>
+                <th pResizableColumn class="text-end">TDS</th>
                 <th class="text-end">Total</th>
               </tr>
             </ng-template>

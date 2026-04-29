@@ -1,5 +1,5 @@
 import { Component, computed, inject, OnInit, signal } from "@angular/core";
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
+import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, Validators } from "@angular/forms";
 import { CommonService } from "../../../../core/services/Common/common.service";
 import { CommonModule, DatePipe } from "@angular/common";
 import { Router } from "@angular/router";
@@ -15,6 +15,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerModule, TableModule, Companydetails],
   templateUrl: "./cash-book.html",
   styleUrl: "./cash-book.css",
+  providers: [DatePipe]
 })
 
 export class CashBook implements OnInit {
@@ -63,17 +64,30 @@ export class CashBook implements OnInit {
   private rawData: any[] = [];
   private sortColumn = '';
   private sortDirection = 1;
+   toDateMinDate: Date | null = null;
+  
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.initForm();
     this.syncDateSignals();
+    const initialFrom = this.cashBookForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.cashBookForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.cashBookForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.cashBookForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Form Initialisation ───────────────────────────────────────────────────────
   private initForm(): void {
     const today = new Date();
-    this.cashBookForm = this.fb.group(
+    today.setHours(0, 0, 0, 0);
+    this.cashBookForm = this.fb.nonNullable.group(
       {
         fromDate: [today, Validators.required],
         toDate: [today, Validators.required],
@@ -83,14 +97,14 @@ export class CashBook implements OnInit {
     );
   }
 
-  private dateRangeValidator(group: FormGroup) {
-    const from = group.get('fromDate')?.value;
-    const to = group.get('toDate')?.value;
-    if (from && to && new Date(from) > new Date(to)) {
-      return { dateRangeInvalid: true };
-    }
-    return null;
+  private dateRangeValidator(group: AbstractControl): ValidationErrors | null {
+  const from = group.get('fromDate')?.value;
+  const to = group.get('toDate')?.value;
+  if (from && to && new Date(from) > new Date(to)) {
+    return { dateRangeInvalid: true };
   }
+  return null;
+}
 
   // ── Datepicker handlers ───────────────────────────────────────────────────────
   onFromDateChange(date: Date): void {

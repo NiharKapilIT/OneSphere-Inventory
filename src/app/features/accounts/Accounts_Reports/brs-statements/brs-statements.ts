@@ -80,7 +80,7 @@ export class BrsStatements implements OnInit {
   // ── Non-signal state ──────────────────────────────────────────────────
   private rawData: any[] = [];
   readonly currencySymbol: string;
-  readonly today = new Date();
+  // readonly today = new Date();
   pageCriteria!: PageCriteria;
   selectedbank = '';
   startDate = '';
@@ -88,6 +88,8 @@ export class BrsStatements implements OnInit {
   dpConfig: any = {};
   dpConfig1: any = {};
   form!: FormGroup<BrsForm>;
+  toDateMinDate: Date | null = null;
+   today = new Date(new Date().setHours(0, 0, 0, 0));
 
   constructor() {
     this.currencySymbol = "₹";
@@ -99,6 +101,16 @@ export class BrsStatements implements OnInit {
     this.initDatePickers();
     this.buildForm();
     this.loadBankNames();
+    const initialFrom = this.form.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.form.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.form.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Form ──────────────────────────────────────────────────────────────

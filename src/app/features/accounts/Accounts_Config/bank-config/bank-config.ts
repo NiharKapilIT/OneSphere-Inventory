@@ -252,7 +252,8 @@ export class BankConfig implements OnInit {
       pValidto:               [null as Date | null],
       // UPI — validators added dynamically when switch is ON
       pUpiid:                 [''],
-      upiname:                [''],
+      upiname:                ['',Validators.required],
+      // upiname:                [''],
       popeningjvno:           [''],
       pIsupiapplicable:       [false],
       // Address fields (validation done manually via AddressComponent)
@@ -589,6 +590,30 @@ allowNumbersOnly1(event: any) {
   //   );
   //   this.bankmasterform.get('pBankID')?.setValue(bankid);
   // }
+
+
+  onChange(event: any) {
+  // 👉 When cleared
+  if (!event) {
+    this.bankname = null;
+    this.bankmasterform.get('account_name')?.setValue('');
+    this.bankmasterform.get('pBankID')?.setValue(null);
+    return;
+  }
+
+  // 👉 Normal selection
+  this.bankname = event.bankName;
+  let bankid = event.bankId;
+
+  const accountNumber = this.bankmasterform.get('pAccountnumber')?.value || '';
+
+  const accountNameValue = accountNumber
+    ? `${this.bankname}@${accountNumber}`
+    : this.bankname;
+
+  this.bankmasterform.get('account_name')?.setValue(accountNameValue);
+  this.bankmasterform.get('pBankID')?.setValue(bankid);
+}
 //working but small iosyue
 //   onChange(event: any) {
 //   this.bankname = event.bankName;
@@ -604,21 +629,22 @@ allowNumbersOnly1(event: any) {
 //   this.bankmasterform.get('account_name')?.setValue(accountNameValue);
 //   this.bankmasterform.get('pBankID')?.setValue(bankid);
 // }
+//woking
+//   onChange(event: any) {
+//   this.bankname = event.bankName;
+//   let bankid = event.bankId;
 
-  onChange(event: any) {
-  this.bankname = event.bankName;
-  let bankid = event.bankId;
+//   const accountNumber = this.bankmasterform.get('pAccountnumber')?.value || '';
 
-  const accountNumber = this.bankmasterform.get('pAccountnumber')?.value || '';
+//   // ✅ Only set account_name if accountNumber exists, else just bankName
+//   const accountNameValue = accountNumber
+//     ? `${this.bankname}@${accountNumber}`
+//     : this.bankname;
 
-  // ✅ Only set account_name if accountNumber exists, else just bankName
-  const accountNameValue = accountNumber
-    ? `${this.bankname}@${accountNumber}`
-    : this.bankname;
+//   this.bankmasterform.get('account_name')?.setValue(accountNameValue);
+//   this.bankmasterform.get('pBankID')?.setValue(bankid);
+// }
 
-  this.bankmasterform.get('account_name')?.setValue(accountNameValue);
-  this.bankmasterform.get('pBankID')?.setValue(bankid);
-}
 
 
   // ── UPI grid ─────────────────────────────────────────────────────────────────
