@@ -1474,7 +1474,6 @@ export class JournalVoucher implements OnInit {
     dateInputFormat: 'DD-MMM-YYYY',
     showWeekNumbers: false,
   };
-  today: any;
 
   // ══════════════════════════════════════════════════════════════════════════
   // Lifecycle
@@ -1496,8 +1495,7 @@ export class JournalVoucher implements OnInit {
 
     this.paymentVoucherForm = this.fb.group({
       ppaymentid: [''],
-      pjvdate: [{value:this.today,disabled:true}, Validators.required],
-
+      pjvdate: [new Date(), Validators.required],
       ptotalpaidamount: [''],
       pnarration: ['', [Validators.required, Validators.maxLength(250)]],
       pmodofpayment: ['M'],
@@ -2451,7 +2449,7 @@ export class JournalVoucher implements OnInit {
   // Validation before save
   // ══════════════════════════════════════════════════════════════════════════
   validatesaveJournalVoucher(): boolean {
-    debugger
+    
     const dateOk = this.paymentVoucherForm.get('pjvdate')?.valid;
     const narratOk = this.paymentVoucherForm.get('pnarration')?.valid;
 
@@ -2472,7 +2470,7 @@ export class JournalVoucher implements OnInit {
   // Save
   // ══════════════════════════════════════════════════════════════════════════
   saveJournalVoucher(): void {
-    debugger
+    
     if (!this.validatesaveJournalVoucher()) return;
     if (!confirm('Do You Want to Save ?')) return;
 
