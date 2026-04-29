@@ -169,7 +169,7 @@ export class ChequesOnhand implements OnInit {
         branchCode: branchCode
       };
 
-      sessionStorage.setItem('CompanyDetails', JSON.stringify(this.companydetails));
+      // sessionStorage.setItem('CompanyDetails', JSON.stringify(this.companydetails));
     }
 
     this.pdatepickerenablestatus.set(this.companydetails?.pdatepickerenablestatus);
@@ -1041,7 +1041,7 @@ export class ChequesOnhand implements OnInit {
             uniqueBranchName: companyData.pBranchname || companyData.uniqueBranchName || '',
             branchAddress: companyData.pAddress1 || companyData.branchAddress || ''
           };
-          sessionStorage.setItem('CompanyDetails', JSON.stringify(mappedDetails));
+          // sessionStorage.setItem('CompanyDetails', JSON.stringify(mappedDetails));
           this.companydetails = mappedDetails;
         } else {
           this._setFallbackCompanyDetails();
@@ -1066,7 +1066,7 @@ export class ChequesOnhand implements OnInit {
       uniqueBranchName: parsedUser?.uniqueBranchName || parsedUser?.branchName || '',
       branchAddress: parsedUser?.branchAddress || ''
     };
-    sessionStorage.setItem('CompanyDetails', JSON.stringify(fallback));
+    // sessionStorage.setItem('CompanyDetails', JSON.stringify(fallback));
     this.companydetails = fallback;
   }
 
