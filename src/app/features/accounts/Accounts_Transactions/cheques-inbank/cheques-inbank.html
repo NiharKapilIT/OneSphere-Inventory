@@ -275,69 +275,70 @@
           <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
             [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines"
+            [resizableColumns]="true">
 
             <!-- Header -->
             <ng-template pTemplate="header">
               <tr>
                 @if (!showhidegridcolumns) {
-                <th class="th-checkbox">
+                <th pResizableColumn class="th-checkbox">
                   <div class="th-cell">
                     <input type="checkbox" [checked]="preferdrows" (change)="selectAllClear($event)" />
                   </div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Clear</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns2) {
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Return</div>
                 </th>
                 }
 
                 @if (!showhidegridcolumns) {
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Reference No</div>
                 </th>
                 }
 
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Cheque/Reference No.</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Branch Name</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Amount</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Party</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Receipt Date</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Deposited Date</div>
                 </th>
 
                 @if (!hiddendate) {
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">{{ datetitle }}</div>
                 </th>
                 }
 
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Receipt Id</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Transaction Mode</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Cheque Bank Name</div>
                 </th>
-                <th>
+                <th pResizableColumn>
                   <div class="th-cell">Cheque Branch Name</div>
                 </th>
               </tr>

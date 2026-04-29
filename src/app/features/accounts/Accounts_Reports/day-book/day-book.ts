@@ -79,6 +79,7 @@ export class DayBook implements OnInit {
   mainSortColumn    = '';
   mainSortDirection: 1 | -1 = 1;
   private rawMainData: any[] = [];
+  toDateMinDate: Date | null = null;
 
   // Sort – balance grid
   balanceSortColumn    = '';
@@ -88,14 +89,14 @@ export class DayBook implements OnInit {
   pageCriteria = new PageCriteria();
 
   // ── Datepicker configs ───────────────────────────────────────────────────────
-  dpConfig: any = {
-    dateInputFormat: 'DD-MMM-YYYY',
-    containerClass:  'theme-dark-blue',
-    maxDate:         new Date(),
-    showWeekNumbers: false
-  };
+  // dpConfig: any = {
+  //   dateInputFormat: 'DD-MMM-YYYY',
+  //   containerClass:  'theme-dark-blue',
+  //   maxDate:         new Date(),
+  //   showWeekNumbers: false
+  // };
 
-  dppConfig: any = { ...this.dpConfig };
+  // dppConfig: any = { ...this.dpConfig };
 
   // ── Form ─────────────────────────────────────────────────────────────────────
   dayBookForm!: FormGroup;
@@ -104,11 +105,13 @@ export class DayBook implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.dayBookForm = this.fb.group(
       {
-        date:        [new Date()],
-        dfromdate:   [new Date()],
-        dtodate:     [null],
+        date:        [today],
+        dfromdate:   [today],
+        dtodate:     [today],
         branch_code: ['']
       },
       { validators: this.dateRangeValidator }
@@ -117,6 +120,16 @@ export class DayBook implements OnInit {
     this.loginBranchschema = sessionStorage.getItem('loginBranchSchemaname') ?? '';
     this.loadBranches();
     this.setPageModel();
+    const initialFrom = this.dayBookForm.get('dfromdate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.dayBookForm.get('dfromdate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.dayBookForm.get('dtodate')?.value;
+    if (toDate && val && new Date(toDate).getTime() < new Date(val).getTime()) {
+      this.dayBookForm.get('dtodate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Validators ───────────────────────────────────────────────────────────────
@@ -131,20 +144,22 @@ export class DayBook implements OnInit {
 
   // ── Date handlers ─────────────────────────────────────────────────────────────
   onDateToggle(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.gridData.set([]);
     this.totalBalanceGrid.set([]);
     this.dayBookForm.patchValue({
-      dtodate: this.dte ? null : new Date()
+      dtodate: today
     });
   }
 
-  onFromDateChange(event: Date): void {
-    this.dppConfig = { ...this.dppConfig, minDate: event };
-  }
+  // onFromDateChange(event: Date): void {
+  //   this.dppConfig = { ...this.dppConfig, minDate: event };
+  // }
 
-  onToDateChange(event: Date): void {
-    this.dpConfig = { ...this.dpConfig, maxDate: event };
-  }
+  // onToDateChange(event: Date): void {
+  //   this.dpConfig = { ...this.dpConfig, maxDate: event };
+  // }
 
   // ── Load branches ─────────────────────────────────────────────────────────────
   private loadBranches(): void {

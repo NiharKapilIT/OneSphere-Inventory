@@ -480,15 +480,16 @@
           <hr class="erp-section-divider">
           <p-table [value]="paymentslist1()" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
-            styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            styleClass="p-datatable-sm p-datatable-gridlines gr-table"
+            [resizableColumns]="true">
             <ng-template pTemplate="header">
               <tr>
-                <th class="text-center">Actions</th>
-                <th>Party</th>
-                <th>Ledger</th>
-                <th class="text-end">Amount</th>
-                <th class="text-end">GST</th>
-                <th class="text-end">TDS</th>
+                <th pResizableColumn class="text-center">Actions</th>
+                <th pResizableColumn>Party</th>
+                <th pResizableColumn>Ledger</th>
+                <th pResizableColumn class="text-end">Amount</th>
+                <th pResizableColumn class="text-end">GST</th>
+                <th pResizableColumn class="text-end">TDS</th>
                 <th class="text-end">Total</th>
               </tr>
             </ng-template>

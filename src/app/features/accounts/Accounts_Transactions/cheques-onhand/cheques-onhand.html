@@ -239,35 +239,35 @@
           [paginator]="!isCleared() && page().totalElements > 0" [rows]="pageCriteria.pageSize"
           [totalRecords]="page().totalElements" [first]="pageCriteria.offset * pageCriteria.pageSize"
           [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
-          [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"
-          [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
+          [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"  [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          [resizableColumns]="true">
 
           <ng-template pTemplate="header">
             <tr>
               @if (status() !== 'deposited' && status() !== 'cancelled') {
-              <th pFrozenColumn>Deposit</th>
-              <th pFrozenColumn>Cancel</th>
+              <th pResizableColumn>Deposit</th>
+              <th pResizableColumn>Cancel</th>
               }
-              <th>Cheque/Reference No.</th>
-              <th>Branch Name</th>
-              <th>Amount</th>
-              <th>Party</th>
-              <th>Receipt Date</th>
-              <th>Cheque Date</th>
+              <th pResizableColumn>Cheque/Reference No.</th>
+              <th pResizableColumn>Branch Name</th>
+              <th pResizableColumn>Amount</th>
+              <th pResizableColumn>Party</th>
+              <th pResizableColumn>Receipt Date</th>
+              <th pResizableColumn>Cheque Date</th>
               @if (status() === 'deposited') {
-              <th>Deposited Date</th>
+              <th pResizableColumn>Deposited Date</th>
               }
               @if (status() === 'cancelled') {
-              <th>Cancelled Date</th>
+              <th pResizableColumn>Cancelled Date</th>
               }
-              <th>Receipt No</th>
-              <th>Transaction Mode</th>
-              <th>Cheque Bank Name</th>
+              <th pResizableColumn>Receipt No</th>
+              <th pResizableColumn>Transaction Mode</th>
+              <th pResizableColumn>Cheque Bank Name</th>
               @if (status() !== 'deposited' && status() !== 'cancelled') {
-              <th>Self Cheque</th>
-              <th>Chit Status</th>
-              <th>Deposited Bank</th>
+              <th pResizableColumn>Self Cheque</th>
+              <th pResizableColumn>Chit Status</th>
+              <th pResizableColumn>Deposited Bank</th>
               }
             </tr>
           </ng-template>

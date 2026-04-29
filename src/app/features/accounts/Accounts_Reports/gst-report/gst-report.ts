@@ -82,6 +82,7 @@ export class GstReport implements OnInit {
   paymentsSortColumn    = '';
   paymentsSortDirection: 1 | -1 = 1;
   private rawPaymentsData: any[] = [];
+  toDateMinDate: Date | null = null;
 
   private loginBranchSchema: any;
 
@@ -107,13 +108,24 @@ export class GstReport implements OnInit {
     this.setPageModel();
     this.buildForm();
     this.getLedger();
+    const initialFrom = this.GstReportForm.get('fromdate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.GstReportForm.get('fromdate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.GstReportForm.get('todate')?.value;
+    if (toDate && val && toDate < val) {
+      this.GstReportForm.get('todate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Form helpers ──────────────────────────────────────────────────────────
   get f() { return this.GstReportForm.controls; }
 
   private buildForm(): void {
-    const today    = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
 
     this.GstReportForm = this.fb.group(
@@ -180,6 +192,7 @@ export class GstReport implements OnInit {
   onFromDateChange(event: Date): void {
     this.dpConfig = { ...this.dpConfig, maxDate: event };
   }
+  
 
   onGstReportType(type: string): void {
     this.gstReportDetails.set([]);
@@ -198,10 +211,12 @@ export class GstReport implements OnInit {
       this.GstReportForm.get('fromdate')?.clearValidators();
       this.GstReportForm.get('todate')?.clearValidators();
     } else {
+      const today = new Date();
+    today.setHours(0, 0, 0, 0);
       this.showPayments.set(true);
       this.showReceipts.set(false);
 
-      this.GstReportForm.patchValue({ fromdate: new Date(), todate: new Date(), pledgerid: null });
+      this.GstReportForm.patchValue({ fromdate: today, todate: today, pledgerid: null });
 
       this.GstReportForm.get('fromdate')?.setValidators([Validators.required]);
       this.GstReportForm.get('todate')?.setValidators([Validators.required]);

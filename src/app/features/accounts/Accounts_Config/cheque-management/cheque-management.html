@@ -83,13 +83,14 @@
           [loading]="loading()" [first]="currentPage * pageSize" [rowsPerPageOptions]="[5, 10, 20, 30, 40, 50, 100]"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries"
           responsiveLayout="scroll" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
-          (onLazyLoad)="onPageChange($event)">
+          (onLazyLoad)="onPageChange($event)"
+          [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
               @for (col of tableColumns; track col.field) {
-              <th [class.th-center]="col.align === 'center'">
+              <th pResizableColumn [class.th-center]="col.align === 'center'">
                 <div class="th-cell" [class.th-cell-center]="col.align === 'center'">
                   {{ col.header }}
                 </div>

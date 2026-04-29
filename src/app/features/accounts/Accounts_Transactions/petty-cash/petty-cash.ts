@@ -2246,8 +2246,8 @@ export class PettyCash implements OnInit {
   // }
 
 
-  tdsSection_Change(event: Event): void {
-    const section = (event.target as HTMLSelectElement).value;
+  tdsSection_Change(event: any): void {
+    const section = event.pTdsSection
     this.tdspercentagelist = [];
     this.pc.get('pTdsPercentage')?.setValue('');
     if (section) this.getTdsPercentage(section);
@@ -2707,6 +2707,7 @@ export class PettyCash implements OnInit {
 
 
   validatesavePaymentVoucher(): boolean {
+    debugger
     this.formValidationMessages = {};
 
     if (!this.paymentslist || this.paymentslist.length === 0) {
@@ -2767,14 +2768,14 @@ export class PettyCash implements OnInit {
   savePaymentVoucher(): void {
     debugger;
 
-    //if (!this.validatesavePaymentVoucher()) {
-     // return;
-   // }
+    if (!this.validatesavePaymentVoucher()) {
+     return;
+   }
 
 
-   // if (!confirm('Do You Want To Save ?')) {
-      //return;
-    //}
+   if (!confirm('Do You Want To Save ?')) {
+      return;
+    }
 
     this.disablesavebutton.set(true);
     this.cdr.markForCheck();

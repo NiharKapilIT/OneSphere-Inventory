@@ -71,6 +71,7 @@
           [rows]="pageCriteria.pageSize"
           [totalRecords]="totalRecords()"
           [rowsPerPageOptions]="rowsPerPageOptions"
+          [resizableColumns]="true"
           sortMode="single"
           responsiveLayout="scroll"
           [showCurrentPageReport]="true"
@@ -80,34 +81,34 @@
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
-              <th class="th-actions">
+              <th pResizableColumn class="th-actions">
                 <div class="th-cell">Actions</div>
               </th>
-              <th pSortableColumn="paymentDate">
+              <th pResizableColumn pSortableColumn="paymentDate">
                 <div class="th-cell">
                   <i class="pi pi-calendar"></i> Payment Date
                   <p-sortIcon field="paymentDate" />
                 </div>
               </th>
-              <th pSortableColumn="paymentId" class="th-center">
+              <th pResizableColumn pSortableColumn="paymentId" class="th-center">
                 <div class="th-cell th-center">
                   <i class="pi pi-hashtag"></i> Voucher No.
                   <p-sortIcon field="paymentId" />
                 </div>
               </th>
-              <th pSortableColumn="modeOfPayment">
+              <th pResizableColumn pSortableColumn="modeOfPayment">
                 <div class="th-cell">
                   <i class="pi pi-credit-card"></i> Payment Mode
                   <p-sortIcon field="modeOfPayment" />
                 </div>
               </th>
-              <th pSortableColumn="bankName">
+              <th pResizableColumn pSortableColumn="bankName">
                 <div class="th-cell">
                   <i class="pi pi-building"></i> Bank Name
                   <p-sortIcon field="bankName" />
                 </div>
               </th>
-              <th pSortableColumn="totalPaidAmount" class="th-right">
+              <th pResizableColumn pSortableColumn="totalPaidAmount" class="th-right">
                 <div class="th-cell th-right">
                   <i class="pi pi-indian-rupee"></i> Paid Amount
                   <p-sortIcon field="totalPaidAmount" />

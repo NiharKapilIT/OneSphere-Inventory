@@ -33,7 +33,7 @@
                 <label class="erp-label required">To Date <span class="required">*</span></label>
                 <div class="erp-input-wrap erp-date-wrap">
                   <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker formControlName="toDate" dateFormat="dd-M-yy" placeholder="Select To Date" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                  <p-datepicker formControlName="toDate" dateFormat="dd-M-yy" placeholder="Select To Date" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
                 </div>
                 @if (submitted && ComparisionTBForm.controls['toDate'].errors?.['required']) {
                   <div class="erp-field-error">To Date is required</div>
@@ -185,4 +185,4 @@
     .report-view-container { padding: 0 !important; }
     .gr-table { border: 1px solid #000 !important; }
   }
-</style>
+</style>
