@@ -88,19 +88,13 @@
             <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Cash Book Report</h6></div>
             <div class="tb-right">
               @if (showIcons()) {
-                <button class="erp-btn-icon btn-filter" (click)="dt.reset()" pTooltip="Clear Filters" tooltipPosition="bottom">
-                  <i class="pi pi-filter-slash"></i>
-                </button>
-                <button class="erp-btn-icon btn-reload" (click)="generateReport()" pTooltip="Reload Data" tooltipPosition="bottom">
-                  <i class="pi pi-refresh"></i>
-                </button>
-                <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF" tooltipPosition="bottom">
+                <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF" tooltipPosition="bottom">
                   <i class="pi pi-file-pdf"></i>
                 </button>
-                <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Print')" pTooltip="Print" tooltipPosition="bottom">
+                <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" pTooltip="Print" tooltipPosition="bottom">
                   <i class="pi pi-print"></i>
                 </button>
-                <button class="erp-btn-icon btn-export" (click)="export()" pTooltip="Export Excel" tooltipPosition="bottom">
+                <button class="erp-btn btn-white btn-sm" (click)="export()" pTooltip="Export Excel" tooltipPosition="bottom">
                   <i class="pi pi-download"></i>
                 </button>
               }
