@@ -1653,6 +1653,54 @@ export class ChequesInbank implements OnInit {
 
 
 
+  // Clear() {
+  //   const today = new Date();
+
+  //   this.ChequesInBankForm.reset({
+  //     ptransactiondate: today,
+  //     pchequecleardate: today,
+  //     bankname: null,
+  //     pfrombrsdate: today,
+  //     ptobrsdate: today,
+  //     schemaname: this._commonService.getschemaname(),
+  //     searchtext: '',
+  //     receipttype: 'Adjusted',
+  //     auto_brs_type: 'Upload'
+  //   });
+  //   this.ChequesInBankForm.get('ptransactiondate')?.disable();
+
+  //   this.BrsDateForm.reset({
+  //     frombrsdate: today,
+  //     tobrsdate: today
+  //   });
+
+
+  //   this.chequeClearDateModel = new Date();
+  //   this.brsFromDateModel = new Date();
+  //   this.brsToDateModel = new Date();
+  //   this.brsReturnFromDateModel = new Date();
+  //   this.brsReturnToDateModel = new Date();
+
+  //   this.bankid = 0;
+  //   this.bankname = '';
+  //   this.bankbalance = 0;
+  //   this.bankbalancetype = '';
+  //   this.brsdate = '';
+  //   this.banknameshowhide = false;
+  //   this.ChequesInBankValidation = {};
+
+  //   this.gridData = []; this.gridDatatemp = [];
+  //   this.ChequesInBankData = []; this.ChequesClearReturnData = [];
+  //   this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
+  //   this.selectedTab = 'onlinereceipts';
+  //   this._searchText = ''; this.fromdate = ''; this.todate = '';
+  //   this.preferdrows = false;
+  //   this.amounttotal = 0; this.selectedamt = 0;
+  //   this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+  //   this.pageSetUp(); this.GetBankBalance(this.bankid);
+  //   this.cdr.markForCheck();
+  // }
+
   Clear() {
     const today = new Date();
 
@@ -1673,7 +1721,6 @@ export class ChequesInbank implements OnInit {
       frombrsdate: today,
       tobrsdate: today
     });
-
 
     this.chequeClearDateModel = new Date();
     this.brsFromDateModel = new Date();
@@ -1697,6 +1744,8 @@ export class ChequesInbank implements OnInit {
     this.preferdrows = false;
     this.amounttotal = 0; this.selectedamt = 0;
     this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+    this.validatebrsdateclear = false;    
+    this.validatebrsdatereturn = false;   
     this.pageSetUp(); this.GetBankBalance(this.bankid);
     this.cdr.markForCheck();
   }
@@ -1821,7 +1870,7 @@ export class ChequesInbank implements OnInit {
   // ── Export / Print 
 
   pdfOrprint(printorpdf: any) {
-    debugger;
+    
     if (!this.gridData?.length) {
       this._commonService.showWarningMessage('No data available'); return;
     }

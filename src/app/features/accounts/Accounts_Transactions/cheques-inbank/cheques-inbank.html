@@ -1,4 +1,4 @@
- <!-- cheques-inbank.component.html -->
+<!-- cheques-inbank.component.html -->
 <form [formGroup]="ChequesInBankForm">
 
   <div class="module-page">
@@ -42,13 +42,13 @@
 
         <div class="card-actions">
           @if (gridData && gridData.length > 0) {
-          <button class="erp-btn btn-white btn-sm" (Click)="pdfOrprint('Pdf')" title="PDF">
+          <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="PDF">
             <i class="pi pi-file-pdf"></i> PDF
           </button>
-          <button class="erp-btn btn-white btn-sm" (Click)="pdfOrprint('Print')" title="Print">
+          <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
             <i class="pi pi-print"></i> Print
           </button>
-          <button class="erp-btn btn-white btn-sm" (Click)="export()" title="Excel">
+          <button class="erp-btn btn-white btn-sm" (click)="export()" title="Excel">
             <i class="pi pi-download"></i> Excel
           </button>
           }
@@ -369,44 +369,44 @@
                 }
 
                 <td class="td-center">
-                  <span class="cheque-ref">{{ row?.pChequenumber || '--' }}</span>
+                  <span class="cheque-ref">{{ row?.pChequenumber || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.pbranchname || '--' }}</td>
+                <td>{{ row?.pbranchname || '-- NA --' }}</td>
                 <td class="td-right">
                   <div class="amount-cell">
                     <span class="amt-sym">{{ currencySymbol ?? '' }}</span>
                     <span class="amt-num">{{ (row?.ptotalreceivedamount ?? 0) | number:'1.2-2' }}</span>
                   </div>
                 </td>
-                <td>{{ row?.ppartyname || '--' }}</td>
+                <td>{{ row?.ppartyname || '-- NA --' }}</td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.preceiptdate ? (row.preceiptdate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
                 <td>
                   <div class="td-date">
                     <i class="pi pi-calendar-clock"></i>
-                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '--' }}
+                    {{ row?.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '-- NA --' }}
                   </div>
                 </td>
 
                 @if (status === 'cleared') {
-                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
                 @if (status === 'returned') {
-                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '--' }}</td>
+                <td>{{ row?.returneddate ? (row.returneddate | date: 'dd-MMM-yyyy') : '-- NA --' }}</td>
                 }
 
                 <td>
-                  <span class="receipt-no">#{{ row?.preceiptid || '--' }}</span>
+                  <span class="receipt-no">#{{ row?.preceiptid || '-- NA --' }}</span>
                 </td>
                 <td>
-                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '--' }}</span>
+                  <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '-- NA --' }}</span>
                 </td>
-                <td>{{ row?.cheque_bank || '--' }}</td>
-                <td>{{ row?.receipt_branch_name || '--' }}</td>
+                <td>{{ row?.cheque_bank || '-- NA --' }}</td>
+                <td>{{ row?.receipt_branch_name || '-- NA --' }}</td>
               </tr>
               }
             </ng-template>
@@ -525,5 +525,3 @@
     </div>
   </div>
 </div>
-
- 
