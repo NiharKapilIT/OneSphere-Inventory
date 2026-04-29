@@ -1,0 +1,295 @@
+<div class="module-page">
+  <div class="erp-card">
+    <div class="card-body p-0">
+
+      <div class="card-header">
+        <div>
+          <h4 class="card-title">SSC Agenda</h4>
+          <p class="card-subtitle">Employee Joining, Promotion, Transfer &amp; Resigning Process here</p>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="erp-radio-button-group p-0">
+          <label class="erp-radio-button" for="confirmation">
+            <input type="radio" name="agendaType" id="confirmation" value="Confirmation" [(ngModel)]="selectedTab" />
+            <span class="button-label">Confirmation</span>
+          </label>
+          <label class="erp-radio-button" for="promotion">
+            <input type="radio" name="agendaType" id="promotion" value="Promotion" [(ngModel)]="selectedTab" />
+            <span class="button-label">Promotion</span>
+          </label>
+          <label class="erp-radio-button" for="transfer">
+            <input type="radio" name="agendaType" id="transfer" value="Transfer" [(ngModel)]="selectedTab" />
+            <span class="button-label">Transfer</span>
+          </label>
+          <label class="erp-radio-button" for="resignation">
+            <input type="radio" name="agendaType" id="resignation" value="Resignation" [(ngModel)]="selectedTab" />
+            <span class="button-label">Resignation</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Employee Selection -->
+      <div class="p-4">
+        <div class="row g-3">
+          <div class="col-xl-4 col-lg-5 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Select Employee <span class="required">*</span></label>
+              <ng-select
+                [items]="employeeOptions"
+                [(ngModel)]="selectedEmployee"
+                placeholder="Search by employee name"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="erp-grid-shell p-3">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <div class="d-flex gap-2 text-muted">Employee Name : <strong class="text-dark">John David</strong></div>
+              <div class="d-flex gap-2 text-muted">Designation : <strong class="text-dark">HR Executive</strong></div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex gap-2 text-muted">EPF No. : <strong class="text-dark">EPF1025</strong></div>
+              <div class="d-flex gap-2 text-muted">Hire Date : <strong class="text-dark">12-Mar-2022</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirmation Form -->
+      <div class="p-4" *ngIf="selectedTab === 'Confirmation'">
+        <h4 class="section-title mb-3">Update Confirmation</h4>
+        <div class="row g-3">
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Designation <span class="required">*</span></label>
+              <ng-select
+                [items]="designationOptions"
+                [(ngModel)]="selectedDesignation"
+                placeholder="Select designation"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Confirmation</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Remarks <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter remarks" />
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Ref No. <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter reference number" />
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Minutes Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Promotion Form -->
+      <div class="p-4" *ngIf="selectedTab === 'Promotion'">
+        <h4 class="section-title mb-3">Update Promotion</h4>
+        <div class="row g-3">
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Designation <span class="required">*</span></label>
+              <ng-select
+                [items]="promotionDesignationOptions"
+                [(ngModel)]="selectedPromotionDesignation"
+                placeholder="Select designation"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Promotion</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Remarks <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter remarks" />
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Ref No. <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter reference number" />
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Minutes Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Transfer Form -->
+      <div class="p-4" *ngIf="selectedTab === 'Transfer'">
+        <h4 class="section-title mb-3">Transfer Details</h4>
+        <div class="row g-3">
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Transfer</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Joining</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Reporting</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Posted to Branch <span class="required">*</span></label>
+              <ng-select
+                [items]="branchOptions"
+                [(ngModel)]="selectedBranch"
+                placeholder="Select branch"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Designation <span class="required">*</span></label>
+              <ng-select
+                [items]="designationOptions"
+                [(ngModel)]="selectedTransferDesignation"
+                placeholder="Select designation"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Remarks <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter remarks" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resignation Form -->
+      <div class="p-4" *ngIf="selectedTab === 'Resignation'">
+        <h4 class="section-title mb-3">Resignation Details</h4>
+        <div class="row g-3">
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Resignation Accept Authority <span class="required">*</span></label>
+              <ng-select
+                [items]="authorityOptions"
+                [(ngModel)]="selectedAuthority"
+                placeholder="Select authority"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Date of Resignation</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Remarks <span class="required">*</span></label>
+              <input type="text" class="erp-input" placeholder="Enter remarks" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="card-footer d-flex justify-end gap-2">
+        <button type="button" class="erp-btn btn-white">
+          <i class="pi pi-times"></i> Cancel
+        </button>
+        <button type="button" class="erp-btn btn-primary">
+          <i class="pi pi-check"></i> Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

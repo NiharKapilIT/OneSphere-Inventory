@@ -1,0 +1,123 @@
+<div class="module-page">
+  <div class="erp-card">
+    <div class="card-body p-0">
+
+      <div class="card-header">
+        <div>
+          <h4 class="card-title">Biometric Report</h4>
+          <p class="card-subtitle">View employee biometric leave details by date range</p>
+        </div>
+      </div>
+
+      <!-- Filter Section -->
+      <div class="p-4">
+        <div class="row align-items-end g-3">
+
+          <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">From Date <span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" [(ngModel)]="fromDate" />
+              </div>
+              <div class="erp-field-error" *ngIf="submitted && !fromDate">From Date Required</div>
+            </div>
+          </div>
+
+          <div class="col-xl-3 col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">To Date <span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <input type="date" class="erp-input icon-pad" [(ngModel)]="toDate" />
+              </div>
+              <div class="erp-field-error" *ngIf="submitted && !toDate">To Date Required</div>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-3 col-md-4">
+            <div class="erp-form-group">
+              <label class="erp-label">&nbsp;</label>
+              <button type="button" class="erp-btn btn-white w-100" (click)="onShow()">
+                <i class="pi pi-eye"></i> Show
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Grid Section -->
+      <div class="p-4">
+        <div class="erp-table-toolbar tbl-toolbar-flush">
+          <h5 class="section-title mb-0">Biometric Details</h5>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="onExportPdf()">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="onPrint()">
+              <i class="pi pi-print"></i>
+            </button>
+          </div>
+        </div>
+
+        <p-table
+          [value]="biometricList"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [responsiveLayout]="'scroll'"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Branch</th>
+              <th>Employee code</th>
+              <th>Date</th>
+              <th>Employee Name</th>
+              <th>Leave Type</th>
+              <th>Ava.CL</th>
+              <th>Ava.SL</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>{{ row.branch }}</td>
+              <td>{{ row.employeeCode }}</td>
+              <td>{{ row.date }}</td>
+              <td>{{ row.employeeName }}</td>
+              <td>{{ row.leaveType }}</td>
+              <td>{{ row.avaCl }}</td>
+              <td>{{ row.avaSl }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7">
+                <div class="grn-table-empty">
+                  <i class="pi pi-inbox"></i>
+                  <div>No data to display</div>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="summary">
+            <div class="grn-table-count">{{ biometricList.length }} total</div>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Bottom Actions -->
+      <div class="card-footer d-flex justify-end gap-2">
+        <button type="button" class="erp-btn btn-white" (click)="onCancel()">
+          <i class="pi pi-times"></i> Cancel
+        </button>
+        <button type="button" class="erp-btn btn-primary" (click)="onSave()">
+          <i class="pi pi-check"></i> Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

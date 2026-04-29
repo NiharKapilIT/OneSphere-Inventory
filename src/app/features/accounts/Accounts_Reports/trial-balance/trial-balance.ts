@@ -56,7 +56,7 @@ export class TrialBalance implements OnInit {
   betweento         = '';
   sortColumn        = '';
   sortDirection     = 1;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   private trialBalanceRaw: any[] = [];
 

@@ -1,54 +1,100 @@
+<!-- FAB trigger button -->
 <button
   type="button"
   class="voice-fab"
   [class.active]="open()"
   [class.listening]="listening()"
+  [class.speaking]="speaking()"
   (click)="listening() ? stopListening() : startListening()"
   aria-label="Voice assistant">
-  <i class="pi" [ngClass]="listening() ? 'pi-stop-circle' : 'pi-microphone'"></i>
+  <i class="pi"
+     [ngClass]="speaking() ? 'pi-volume-up' : listening() ? 'pi-stop-circle' : 'pi-microphone'"></i>
 </button>
 
 @if (open()) {
   <section class="voice-panel" aria-label="Voice assistant panel">
+
     <header class="voice-header">
       <div>
-        <span class="voice-kicker">Assistant</span>
+        <span class="voice-kicker">ERP Assistant</span>
         <h3>Voice Command</h3>
       </div>
-
-      <button type="button" class="voice-icon-btn" (click)="close()" aria-label="Close voice assistant">
+      <button type="button" class="voice-icon-btn" (click)="close()" aria-label="Close">
         <i class="pi pi-times"></i>
       </button>
     </header>
 
     <div class="voice-body">
-      <div class="voice-orb" [class.listening]="listening()">
-        <i class="pi pi-microphone"></i>
+
+      <!-- Animated orb -->
+      <div class="voice-orb"
+           [class.listening]="listening()"
+           [class.speaking]="speaking()">
+        <i class="pi"
+           [ngClass]="speaking() ? 'pi-volume-up' : 'pi-microphone'"></i>
       </div>
 
+      <!-- Status + transcript -->
       <div class="voice-state">
-        <span>{{ status() }}</span>
-        <small>Start with "Hey Kapil"</small>
+        <span class="voice-status-badge" [class.active]="listening() || speaking()">
+          {{ status() }}
+        </span>
+        <small>Say <strong>"Kap"</strong> then your command</small>
+
         @if (transcript()) {
-          <strong>{{ transcript() }}</strong>
+          <div class="voice-bubble voice-bubble--user">
+            <i class="pi pi-user"></i>
+            <span>{{ transcript() }}</span>
+          </div>
         }
+
         @if (matchedLabel()) {
-          <em>{{ matchedLabel() }}</em>
+          <div class="voice-matched">
+            <i class="pi pi-arrow-right"></i>
+            <span>{{ matchedLabel() }}</span>
+          </div>
         }
       </div>
 
-      @if (!supported()) {
-        <p class="voice-error">Voice recognition is not available in this browser.</p>
+      <!-- Assistant reply -->
+      @if (reply()) {
+        <div class="voice-reply" [class.speaking]="speaking()">
+          <i class="pi pi-volume-up voice-reply__icon"></i>
+          <span>{{ reply() }}</span>
+        </div>
       }
 
+      @if (!supported()) {
+        <p class="voice-error">
+          <i class="pi pi-exclamation-triangle"></i>
+          Voice recognition is not supported in this browser.
+        </p>
+      }
+
+      <!-- Action button -->
       <button
         type="button"
         class="voice-action"
+        [class.stop]="listening()"
         [disabled]="!supported()"
         (click)="listening() ? stopListening() : startListening()">
         <i class="pi" [ngClass]="listening() ? 'pi-stop' : 'pi-microphone'"></i>
         {{ listening() ? 'Stop' : 'Speak' }}
       </button>
+
+      <!-- Command hint chips -->
+      <div class="voice-hints">
+        <span class="voice-hint">"Kap trial balance"</span>
+        <span class="voice-hint">"Kap what is trial balance"</span>
+        <span class="voice-hint">"Kap explain ledger"</span>
+        <span class="voice-hint">"Kap how to use payment voucher"</span>
+        <span class="voice-hint">"Kap dependencies of general receipt"</span>
+        <span class="voice-hint">"Kap related screens for cheque receipt"</span>
+        <span class="voice-hint">"Kap what is SOS"</span>
+        <span class="voice-hint">"Kap why should we use SOS"</span>
+        <span class="voice-hint">"Kap open SOS"</span>
+      </div>
+
     </div>
   </section>
 }

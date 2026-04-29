@@ -6,6 +6,8 @@
   font-family: 'Poppins', sans-serif;
 }
 
+// ── FAB ──────────────────────────────────────────────────────────────────────
+
 .voice-fab {
   width: 42px;
   height: 42px;
@@ -18,31 +20,30 @@
   justify-content: center;
   cursor: pointer;
   box-shadow: none;
+  transition: color 0.2s;
 
-  i {
-    font-size: 28px;
-  }
+  i { font-size: 28px; }
 
-  &.active {
-    color: #0f766e;
-  }
-
-  &.listening {
-    animation: voicePulse 1.2s ease-in-out infinite;
-  }
+  &.active    { color: #0f766e; }
+  &.listening { animation: voicePulse 1.2s ease-in-out infinite; }
+  &.speaking  { color: #7c3aed; animation: speakPulse 0.8s ease-in-out infinite; }
 }
+
+// ── Panel ─────────────────────────────────────────────────────────────────────
 
 .voice-panel {
   position: absolute;
   left: 0;
   bottom: 54px;
-  width: min(320px, calc(100vw - 28px));
+  width: min(340px, calc(100vw - 28px));
   border: 1px solid #dbe8f9;
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
   overflow: hidden;
 }
+
+// ── Header ────────────────────────────────────────────────────────────────────
 
 .voice-header {
   display: flex;
@@ -56,16 +57,17 @@
   h3 {
     margin: 2px 0 0;
     color: #111827;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 800;
   }
 }
 
 .voice-kicker {
   color: #0891b2;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .voice-icon-btn {
@@ -76,7 +78,15 @@
   background: #fff;
   color: #475569;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+
+  &:hover { background: #f1f5f9; }
 }
+
+// ── Body ──────────────────────────────────────────────────────────────────────
 
 .voice-body {
   padding: 16px;
@@ -85,6 +95,8 @@
   align-items: center;
   gap: 12px;
 }
+
+// ── Orb ───────────────────────────────────────────────────────────────────────
 
 .voice-orb {
   width: 72px;
@@ -96,58 +108,134 @@
   align-items: center;
   justify-content: center;
   border: 1px solid #a5f3fc;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s;
 
-  i {
-    font-size: 28px;
-  }
+  i { font-size: 28px; }
 
   &.listening {
     color: #fff;
     background: linear-gradient(135deg, #06b6d4 0%, #0f766e 100%);
     box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.12);
+    animation: orbPulse 1.2s ease-in-out infinite;
+  }
+
+  &.speaking {
+    color: #fff;
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+    box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.12);
+    animation: orbSpeak 0.8s ease-in-out infinite;
   }
 }
 
+// ── Status ────────────────────────────────────────────────────────────────────
+
 .voice-state {
-  min-height: 72px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  gap: 6px;
   text-align: center;
-
-  span {
-    color: #0f766e;
-    font-size: 12px;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
 
   small {
     color: #64748b;
     font-size: 11px;
-    font-weight: 600;
-  }
+    font-weight: 500;
 
-  strong {
-    max-width: 100%;
-    color: #111827;
-    font-size: 14px;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-  }
-
-  em {
-    color: #64748b;
-    font-size: 12px;
-    font-style: normal;
-    font-weight: 700;
+    strong { color: #0c4a6e; }
   }
 }
 
+.voice-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: background 0.2s, color 0.2s;
+
+  &.active {
+    background: #ecfdf5;
+    color: #059669;
+  }
+}
+
+// ── User bubble (transcript) ──────────────────────────────────────────────────
+
+.voice-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+
+  i { flex-shrink: 0; margin-top: 1px; }
+
+  &--user {
+    background: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+}
+
+// ── Matched label ─────────────────────────────────────────────────────────────
+
+.voice-matched {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f766e;
+
+  i { font-size: 10px; }
+}
+
+// ── Assistant reply ───────────────────────────────────────────────────────────
+
+.voice-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4c1d95;
+  line-height: 1.45;
+  text-align: left;
+  transition: background 0.2s;
+
+  &.speaking {
+    background: #ede9fe;
+    border-color: #c4b5fd;
+  }
+}
+
+.voice-reply__icon {
+  flex-shrink: 0;
+  font-size: 13px;
+  margin-top: 1px;
+}
+
+// ── Error ─────────────────────────────────────────────────────────────────────
+
 .voice-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0;
   padding: 9px 10px;
   border-radius: 10px;
@@ -155,7 +243,10 @@
   color: #991b1b;
   font-size: 12px;
   line-height: 1.4;
+  width: 100%;
 }
+
+// ── Action button ─────────────────────────────────────────────────────────────
 
 .voice-action {
   width: 100%;
@@ -171,6 +262,11 @@
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  transition: opacity 0.15s;
+
+  &.stop {
+    background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  }
 
   &:disabled {
     cursor: not-allowed;
@@ -178,20 +274,51 @@
   }
 }
 
-@keyframes voicePulse {
-  0%,
-  100% {
-    filter: drop-shadow(0 0 0 rgba(8, 145, 178, 0));
-  }
+// ── Hint chips ────────────────────────────────────────────────────────────────
 
-  50% {
-    filter: drop-shadow(0 0 8px rgba(8, 145, 178, 0.45));
-  }
+.voice-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+  width: 100%;
 }
 
+.voice-hint {
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  font-style: italic;
+}
+
+// ── Animations ────────────────────────────────────────────────────────────────
+
+@keyframes voicePulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(8, 145, 178, 0)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(8, 145, 178, 0.45)); }
+}
+
+@keyframes speakPulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(124, 58, 237, 0)); }
+  50%       { filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.5)); }
+}
+
+@keyframes orbPulse {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(6, 182, 212, 0.12); }
+  50%       { box-shadow: 0 0 0 14px rgba(6, 182, 212, 0.06); }
+}
+
+@keyframes orbSpeak {
+  0%, 100% { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.12); }
+  50%       { box-shadow: 0 0 0 14px rgba(124, 58, 237, 0.06); }
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+
 @media (max-width: 640px) {
-  :host {
-    left: 14px;
-    bottom: 86px;
-  }
+  :host { left: 14px; bottom: 86px; }
 }

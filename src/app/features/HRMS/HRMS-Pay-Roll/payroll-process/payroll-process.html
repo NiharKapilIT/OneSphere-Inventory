@@ -1,0 +1,136 @@
+<div class="module-page">
+  <div class="erp-card">
+    <div class="card-body p-0">
+
+      <div class="card-header">
+        <div>
+          <h4 class="card-title">Employee Payroll</h4>
+          <p class="card-subtitle">Filter and view employee payroll details</p>
+        </div>
+      </div>
+
+      <div class="p-4">
+        <div class="row align-items-end g-3">
+
+          <div class="col-xl-4 col-lg-4 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Employee Name</label>
+              <ng-select
+                [items]="employeeOptions"
+                [(ngModel)]="selectedEmployee"
+                bindLabel="employeeName"
+                placeholder="Search by employee name"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-3 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Year <span class="required">*</span></label>
+              <ng-select
+                [items]="yearOptions"
+                [(ngModel)]="selectedYear"
+                placeholder="Select"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+              <div class="erp-field-error" *ngIf="submitted && !selectedYear">
+                Calendar Year Required
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-3 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Month <span class="required">*</span></label>
+              <ng-select
+                [items]="monthOptions"
+                [(ngModel)]="selectedMonth"
+                bindLabel="label"
+                bindValue="value"
+                placeholder="Select Month"
+                [clearable]="true"
+                appendTo="body">
+              </ng-select>
+              <div class="erp-field-error" *ngIf="submitted && !selectedMonth">
+                Calendar Month Required
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-2 col-lg-2 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">&nbsp;</label>
+              <button type="button" class="erp-btn btn-primary w-100" (click)="runPayroll()">
+                <i class="pi pi-play"></i> Run Payroll
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="p-4">
+        <p-table
+          [value]="payrollList"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [responsiveLayout]="'scroll'"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 100px;">Actions</th>
+              <th>Emp ID</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Date Of Joining</th>
+              <th>Basic</th>
+              <th>VDA</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row>
+            <tr>
+              <td>
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="View">
+                  <i class="pi pi-eye"></i>
+                </button>
+              </td>
+              <td>{{ row.empId }}</td>
+              <td>{{ row.employeeName }}</td>
+              <td>{{ row.designation }}</td>
+              <td>{{ row.dateOfJoining }}</td>
+              <td>{{ row.basic | number:'1.0-0' }}</td>
+              <td>{{ row.vda | number:'1.0-0' }}</td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="7">
+                <div class="grn-table-empty">
+                  <i class="pi pi-inbox"></i>
+                  <div>No data to display</div>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <div class="card-footer d-flex justify-end gap-2">
+        <button type="button" class="erp-btn btn-white">
+          <i class="pi pi-times"></i> Cancel
+        </button>
+        <button type="button" class="erp-btn btn-primary">
+          <i class="pi pi-check"></i> Save
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

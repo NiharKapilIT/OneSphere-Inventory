@@ -79,7 +79,7 @@ export class ComparisonTb implements OnInit {
   dpConfig1: any = {};
 
   @ViewChild('myTable') table: any;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   constructor() {
     this.currencysymbol = String(

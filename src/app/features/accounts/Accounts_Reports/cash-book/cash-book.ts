@@ -64,7 +64,7 @@ export class CashBook implements OnInit {
   private rawData: any[] = [];
   private sortColumn = '';
   private sortDirection = 1;
-   toDateMinDate: Date | null = null;
+   toDateMinDate: any | null = null;
   
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────

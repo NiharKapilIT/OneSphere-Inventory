@@ -74,7 +74,7 @@ export class LedgerExtract implements OnInit {
     this.rc.ToDate = today;
     this.toDateMinDate = today;
   }
-  onFromDateChange(val: Date | null): void {
+  onFromDateChange(val: any | null): void {
   this.toDateMinDate = val ?? null;
   if (this.rc.ToDate && val && this.rc.ToDate < val) {
     this.rc.ToDate = null;
