@@ -1,4 +1,4 @@
-import {
+ import {
   Component, OnInit, AfterViewInit, Input, inject, signal,
   DestroyRef, ChangeDetectorRef, ChangeDetectionStrategy, NgZone
 }
@@ -1821,6 +1821,7 @@ export class ChequesInbank implements OnInit {
   // ── Export / Print 
 
   pdfOrprint(printorpdf: any) {
+    debugger;
     if (!this.gridData?.length) {
       this._commonService.showWarningMessage('No data available'); return;
     }
