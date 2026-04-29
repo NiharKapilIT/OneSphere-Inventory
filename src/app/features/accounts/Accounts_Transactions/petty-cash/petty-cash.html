@@ -1,4 +1,4 @@
-<div class="module-page petty-cash-page">
+<div class="module-page">
 
   <div class="erp-card">
     <!-- Header -->
@@ -480,7 +480,7 @@
           <hr class="erp-section-divider">
           <p-table [value]="paymentslist1()" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
-            styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines"  [resizableColumns]="true" columnResizeMode="expand">
             <ng-template pTemplate="header">
               <tr>
                 <th class="text-center">Actions</th>

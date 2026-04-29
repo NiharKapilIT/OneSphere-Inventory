@@ -629,7 +629,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   getSubModuleIcon(name?: string): string {
     const value = (name || '').toLowerCase();
 
-    if (value.includes('deposit')) return 'pi pi-folder-open';
+    if (value.includes('Configurations')) return 'pi pi-wrench';
+    if (value.includes('transactions')) return 'pi pi-indian-rupee';
     if (value.includes('withdraw')) return 'pi pi-folder-open';
     if (value.includes('transfer')) return 'pi pi-arrow-right-arrow-left';
     if (value.includes('report')) return 'pi pi-chart-line';
@@ -641,7 +642,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     if (value.includes('master')) return 'pi pi-database';
     if (value.includes('verification')) return 'pi pi-check-square';
 
-    return 'pi pi-folder';
+    return 'pi pi-wrench';
   }
 
   getScreenIcon(name?: string): string {

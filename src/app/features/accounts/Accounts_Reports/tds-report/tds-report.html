@@ -47,15 +47,18 @@
 
             <!-- Toggles -->
             <div class="col-12 col-md-3">
-              <div class="d-flex gap-4 mb-2">
-                <label class="erp-checkbox">
-                  <input type="checkbox" (change)="onAsOnToggle($event)" />
-                  <span>As On</span>
-                </label>
-                <label class="erp-checkbox">
-                  <input type="checkbox" formControlName="reportType" (change)="onSummaryToggle($event)" />
-                  <span>Summary</span>
-                </label>
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
+                <div class="d-flex gap-4">
+                  <label class="erp-checkbox m-0">
+                    <input type="checkbox" (change)="onAsOnToggle($event)" />
+                    <span>As On</span>
+                  </label>
+                  <label class="erp-checkbox m-0">
+                    <input type="checkbox" formControlName="reportType" (change)="onSummaryToggle($event)" />
+                    <span>Summary</span>
+                  </label>
+                </div>
               </div>
             </div>
 
