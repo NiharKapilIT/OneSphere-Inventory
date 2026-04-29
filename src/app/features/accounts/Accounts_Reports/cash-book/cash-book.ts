@@ -14,7 +14,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   standalone:true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerModule, TableModule, Companydetails],
   templateUrl: "./cash-book.html",
-  styleUrl: "./cash-book.css",
+  // styleUrl: "./cash-book.css",
   providers: [DatePipe]
 })
 

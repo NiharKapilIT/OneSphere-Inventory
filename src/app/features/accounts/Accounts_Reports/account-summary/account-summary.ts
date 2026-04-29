@@ -33,7 +33,6 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   providers: [DatePipe],
   templateUrl: './account-summary.html',
-  styleUrl: './account-summary.css'
 })
 export class AccountSummary implements OnInit {
   pDatepickerMaxDate: Date = new Date();
