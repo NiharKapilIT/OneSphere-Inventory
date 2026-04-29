@@ -282,7 +282,8 @@
                   <ng-select appendTo="body" id="pledgername" title="Ledger" [items]="ledgerAccountsList"
                     formControlName="pledgerid" groupBy="pAccounttype" bindLabel="pledgername" bindValue="pledgerid"
                     placeholder="Select" [searchable]="true" [clearable]="true" (change)="ledgerName_Change($event)"
-                    (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.markAsTouched()" [ngClass]="{
+                    (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.markAsTouched()"
+                    [ngClass]="{
                       'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.invalid,
                       'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pledgername'])?.invalid
                     }">
@@ -321,20 +322,20 @@
                     placeholder="Select" [searchable]="true" [clearable]="true" (change)="subledger_Change($event)"
                     (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.markAsTouched()"
                     [ngClass]="{
-                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','subledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','subledgername'])?.invalid,
-                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','subledgername'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.invalid
+                      'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.invalid,
+                      'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.invalid
                     }">
                   </ng-select>
                 </div>
                 <span class="erp-balance-chip">{{ subLedgerBalance }}</span>
               </div>
-              <!--
-                Error message: shows when field is touched AND invalid.
-                Because setSubledgerValidation(true) adds Validators.required,
-                the control will be invalid when psubledgerid is null/empty.
-              -->
-              @if (formValidationMessages['psubledgerid']) {
+
+              <!-- @if (formValidationMessages['psubledgerid']) {
               <div class="erp-field-error">{{ formValidationMessages['psubledgerid'] }}</div>
+              } -->
+              @if (paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.touched
+              && paymentVoucherForm.get(['ppaymentsslistcontrols','psubledgerid'])?.hasError('required')) {
+              <div class="erp-field-error">Sub Ledger Required</div>
               }
             </div>
           </div>

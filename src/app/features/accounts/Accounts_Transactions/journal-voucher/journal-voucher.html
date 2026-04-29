@@ -22,8 +22,8 @@
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
                 <p-datepicker formControlName="pjvdate" id="pjvdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-                  [defaultDate]="pDatepickerMaxDate" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"
+                   [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" 
                   [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('pjvdate')?.invalid && paymentVoucherForm.get('pjvdate')?.touched}">
                 </p-datepicker>
               </div>

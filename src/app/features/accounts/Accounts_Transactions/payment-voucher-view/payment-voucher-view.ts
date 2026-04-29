@@ -3099,17 +3099,35 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
             accountbalance: item.accountbalance,
           }));
 
-          const subCtrl = group.get('psubledgername');
+          // const subCtrl = group.get('psubledgername');
+          // if (this.subLedgerAccountsList.length > 0) {
+          //   this.showSubledger.set(true);
+          //   subCtrl?.setValidators(Validators.required);
+          // } else {
+          //   this.showSubledger.set(false);
+          //   subCtrl?.clearValidators();
+          //   group.get('psubledgerid')?.setValue(pledgerid);
+          //   subCtrl?.setValue(group.get('pledgername')?.value);
+          //   this.formValidationMessages['psubledgername'] = '';
+          // }
+          // subCtrl?.updateValueAndValidity();
+
+
+          const subCtrl = group.get('psubledgerid');
+
           if (this.subLedgerAccountsList.length > 0) {
             this.showSubledger.set(true);
             subCtrl?.setValidators(Validators.required);
           } else {
             this.showSubledger.set(false);
             subCtrl?.clearValidators();
+
             group.get('psubledgerid')?.setValue(pledgerid);
-            subCtrl?.setValue(group.get('pledgername')?.value);
-            this.formValidationMessages['psubledgername'] = '';
+            group.get('psubledgername')?.setValue(group.get('pledgername')?.value);
+
+            this.formValidationMessages['psubledgerid'] = '';
           }
+
           subCtrl?.updateValueAndValidity();
         },
         error: (err) => this.commonService.showErrorMessage(err),
@@ -3683,8 +3701,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     Object.keys(ctrl.controls).forEach(key =>
       this.getValidationByControl(ctrl, key, true)
     );
-
-
     // ──────────────────────────────────────────────────────────────────────
 
     this.disableAddButton.set(true);
@@ -3834,17 +3850,36 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     this.addButtonLabel.set('Add');
   }
 
+  // private savePaymentRow(row: any, ctrl: FormGroup): void {
+  //   debugger
+  //   this.paymentsList.push(row);
+  //   this.paymentsList1 = [...this.paymentsList1, row];
+  //   this.getPartyJournalEntryData();
+  //   this.clearPaymentDetailsParticular();
+  //   this.getPaymentListColumnWiseTotals();
+  //   ctrl.reset();
+  //   ctrl.markAsUntouched();
+  //   ctrl.markAsPristine();
+  //   ctrl.updateValueAndValidity();
+  //   this.resetAddButton();
+  // }
+
   private savePaymentRow(row: any, ctrl: FormGroup): void {
-    debugger
     this.paymentsList.push(row);
     this.paymentsList1 = [...this.paymentsList1, row];
     this.getPartyJournalEntryData();
-    this.clearPaymentDetailsParticular();
     this.getPaymentListColumnWiseTotals();
-    ctrl.reset();
+
+    // ✅ Mark clean BEFORE reset so valueChanges subscribers don't fire validation
     ctrl.markAsUntouched();
     ctrl.markAsPristine();
-    ctrl.updateValueAndValidity();
+    ctrl.reset();
+    ctrl.updateValueAndValidity({ emitEvent: false }); // ✅ suppress valueChanges
+
+    // ✅ Clear after everything so no stale messages remain
+    this.formValidationMessages = {};
+
+    this.clearPaymentDetailsParticular(); // this also sets formValidationMessages = {}
     this.resetAddButton();
   }
 

@@ -441,45 +441,42 @@
 
           <!-- Party -->
           <div class="col-md-6">
-            <div class="d-flex gap-2 align-items-start">
-              <div class="erp-flex-1">
-                <label class="erp-label">Party <span class="required">*</span></label>
-                <ng-select appendTo="body" [items]="partylist()" bindLabel="ppartyname" bindValue="ppartyid"
-                  formControlName="ppartyid" placeholder="Select" [searchable]="true" [clearable]="false"
-                  (change)="partyName_Change($event)" (close)="GeneralReceiptForm.get('ppartyid')?.markAsTouched()"
-                  [ngClass]="{'ng-invalid': getValidationMsg('ppartyid')}">
-                </ng-select>
-
-                <!-- @if (formValidationMessages['ppartyid']) {
-        <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
-          {{ formValidationMessages['ppartyid'] }}
-        </div>
-      } -->
+            <div class="erp-form-group">
+              <div class="d-flex gap-2 align-items-start">
+                <div class="erp-flex-1">
+                  <label class="erp-label">Party <span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="partylist()" bindLabel="ppartyname" bindValue="ppartyid"
+                    formControlName="ppartyid" placeholder="Select" [searchable]="true" [clearable]="true"
+                    (change)="partyName_Change($event)" (close)="GeneralReceiptForm.get('ppartyid')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': getValidationMsg('ppartyid')}">
+                  </ng-select>
+                </div>
+                <span class="erp-balance-chip" style="margin-top:26px">{{ partyBalance() }}</span>
               </div>
-              <span class="erp-balance-chip" style="margin-top:26px">{{ partyBalance() }}</span>
+              @if (getValidationMsg('ppartyid')) {
+              <div class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('ppartyid') }}</div>
+              }
             </div>
-            @if (getValidationMsg('ppartyid')) {
-            <div style="color:#dc3545;">{{ getValidationMsg('ppartyid') }}</div>
-            }
           </div>
-
           <!-- Ledger -->
           <div class="col-md-6">
+             <div class="erp-form-group">
             <div class="d-flex gap-2 align-items-start" formGroupName="preceiptslist">
               <div class="erp-flex-1">
                 <label class="erp-label">Ledger <span class="required">*</span></label>
                 <ng-select appendTo="body" [items]="ledgeraccountslist()" groupBy="pAccounttype" bindLabel="pledgername"
                   bindValue="pledgerid" formControlName="pledgerid" placeholder="Select" [searchable]="true"
-                  [clearable]="false" (change)="ledgerName_Change($event)"
+                  [clearable]="true" (change)="ledgerName_Change($event)"
                   (close)="GeneralReceiptForm.get('preceiptslist.pledgerid')?.markAsTouched()"
                   [ngClass]="{'ng-invalid': getValidationMsg('pledgerid')}">
                   <ng-template ng-optgroup-tmp let-item="item">{{ item.pAccounttype }}</ng-template>
                 </ng-select>
                 @if (getValidationMsg('pledgerid')) {
-                <div style="color:#dc3545;">{{ getValidationMsg('pledgerid') }}</div>
+                <div  class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('pledgerid') }}</div>
                 }
               </div>
               <span class="erp-balance-chip" style="margin-top:26px;">{{ ledgerBalance() }}</span>
+            </div>
             </div>
           </div>
 
@@ -491,19 +488,21 @@
           <!-- Sub Ledger -->
           @if (showsubledger()) {
           <div class="col-12 col-md-6" formGroupName="preceiptslist">
+             <div class="erp-form-group">
             <div class="d-flex gap-2 align-items-start">
               <div class="erp-flex-1">
                 <label class="erp-label">Sub Ledger <span class="required">*</span></label>
                 <ng-select appendTo="body" [items]="subledgeraccountslist()" bindLabel="psubledgername"
                   bindValue="psubledgerid" formControlName="psubledgerid" placeholder="Select" [searchable]="true"
-                  [clearable]="false" (close)="GeneralReceiptForm.get('preceiptslist.psubledgerid')?.markAsTouched()"
+                  [clearable]="true" (close)="GeneralReceiptForm.get('preceiptslist.psubledgerid')?.markAsTouched()"
                   (change)="subledger_Change($event)" [ngClass]="{'ng-invalid': getValidationMsg('psubledgerid')}">
                 </ng-select>
                 @if (getValidationMsg('psubledgerid')) {
-                <div style="color:#dc3545;">{{ getValidationMsg('psubledgerid') }}</div>
+                <div  class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('psubledgerid') }}</div>
                 }
               </div>
               <span class="erp-balance-chip" style="margin-top:26px">{{ subledgerBalance() }}</span>
+              </div>
             </div>
           </div>
           }
