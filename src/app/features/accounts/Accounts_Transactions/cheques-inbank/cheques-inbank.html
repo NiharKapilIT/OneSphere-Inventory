@@ -1,4 +1,4 @@
-  <!-- cheques-inbank.component.html -->
+<!-- cheques-inbank.component.html -->
 <form [formGroup]="ChequesInBankForm">
 
   <div class="module-page">
@@ -68,16 +68,13 @@
             <input type="text" class="erp-input icon-pad w-100" [value]="today2 | date:'dd-MMM-yyyy'" readonly />
           </div>
         </div>
-
         <div class="filter-field filter-field--sm">
           <label class="filter-lbl">
             Cheque Clear Date <span class="required">*</span>
           </label>
           <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker [(ngModel)]="chequeClearDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-              dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              inputStyleClass="erp-input icon-pad w-100"
+              dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
               (onSelect)="ChequesInBankForm.get('pchequecleardate')?.setValue($event)">
             </p-datepicker>
           </div>
@@ -177,11 +174,12 @@
               <label class="erp-label">BRS From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsFromDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('pfrombrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
             </div>
           </div>
@@ -190,11 +188,12 @@
               <label class="erp-label">BRS To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-                  dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsToDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+                    dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+                    (onSelect)="ChequesInBankForm.get('ptobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
               @if (validatebrsdateclear) {
               <div class="erp-field-error">BRS To Date should be greater than From Date</div>
@@ -220,11 +219,12 @@
               <label class="erp-label">BRS From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsReturnFromDateModel" [ngModelOptions]="{standalone: true}"
-                  [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsReturnFromDateModel" [ngModelOptions]="{standalone: true}"
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('frombrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
             </div>
           </div>
@@ -233,11 +233,12 @@
               <label class="erp-label">BRS To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
-                  [maxDate]="today2" dateFormat="dd-M-yy" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
-                </p-datepicker>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <p-datepicker [(ngModel)]="brsReturnToDateModel" [ngModelOptions]="{standalone: true}"
+                    [maxDate]="today2" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input w-100" (onSelect)="BrsDateForm.get('tobrsdate')?.setValue($event)">
+                  </p-datepicker>
+                </div>
               </div>
               @if (validatebrsdatereturn) {
               <div class="erp-field-error">BRS To Date should be greater than From Date</div>
@@ -462,7 +463,7 @@
           </button>
           <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
             <i class="pi pi-check"></i>
-           
+
             <!-- {{ buttonname ?? 'Save' }} -->
             {{ buttonname }}
           </button>
@@ -524,3 +525,5 @@
     </div>
   </div>
 </div>
+
+ 
