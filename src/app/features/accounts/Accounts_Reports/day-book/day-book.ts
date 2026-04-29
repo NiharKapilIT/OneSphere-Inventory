@@ -36,7 +36,7 @@ import { DatePickerModule } from 'primeng/datepicker';
     Companydetails
   ],
   templateUrl: './day-book.html',
-  styleUrl: './day-book.css',
+  // styleUrl: './day-book.css',
   providers: [DatePipe]
 })
 export class DayBook implements OnInit {

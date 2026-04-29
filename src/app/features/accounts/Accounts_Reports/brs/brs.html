@@ -14,7 +14,7 @@
           <div class="row g-2 align-items-end">
 
             <!-- Bank Name -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label required">Bank Name <span class="required">*</span></label>
                 <ng-select
@@ -35,19 +35,20 @@
             </div>
 
             <!-- Cheques Info Toggle -->
-            <div class="col-12 col-md-auto">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
-                <label class="erp-label">&nbsp;</label>
+                <label class="erp-label">&nbsp; &nbsp;</label>
                 <label class="erp-checkbox m-0">
                   <input type="checkbox" id="chequesInfo" (change)="onChequesInfoChange($event)" />
-                  <span>Cheques Info</span>
+                  <span> Cheques Info</span>
                 </label>
               </div>
             </div>
-
+</div>
+              <div class="row g-2">
             <!-- Conditional Date Filters -->
             @if (chequesInfo()) {
-              <div class="col-12 col-md-2">
+              <div class="col-12 col-md-3">
                 <div class="erp-form-group">
                   <label class="erp-label required">From Date <span class="required">*</span></label>
                   <div class="erp-input-wrap erp-date-wrap">
@@ -59,7 +60,7 @@
                   }
                 </div>
               </div>
-              <div class="col-12 col-md-2">
+              <div class="col-12 col-md-3">
                 <div class="erp-form-group">
                   <label class="erp-label required">To Date <span class="required">*</span></label>
                   <div class="erp-input-wrap erp-date-wrap">
@@ -87,9 +88,9 @@
             }
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-4 offset-6 align-center mt-5">
               <div class="erp-form-group">
-                <button type="submit" class="erp-btn btn-primary w-100">
+                <button type="submit" class="erp-btn btn-primary">
                   <i class="pi pi-search"></i> {{ savebutton() }}
                 </button>
               </div>

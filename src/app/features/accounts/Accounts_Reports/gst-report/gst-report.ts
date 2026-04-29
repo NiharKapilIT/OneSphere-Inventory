@@ -33,7 +33,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   templateUrl: './gst-report.html',
   providers: [DatePipe],
-  styleUrl: './gst-report.css'
+  // styleUrl: './gst-report.css'
 })
 export class GstReport implements OnInit {
   pDatepickerMaxDate: Date = new Date();

@@ -29,7 +29,6 @@ import { DatePickerModule } from 'primeng/datepicker';
     NgSelectModule
   ],
   templateUrl: './jv-list.html',
-  styleUrl: './jv-list.css',
   providers: [DatePipe]
 })
 export class JvList implements OnInit {
@@ -53,6 +52,8 @@ export class JvList implements OnInit {
   readonly jvlistDataa   = signal<any[]>([]);
   readonly formNameData  = signal<any[]>([]);
 
+
+
   // ── State ────────────────────────────────────────────────────────────────────
   printedDate  = true;
   treeData: any[] = [];
@@ -66,6 +67,12 @@ export class JvList implements OnInit {
   endDate!:   Date;
 
   jvlistData: any[] = [];
+  jvlistData1: any[] = [
+    {value: 'All', viewValue: 'All'},
+    {value: 'Auto', viewValue: 'Automatic'},
+    {value: 'Manual', viewValue: 'Manual'}
+
+  ];
 
   jvSortColumn    = '';
   jvSortDirection: 1 | -1 = 1;
@@ -97,6 +104,7 @@ export class JvList implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.jvlistData1;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     this.setPageModel();

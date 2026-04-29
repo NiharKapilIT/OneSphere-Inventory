@@ -777,7 +777,9 @@ a {
 /* ════════════════════════════════════════════════════════════════════════
    Form Layout Styles
    ════════════════════════════════════════════════════════════════════════ */
-
+.erp-card form .erp-form-group{
+  height: inherit !important;
+}
 .form-wrapper {
   display: flex;
   flex-direction: column;
@@ -996,6 +998,8 @@ a {
     }
   }
 }
+
+
 
 .erp-input,
 .erp-select,
@@ -2623,8 +2627,8 @@ ng-select.ng-disabled {
   }
 
   &.badge-success {
-    background: #dcfce7;
-    color: #166534;
+     background: #6ee399;
+    color: #47bf54;
   }
 
   &.badge-warning {
@@ -5767,7 +5771,6 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
 }
 
 .erp-checkbox {
-  min-height: 34px;
   padding: 4px 8px;
   border-radius: 10px;
   transition: background 0.2s ease, color 0.2s ease;
@@ -5778,8 +5781,8 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
 body input[type='checkbox']:not(.p-checkbox-input) {
   appearance: none;
   -webkit-appearance: none;
-  width: 19px;
-  height: 19px;
+  width: 22px;
+  height:22px;
   display: inline-grid;
   place-content: center;
   flex: 0 0 19px;
@@ -5861,16 +5864,16 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
   width: fit-content;
   max-width: 100%;
   min-height: 24px;
-  top: calc(100% + -10px) !important;
+  
   padding: 5px 9px 5px 8px !important;
   border: 1px solid rgba(239, 68, 68, 0.18);
   border-radius: 8px;
   background: linear-gradient(180deg, #fff7f7 0%, #fff1f2 100%);
-  color: #b91c1c !important;
+  color: rgba(255, 114, 118, 1) !important;
   box-shadow: 0 8px 18px rgba(185, 28, 28, 0.08);
   display: inline-flex !important;
   align-items: flex-start;
-  gap: 2px;
+  gap: 3px;
   font-family: 'Poppins', sans-serif;
   font-size: 11.5px;
   font-weight: 600;
@@ -5892,9 +5895,10 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
   height: 7px;
 
   border-radius: 999px;
-  background: #ef4444;
+  background: rgba(255, 114, 118, 1) !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
   flex: 0 0 auto;
+  margin-right: 5px;
 }
 
 .erp-field-error i,
@@ -6467,7 +6471,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
 .report-view-container form .erp-field-error,
 .report-view-container form .invalid-feedback {
   position: absolute !important;
-  top: calc(100% + -10px) !important;
+  top: calc(100% + 2px) !important;
   left: 0 !important;
   width: max-content;
   max-width: min(320px, 100%);
@@ -6517,4 +6521,195 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
 
 .petty-cash-page > .erp-card:last-child {
   margin-bottom: 0;
+}
+
+
+
+// ---reports--
+
+/* ============================================================
+   Ledger Extract Component Styles
+   Angular 21 — plain CSS (no SCSS)
+   ============================================================ */
+
+/* ── Layout shell ─────────────────────────────────────────── */
+.screen-container {
+  padding: 16px;
+}
+
+.screen-card {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+/* ── Card header ──────────────────────────────────────────── */
+.screen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 3px solid #0d6efd;
+  padding: 15px 20px;
+}
+
+.screen-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333333;
+}
+
+/* ── Card body ────────────────────────────────────────────── */
+.section-content {
+  padding: 16px 20px;
+}
+
+/* ── Fieldset / filter strip ──────────────────────────────── */
+.filter-fieldset {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+/* ── Individual filter fields ─────────────────────────────── */
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+/* Checkbox column — no growth, vertically centred */
+.filter-field--checkbox {
+  flex: 0 0 auto;
+  min-width: unset;
+  justify-content: flex-end;
+  padding-bottom: 2px;
+}
+
+/* Button column */
+.filter-field--btn {
+  flex: 0 0 auto;
+  min-width: unset;
+  justify-content: flex-end;
+}
+
+/* ── Labels ───────────────────────────────────────────────── */
+.field-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #444444;
+  margin-bottom: 4px;
+}
+
+.required-star {
+  color: #dc3545;
+}
+
+/* ── Text / select inputs ─────────────────────────────────── */
+.field-input {
+  height: 36px;
+  font-size: 14px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 4px 10px;
+  color: #212529;
+  width: 100%;
+  background-color: #ffffff;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.18);
+}
+
+.field-input[readonly] {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+/* ── Checkbox ─────────────────────────────────────────────── */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #444444;
+  cursor: pointer;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.checkbox-input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #0d6efd;
+}
+
+/* ── Print button ─────────────────────────────────────────── */
+.btn-print {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 36px;
+  border: none;
+  border-radius: 4px;
+  background-color: #0d6efd;
+  color: #ffffff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.btn-print:hover {
+  background-color: #0b5ed7;
+}
+
+.btn-print:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.35);
+}
+
+.btn-print:active {
+  background-color: #0a58ca;
+}
+
+/* ── Validation messages ──────────────────────────────────── */
+.error-msg {
+  font-size: 12px;
+  color: #dc3545;
+  margin-top: 3px;
+}
+
+/* ── Responsive tweaks ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+  }
+
+  .filter-field,
+  .filter-field--checkbox,
+  .filter-field--btn {
+    width: 100%;
+    flex: unset;
+    min-width: unset;
+  }
+
+  .btn-print {
+    width: 100%;
+  }
 }

@@ -3,7 +3,8 @@
 
     <!-- Header / Toolbar (Hidden on Print) -->
     <div class="card-header d-print-none">
-      <h2 class="card-title"><i class="pi pi-file-o"></i> Payment Voucher</h2>
+      <h2 class="card-title"><i class="pi pi-file-o"></i>   {{ receiptName() }}</h2>
+      <!-- <h2 class="card-title"><i class="pi pi-file-o"></i> Payment Voucher</h2> -->
       <div class="ms-auto d-flex gap-2">
         <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
           <i class="pi pi-file-pdf"></i> PDF
