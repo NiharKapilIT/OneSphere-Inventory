@@ -49,12 +49,13 @@ export class BankEntries implements OnInit {
   pageCriteria: PageCriteria = new PageCriteria();
   currencysymbol: any;
 
-  today = new Date();
+   today = new Date(new Date().setHours(0, 0, 0, 0));
   startDate: any = new Date();
   endDate: any = new Date();
 
   private gridView: any[] = [];
   private isSummeryChecked = '';
+  toDateMinDate: Date | null = null;
 
   // ── lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -62,6 +63,16 @@ export class BankEntries implements OnInit {
     this.initializeDatePickers();
     this.initializeForm();
     this.setPageModel();
+     const initialFrom = this.BanknBookReportForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.BanknBookReportForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.BanknBookReportForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.BanknBookReportForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── init helpers ───────────────────────────────────────────────────────────

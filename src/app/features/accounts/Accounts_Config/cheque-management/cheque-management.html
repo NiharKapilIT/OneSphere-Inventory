@@ -24,7 +24,7 @@
         <i class="pi pi-list"></i> Cheque Books
       </div>
 
-      <div class="card-actions">
+      <!-- <div class="card-actions">
         @if (hasPrintableData()) {
         <button class="erp-btn btn-white btn-sm" (click)="exportToPdf('Pdf')" title="Export PDF">
           <i class="pi pi-file-pdf"></i> PDF
@@ -36,7 +36,7 @@
           <i class="pi pi-download"></i> Excel
         </button>
         }
-      </div>
+      </div> -->
     </div>
 
     <!-- Filter Bar -->
@@ -51,7 +51,7 @@
       <div class="filter-group">
         <label class="filter-lbl">Status <span class="required">*</span></label>
         <ng-select appendTo="body" [items]="statusList" bindLabel="label" bindValue="value" placeholder="--Select--"
-          [(ngModel)]="selectedStatus" [clearable]="false" class="filter-select">
+          [(ngModel)]="selectedStatus" [clearable]="true" class="filter-select">
         </ng-select>
       </div>
 
@@ -83,13 +83,14 @@
           [loading]="loading()" [first]="currentPage * pageSize" [rowsPerPageOptions]="[5, 10, 20, 30, 40, 50, 100]"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries"
           responsiveLayout="scroll" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
-          (onLazyLoad)="onPageChange($event)">
+          (onLazyLoad)="onPageChange($event)"
+          [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
               @for (col of tableColumns; track col.field) {
-              <th [class.th-center]="col.align === 'center'">
+              <th pResizableColumn [class.th-center]="col.align === 'center'">
                 <div class="th-cell" [class.th-cell-center]="col.align === 'center'">
                   {{ col.header }}
                 </div>

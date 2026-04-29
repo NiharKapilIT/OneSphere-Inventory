@@ -22,8 +22,8 @@
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
                 <p-datepicker formControlName="pjvdate" id="pjvdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-                  [defaultDate]="pDatepickerMaxDate" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"
+                   [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" 
                   [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('pjvdate')?.invalid && paymentVoucherForm.get('pjvdate')?.touched}">
                 </p-datepicker>
               </div>
@@ -69,7 +69,7 @@
                 <div class="erp-flex-1">
                   <ng-select appendTo="body" id="pledgername" title="Ledger" [items]="ledgeraccountslist"
                     formControlName="pledgerid" groupBy="pAccounttype" bindLabel="pledgername" bindValue="pledgerid"
-                    placeholder="Select" [searchable]="true" [clearable]="false" (change)="ledgerName_Change($event)"
+                    placeholder="Select" [searchable]="true" [clearable]="true" (change)="ledgerName_Change($event)"
                     [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pledgerid')?.dirty)}">
                     <ng-template ng-optgroup-tmp let-item="item">
                       {{ item.pAccounttype }}

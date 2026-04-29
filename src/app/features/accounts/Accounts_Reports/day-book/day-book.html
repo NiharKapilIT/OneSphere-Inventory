@@ -46,7 +46,7 @@
                   <label class="erp-label required">To Date <span class="required">*</span></label>
                   <div class="erp-input-wrap erp-date-wrap">
                     <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="dtodate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                    <p-datepicker formControlName="dtodate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
                   </div>
                   @if (submitted && f['dtodate'].errors?.['required']) {
                     <div class="erp-field-error">To Date is required</div>

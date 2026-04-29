@@ -11,11 +11,11 @@
 
     <div class="card-body p-4">
       <form [formGroup]="bankmasterform" autocomplete="off">
-        <div class="erp-table-toolbar tbl-toolbar-flush mb-4">
+        <!-- <div class="erp-table-toolbar tbl-toolbar-flush mb-4">
           <div class="tb-left">
             <span class="erp-badge badge-primary badge-dot">Bank Configuration Form</span>
           </div>
-        </div>
+        </div> -->
 
         <div class="form-wrapper">
           <div class="form-section">
@@ -41,7 +41,7 @@
                   <label class="erp-label">A/C Type <span class="required">*</span></label>
                   <ng-select appendTo="body" [items]="accountTypes" bindLabel="label" bindValue="value"
                     placeholder="Select type" formControlName="pAcctountype" [compareWith]="compareByValue"
-                    [clearable]="false" [class.is-invalid]="f['pAcctountype'].touched && f['pAcctountype'].invalid">
+                    [clearable]="true" [class.is-invalid]="f['pAcctountype'].touched && f['pAcctountype'].invalid">
                   </ng-select>
                   <div *ngIf="f['pAcctountype'].touched && f['pAcctountype'].invalid" class="erp-field-error">
                     A/C Type is required
@@ -56,9 +56,26 @@
                     formControlName="pAccountnumber" (input)="allowNumbersOnly1($event)" maxlength="16"
                     inputmode="numeric" pattern="[0-9]*"
                     [class.is-invalid]="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" />
-                  <div *ngIf="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" class="erp-field-error">
+                  <!-- <div *ngIf="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" class="erp-field-error">
                     Account No is required
+                  </div> -->
+
+                  @if (f['pAccountnumber'].invalid && (f['pAccountnumber'].dirty || f['pAccountnumber'].touched)) {
+                  <div class="erp-field-error">
+
+                    @if (f['pAccountnumber'].errors?.['required']) {
+                    <div>Account No is required.</div>
+                    }
+
+                    @if (f['pAccountnumber'].errors?.['pattern']) {
+                    <div>Account No must be between 9 and 18 digits.</div>
+                    }
+
                   </div>
+                  }
+
+
+
                 </div>
               </div>
 
@@ -67,7 +84,7 @@
                   <label class="erp-label">Bank <span class="required">*</span></label>
                   <ng-select appendTo="body" formControlName="bankName" [items]="banksList" bindLabel="bankName"
                     bindValue="bankName" placeholder="Select bank" (change)="onChange($event)"
-                    [compareWith]="compareByValue" [clearable]="false"
+                    [compareWith]="compareByValue" [clearable]="true"
                     [class.is-invalid]="f['bankName'].touched && f['bankName'].invalid">
                   </ng-select>
                   <div *ngIf="f['bankName'].touched && f['bankName'].invalid" class="erp-field-error">
@@ -174,7 +191,7 @@
                           (blur)="cardno_change()" [class.is-invalid]="f['pCardNo'].invalid &&
                                      (f['pCardNo'].dirty || f['pCardNo'].touched)" />
                         @if (f['pCardNo'].invalid && (f['pCardNo'].dirty || f['pCardNo'].touched)) {
-                        <div class="field-error">
+                        <div class="erp-field-error">
                           @if (f['pCardNo'].errors?.['required']) {
                           <div>Card number is required.</div>
                           }
@@ -184,6 +201,8 @@
                         </div>
                         }
                       </div>
+
+
 
                       <div class="row g-2">
                         <div class="col-6">
@@ -198,7 +217,7 @@
                               </p-datepicker>
                             </div>
                             @if (bankmastervalidations.pValidfrom) {
-                            <div class="field-error">{{ bankmastervalidations.pValidfrom }}</div>
+                            <div class="erp-field-error">{{ bankmastervalidations.pValidfrom }}</div>
                             }
                           </div>
                         </div>
@@ -215,7 +234,7 @@
                               </p-datepicker>
                             </div>
                             @if (bankmastervalidations.pValidto) {
-                            <div class="field-error">{{ bankmastervalidations.pValidto }}</div>
+                            <div class="erp-field-error">{{ bankmastervalidations.pValidto }}</div>
                             }
                           </div>
                         </div>
@@ -228,7 +247,7 @@
                           [class.is-invalid]="bankmastervalidations.pCardName ||
                                      (f['pCardName'].invalid && (f['pCardName'].dirty || f['pCardName'].touched))" />
                         @if (f['pCardName'].errors?.['required']) {
-                        <div class="field-error">Name is required.</div>
+                        <div class="erp-field-error">Name is required.</div>
                         }
                         <app-validation-message [messgae]="bankmastervalidations.pCardName"></app-validation-message>
                       </div>
@@ -275,19 +294,33 @@
                       <div class="erp-form-group">
                         <label class="erp-label">Link with <span class="required">*</span></label>
                         <div class="d-flex gap-2 align-items-end">
-                          <select class="erp-input flex-grow-1" formControlName="upiname"
+                          <!-- <select class="erp-input flex-grow-1" formControlName="upiname"
                             [class.is-invalid]="submitted && bankmastervalidations.upiname">
                             <option value="" disabled>Select</option>
                             @for (i of upiname; track i.upiname) {
                             <option [value]="i.upiname">{{ i.upiname }}</option>
                             }
-                          </select>
+                          </select> -->
+
+
+
+                          <ng-select appendTo="body" class="flex-grow-1" formControlName="upiname" [items]="upiname"
+                            bindLabel="upiname" bindValue="upiname" placeholder="Select" [clearable]="true"
+                            [class.is-invalid]="submitted && bankmastervalidations.upiname">
+                          </ng-select>
                           <button type="button" (click)="addtogrid()" class="erp-btn btn-primary btn-sm">
                             <i class="pi pi-plus"></i>
                           </button>
                         </div>
-                        @if (bankmastervalidations.upiname) {
-                        <div class="field-error">{{ bankmastervalidations.upiname }}</div>
+                        <!-- @if (bankmastervalidations.upiname) {
+                        <div class="erp-field-error">{{ bankmastervalidations.upiname }}</div>
+                        } -->
+                        @if (f['upiname'].touched && f['upiname'].invalid) {
+                        <div class="erp-field-error">
+                          @if (f['upiname'].errors?.['required']) {
+                          <div>UPI Name is required</div>
+                          }
+                        </div>
                         }
                       </div>
 
@@ -328,26 +361,24 @@
                     <button type="button" class="setup-toggle">
                       <i [class]="bankOpen() ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
                     </button>
-                    <h4 class="setup-title">Bank Setup</h4>
+                    <label class="erp-label">Bank Setup <span class="required">*</span></label>
                   </div>
 
                   @if (bankOpen()) {
                   <div class="setup-content">
                     <div class="erp-form-group">
                       <label class="erp-label">Bank Type <span class="required">*</span></label>
-                      <ng-select appendTo="body" formControlName="bankType"
-                        [items]="[
+                      <ng-select appendTo="body" formControlName="bankType" [items]="[
                           { value: 'primary', label: 'Primary' },
                           { value: 'foreman', label: 'Foreman Bank' },
                           { value: 'foremanpayment', label: 'Foreman Payment Bank' },
                           { value: 'interest', label: 'Interest Payment Bank' }
-                        ]"
-                        bindLabel="label" bindValue="value" placeholder="Select Bank Type" [clearable]="false"
+                        ]" bindLabel="label" bindValue="value" placeholder="Select Bank Type" [clearable]="true"
                         (change)="bankchange($any({ target: { value: $event?.value || $event } }))"
                         [class.is-invalid]="f['bankType'].invalid">
                       </ng-select>
                       @if (f['bankType'].invalid) {
-                      <div class="field-error">Bank Type is required</div>
+                      <div class="erp-field-error">Bank Type is required</div>
                       }
                     </div>
                   </div>

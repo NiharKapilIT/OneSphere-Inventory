@@ -1474,6 +1474,7 @@ export class JournalVoucher implements OnInit {
     dateInputFormat: 'DD-MMM-YYYY',
     showWeekNumbers: false,
   };
+  today: any;
 
   // ══════════════════════════════════════════════════════════════════════════
   // Lifecycle
@@ -1495,7 +1496,8 @@ export class JournalVoucher implements OnInit {
 
     this.paymentVoucherForm = this.fb.group({
       ppaymentid: [''],
-      pjvdate: [new Date(), Validators.required],
+      pjvdate: [{value:this.today,disabled:true}, Validators.required],
+
       ptotalpaidamount: [''],
       pnarration: ['', [Validators.required, Validators.maxLength(250)]],
       pmodofpayment: ['M'],

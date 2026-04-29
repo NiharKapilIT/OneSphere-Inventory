@@ -11,15 +11,17 @@
     <div class="card-body p-0">
       <form [formGroup]="GstReportForm" autocomplete="off">
         <div class="p-4 border-bottom">
-          
+
           <!-- Radio Options -->
           <div class="d-flex gap-4 mb-4 p-2 border rounded bg-light-subtle d-inline-flex">
             <label class="erp-radio">
-              <input type="radio" value="receipts" formControlName="receiptsPayments" (change)="onGstReportType($any($event.target).value)">
+              <input type="radio" value="receipts" formControlName="receiptsPayments"
+                (change)="onGstReportType($any($event.target).value)">
               <span class="font-bold">Receipts Report</span>
             </label>
             <label class="erp-radio">
-              <input type="radio" value="payments" formControlName="receiptsPayments" (change)="onGstReportType($any($event.target).value)">
+              <input type="radio" value="payments" formControlName="receiptsPayments"
+                (change)="onGstReportType($any($event.target).value)">
               <span class="font-bold">Payments Report</span>
             </label>
           </div>
@@ -28,80 +30,80 @@
 
             <!-- Ledger (Receipts only) -->
             @if (showReceipts()) {
-              <div class="col-12 col-md-4">
-                <div class="erp-form-group">
-                  <label class="erp-label required">Ledger Account <span class="required">*</span></label>
-                  <ng-select
-                    [items]="ledgerAccountsList()"
-                    formControlName="pledgerid"
-                    bindLabel="pledgername"
-                    bindValue="pledgername"
-                    [searchable]="true"
-                    [clearable]="false"
-                    appendTo="body"
-                    placeholder="Select Ledger"
-                    (change)="onLedgerNameChange($event)"
-                    class="erp-ng-select"
-                    [class.is-invalid]="f['pledgerid'].errors && submitted">
-                  </ng-select>
-                  @if (submitted && f['pledgerid'].errors?.['required']) {
-                    <div class="erp-field-error">Ledger is required</div>
-                  }
-                </div>
+            <div class="col-12 col-md-4">
+              <div class="erp-form-group">
+                <label class="erp-label required">Ledger Account <span class="required">*</span></label>
+                <ng-select [items]="ledgerAccountsList()" formControlName="pledgerid" bindLabel="pledgername"
+                  bindValue="pledgername" [searchable]="true" [clearable]="false" appendTo="body"
+                  placeholder="Select Ledger" (change)="onLedgerNameChange($event)" class="erp-ng-select"
+                  [class.is-invalid]="f['pledgerid'].errors && submitted">
+                </ng-select>
+                @if (submitted && f['pledgerid'].errors?.['required']) {
+                <div class="erp-field-error">Ledger is required</div>
+                }
               </div>
+            </div>
 
-              <!-- Month (Receipts only) -->
-              <div class="col-12 col-md-3">
-                <div class="erp-form-group">
-                  <label class="erp-label required">Select Month <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="month" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
-                  </div>
+            <!-- Month (Receipts only) -->
+            <div class="col-12 col-md-3">
+              <div class="erp-form-group">
+                <label class="erp-label required">Select Month <span class="required">*</span></label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker formControlName="month" view="month" selectionMode="single" dateFormat="M-yy"
+                    placeholder="MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
+                  </p-datepicker>
                 </div>
               </div>
+            </div>
             }
 
             <!-- Date Range (Payments only) -->
             @if (showPayments()) {
-              <div class="col-12 col-md-3">
-                <div class="erp-form-group">
-                  <label class="erp-label required">From Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="fromdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
-                  </div>
-                  @if (submitted && GstReportForm.controls['fromdate'].errors?.['required']) {
-                    <div class="erp-field-error">From Date is required</div>
-                  }
+            <div class="col-12 col-md-3">
+              <div class="erp-form-group">
+                <label class="erp-label required">From Date <span class="required">*</span></label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker formControlName="fromdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                    [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                    [maxDate]="pDatepickerMaxDate"></p-datepicker>
                 </div>
+                @if (submitted && GstReportForm.controls['fromdate'].errors?.['required']) {
+                <div class="erp-field-error">From Date is required</div>
+                }
               </div>
+            </div>
 
-              <div class="col-12 col-md-3">
-                <div class="erp-form-group">
-                  <label class="erp-label required">To Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="todate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
-                  </div>
-                  @if (submitted && GstReportForm.controls['todate'].errors?.['required']) {
-                    <div class="erp-field-error">To Date is required</div>
-                  }
+            <div class="col-12 col-md-3">
+              <div class="erp-form-group">
+                <label class="erp-label required">To Date <span class="required">*</span></label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker formControlName="todate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                    [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                    [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
                 </div>
+                @if (submitted && GstReportForm.controls['todate'].errors?.['required']) {
+                <div class="erp-field-error">To Date is required</div>
+                }
               </div>
+            </div>
             }
 
             <!-- Actions -->
             <div class="col-12 col-md-5">
               <div class="erp-form-group d-flex gap-2">
-                <button type="button" (click)="clickGstReport()" class="erp-btn btn-primary shadow-sm flex-grow-1" [disabled]="disableSaveButton()">
+                <button type="button" (click)="clickGstReport()" class="erp-btn btn-primary shadow-sm flex-grow-1"
+                  [disabled]="disableSaveButton()">
                   <i class="pi" [ngClass]="disableSaveButton() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ saveButton() }}
                 </button>
                 @if (showReceipts()) {
-                  <button type="button" (click)="clickGstSummary()" class="erp-btn btn-white shadow-sm flex-grow-1">
-                    <i class="pi pi-list"></i> View Summary
-                  </button>
+                <button type="button" (click)="clickGstSummary()" class="erp-btn btn-white shadow-sm flex-grow-1">
+                  <i class="pi pi-list"></i> View Summary
+                </button>
                 }
               </div>
             </div>
@@ -112,238 +114,257 @@
 
       <!-- Results Section -->
       <div class="p-4">
-        
+
         <!-- Export Toolbar (Receipts Report) -->
         @if (showHideGstReport() && gstReportDetails().length > 0) {
-          <div class="erp-table-toolbar mb-4 d-print-none">
-            <div class="tb-left"><h6 class="mb-0 font-bold text-primary">GST Detailed Report - {{ month }}</h6></div>
-            <div class="tb-right">
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
-                <i class="pi pi-download"></i> Excel
-              </button>
-            </div>
+        <div class="erp-table-toolbar mb-4 d-print-none">
+          <div class="tb-left">
+            <h6 class="mb-0 font-bold text-primary">GST Detailed Report - {{ month }}</h6>
           </div>
-
-          <div class="tbl-wrap">
-            <p-table
-              [value]="gstReportDetails()"
-              [paginator]="true"
-              [rows]="pageCriteria.pageSize"
-              [rowsPerPageOptions]="[10, 20, 50]"
-              rowGroupMode="subheader"
-              groupRowsBy="parentname"
-              [scrollable]="true"
-              scrollHeight="500px"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-              
-              <ng-template pTemplate="header">
-                <tr>
-                  <th (click)="sortReport('groupcode')" class="cursor-pointer" style="width: 120px;">
-                    <div class="th-cell">Chit No <span class="sort-icon" [innerHTML]="getSortIconReport('groupcode')"></span></div>
-                  </th>
-                  <th (click)="sortReport('accountname')" class="cursor-pointer" style="min-width: 200px;">
-                    <div class="th-cell">Subscriber Name <span class="sort-icon" [innerHTML]="getSortIconReport('accountname')"></span></div>
-                  </th>
-                  <th (click)="sortReport('gstnumber')" class="cursor-pointer" style="width: 160px;">
-                    <div class="th-cell">GST No <span class="sort-icon" [innerHTML]="getSortIconReport('gstnumber')"></span></div>
-                  </th>
-                  <th (click)="sortReport('chitreceiptdate')" class="cursor-pointer" style="width: 140px;">
-                    <div class="th-cell">Trans Date <span class="sort-icon" [innerHTML]="getSortIconReport('chitreceiptdate')"></span></div>
-                  </th>
-                  <th (click)="sortReport('receiptnumber')" class="cursor-pointer" style="width: 140px;">
-                    <div class="th-cell">Trans No <span class="sort-icon" [innerHTML]="getSortIconReport('receiptnumber')"></span></div>
-                  </th>
-                  <th (click)="sortReport('receiptamount')" class="cursor-pointer text-end" style="width: 130px;">
-                    <div class="th-cell justify-content-end">Taxable <span class="sort-icon" [innerHTML]="getSortIconReport('receiptamount')"></span></div>
-                  </th>
-                  <th (click)="sortReport('cgstamount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">CGST <span class="sort-icon" [innerHTML]="getSortIconReport('cgstamount')"></span></div>
-                  </th>
-                  <th (click)="sortReport('sgstamount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">SGST <span class="sort-icon" [innerHTML]="getSortIconReport('sgstamount')"></span></div>
-                  </th>
-                  <th (click)="sortReport('igstamount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">IGST <span class="sort-icon" [innerHTML]="getSortIconReport('igstamount')"></span></div>
-                  </th>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="groupheader" let-rowData>
-                <tr>
-                  <td colspan="9" class="bg-light font-bold">
-                    <i class="pi pi-folder me-2 text-primary"></i>
-                    <span class="text-primary text-uppercase small">{{ rowData.parentname }}</span>
-                  </td>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="body" let-row>
-                <tr>
-                  <td class="font-bold small">{{ row.groupcode }}</td>
-                  <td class="small">{{ row.accountname }}</td>
-                  <td class="small text-muted">{{ row.gstnumber }}</td>
-                  <td class="text-center small">{{ row.chitreceiptdate | date:'dd-MMM-yyyy' }}</td>
-                  <td class="small font-bold text-success">{{ row.receiptnumber }}</td>
-                  <td class="td-right">{{ row.receiptamount | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.cgstamount | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.sgstamount | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.igstamount | number:'1.2-2' }}</td>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="9" class="p-4 text-center text-muted italic">No GST receipt data found</td></tr>
-              </ng-template>
-            </p-table>
+          <div class="tb-right">
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i> PDF
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
+              <i class="pi pi-print"></i> Print
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
+              <i class="pi pi-download"></i> Excel
+            </button>
           </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <p-table [value]="gstReportDetails()" [paginator]="true" [rows]="pageCriteria.pageSize"
+            [rowsPerPageOptions]="[10, 20, 50]" rowGroupMode="subheader" groupRowsBy="parentname" [scrollable]="true"
+            scrollHeight="500px" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+
+            <ng-template pTemplate="header">
+              <tr>
+                <th (click)="sortReport('groupcode')" class="cursor-pointer" style="width: 120px;">
+                  <div class="th-cell">Chit No <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('groupcode')"></span></div>
+                </th>
+                <th (click)="sortReport('accountname')" class="cursor-pointer" style="min-width: 200px;">
+                  <div class="th-cell">Subscriber Name <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('accountname')"></span></div>
+                </th>
+                <th (click)="sortReport('gstnumber')" class="cursor-pointer" style="width: 160px;">
+                  <div class="th-cell">GST No <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('gstnumber')"></span></div>
+                </th>
+                <th (click)="sortReport('chitreceiptdate')" class="cursor-pointer" style="width: 140px;">
+                  <div class="th-cell">Trans Date <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('chitreceiptdate')"></span></div>
+                </th>
+                <th (click)="sortReport('receiptnumber')" class="cursor-pointer" style="width: 140px;">
+                  <div class="th-cell">Trans No <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('receiptnumber')"></span></div>
+                </th>
+                <th (click)="sortReport('receiptamount')" class="cursor-pointer text-end" style="width: 130px;">
+                  <div class="th-cell justify-content-end">Taxable <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('receiptamount')"></span></div>
+                </th>
+                <th (click)="sortReport('cgstamount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">CGST <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('cgstamount')"></span></div>
+                </th>
+                <th (click)="sortReport('sgstamount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">SGST <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('sgstamount')"></span></div>
+                </th>
+                <th (click)="sortReport('igstamount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">IGST <span class="sort-icon"
+                      [innerHTML]="getSortIconReport('igstamount')"></span></div>
+                </th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="groupheader" let-rowData>
+              <tr>
+                <td colspan="9" class="bg-light font-bold">
+                  <i class="pi pi-folder me-2 text-primary"></i>
+                  <span class="text-primary text-uppercase small">{{ rowData.parentname }}</span>
+                </td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                <td class="font-bold small">{{ row.groupcode }}</td>
+                <td class="small">{{ row.accountname }}</td>
+                <td class="small text-muted">{{ row.gstnumber }}</td>
+                <td class="text-center small">{{ row.chitreceiptdate | date:'dd-MMM-yyyy' }}</td>
+                <td class="small font-bold text-success">{{ row.receiptnumber }}</td>
+                <td class="td-right">{{ row.receiptamount | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.cgstamount | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.sgstamount | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.igstamount | number:'1.2-2' }}</td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="9" class="p-4 text-center text-muted italic">No GST receipt data found</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
         }
 
         <!-- Export Toolbar (GST Summary) -->
         @if (showHideGstSummary() && gstSummaryDetails().length > 0) {
-          <div class="erp-table-toolbar mb-4 d-print-none">
-            <div class="tb-left"><h6 class="mb-0 font-bold text-primary">GST Summary Analysis - {{ month }}</h6></div>
-            <div class="tb-right">
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintGstSummary('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintGstSummary('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="exportSummary()" title="Export Excel">
-                <i class="pi pi-download"></i> Excel
-              </button>
-            </div>
+        <div class="erp-table-toolbar mb-4 d-print-none">
+          <div class="tb-left">
+            <h6 class="mb-0 font-bold text-primary">GST Summary Analysis - {{ month }}</h6>
           </div>
-
-          <div class="tbl-wrap">
-            <p-table
-              [value]="gstSummaryDetails()"
-              [paginator]="true"
-              [rows]="pageCriteria.pageSize"
-              [rowsPerPageOptions]="[10, 20, 50]"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-              
-              <ng-template pTemplate="header">
-                <tr>
-                  <th (click)="sortSummary('companyname')" class="cursor-pointer">
-                    <div class="th-cell">Company <span class="sort-icon" [innerHTML]="getSortIconSummary('companyname')"></span></div>
-                  </th>
-                  <th (click)="sortSummary('state')" class="cursor-pointer" style="width: 150px;">
-                    <div class="th-cell">State <span class="sort-icon" [innerHTML]="getSortIconSummary('state')"></span></div>
-                  </th>
-                  <th (click)="sortSummary('transtype')" class="cursor-pointer" style="width: 150px;">
-                    <div class="th-cell">Trans Type <span class="sort-icon" [innerHTML]="getSortIconSummary('transtype')"></span></div>
-                  </th>
-                  <th (click)="sortSummary('transactionfrom')" class="cursor-pointer" style="width: 150px;">
-                    <div class="th-cell">From No <span class="sort-icon" [innerHTML]="getSortIconSummary('transactionfrom')"></span></div>
-                  </th>
-                  <th (click)="sortSummary('transactionto')" class="cursor-pointer" style="width: 150px;">
-                    <div class="th-cell">To No <span class="sort-icon" [innerHTML]="getSortIconSummary('transactionto')"></span></div>
-                  </th>
-                  <th (click)="sortSummary('count')" class="cursor-pointer text-center" style="width: 100px;">
-                    <div class="th-cell justify-content-center">Count <span class="sort-icon" [innerHTML]="getSortIconSummary('count')"></span></div>
-                  </th>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="body" let-row>
-                <tr>
-                  <td class="font-bold">{{ row.companyname }}</td>
-                  <td>{{ row.state }}</td>
-                  <td><span class="badge bg-primary-subtle text-primary border small">{{ row.transtype }}</span></td>
-                  <td class="text-center font-bold text-success">{{ row.transactionfrom }}</td>
-                  <td class="text-center font-bold text-danger">{{ row.transactionto }}</td>
-                  <td class="text-center font-black">{{ row.count }}</td>
-                </tr>
-              </ng-template>
-            </p-table>
+          <div class="tb-right">
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintGstSummary('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i> PDF
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintGstSummary('Print')" title="Print">
+              <i class="pi pi-print"></i> Print
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="exportSummary()" title="Export Excel">
+              <i class="pi pi-download"></i> Excel
+            </button>
           </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <p-table [value]="gstSummaryDetails()" [paginator]="true" [rows]="pageCriteria.pageSize"
+            [rowsPerPageOptions]="[10, 20, 50]" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+
+            <ng-template pTemplate="header">
+              <tr>
+                <th (click)="sortSummary('companyname')" class="cursor-pointer">
+                  <div class="th-cell">Company <span class="sort-icon"
+                      [innerHTML]="getSortIconSummary('companyname')"></span></div>
+                </th>
+                <th (click)="sortSummary('state')" class="cursor-pointer" style="width: 150px;">
+                  <div class="th-cell">State <span class="sort-icon" [innerHTML]="getSortIconSummary('state')"></span>
+                  </div>
+                </th>
+                <th (click)="sortSummary('transtype')" class="cursor-pointer" style="width: 150px;">
+                  <div class="th-cell">Trans Type <span class="sort-icon"
+                      [innerHTML]="getSortIconSummary('transtype')"></span></div>
+                </th>
+                <th (click)="sortSummary('transactionfrom')" class="cursor-pointer" style="width: 150px;">
+                  <div class="th-cell">From No <span class="sort-icon"
+                      [innerHTML]="getSortIconSummary('transactionfrom')"></span></div>
+                </th>
+                <th (click)="sortSummary('transactionto')" class="cursor-pointer" style="width: 150px;">
+                  <div class="th-cell">To No <span class="sort-icon"
+                      [innerHTML]="getSortIconSummary('transactionto')"></span></div>
+                </th>
+                <th (click)="sortSummary('count')" class="cursor-pointer text-center" style="width: 100px;">
+                  <div class="th-cell justify-content-center">Count <span class="sort-icon"
+                      [innerHTML]="getSortIconSummary('count')"></span></div>
+                </th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                <td class="font-bold">{{ row.companyname }}</td>
+                <td>{{ row.state }}</td>
+                <td><span class="badge bg-primary-subtle text-primary border small">{{ row.transtype }}</span></td>
+                <td class="text-center font-bold text-success">{{ row.transactionfrom }}</td>
+                <td class="text-center font-bold text-danger">{{ row.transactionto }}</td>
+                <td class="text-center font-black">{{ row.count }}</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
         }
 
         <!-- Export Toolbar (Payments Report) -->
         @if (showPayments() && gstPaymentsData().length > 0) {
-          <div class="erp-table-toolbar mb-4 d-print-none">
-            <div class="tb-left"><h6 class="mb-0 font-bold text-primary">GST Payments Register</h6></div>
-            <div class="tb-right">
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintPayments('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintPayments('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="exportPayments()" title="Export Excel">
-                <i class="pi pi-download"></i> Excel
-              </button>
-            </div>
+        <div class="erp-table-toolbar mb-4 d-print-none">
+          <div class="tb-left">
+            <h6 class="mb-0 font-bold text-primary">GST Payments Register</h6>
           </div>
-
-          <div class="tbl-wrap">
-            <p-table
-              [value]="gstPaymentsData()"
-              [paginator]="true"
-              [rows]="pageCriteria.pageSize"
-              [rowsPerPageOptions]="[10, 20, 50]"
-              [scrollable]="true"
-              scrollHeight="500px"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-              
-              <ng-template pTemplate="header">
-                <tr>
-                  <th (click)="sortPayments('gstVoucherNo')" class="cursor-pointer" style="width: 160px;">
-                    <div class="th-cell">Voucher No <span class="sort-icon" [innerHTML]="getSortIconPayments('gstVoucherNo')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('contactName')" class="cursor-pointer" style="min-width: 200px;">
-                    <div class="th-cell">Party Name <span class="sort-icon" [innerHTML]="getSortIconPayments('contactName')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('stateName')" class="cursor-pointer" style="width: 140px;">
-                    <div class="th-cell">State <span class="sort-icon" [innerHTML]="getSortIconPayments('stateName')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('invoiceDate')" class="cursor-pointer" style="width: 140px;">
-                    <div class="th-cell">Voucher Date <span class="sort-icon" [innerHTML]="getSortIconPayments('invoiceDate')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('taxableValue')" class="cursor-pointer text-end" style="width: 130px;">
-                    <div class="th-cell justify-content-end">Taxable <span class="sort-icon" [innerHTML]="getSortIconPayments('taxableValue')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('cgstAmount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">CGST <span class="sort-icon" [innerHTML]="getSortIconPayments('cgstAmount')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('sgstAmount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">SGST <span class="sort-icon" [innerHTML]="getSortIconPayments('sgstAmount')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('igstAmount')" class="cursor-pointer text-end" style="width: 110px;">
-                    <div class="th-cell justify-content-end">IGST <span class="sort-icon" [innerHTML]="getSortIconPayments('igstAmount')"></span></div>
-                  </th>
-                  <th (click)="sortPayments('totalAmount')" class="cursor-pointer text-end font-bold" style="width: 130px;">
-                    <div class="th-cell justify-content-end">Total <span class="sort-icon" [innerHTML]="getSortIconPayments('totalAmount')"></span></div>
-                  </th>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="body" let-row>
-                <tr>
-                  <td class="font-bold text-primary small">{{ row.gstVoucherNo }}</td>
-                  <td class="small">{{ row.contactName }}</td>
-                  <td class="small">{{ row.stateName }}</td>
-                  <td class="text-center small">{{ row.invoiceDate | date:'dd-MMM-yyyy' }}</td>
-                  <td class="td-right font-bold">{{ row.taxableValue | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.cgstAmount | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.sgstAmount | number:'1.2-2' }}</td>
-                  <td class="td-right text-muted small">{{ row.igstAmount | number:'1.2-2' }}</td>
-                  <td class="td-right font-bold text-success">{{ row.totalAmount | number:'1.2-2' }}</td>
-                </tr>
-              </ng-template>
-
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="9" class="p-4 text-center text-muted italic">No GST payment data found</td></tr>
-              </ng-template>
-            </p-table>
+          <div class="tb-right">
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintPayments('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i> PDF
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintPayments('Print')" title="Print">
+              <i class="pi pi-print"></i> Print
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="exportPayments()" title="Export Excel">
+              <i class="pi pi-download"></i> Excel
+            </button>
           </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <p-table [value]="gstPaymentsData()" [paginator]="true" [rows]="pageCriteria.pageSize"
+            [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px"
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+
+            <ng-template pTemplate="header">
+              <tr>
+                <th (click)="sortPayments('gstVoucherNo')" class="cursor-pointer" style="width: 160px;">
+                  <div class="th-cell">Voucher No <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('gstVoucherNo')"></span></div>
+                </th>
+                <th (click)="sortPayments('contactName')" class="cursor-pointer" style="min-width: 200px;">
+                  <div class="th-cell">Party Name <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('contactName')"></span></div>
+                </th>
+                <th (click)="sortPayments('stateName')" class="cursor-pointer" style="width: 140px;">
+                  <div class="th-cell">State <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('stateName')"></span></div>
+                </th>
+                <th (click)="sortPayments('invoiceDate')" class="cursor-pointer" style="width: 140px;">
+                  <div class="th-cell">Voucher Date <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('invoiceDate')"></span></div>
+                </th>
+                <th (click)="sortPayments('taxableValue')" class="cursor-pointer text-end" style="width: 130px;">
+                  <div class="th-cell justify-content-end">Taxable <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('taxableValue')"></span></div>
+                </th>
+                <th (click)="sortPayments('cgstAmount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">CGST <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('cgstAmount')"></span></div>
+                </th>
+                <th (click)="sortPayments('sgstAmount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">SGST <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('sgstAmount')"></span></div>
+                </th>
+                <th (click)="sortPayments('igstAmount')" class="cursor-pointer text-end" style="width: 110px;">
+                  <div class="th-cell justify-content-end">IGST <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('igstAmount')"></span></div>
+                </th>
+                <th (click)="sortPayments('totalAmount')" class="cursor-pointer text-end font-bold"
+                  style="width: 130px;">
+                  <div class="th-cell justify-content-end">Total <span class="sort-icon"
+                      [innerHTML]="getSortIconPayments('totalAmount')"></span></div>
+                </th>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                <td class="font-bold text-primary small">{{ row.gstVoucherNo }}</td>
+                <td class="small">{{ row.contactName }}</td>
+                <td class="small">{{ row.stateName }}</td>
+                <td class="text-center small">{{ row.invoiceDate | date:'dd-MMM-yyyy' }}</td>
+                <td class="td-right font-bold">{{ row.taxableValue | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.cgstAmount | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.sgstAmount | number:'1.2-2' }}</td>
+                <td class="td-right text-muted small">{{ row.igstAmount | number:'1.2-2' }}</td>
+                <td class="td-right font-bold text-success">{{ row.totalAmount | number:'1.2-2' }}</td>
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="9" class="p-4 text-center text-muted italic">No GST payment data found</td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
         }
 
       </div>
@@ -352,8 +373,13 @@
 </div>
 
 <style>
-  .font-black { font-weight: 900; }
+  .font-black {
+    font-weight: 900;
+  }
+
   @media print {
-    .gr-table { border: 1px solid #000 !important; }
+    .gr-table {
+      border: 1px solid #000 !important;
+    }
   }
 </style>

@@ -2,13 +2,13 @@
 
   <!-- ── Cash Warning Alert ── -->
   @if (showCashWarning()) {
-    <div class="erp-alert alert-warning" role="alert">
-      <div class="alert-icon"><i class="pi pi-exclamation-triangle"></i></div>
-      <div class="alert-body">
-        <div class="alert-title">Warning!</div>
-        <div class="alert-msg">{{ cashWarningMessage() }}</div>
-      </div>
+  <div class="erp-alert alert-warning" role="alert">
+    <div class="alert-icon"><i class="pi pi-exclamation-triangle"></i></div>
+    <div class="alert-body">
+      <div class="alert-title">Warning!</div>
+      <div class="alert-msg">{{ cashWarningMessage() }}</div>
     </div>
+  </div>
   }
 
   <div class="erp-card">
@@ -33,11 +33,12 @@
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
                 <p-datepicker formControlName="preceiptdate" id="preceiptdate" dateFormat="dd-M-yy"
-                 placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                 inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
               </div>
               @if (getValidationMsg('preceiptdate')) {
-                <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('preceiptdate') }}</div>
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('preceiptdate') }}</div>
               }
             </div>
           </div>
@@ -49,468 +50,387 @@
         <h3 class="section-title mb-2">Mode Of Receipt</h3>
         <div class="erp-radio-button-group">
           <label class="erp-radio-button">
-            <input
-              type="radio"
-              formControlName="pmodofreceipt"
-              value="CASH"
-              (change)="Paymenttype('Cash')">
+            <input type="radio" formControlName="pmodofreceipt" value="CASH" (change)="Paymenttype('Cash')">
             <span class="button-label">Cash - {{ currencySymbol }} {{ cashBalance() }}</span>
           </label>
           <label class="erp-radio-button">
-            <input
-              type="radio"
-              formControlName="pmodofreceipt"
-              value="BANK"
-              (change)="Paymenttype('Bank')">
+            <input type="radio" formControlName="pmodofreceipt" value="BANK" (change)="Paymenttype('Bank')">
             <span class="button-label">Bank - {{ currencySymbol }} {{ bankBalance() }}</span>
           </label>
         </div>
         @if (getValidationMsg('pmodofreceipt')) {
-          <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pmodofreceipt') }}</div>
+        <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+          getValidationMsg('pmodofreceipt') }}</div>
         }
 
         <!-- Wallet -->
         @if (walletshowhide()) {
-          <div class="mt-2">
-            <div class="row g-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Select Wallet <span class="required">*</span></label>
-                  <select class="erp-input">
-                    <option>PayTM</option>
-                    <option>Phone Pay</option>
-                    <option>Airtel Money</option>
-                  </select>
-                </div>
+        <div class="mt-2">
+          <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label class="erp-label">Select Wallet <span class="required">*</span></label>
+                <select class="erp-input">
+                  <option>PayTM</option>
+                  <option>Phone Pay</option>
+                  <option>Airtel Money</option>
+                </select>
               </div>
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Reference No. <span class="required">*</span></label>
-                  <input class="erp-input" type="text" placeholder="Reference No">
-                </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label class="erp-label">Reference No. <span class="required">*</span></label>
+                <input class="erp-input" type="text" placeholder="Reference No">
               </div>
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Transaction Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
-                  </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label class="erp-label">Transaction Date <span class="required">*</span></label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                    styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                    [maxDate]="pDatepickerMaxDate"></p-datepicker>
                 </div>
               </div>
             </div>
           </div>
+        </div>
         }
       </div>
 
       <!-- ── BANK DETAILS ── -->
       @if (bankshowhide()) {
-        <div class="p-4">
-          <h3 class="section-title mb-2">Bank Details</h3>
+      <div class="p-4">
+        <h3 class="section-title mb-2">Bank Details</h3>
 
-          <!-- Bank type pills -->
-          <div class="erp-radio-button-group mb-2">
-            @for (btn of Bankbuttondata; track btn.type) {
-              <label class="erp-radio-button">
-                <input
-                  type="radio"
-                  formControlName="ptranstype"
-                  [value]="btn.type"
-                  (click)="Banktype(btn.type)">
-                <span class="button-label">{{ btn.type }}</span>
-              </label>
-            }
-          </div>
-          @if (getValidationMsg('ptranstype')) {
-            <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('ptranstype') }}</div>
+        <!-- Bank type pills -->
+        <div class="erp-radio-button-group mb-2">
+          @for (btn of Bankbuttondata; track btn.type) {
+          <label class="erp-radio-button">
+            <input type="radio" formControlName="ptranstype" [value]="btn.type" (click)="Banktype(btn.type)">
+            <span class="button-label">{{ btn.type }}</span>
+          </label>
           }
-
-          <!-- ── Cheque ── -->
-          @if (chequeshowhide()) {
-            <div class="row g-2 mt-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Bank Name <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="banklist()"
-                    bindLabel="bankName"
-                    bindValue="bankId"
-                    formControlName="pbankid"
-                    placeholder="Select"
-                    (change)="BankIdChange($event)"
-                    (close)="GeneralReceiptForm.get('pbankid')?.markAsTouched()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pbankid')}">
-                  </ng-select>
-                  @if (getValidationMsg('pbankid')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pbankid') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Branch Name <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pbranchname"
-                    maxlength="25"
-                    placeholder="Branch Name"
-                    (keyup.enter)="focusNext('pAccountnumber')"
-                    (input)="branchNameChange($event)"
-                    (keypress)="allowAlphabetsOnly($event)"
-                    (blur)="GetValidationByControl(GeneralReceiptForm,'pbranchname',true)"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pbranchname')}">
-                  @if (getValidationMsg('pbranchname')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pbranchname') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Account Number <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pAccountnumber"
-                    placeholder="Account Number"
-                    minlength="8"
-                    maxlength="20"
-                    (keyup.enter)="focusNext('pChequenumber')"
-                    (keypress)="numberOnly($event)"
-                    (blur)="pAccountnumber_change()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pAccountnumber')}">
-                  @if (getValidationMsg('pAccountnumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pAccountnumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Cheque No. <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pChequenumber"
-                    placeholder="Cheque No"
-                    minlength="6"
-                    maxlength="6"
-                    (keyup.enter)="focusNext('pchequedate')"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="ChequeNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
-                  @if (getValidationMsg('pChequenumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
-                      @if (GeneralReceiptForm.controls['pChequenumber']?.errors?.['required']) {
-                        {{ getValidationMsg('pChequenumber') }}
-                      } @else {
-                        Cheque Number must be exactly 6 digits
-                      }
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-md-6 mt-2">
-                <div class="erp-form-group">
-                  <label class="erp-label">Cheque Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="pchequedate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
-                  </div>
-                  @if (getValidationMsg('pchequedate')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pchequedate') }}</div>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-
-          <!-- ── Online ── -->
-          @if (onlineshowhide()) {
-            <div class="row g-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Bank Name <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="banklist()"
-                    bindLabel="bankName"
-                    bindValue="bankId"
-                    formControlName="pbankid"
-                    placeholder="Select"
-                    (change)="BankIdChange($event)"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pbankid')}">
-                  </ng-select>
-                  @if (getValidationMsg('pbankid')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pbankid') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Type Of Payment <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="typeofpaymentlist()"
-                    bindLabel="ptypeofpayment"
-                    bindValue="ptypeofpayment"
-                    formControlName="ptypeofpayment"
-                    placeholder="Select"
-                    (change)="typeofPaymentChange($event)"
-                    [ngClass]="{'ng-invalid': getValidationMsg('ptypeofpayment')}">
-                  </ng-select>
-                  @if (getValidationMsg('ptypeofpayment')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('ptypeofpayment') }}</div>
-                  }
-                </div>
-              </div>
-
-              @if (showupi()) {
-                <div class="col-12 col-md-6">
-                  <div class="erp-form-group">
-                    <label class="erp-label">UPI <span class="required">*</span></label>
-                    <ng-select appendTo="body"
-                      [items]="upinameslist()"
-                      bindLabel="upiname"
-                      bindValue="recordid"
-                      formControlName="pUpiname"
-                      placeholder="Select"
-                      (change)="focusNext('pdepositbankid')">
-                    </ng-select>
-                  </div>
-                </div>
-              }
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Reference No. <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pChequenumber"
-                    placeholder="Reference No"
-                    maxlength="25"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="ChequeNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
-                  @if (getValidationMsg('pChequenumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pChequenumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Transaction Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="pchequedate" [maxDate]="maxDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad grn-input grn-datepicker w-100"></p-datepicker>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="banklist1()"
-                    bindLabel="pbankname"
-                    bindValue="pbankId"
-                    [clearable]="false"
-                    formControlName="pdepositbankid"
-                    placeholder="Select"
-                    (change)="typeofDepositBank($event)"
-                    (close)="onDepositBankClose()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
-                  </ng-select>
-                  @if (getValidationMsg('pdepositbankid')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pdepositbankid') }}</div>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 flex-wrap mb-2">
-              <span class="erp-value-pill">
-                <span hidden></span>
-                Bank Book - {{ getSafeBalance(bankbookBalance()) }}
-              </span>
-              <span class="erp-badge badge-info">
-                <span hidden></span>
-                Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
-              </span>
-            </div>
-          }
-
-          <!-- ── Debit Card ── -->
-          @if (debitShowhide()) {
-            <div class="row g-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Debit Card <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pCardNumber"
-                    maxlength="16"
-                    placeholder="XXXX XXXX XXXX XXXX"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="CardNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pCardNumber')}">
-                  @if (getValidationMsg('pCardNumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pCardNumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Bank / Financial Services</label>
-                  <input
-                    class="erp-input"
-                    formControlName="pbankname"
-                    placeholder="SBI-Master Card"
-                    maxlength="25"
-                    (keypress)="allowAlphabetsOnly($event)"
-                    (blur)="BankNameChange()">
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Reference No. <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pChequenumber"
-                    placeholder="Reference No"
-                    maxlength="25"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="ChequeNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
-                  @if (getValidationMsg('pChequenumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pChequenumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="banklist1()"
-                    bindLabel="pbankname"
-                    bindValue="pbankId"
-                    [clearable]="false"
-                    formControlName="pdepositbankid"
-                    placeholder="Select"
-                    (change)="typeofDepositBank($event)"
-                    (close)="onDepositBankClose()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
-                  </ng-select>
-                  @if (getValidationMsg('pdepositbankid')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pdepositbankid') }}</div>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 flex-wrap mb-2">
-              <span class="erp-value-pill">
-                <span hidden></span>
-                Bank Book - {{ getSafeBalance(bankbookBalance()) }}
-              </span>
-              <span class="erp-badge badge-info">
-                <span hidden></span>
-                Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
-              </span>
-            </div>
-          }
-
-          <!-- ── Credit Card ── -->
-          @if (creditShowhide()) {
-            <div class="row g-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Credit Card <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pCardNumber"
-                    maxlength="16"
-                    placeholder="XXXX XXXX XXXX XXXX"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="CardNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pCardNumber')}">
-                  @if (getValidationMsg('pCardNumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pCardNumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Bank / Financial Services <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pbankname"
-                    placeholder="SBI-Master Card"
-                    maxlength="40"
-                    (keypress)="allowAlphabetsOnly($event)"
-                    (blur)="BankNameChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pbankname')}">
-                  @if (getValidationMsg('pbankname')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pbankname') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Reference No. <span class="required">*</span></label>
-                  <input
-                    class="erp-input"
-                    formControlName="pChequenumber"
-                    placeholder="Reference No"
-                    maxlength="25"
-                    (keypress)="allowDigitsOnly($event)"
-                    (blur)="ChequeNoChange()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
-                  @if (getValidationMsg('pChequenumber')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pChequenumber') }}</div>
-                  }
-                </div>
-              </div>
-
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="banklist1()"
-                    bindLabel="pbankname"
-                    bindValue="pbankId"
-                    [clearable]="false"
-                    formControlName="pdepositbankid"
-                    placeholder="Select"
-                    (change)="typeofDepositBank($event)"
-                    (close)="onDepositBankClose()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
-                  </ng-select>
-                  @if (getValidationMsg('pdepositbankid')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pdepositbankid') }}</div>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 flex-wrap mb-2">
-              <span class="erp-value-pill">
-                <span hidden></span>
-                Bank Book - {{ getSafeBalance(bankbookBalance()) }}
-              </span>
-              <span class="erp-badge badge-info">
-                <span hidden></span>
-                Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
-              </span>
-            </div>
-          }
-
         </div>
+        @if (getValidationMsg('ptranstype')) {
+        <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+          getValidationMsg('ptranstype') }}</div>
+        }
+
+        <!-- ── Cheque ── -->
+        @if (chequeshowhide()) {
+        <div class="row g-2 mt-2">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Bank Name <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banklist()" bindLabel="bankName" bindValue="bankId"
+                formControlName="pbankid" placeholder="Select" (change)="BankIdChange($event)"
+                (close)="GeneralReceiptForm.get('pbankid')?.markAsTouched()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pbankid')}">
+              </ng-select>
+              @if (getValidationMsg('pbankid')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pbankid') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Branch Name <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pbranchname" maxlength="25" placeholder="Branch Name"
+                (keyup.enter)="focusNext('pAccountnumber')" (input)="branchNameChange($event)"
+                (keypress)="allowAlphabetsOnly($event)"
+                (blur)="GetValidationByControl(GeneralReceiptForm,'pbranchname',true)"
+                [ngClass]="{'ng-invalid': getValidationMsg('pbranchname')}">
+              @if (getValidationMsg('pbranchname')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pbranchname') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Account Number <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pAccountnumber" placeholder="Account Number" minlength="8"
+                maxlength="20" (keyup.enter)="focusNext('pChequenumber')" (keypress)="numberOnly($event)"
+                (blur)="pAccountnumber_change()" [ngClass]="{'ng-invalid': getValidationMsg('pAccountnumber')}">
+              @if (getValidationMsg('pAccountnumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pAccountnumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Cheque No. <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pChequenumber" placeholder="Cheque No" minlength="6"
+                maxlength="6" (keyup.enter)="focusNext('pchequedate')" (keypress)="allowDigitsOnly($event)"
+                (blur)="ChequeNoChange()" [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
+              @if (getValidationMsg('pChequenumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
+                @if (GeneralReceiptForm.controls['pChequenumber']?.errors?.['required']) {
+                {{ getValidationMsg('pChequenumber') }}
+                } @else {
+                Cheque Number must be exactly 6 digits
+                }
+              </div>
+              }
+            </div>
+          </div>
+
+          <div class="col-md-6 mt-2">
+            <div class="erp-form-group">
+              <label class="erp-label">Cheque Date <span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="pchequedate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate"></p-datepicker>
+              </div>
+              @if (getValidationMsg('pchequedate')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pchequedate') }}</div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- ── Online ── -->
+        @if (onlineshowhide()) {
+        <div class="row g-2">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Bank Name <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banklist()" bindLabel="bankName" bindValue="bankId"
+                formControlName="pbankid" placeholder="Select" (change)="BankIdChange($event)"
+                [ngClass]="{'ng-invalid': getValidationMsg('pbankid')}">
+              </ng-select>
+              @if (getValidationMsg('pbankid')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pbankid') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Type Of Payment <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="typeofpaymentlist()" bindLabel="ptypeofpayment"
+                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select"
+                (change)="typeofPaymentChange($event)" [ngClass]="{'ng-invalid': getValidationMsg('ptypeofpayment')}">
+              </ng-select>
+              @if (getValidationMsg('ptypeofpayment')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('ptypeofpayment') }}</div>
+              }
+            </div>
+          </div>
+
+          @if (showupi()) {
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">UPI <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="upinameslist()" bindLabel="upiname" bindValue="recordid"
+                formControlName="pUpiname" placeholder="Select" (change)="focusNext('pdepositbankid')">
+              </ng-select>
+            </div>
+          </div>
+          }
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Reference No. <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pChequenumber" placeholder="Reference No" maxlength="25"
+                (keypress)="allowDigitsOnly($event)" (blur)="ChequeNoChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
+              @if (getValidationMsg('pChequenumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pChequenumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Transaction Date <span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="pchequedate" [maxDate]="maxDate" dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad grn-input grn-datepicker w-100"></p-datepicker>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banklist1()" bindLabel="pbankname" bindValue="pbankId"
+                [clearable]="false" formControlName="pdepositbankid" placeholder="Select"
+                (change)="typeofDepositBank($event)" (close)="onDepositBankClose()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
+              </ng-select>
+              @if (getValidationMsg('pdepositbankid')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pdepositbankid') }}</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <span class="erp-value-pill">
+            <span hidden></span>
+            Bank Book - {{ getSafeBalance(bankbookBalance()) }}
+          </span>
+          <span class="erp-badge badge-info">
+            <span hidden></span>
+            Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
+          </span>
+        </div>
+        }
+
+        <!-- ── Debit Card ── -->
+        @if (debitShowhide()) {
+        <div class="row g-2">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Debit Card <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pCardNumber" maxlength="16" placeholder="XXXX XXXX XXXX XXXX"
+                (keypress)="allowDigitsOnly($event)" (blur)="CardNoChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pCardNumber')}">
+              @if (getValidationMsg('pCardNumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pCardNumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Bank / Financial Services</label>
+              <input class="erp-input" formControlName="pbankname" placeholder="SBI-Master Card" maxlength="25"
+                (keypress)="allowAlphabetsOnly($event)" (blur)="BankNameChange()">
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Reference No. <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pChequenumber" placeholder="Reference No" maxlength="25"
+                (keypress)="allowDigitsOnly($event)" (blur)="ChequeNoChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
+              @if (getValidationMsg('pChequenumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pChequenumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banklist1()" bindLabel="pbankname" bindValue="pbankId"
+                [clearable]="false" formControlName="pdepositbankid" placeholder="Select"
+                (change)="typeofDepositBank($event)" (close)="onDepositBankClose()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
+              </ng-select>
+              @if (getValidationMsg('pdepositbankid')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pdepositbankid') }}</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <span class="erp-value-pill">
+            <span hidden></span>
+            Bank Book - {{ getSafeBalance(bankbookBalance()) }}
+          </span>
+          <span class="erp-badge badge-info">
+            <span hidden></span>
+            Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
+          </span>
+        </div>
+        }
+
+        <!-- ── Credit Card ── -->
+        @if (creditShowhide()) {
+        <div class="row g-2">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Credit Card <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pCardNumber" maxlength="16" placeholder="XXXX XXXX XXXX XXXX"
+                (keypress)="allowDigitsOnly($event)" (blur)="CardNoChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pCardNumber')}">
+              @if (getValidationMsg('pCardNumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pCardNumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Bank / Financial Services <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pbankname" placeholder="SBI-Master Card" maxlength="40"
+                (keypress)="allowAlphabetsOnly($event)" (blur)="BankNameChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pbankname')}">
+              @if (getValidationMsg('pbankname')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pbankname') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Reference No. <span class="required">*</span></label>
+              <input class="erp-input" formControlName="pChequenumber" placeholder="Reference No" maxlength="25"
+                (keypress)="allowDigitsOnly($event)" (blur)="ChequeNoChange()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pChequenumber')}">
+              @if (getValidationMsg('pChequenumber')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pChequenumber') }}</div>
+              }
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banklist1()" bindLabel="pbankname" bindValue="pbankId"
+                [clearable]="false" formControlName="pdepositbankid" placeholder="Select"
+                (change)="typeofDepositBank($event)" (close)="onDepositBankClose()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pdepositbankid')}">
+              </ng-select>
+              @if (getValidationMsg('pdepositbankid')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pdepositbankid') }}</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mb-2">
+          <span class="erp-value-pill">
+            <span hidden></span>
+            Bank Book - {{ getSafeBalance(bankbookBalance()) }}
+          </span>
+          <span class="erp-badge badge-info">
+            <span hidden></span>
+            Pass Book - {{ getSafeBalance(bankpassbookBalance()) }}
+          </span>
+        </div>
+        }
+
+      </div>
       }
 
       <!-- ── PARTY / LEDGER / AMOUNT / TDS / GST ── -->
@@ -521,59 +441,42 @@
 
           <!-- Party -->
           <div class="col-md-6">
-            <div class="d-flex gap-2 align-items-start">
-              <div class="erp-flex-1">
-                <label class="erp-label">Party <span class="required">*</span></label>
-                <ng-select appendTo="body"
-                  [items]="partylist()"
-                  bindLabel="ppartyname"
-                  bindValue="ppartyid"
-                  formControlName="ppartyid"
-                  placeholder="Select"
-                  [searchable]="true"
-                  [clearable]="false"
-                  (change)="partyName_Change($event)"
-                  (close)="GeneralReceiptForm.get('ppartyid')?.markAsTouched()"
-                  [ngClass]="{'ng-invalid': getValidationMsg('ppartyid')}">
-                </ng-select>
-               
-                   <!-- @if (formValidationMessages['ppartyid']) {
-        <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
-          {{ formValidationMessages['ppartyid'] }}
-        </div>
-      } -->
+            <div class="erp-form-group">
+              <div class="d-flex gap-2 align-items-start">
+                <div class="erp-flex-1">
+                  <label class="erp-label">Party <span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="partylist()" bindLabel="ppartyname" bindValue="ppartyid"
+                    formControlName="ppartyid" placeholder="Select" [searchable]="true" [clearable]="true"
+                    (change)="partyName_Change($event)" (close)="GeneralReceiptForm.get('ppartyid')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': getValidationMsg('ppartyid')}">
+                  </ng-select>
+                </div>
+                <span class="erp-balance-chip" style="margin-top:26px">{{ partyBalance() }}</span>
               </div>
-              <span class="erp-balance-chip" style="margin-top:26px">{{ partyBalance() }}</span>
+              @if (getValidationMsg('ppartyid')) {
+              <div class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('ppartyid') }}</div>
+              }
             </div>
-             @if (getValidationMsg('ppartyid')) {
-                  <div style="color:#dc3545;">{{ getValidationMsg('ppartyid') }}</div>
-                }
           </div>
-
           <!-- Ledger -->
           <div class="col-md-6">
+             <div class="erp-form-group">
             <div class="d-flex gap-2 align-items-start" formGroupName="preceiptslist">
               <div class="erp-flex-1">
                 <label class="erp-label">Ledger <span class="required">*</span></label>
-                <ng-select appendTo="body"
-                  [items]="ledgeraccountslist()"
-                  groupBy="pAccounttype"
-                  bindLabel="pledgername"
-                  bindValue="pledgerid"
-                  formControlName="pledgerid"
-                  placeholder="Select"
-                  [searchable]="true"
-                  [clearable]="false"
-                  (change)="ledgerName_Change($event)"
+                <ng-select appendTo="body" [items]="ledgeraccountslist()" groupBy="pAccounttype" bindLabel="pledgername"
+                  bindValue="pledgerid" formControlName="pledgerid" placeholder="Select" [searchable]="true"
+                  [clearable]="true" (change)="ledgerName_Change($event)"
                   (close)="GeneralReceiptForm.get('preceiptslist.pledgerid')?.markAsTouched()"
                   [ngClass]="{'ng-invalid': getValidationMsg('pledgerid')}">
                   <ng-template ng-optgroup-tmp let-item="item">{{ item.pAccounttype }}</ng-template>
                 </ng-select>
                 @if (getValidationMsg('pledgerid')) {
-                  <div  style="color:#dc3545;">{{ getValidationMsg('pledgerid') }}</div>
+                <div  class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('pledgerid') }}</div>
                 }
               </div>
               <span class="erp-balance-chip" style="margin-top:26px;">{{ ledgerBalance() }}</span>
+            </div>
             </div>
           </div>
 
@@ -584,49 +487,38 @@
 
           <!-- Sub Ledger -->
           @if (showsubledger()) {
-            <div class="col-12 col-md-6" formGroupName="preceiptslist">
-              <div class="d-flex gap-2 align-items-start">
-                <div class="erp-flex-1">
-                  <label class="erp-label">Sub Ledger <span class="required">*</span></label>
-                  <ng-select appendTo="body"
-                    [items]="subledgeraccountslist()"
-                    bindLabel="psubledgername"
-                    bindValue="psubledgerid"
-                    formControlName="psubledgerid"
-                    placeholder="Select"
-                    [searchable]="true"
-                    [clearable]="false"
-                    (close)="GeneralReceiptForm.get('preceiptslist.psubledgerid')?.markAsTouched()"
-                    (change)="subledger_Change($event)"
-                    [ngClass]="{'ng-invalid': getValidationMsg('psubledgerid')}">
-                  </ng-select>
-                  @if (getValidationMsg('psubledgerid')) {
-                    <div  style="color:#dc3545;">{{ getValidationMsg('psubledgerid') }}</div>
-                  }
-                </div>
-                <span class="erp-balance-chip" style="margin-top:26px">{{ subledgerBalance() }}</span>
+          <div class="col-12 col-md-6" formGroupName="preceiptslist">
+             <div class="erp-form-group">
+            <div class="d-flex gap-2 align-items-start">
+              <div class="erp-flex-1">
+                <label class="erp-label">Sub Ledger <span class="required">*</span></label>
+                <ng-select appendTo="body" [items]="subledgeraccountslist()" bindLabel="psubledgername"
+                  bindValue="psubledgerid" formControlName="psubledgerid" placeholder="Select" [searchable]="true"
+                  [clearable]="true" (close)="GeneralReceiptForm.get('preceiptslist.psubledgerid')?.markAsTouched()"
+                  (change)="subledger_Change($event)" [ngClass]="{'ng-invalid': getValidationMsg('psubledgerid')}">
+                </ng-select>
+                @if (getValidationMsg('psubledgerid')) {
+                <div  class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('psubledgerid') }}</div>
+                }
+              </div>
+              <span class="erp-balance-chip" style="margin-top:26px">{{ subledgerBalance() }}</span>
               </div>
             </div>
+          </div>
           }
 
           <!-- Amount -->
-          <div [class]="showsubledger() ? 'col-12 col-md-6' : 'col-12 col-md-6 offset-md-6'" formGroupName="preceiptslist">
+          <div [class]="showsubledger() ? 'col-12 col-md-6' : 'col-12 col-md-6 offset-md-6'"
+            formGroupName="preceiptslist">
             <div class="erp-form-group">
               <label class="erp-label">Amount Received <span class="required">*</span></label>
-              <input
-                class="erp-input"
-                type="text"
-                formControlName="pactualpaidamount"
-                [value]="getFormattedAmountDisplay()"
-                placeholder="0"
-                inputmode="numeric"
-                (keydown)="blockInvalidAmountKeys($event)"
-                (input)="onAmountInput($event)"
-                (blur)="pamount_change($event)"
-                maxlength="17"
+              <input class="erp-input" type="text" formControlName="pactualpaidamount"
+                [value]="getFormattedAmountDisplay()" placeholder="0" inputmode="numeric"
+                (keydown)="blockInvalidAmountKeys($event)" (input)="onAmountInput($event)"
+                (blur)="pamount_change($event)" maxlength="17"
                 [ngClass]="{'ng-invalid': getValidationMsg('pactualpaidamount')}">
               @if (getValidationMsg('pactualpaidamount')) {
-                <div class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('pactualpaidamount') }}</div>
+              <div class="erp-field-error" style="color:#dc3545;">{{ getValidationMsg('pactualpaidamount') }}</div>
               }
             </div>
           </div>
@@ -640,13 +532,8 @@
             <!-- TDS Toggle -->
             <div class="d-flex align-items-center gap-2">
               <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">TDS</span>
-              <div class="erp-toggle-group"
-                [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
-                <input
-                  id="tds-switch"
-                  name="tds-switch"
-                  formControlName="pistdsapplicable"
-                  type="checkbox"
+              <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
+                <input id="tds-switch" name="tds-switch" formControlName="pistdsapplicable" type="checkbox"
                   [attr.disabled]="!GeneralReceiptForm.get('ppartyid')?.value ? true : null"
                   (change)="istdsapplicableChange()">
                 <label for="tds-switch" class="erp-toggle"></label>
@@ -656,12 +543,8 @@
             <!-- GST Toggle -->
             <div class="d-flex align-items-center gap-2" formGroupName="preceiptslist">
               <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">GST</span>
-              <div class="erp-toggle-group"
-                [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
-                <input
-                  id="gst-switch"
-                  type="checkbox"
-                  formControlName="pisgstapplicable"
+              <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
+                <input id="gst-switch" type="checkbox" formControlName="pisgstapplicable"
                   [attr.disabled]="!GeneralReceiptForm.get('ppartyid')?.value ? true : null"
                   (change)="isgstapplicableChange()">
                 <label for="gst-switch" class="erp-toggle"></label>
@@ -673,169 +556,152 @@
 
         <!-- ── TDS DETAILS ── -->
         @if (showtds()) {
-          <div class="row g-2 mb-3">
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">Section <span class="required">*</span></label>
-                <ng-select appendTo="body"
-                  [items]="tdssectionlist()"
-                  bindLabel="pTdsSection"
-                  bindValue="pTdsSection"
-                  formControlName="pTdsSection"
-                  (change)="tdsSection_Change($event)"
-                  (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()"
-                  [clearable]="false"
-                  placeholder="Select"
-                  [trackByFn]="trackByFn"
-                  [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
-                </ng-select>
-                @if (getValidationMsg('pTdsSection')) {
-                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pTdsSection') }}</div>
-                }
-              </div>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Section <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
+                formControlName="pTdsSection" (change)="tdsSection_Change($event)"
+                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="false"
+                placeholder="Select" [trackByFn]="trackByFn"
+                [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
+              </ng-select>
+              @if (getValidationMsg('pTdsSection')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pTdsSection') }}</div>
+              }
             </div>
+          </div>
 
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">Percentage <span class="required">*</span></label>
-                <ng-select appendTo="body"
-                  [items]="tdspercentagelist()"
-                  bindLabel="pTdsPercentage"
-                  bindValue="pTdsPercentage"
-                  formControlName="pTdsPercentage"
-                  [clearable]="false"
-                  [searchable]="false"
-                  placeholder="Select"
-                  [trackByFn]="trackByFn"
-                  (change)="tdsPercentage_Change()"
-                  [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
-                </ng-select>
-                @if (getValidationMsg('pTdsPercentage')) {
-                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required</div>
-                }
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Percentage <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
+                bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
+                placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
+              </ng-select>
+              @if (getValidationMsg('pTdsPercentage')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required
               </div>
+              }
             </div>
+          </div>
 
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">TDS Amount</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
-                </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Amount</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
               </div>
             </div>
           </div>
+        </div>
         }
 
         <!-- ── GST DETAILS ── -->
         @if (showgst()) {
-          <div formGroupName="preceiptslist">
-            <div class="row g-2 mb-2">
-              <div class="col-12 col-md-6">
-                <label class="erp-label">State <span class="required">*</span></label>
-                @if (statelist().length === 1) {
-                  <input
-                    type="text"
-                    class="erp-input"
-                    [value]="getStateName(statelist()[0])"
-                    readonly>
-                } @else {
-                  <ng-select appendTo="body"
-                    [items]="statelist()"
-                    bindValue="pStateId"
-                    formControlName="pStateId"
-                    placeholder="Select State"
-                    (change)="state_change($event)"
-                    (close)="GeneralReceiptForm.get('preceiptslist.pStateId')?.markAsTouched()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pStateId')}">
-                    <ng-template ng-label-tmp let-item="item">{{ getStateName(item) }}</ng-template>
-                    <ng-template ng-option-tmp let-item="item">{{ getStateName(item) }}</ng-template>
-                  </ng-select>
-                  @if (getValidationMsg('pStateId')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pStateId') }}</div>
-                  }
-                }
-              </div>
-
-              @if (showgstno()) {
-                <div class="col-12 col-md-6">
-                  <label class="erp-label">GST No.</label>
-                  <input
-                    type="text"
-                    class="erp-input"
-                    formControlName="pgstno"
-                    (blur)="gstno_change()"
-                    [ngClass]="{'ng-invalid': getValidationMsg('pgstno')}"
-                    readonly>
-                  @if (getValidationMsg('pgstno')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pgstno') }}</div>
-                  }
-                </div>
+        <div formGroupName="preceiptslist">
+          <div class="row g-2 mb-2">
+            <div class="col-12 col-md-6">
+              <label class="erp-label">State <span class="required">*</span></label>
+              @if (statelist().length === 1) {
+              <input type="text" class="erp-input" [value]="getStateName(statelist()[0])" readonly>
+              } @else {
+              <ng-select appendTo="body" [items]="statelist()" bindValue="pStateId" formControlName="pStateId"
+                placeholder="Select State" (change)="state_change($event)"
+                (close)="GeneralReceiptForm.get('preceiptslist.pStateId')?.markAsTouched()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pStateId')}">
+                <ng-template ng-label-tmp let-item="item">{{ getStateName(item) }}</ng-template>
+                <ng-template ng-option-tmp let-item="item">{{ getStateName(item) }}</ng-template>
+              </ng-select>
+              @if (getValidationMsg('pStateId')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pStateId') }}</div>
               }
-
-              <div class="col-12 col-md-6">
-                <label class="erp-label">GST (%) <span class="required">*</span></label>
-                <ng-select appendTo="body"
-                  [items]="gstlist()"
-                  bindLabel="pgstpercentage"
-                  bindValue="pgstpercentage"
-                  formControlName="pgstpercentage"
-                  placeholder="Select %"
-                  [searchable]="false"
-                  (change)="gst_Change($event)"
-                  (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
-                  [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
-                </ng-select>
-                @if (getValidationMsg('pgstpercentage')) {
-                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pgstpercentage') }}</div>
-                }
-              </div>
+              }
             </div>
 
-            <!-- GST Breakdown -->
-            <div class="row mt-2">
-              @if (showgstamount()) {
-                <div class="col-md-6 mb-2">
-                  <label class="erp-label">GST Amount</label>
-                  <div class="erp-value-pill">
-                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 | number:'1.0-0' }}</span>
-                  </div>
-                </div>
+            @if (showgstno()) {
+            <div class="col-12 col-md-6">
+              <label class="erp-label">GST No.</label>
+              <input type="text" class="erp-input" formControlName="pgstno" (blur)="gstno_change()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pgstno')}" readonly>
+              @if (getValidationMsg('pgstno')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pgstno') }}</div>
               }
-              @if (showigst()) {
-                <div class="col-md-6 mb-2">
-                  <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value }}%)</label>
-                  <div class="erp-value-pill">
-                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 | number:'1.0-0' }}</span>
-                  </div>
-                </div>
-              }
-              @if (showcgst()) {
-                <div class="col-md-6 mb-2">
-                  <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value }}%)</label>
-                  <div class="erp-value-pill">
-                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 | number:'1.0-0' }}</span>
-                  </div>
-                </div>
-              }
-              @if (showsgst()) {
-                <div class="col-md-6 mb-2">
-                  <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value }}%)</label>
-                  <div class="erp-value-pill">
-                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 | number:'1.0-0' }}</span>
-                  </div>
-                </div>
-              }
-              @if (showutgst()) {
-                <div class="col-md-6 mb-2">
-                  <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value }}%)</label>
-                  <div class="erp-value-pill">
-                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 | number:'1.0-0' }}</span>
-                  </div>
-                </div>
+            </div>
+            }
+
+            <div class="col-12 col-md-6">
+              <label class="erp-label">GST (%) <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
+                formControlName="pgstpercentage" placeholder="Select %" [searchable]="false"
+                (change)="gst_Change($event)"
+                (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
+              </ng-select>
+              @if (getValidationMsg('pgstpercentage')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pgstpercentage') }}</div>
               }
             </div>
           </div>
+
+          <!-- GST Breakdown -->
+          <div class="row mt-2">
+            @if (showgstamount()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">GST Amount</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+            @if (showigst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+            @if (showcgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+            @if (showsgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+            @if (showutgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
         }
 
         <!-- Add / Clear -->
@@ -846,78 +712,74 @@
 
         <!-- Payments Grid -->
         @if (gridshowhide()) {
-          <hr class="erp-section-divider">
-          <p-table
-            [value]="paymentslist()"
-            [showCurrentPageReport]="true"
-            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-            responsiveLayout="scroll"
-            styleClass="p-datatable-sm p-datatable-gridlines gr-table">
-            <ng-template pTemplate="header">
-              <tr>
-                <th class="text-center">Actions</th>
-                <th>Ledger Name</th>
-                <th>Sub Ledger Name</th>
-                <th class="text-end">Amount</th>
-                <th class="text-center">GST Calc Type</th>
-                <th class="text-center">GST Type</th>
-                <th class="text-center">GST(%)</th>
-                <th class="text-end">GST Amount</th>
-                <th class="text-center">TDS Section</th>
-                <th class="text-center">TDS(%)</th>
-                <th class="text-end">TDS Amount</th>
-                <th class="text-end">Total Amount</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
-              <tr>
-                <td class="text-center">
-                  <button
-                    pButton
-                    type="button"
-                    icon="pi pi-trash"
-                    class="p-button-text p-button-sm p-button-danger"
-                    (click)="deleteRow(rowIndex)">
-                  </button>
-                </td>
-                <td>{{ row.pledgername }}</td>
-                <td>{{ row.psubledgername }}</td>
-                <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
-                <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.0-0' }}</td>
-                <td class="text-center">
-                  @if (row.pistdsapplicable && row.pTdsSection) {
-                    <span class="grn-tds-badge">{{ row.pTdsSection }}</span>
-                  } @else {
-                    <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <td class="text-center">
-                  @if (row.pistdsapplicable && row.pTdsPercentage) {
-                    {{ row.pTdsPercentage }}
-                  } @else {
-                    <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <td class="text-end">
-                  @if (row.pistdsapplicable && row.ptdsamountindividual) {
-                    <span class="grn-amount">{{ currencySymbol }} {{ (row.ptdsamountindividual || 0) | number:'1.0-0' }}</span>
-                  } @else {
-                    <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <td class="grn-td grn-td--right grn-td--bold">
-                  {{ currencySymbol }} {{ (row.ptotalamount || 0) | number:'1.0-0' }}
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr><td colspan="12" class="grn-table-empty">No Data To Display</td></tr>
-            </ng-template>
-          </p-table>
-          <div class="grn-table-count">{{ paymentslist().length }} total</div>
+        <hr class="erp-section-divider">
+        <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
+          styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="text-center">Actions</th>
+              <th>Ledger Name</th>
+              <th>Sub Ledger Name</th>
+              <th class="text-end">Amount</th>
+              <th class="text-center">GST Calc Type</th>
+              <th class="text-center">GST Type</th>
+              <th class="text-center">GST(%)</th>
+              <th class="text-end">GST Amount</th>
+              <th class="text-center">TDS Section</th>
+              <th class="text-center">TDS(%)</th>
+              <th class="text-end">TDS Amount</th>
+              <th class="text-end">Total Amount</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+            <tr>
+              <td class="text-center">
+                <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                  (click)="deleteRow(rowIndex)">
+                </button>
+              </td>
+              <td>{{ row.pledgername }}</td>
+              <td>{{ row.psubledgername }}</td>
+              <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
+              <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.0-0' }}</td>
+              <td class="text-center">
+                @if (row.pistdsapplicable && row.pTdsSection) {
+                <span class="grn-tds-badge">{{ row.pTdsSection }}</span>
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <td class="text-center">
+                @if (row.pistdsapplicable && row.pTdsPercentage) {
+                {{ row.pTdsPercentage }}
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <td class="text-end">
+                @if (row.pistdsapplicable && row.ptdsamountindividual) {
+                <span class="grn-amount">{{ currencySymbol }} {{ (row.ptdsamountindividual || 0) | number:'1.0-0'
+                  }}</span>
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <td class="grn-td grn-td--right grn-td--bold">
+                {{ currencySymbol }} {{ (row.ptotalamount || 0) | number:'1.0-0' }}
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="12" class="grn-table-empty">No Data To Display</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <div class="grn-table-count">{{ paymentslist().length }} total</div>
         }
       </div>
 
@@ -928,32 +790,31 @@
           <!-- Journal Entry -->
           <div class="col-12 col-md-6">
             @if (gridshowhide()) {
-              <div class="grn-journal-wrapper">
-                <p-table
-                  [value]="partyjournalentrylist()"
-                  [rows]="5"
-                  responsiveLayout="scroll"
-                  styleClass="p-datatable-sm p-datatable-gridlines gr-table">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th>Particulars</th>
-                      <th class="text-end">Dr</th>
-                      <th class="text-end">Cr</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-row>
-                    <tr>
-                      <td>{{ row.accountname || '' }}</td>
-                      <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
-                      <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="emptymessage">
-                    <tr><td colspan="3" class="grn-table-empty">No Data To Display</td></tr>
-                  </ng-template>
-                </p-table>
-                <div class="grn-table-count">{{ partyjournalentrylist().length }} total</div>
-              </div>
+            <div class="grn-journal-wrapper">
+              <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll"
+                styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th>Particulars</th>
+                    <th class="text-end">Dr</th>
+                    <th class="text-end">Cr</th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td>{{ row.accountname || '' }}</td>
+                    <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
+                    <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="3" class="grn-table-empty">No Data To Display</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+              <div class="grn-table-count">{{ partyjournalentrylist().length }} total</div>
+            </div>
             }
           </div>
 
@@ -964,19 +825,16 @@
               <div class="col-12 mb-3">
                 <div class="erp-form-group">
                   <label class="erp-label">Narration <span class="required">*</span></label>
-                  <textarea
-                    class="erp-textarea"
-                    rows="4"
-                    formControlName="pnarration"
-                    maxlength="250"
-                    placeholder="Enter Narration"
-                    (blur)="GeneralReceiptForm.get('pnarration')?.markAsTouched()">
+                  <textarea class="erp-textarea" rows="4" formControlName="pnarration" maxlength="250"
+                    placeholder="Enter Narration" (blur)="GeneralReceiptForm.get('pnarration')?.markAsTouched()">
                   </textarea>
                   @if (getValidationMsg('pnarration')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{ getValidationMsg('pnarration') }}</div>
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                    getValidationMsg('pnarration') }}</div>
                   }
                   @if (submitted() && GeneralReceiptForm.controls['pnarration'].errors?.['maxlength']) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Maximum 250 Characters Allowed</div>
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Maximum 250
+                    Characters Allowed</div>
                   }
                 </div>
               </div>
@@ -986,13 +844,8 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Upload Attachment</label>
                   <div class="erp-file-upload">
-                    <input
-                      type="text"
-                      class="erp-input erp-file-input"
-                      formControlName="pFilename"
-                      [value]="imageResponse()?.name"
-                      readonly
-                      placeholder="No file selected">
+                    <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
+                      [value]="imageResponse()?.name" readonly placeholder="No file selected">
                     <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                       <i class="pi pi-upload"></i> Upload
                     </button>
@@ -1011,15 +864,12 @@
         <button type="button" (click)="ClearGenerealReceipt()" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
         </button>
-        <button
-          type="button"
-          (click)="saveGeneralReceipt()"
-          [disabled]="disablesavebutton()"
+        <button type="button" (click)="saveGeneralReceipt()" [disabled]="disablesavebutton()"
           class="erp-btn btn-primary">
           @if (!disablesavebutton()) {
-            <i class="pi pi-check"></i>
+          <i class="pi pi-check"></i>
           } @else {
-            <i class="pi pi-spin pi-spinner"></i>
+          <i class="pi pi-spin pi-spinner"></i>
           }
           {{ savebutton() }}
         </button>

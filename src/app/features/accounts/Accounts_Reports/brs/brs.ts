@@ -82,11 +82,12 @@ export class Brs implements OnInit {
   kycFileName: any;
 
   pageCriteria = new PageCriteria();
+  toDateMinDate: Date | null = null;
 
   // ── Datepicker configs ───────────────────────────────────────────────────────
   dpConfig: any = {};
   dpConfig1: any = {};
-
+  today = new Date();
   // ── Form ─────────────────────────────────────────────────────────────────────
   BRStatmentForm!: FormGroup;
 
@@ -96,6 +97,8 @@ export class Brs implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.dbdate = sessionStorage.getItem('Dbtime');
     this.roleid = sessionStorage.getItem('roleid') || '';
 
@@ -103,8 +106,8 @@ export class Brs implements OnInit {
 
     this.BRStatmentForm = this.fb.group(
       {
-        fromDate: [this.dbdate ? new Date(this.dbdate) : new Date(), Validators.required],
-        toDate: [new Date()],
+        fromDate: [today],
+        toDate: [today],
         bankAccountId: ['', Validators.required],
         pbankbalance: [0, [Validators.required, Validators.min(0)]],
         pFilename: ['']
@@ -114,6 +117,16 @@ export class Brs implements OnInit {
 
     this.initializeDatePicker();
     this.bankBookDetails();
+    const initialFrom = this.BRStatmentForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.BRStatmentForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.BRStatmentForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.BRStatmentForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Validators ────────────────────────────────────────────────────────────────
@@ -178,7 +191,7 @@ export class Brs implements OnInit {
     this.gridView.set([]);
     this.showhide.set(true);
 
-    this.BRStatmentForm.patchValue({ fromDate: new Date(), pbankbalance: 0, pFilename: '' });
+    this.BRStatmentForm.patchValue({ fromDate: this.today,toDate:this.today, pbankbalance: 0, pFilename: '' });
 
     this.dpConfig = {
       ...this.dpConfig,

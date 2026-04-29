@@ -168,53 +168,54 @@
       <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
           [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines"
+          [resizableColumns]="true">
 
           <!-- HEADER -->
           <ng-template pTemplate="header">
             <tr>
 
               @if (!showhidegridcolumns()) {
-              <th class="th-center th-action-sm">
+              <th pResizableColumn class="th-center th-action-sm">
                 <div class="th-cell th-cell--center">Clear</div>
               </th>
-              <th class="th-center th-action-sm">
+              <th pResizableColumn class="th-center th-action-sm">
                 <div class="th-cell th-cell--center">Return</div>
               </th>
-              <th class="th-ref">
+              <th pResizableColumn class="th-ref">
                 <div class="th-cell">Reference No</div>
               </th>
               @if (status() !== 'autobrs') {
-              <th class="th-center th-action-sm">
+              <th pResizableColumn class="th-center th-action-sm">
                 <div class="th-cell th-cell--center">Cancel</div>
               </th>
               }
               }
 
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell th-cell--center">Cheque / Reference No.</div>
               </th>
-              <th class="th-right">
+              <th pResizableColumn class="th-right">
                 <div class="th-cell th-cell--right">
                   <i class="pi pi-indian-rupee"></i> Amount
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-user"></i> Party
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-file"></i> Payment Id
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-calendar"></i> Payment Date
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-credit-card"></i> Transaction Mode
                 </div>

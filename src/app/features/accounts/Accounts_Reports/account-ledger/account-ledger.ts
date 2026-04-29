@@ -87,6 +87,8 @@ export class AccountLedger implements OnInit {
 
   readonly currencySymbol = signal('₹');
   readonly pageSize = signal(10);
+  toDateMinDate: Date | null = null;
+  
 
   // ── Computed Signals ──────────────────────────────────────────────────────
 
@@ -147,6 +149,16 @@ export class AccountLedger implements OnInit {
     this.initDatepickers();
     this.initForm();
     this.loadLedgers();
+    const initialFrom = this.form.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.form.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.form.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   private initDatepickers(): void {

@@ -56,6 +56,7 @@ export class TrialBalance implements OnInit {
   betweento         = '';
   sortColumn        = '';
   sortDirection     = 1;
+  toDateMinDate: Date | null = null;
 
   private trialBalanceRaw: any[] = [];
 
@@ -67,6 +68,7 @@ export class TrialBalance implements OnInit {
   // ── Lifecycle ───────────────────────────────────────────────
   ngOnInit(): void {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     this.dpConfig = {
       dateInputFormat: 'DD-MMM-YYYY',
@@ -94,11 +96,23 @@ export class TrialBalance implements OnInit {
     this.betweendates = 'Between';
     this.betweenfrom  = this.datePipe.transform(today, 'dd-MMM-yyyy') ?? '';
     this.betweento    = this.datePipe.transform(today, 'dd-MMM-yyyy') ?? '';
+    const initialFrom = this.TrialBalanceForm.get('fromdate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.TrialBalanceForm.get('fromdate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.TrialBalanceForm.get('todate')?.value;
+    if (toDate && val && toDate < val) {
+      this.TrialBalanceForm.get('todate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Checkbox Handlers ───────────────────────────────────────
   checkboxChecked(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     if (checked) {
       this.groupType    = 'ASON';
@@ -120,8 +134,8 @@ export class TrialBalance implements OnInit {
 
     this.TrialBalanceForm.patchValue({
       grouptype: this.groupType,
-      fromdate:  new Date(),
-      todate:    new Date()
+      fromdate:  today,
+      todate:    today
     });
   }
 

@@ -36,6 +36,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   private recognition: any;
   private commands: VoiceCommandTarget[] = [];
+  private readonly wakePhrases = ['hey kapil'];
 
   constructor(
     private navigationService: NavigationService,
@@ -133,10 +134,26 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
   }
 
   private handleCommand(spoken: string): void {
-    const command = this.normalizeCommand(spoken);
+    const normalizedSpoken = this.normalizeText(spoken);
+
+    if (!normalizedSpoken) {
+      this.status.set('Not recognized');
+      return;
+    }
+
+    const wakeCommand = this.extractWakeCommand(normalizedSpoken);
+
+    if (wakeCommand === null) {
+      this.status.set('Say "Hey Kapil" first');
+      this.matchedLabel.set('');
+      return;
+    }
+
+    const command = this.normalizeCommand(wakeCommand);
 
     if (!command) {
-      this.status.set('Not recognized');
+      this.status.set('Command required');
+      this.matchedLabel.set('');
       return;
     }
 
@@ -154,6 +171,20 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
     }
 
     this.navigateToTarget(target);
+  }
+
+  private extractWakeCommand(command: string): string | null {
+    for (const wakePhrase of this.wakePhrases) {
+      if (command === wakePhrase) {
+        return '';
+      }
+
+      if (command.startsWith(`${wakePhrase} `)) {
+        return command.slice(wakePhrase.length).trim();
+      }
+    }
+
+    return null;
   }
 
   private navigateToTarget(target: VoiceCommandTarget): void {

@@ -65,40 +65,41 @@
         <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria.pageSize"
           [rowsPerPageOptions]="[5, 10, 20, 50]" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries" responsiveLayout="scroll"
-          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom">
+          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
+          [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
-              <th class="th-actions">Actions</th>
-              <th pSortableColumn="bankName">
+              <th pResizableColumn class="th-actions">Actions</th>
+              <th pResizableColumnpSortableColumn="bankName">
                 <div class="th-cell">
                   <i class="pi pi-building"></i>
                   Bank Name
                   <p-sortIcon field="bankName"></p-sortIcon>
                 </div>
               </th>
-              <th pSortableColumn="account_number">
+              <th pResizableColumn pSortableColumn="account_number">
                 <div class="th-cell">
                   <i class="pi pi-hashtag"></i>
                   Account No.
                   <p-sortIcon field="account_number"></p-sortIcon>
                 </div>
               </th>
-              <th pSortableColumn="account_name">
+              <th pResizableColumn pSortableColumn="account_name">
                 <div class="th-cell">
                   <i class="pi pi-user"></i>
                   Account Name
                   <p-sortIcon field="account_name"></p-sortIcon>
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-check-circle"></i>
                   Status
                 </div>
               </th>
-              <th>
+              <th pResizableColumn>
                 <div class="th-cell">
                   <i class="pi pi-tag"></i>
                   A/C Type

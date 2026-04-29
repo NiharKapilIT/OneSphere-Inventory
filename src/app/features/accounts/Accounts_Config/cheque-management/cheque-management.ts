@@ -74,7 +74,7 @@ export class ChequeManagement implements OnInit, OnDestroy {
 
   // ── State ─────────────────────────────────────────────────────────────────
   private allRows: ChequeRow[] = [];
-  selectedStatus = 'All';
+  selectedStatus = '';
   selectedBankId: number | null = null;
   pageSize = 10;
   currentPage = 0;
@@ -259,41 +259,41 @@ export class ChequeManagement implements OnInit, OnDestroy {
       });
   }
 
-  // ── Export ────────────────────────────────────────────────────────────────
-  exportToPdf(type: 'Pdf' | 'Print'): void {
-    const headers = [
-      'Book ID', 'No. of Cheques', 'From', 'To',
-      'Cheque Status', 'Bank Name', 'Account No.', 'Book Status',
-    ];
-    const styles = Object.fromEntries(
-      Array.from({ length: 8 }, (_, i) => [i, { cellWidth: 'auto', halign: i < 5 ? 'center' : 'left' }])
-    );
-    const rows = this.gridData().map((e) => [
-      e.pchequebookid,
-      e.pnoofcheques,
-      e.pchequefromnumber,
-      e.pchequetonumber,
-      e.pchequegeneratestatus ? 'Active' : 'Generate Cheques',
-      e.pbankname,
-      e.paccountnumber,
-      e.pchequestatus,
-    ]);
-    this.accReportService._ChequeManagementPdf('Cheque Management', rows, headers, styles, 'landscape', type);
-  }
+  // // ── Export ────────────────────────────────────────────────────────────────
+  // exportToPdf(type: 'Pdf' | 'Print'): void {
+  //   const headers = [
+  //     'Book ID', 'No. of Cheques', 'From', 'To',
+  //     'Cheque Status', 'Bank Name', 'Account No.', 'Book Status',
+  //   ];
+  //   const styles = Object.fromEntries(
+  //     Array.from({ length: 8 }, (_, i) => [i, { cellWidth: 'auto', halign: i < 5 ? 'center' : 'left' }])
+  //   );
+  //   const rows = this.gridData().map((e) => [
+  //     e.pchequebookid,
+  //     e.pnoofcheques,
+  //     e.pchequefromnumber,
+  //     e.pchequetonumber,
+  //     e.pchequegeneratestatus ? 'Active' : 'Generate Cheques',
+  //     e.pbankname,
+  //     e.paccountnumber,
+  //     e.pchequestatus,
+  //   ]);
+  //   this.accReportService._ChequeManagementPdf('Cheque Management', rows, headers, styles, 'landscape', type);
+  // }
 
-  exportToExcel(): void {
-    const rows = this.gridData().map((e) => ({
-      'Book ID': e.pchequebookid,
-      'No. of Cheques': e.pnoofcheques,
-      From: e.pchequefromnumber,
-      To: e.pchequetonumber,
-      'Cheque Status': e.pchequegeneratestatus ? 'Active' : 'Generate Cheques',
-      'Bank Name': e.pbankname,
-      'Account No.': e.paccountnumber,
-      'Book Status': e.pchequestatus,
-    }));
-    this.commonService.exportAsExcelFile(rows, 'Cheque Management');
-  }
+  // exportToExcel(): void {
+  //   const rows = this.gridData().map((e) => ({
+  //     'Book ID': e.pchequebookid,
+  //     'No. of Cheques': e.pnoofcheques,
+  //     From: e.pchequefromnumber,
+  //     To: e.pchequetonumber,
+  //     'Cheque Status': e.pchequegeneratestatus ? 'Active' : 'Generate Cheques',
+  //     'Bank Name': e.pbankname,
+  //     'Account No.': e.paccountnumber,
+  //     'Book Status': e.pchequestatus,
+  //   }));
+  //   this.commonService.exportAsExcelFile(rows, 'Cheque Management');
+  // }
 
   // ── Track By ──────────────────────────────────────────────────────────────
   trackByBookId(_: number, row: ChequeRow): string | number {

@@ -79,6 +79,7 @@ export class ComparisonTb implements OnInit {
   dpConfig1: any = {};
 
   @ViewChild('myTable') table: any;
+  toDateMinDate: Date | null = null;
 
   constructor() {
     this.currencysymbol = String(
@@ -89,6 +90,7 @@ export class ComparisonTb implements OnInit {
   // ── Lifecycle ───────────────────────────────────────────────
   ngOnInit(): void {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     this.dpConfig = {
       dateInputFormat: 'DD-MMM-YYYY',
@@ -109,6 +111,16 @@ export class ComparisonTb implements OnInit {
 
     this.setPageModel();
     this.buildForm(today);
+    const initialFrom = this.ComparisionTBForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.ComparisionTBForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.ComparisionTBForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.ComparisionTBForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Form ────────────────────────────────────────────────────

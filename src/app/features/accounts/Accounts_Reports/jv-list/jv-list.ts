@@ -70,6 +70,7 @@ export class JvList implements OnInit {
   jvSortColumn    = '';
   jvSortDirection: 1 | -1 = 1;
   private rawJvData: any[] = [];
+  toDateMinDate: Date | null = null;
 
   pageCriteria: PageCriteria = new PageCriteria();
 
@@ -96,15 +97,27 @@ export class JvList implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     this.setPageModel();
     this.getFormNames();
 
     this.JvlistReportForm = this.fb.group({
-      fromDate:    [new Date(), Validators.required],
-      toDate:      [new Date(), Validators.required],
+      fromDate:    [today, Validators.required],
+      toDate:      [today, Validators.required],
       formName:    ['',         Validators.required],
       ptranstype:  ['All',      Validators.required]
     });
+    const initialFrom = this.JvlistReportForm.get('fromDate')?.value;
+  this.toDateMinDate = initialFrom ?? null;
+
+  this.JvlistReportForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+    this.toDateMinDate = val ?? null;
+    const toDate = this.JvlistReportForm.get('toDate')?.value;
+    if (toDate && val && toDate < val) {
+      this.JvlistReportForm.get('toDate')?.setValue(null as unknown as Date);
+    }
+  });
   }
 
   // ── Form names ────────────────────────────────────────────────────────────────

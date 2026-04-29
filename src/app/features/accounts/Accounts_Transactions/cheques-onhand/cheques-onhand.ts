@@ -174,16 +174,17 @@ export class ChequesOnhand implements OnInit {
 
     this.pdatepickerenablestatus.set(this.companydetails?.pdatepickerenablestatus);
     this.currencySymbol.set(this._commonService.currencysymbol);
-
     this.ChequesOnHandForm = this.fb.group({
       ptransactiondate: [this.today2, Validators.required],
       bankname: [null, Validators.required],
-      pfrombrsdate: [this.today2, new Date()],
-      ptobrsdate: [this.today2, new Date()],
+      pfrombrsdate: [this.today2],
+      ptobrsdate: [this.today2],
+
       pchequesOnHandlist: [],
       SearchClear: [''],
       schemaname: [this._commonService.getschemaname()]
     });
+
     this.BrsDateForm = this.fb.group({
       frombrsdate: [''],
       tobrsdate: ['']
@@ -197,7 +198,7 @@ export class ChequesOnhand implements OnInit {
 
     this.setPageModel();
     this.pageSetUp();
-    this.BlurEventAllControll(this.ChequesOnHandForm);
+
 
     this._accountingtransaction
       .GetBankntList(
@@ -632,44 +633,83 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+  // checkedCancel(event: any, data: any) {
+  //   const isChecked = event?.checked ?? false;
+  //   const gridtemp = this.gridData().filter(a => a.preceiptid === data.preceiptid);
+  //   this.PopupData = data;
+
+  //   if (isChecked) {
+  //     debugger
+  //     const receiptdate = this._commonService.getDateObjectFromDataBase(gridtemp[0].preceiptdate);
+  //     const transactiondate = this.ChequesOnHandForm.controls['ptransactiondate'].value;
+
+  //     if (receiptdate && !isNaN(receiptdate.getTime())) {
+  //       if (transactiondate && transactiondate.getTime() >= receiptdate.getTime()) {
+  //         data.pcancelstatus = true;
+  //         data.pdepositstatus = false;
+  //         data.pchequestatus = 'C';
+  //         this.chequenumber.set(data.pChequenumber);
+  //         this.CancelChargesOk(0);
+  //       } else {
+  //         data.pdepositstatus = false;
+  //         data.pcancelstatus = false;
+  //         data.pchequestatus = 'N';
+  //         this._commonService.showWarningMessage('Transaction Date Should be Greater than Receipt Date');
+  //       }
+  //     } else {
+  //       data.pdepositstatus = false;
+  //       data.pcancelstatus = false;
+  //       data.pchequestatus = 'N';
+  //       this._commonService.showWarningMessage('Invalid Receipt Date');
+  //     }
+  //   } else {
+  //     data.pcancelstatus = false;
+  //     data.pchequestatus = 'N';
+  //   }
+
+  //   this.gridData.update(rows =>
+  //     rows.map(r => (r.preceiptid === data.preceiptid ? { ...data } : r))
+  //   );
+  // }
+
   checkedCancel(event: any, data: any) {
-    const isChecked = event?.checked ?? false;
-    const gridtemp = this.gridData().filter(a => a.preceiptid === data.preceiptid);
-    this.PopupData = data;
+  const isChecked = event?.checked ?? false;
+  const gridtemp = this.gridData().filter(a => a.preceiptid === data.preceiptid);
+  this.PopupData = data;
 
-    if (isChecked) {
-      debugger
-      const receiptdate = this._commonService.getDateObjectFromDataBase(gridtemp[0].preceiptdate);
-      const transactiondate = this.ChequesOnHandForm.controls['ptransactiondate'].value;
+  if (isChecked) {
+    const receiptdate = this._commonService.getDateObjectFromDataBase(gridtemp[0].preceiptdate);
+    const transactiondateValue = this.ChequesOnHandForm.controls['ptransactiondate'].value;
+    const transactiondate = transactiondateValue ? new Date(transactiondateValue) : null;
 
-      if (receiptdate && !isNaN(receiptdate.getTime())) {
-        if (transactiondate && transactiondate.getTime() >= receiptdate.getTime()) {
-          data.pcancelstatus = true;
-          data.pdepositstatus = false;
-          data.pchequestatus = 'C';
-          this.chequenumber.set(data.pChequenumber);
-          this.CancelChargesOk(0);
-        } else {
-          data.pdepositstatus = false;
-          data.pcancelstatus = false;
-          data.pchequestatus = 'N';
-          this._commonService.showWarningMessage('Transaction Date Should be Greater than Receipt Date');
-        }
+    if (receiptdate && !isNaN(receiptdate.getTime())) {
+      if (transactiondate && transactiondate.getTime() >= receiptdate.getTime()) {
+        data.pcancelstatus = true;
+        data.pdepositstatus = false;
+        data.pchequestatus = 'C';
+        this.chequenumber.set(data.pChequenumber);
+        this.CancelChargesOk(0);
       } else {
         data.pdepositstatus = false;
         data.pcancelstatus = false;
         data.pchequestatus = 'N';
-        this._commonService.showWarningMessage('Invalid Receipt Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Receipt Date');
       }
     } else {
+      data.pdepositstatus = false;
       data.pcancelstatus = false;
       data.pchequestatus = 'N';
+      this._commonService.showWarningMessage('Invalid Receipt Date');
     }
-
-    this.gridData.update(rows =>
-      rows.map(r => (r.preceiptid === data.preceiptid ? { ...data } : r))
-    );
+  } else {
+    data.pcancelstatus = false;
+    data.pchequestatus = 'N';
   }
+
+  this.gridData.update(rows =>
+    rows.map(r => (r.preceiptid === data.preceiptid ? { ...data } : r))
+  );
+}
 
   CancelChargesOk(value: any) {
     this.gridData.update(rows =>
@@ -840,7 +880,7 @@ export class ChequesOnhand implements OnInit {
   }
 
 
- 
+
   Deposited() {
     this.pageSetUp();
     this.chequeboxshoworhide = false;
@@ -955,8 +995,10 @@ export class ChequesOnhand implements OnInit {
     this.pdfstatus = 'Cancelled';
     this.datetitle = 'Cancelled Date';
     this.GridColumnsHide();
-    this.brsdateshowhidedeposited.set(true);
-    this.brsdateshowhidecancelled.set(false);
+    // this.brsdateshowhidedeposited.set(true);
+    // this.brsdateshowhidecancelled.set(false);
+    this.brsdateshowhidedeposited.set(false);
+    this.brsdateshowhidecancelled.set(true);
     const fromDate = this._commonService.getDateObjectFromDataBase(
       this.bankbalancedetails.pfrombrsdate
     );
@@ -1026,7 +1068,379 @@ export class ChequesOnhand implements OnInit {
 
 
 
+  // pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
+  //   debugger
+  //   this.Totalamount = 0;
+  //   const s = this.status();
+  //   if (s === 'all') this.modeofreceipt = 'ALL';
+  //   else if (s === 'chequesreceived') this.modeofreceipt = 'CHEQUE';
+  //   else if (s === 'onlinereceipts') this.modeofreceipt = 'ONLINE';
+  //   else if (s === 'deposited') this.modeofreceipt = 'DEPOSIT';
+  //   else if (s === 'cancelled') this.modeofreceipt = 'CANCEL';
 
+  //   this._companyDetailsService.GetCompanyData().subscribe({
+  //     next: (companyRes: any) => {
+  //       const companyData = Array.isArray(companyRes) && companyRes.length > 0 ? companyRes[0] : null;
+  //       if (companyData) {
+  //         const mappedDetails = {
+  //           companyName: companyData.pCompanyName || companyData.companyName || '',
+  //           registrationAddress: companyData.pAddress1 || companyData.registrationAddress || '',
+  //           cinNumber: companyData.pCinNo || companyData.cinNumber || '',
+  //           branchName: companyData.pBranchname || companyData.branchName || '',
+  //           uniqueBranchName: companyData.pBranchname || companyData.uniqueBranchName || '',
+  //           branchAddress: companyData.pAddress1 || companyData.branchAddress || ''
+  //         };
+  //         sessionStorage.setItem('CompanyDetails', JSON.stringify(mappedDetails));
+  //         this.companydetails = mappedDetails;
+  //       } else {
+  //         this._setFallbackCompanyDetails();
+  //       }
+  //       this._generatePdf(printOrPdf);
+  //     },
+  //     error: () => {
+  //       this._setFallbackCompanyDetails();
+  //       this._generatePdf(printOrPdf);
+  //     }
+  //   });
+  // }
+
+  // private _setFallbackCompanyDetails() {
+  //   const loggedInUser = sessionStorage.getItem('loggedInUser');
+  //   const parsedUser = loggedInUser ? JSON.parse(loggedInUser) : null;
+  //   const fallback = {
+  //     companyName: parsedUser?.companyName || this._commonService.getCompanyCode() || '',
+  //     registrationAddress: parsedUser?.registrationAddress || '',
+  //     cinNumber: parsedUser?.cinNumber || '',
+  //     branchName: parsedUser?.branchName || this._commonService.getBranchCode() || '',
+  //     uniqueBranchName: parsedUser?.uniqueBranchName || parsedUser?.branchName || '',
+  //     branchAddress: parsedUser?.branchAddress || ''
+  //   };
+  //   sessionStorage.setItem('CompanyDetails', JSON.stringify(fallback));
+  //   this.companydetails = fallback;
+  // }
+
+
+  // private _generatePdf(printOrPdf: 'Print' | 'Pdf') {
+
+  //   this.Totalamount = 0;
+  //   const isDeposited = this.status() === 'deposited';
+  //   const isCancelled = this.status() === 'cancelled';
+  //   const totalCount = this.totalElements || 99999;
+  //   const searchText = this._searchText || '';
+
+  //   if (isCancelled) {
+  //     this._fetchDataAndBuildPdf('CANCELLED', 'C', isDeposited, isCancelled, printOrPdf, searchText);
+  //     return;
+  //   }
+  //   if (isDeposited) {
+  //     this._fetchDataAndBuildPdf('DEPOSITED', 'P', isDeposited, isCancelled, printOrPdf, searchText);
+  //     return;
+  //   }
+
+  //   let apiMode = 'ALL';
+  //   if (this.status() === 'chequesreceived') apiMode = 'CHEQUE';
+  //   else if (this.status() === 'onlinereceipts') apiMode = 'ONLINE';
+
+  //   this._accountingtransaction
+  //     .GetChequesOnHandData(
+  //       this.bankid,
+  //       this._commonService.getschemaname(),
+  //       this._commonService.getbranchname(),
+  //       0,
+  //       totalCount,
+  //       searchText,
+  //       apiMode,
+  //       'PDF',
+  //       this._commonService.getCompanyCode(),
+  //       this._commonService.getBranchCode()
+  //     )
+  //     .subscribe({
+  //       next: (result: any) => {
+  //         let gridData: any[] = result?.pchequesOnHandlist || [];
+
+
+  //         if (this.status() === 'chequesreceived')
+  //           gridData = gridData.filter((x: any) => x.ptypeofpayment === 'CHEQUE');
+  //         else if (this.status() === 'onlinereceipts')
+  //           gridData = gridData.filter((x: any) => x.ptypeofpayment !== 'CHEQUE');
+
+  //         if (searchText) {
+  //           gridData = gridData.filter((x: any) =>
+  //             (x.pChequenumber || '').toLowerCase().includes(searchText.toLowerCase()) ||
+  //             (x.receiptnumbers || '').toLowerCase().includes(searchText.toLowerCase()) ||
+  //             (x.ppartyname || '').toLowerCase().includes(searchText.toLowerCase())
+  //           );
+  //         }
+
+  //         this._buildPdfRows(
+  //           gridData.length ? gridData : [...this.gridData()],
+  //           printOrPdf, isDeposited, isCancelled
+  //         );
+  //       },
+  //       error: () => this._buildPdfRows([...this.gridData()], printOrPdf, isDeposited, isCancelled)
+  //     });
+  // }
+
+
+
+  // private _fetchDataAndBuildPdf(
+  //   mode: string | null,
+  //   statusFilter: string,
+  //   isDeposited: boolean,
+  //   isCancelled: boolean,
+  //   printOrPdf: 'Print' | 'Pdf',
+  //   searchText: string = ''
+  // ) {
+  //   const fallback = () => this._buildPdfRows([...this.gridData()], printOrPdf, isDeposited, isCancelled);
+
+  //   const applyFilters = (data: any[]): any[] => {
+  //     let filtered = data.filter((x: any) => x.pchequestatus === statusFilter);
+
+  //     if (isDeposited && this.bankid && this.bankid !== 0)
+  //       filtered = filtered.filter((x: any) => x.pdepositbankid === this.bankid);
+
+
+  //     if (searchText) {
+  //       filtered = filtered.filter((x: any) =>
+  //         (x.pChequenumber || '').toLowerCase().includes(searchText.toLowerCase()) ||
+  //         (x.receiptnumbers || '').toLowerCase().includes(searchText.toLowerCase()) ||
+  //         (x.ppartyname || '').toLowerCase().includes(searchText.toLowerCase())
+  //       );
+  //     }
+
+  //     return filtered;
+  //   };
+
+  //   if (this.fromdate && this.todate && mode) {
+  //     this._accountingtransaction
+  //       .DataFromBrsDatesChequesOnHand(
+  //         this.fromdate, this.todate, this.bankid,
+  //         mode,
+  //         searchText || '0',
+  //         0, 99999
+  //       )
+  //       .subscribe({
+  //         next: (result: any) => {
+  //           const data = applyFilters(result?.pchequesclearreturnlist || []);
+  //           this._buildPdfRows(data.length ? data : [...this.gridData()], printOrPdf, isDeposited, isCancelled);
+  //         },
+  //         error: fallback
+  //       });
+  //   } else {
+  //     this._accountingtransaction
+  //       .GetChequesOnHandData(
+  //         this.bankid,
+  //         this._commonService.getschemaname(),
+  //         this._commonService.getbranchname(),
+  //         0, 99999,
+  //         searchText || '',
+  //         'ALL', 'PDF',
+  //         this._commonService.getCompanyCode(),
+  //         this._commonService.getBranchCode()
+  //       )
+  //       .subscribe({
+  //         next: (result: any) => {
+  //           const data = applyFilters(result?.pchequesclearreturnlist || []);
+  //           this._buildPdfRows(data.length ? data : [...this.gridData()], printOrPdf, isDeposited, isCancelled);
+  //         },
+  //         error: fallback
+  //       });
+  //   }
+  // }
+
+
+
+  // private _buildPdfRows(
+  //   gridData: any[],
+  //   printOrPdf: 'Print' | 'Pdf',
+  //   isDeposited: boolean,
+  //   isCancelled: boolean
+  // ) {
+  //   this.Totalamount = 0;
+
+  //   if (!gridData || gridData.length === 0) {
+  //     alert('No data available');
+  //     return;
+  //   }
+
+  //   const isDepositOrCancel = isDeposited || isCancelled;
+  //   const rows: any[] = [];
+  //   const reportname = 'Cheques On Hand';
+
+  //   const gridheaders = isDepositOrCancel
+  //     ? [
+  //       'Cheque/Reference No.', 'Branch Name', 'Amount', 'Receipt No',
+  //       'Receipt Date', 'Cheque Date', this.datetitle,
+  //       'Transaction Mode', 'Cheque Bank Name', 'Party'
+  //     ]
+  //     : [
+  //       'Cheque/Reference No.', 'Branch Name', 'Amount', 'Receipt No',
+  //       'Receipt Date', 'Cheque Date', 'Transaction Mode',
+  //       'Cheque Bank Name', 'Party',
+  //       'Self Cheque', 'Chit Status', 'Deposited Bank'
+  //     ];
+
+  //   const colWidthHeight = isDepositOrCancel
+  //     ? {
+  //       0: { cellWidth: 33, halign: 'center' },
+  //       1: { cellWidth: 26, halign: 'left' },
+  //       2: { cellWidth: 24, halign: 'right' },
+  //       3: { cellWidth: 20, halign: 'center' },
+  //       4: { cellWidth: 25, halign: 'center' },
+  //       5: { cellWidth: 25, halign: 'center' },
+  //       6: { cellWidth: 23, halign: 'center' },
+  //       7: { cellWidth: 25, halign: 'center' },
+  //       8: { cellWidth: 40, halign: 'center' },
+  //       9: { cellWidth: 30, halign: 'left' },
+  //       10: { cellWidth: 45, halign: 'left' }
+  //     }
+  //     : {
+  //       0: { cellWidth: 22, halign: 'center' },
+  //       1: { cellWidth: 26, halign: 'left' },
+  //       2: { cellWidth: 24, halign: 'right' },
+  //       3: { cellWidth: 20, halign: 'center' },
+  //       4: { cellWidth: 20, halign: 'center' },
+  //       5: { cellWidth: 20, halign: 'center' },
+  //       6: { cellWidth: 20, halign: 'center' },
+  //       7: { cellWidth: 25, halign: 'center' },
+  //       8: { cellWidth: 25, halign: 'left' },
+  //       9: { cellWidth: 35, halign: 'left' },
+  //       10: { cellWidth: 15, halign: 'center' },
+  //       11: { cellWidth: 20, halign: 'center' },
+  //       12: { cellWidth: 20, halign: 'left' }
+  //     };
+
+  //   gridData.forEach((element: any) => {
+
+  //     const datereceipt = this._commonService.getFormatDateGlobal(element.preceiptdate);
+
+  //     const depositeddate = element.pdepositeddate
+  //       ? this._commonService.getFormatDateGlobal(element.pdepositeddate)
+  //       : '';
+
+  //     const chequedate = element.pchequedate
+  //       ? this._commonService.getFormatDateGlobal(element.pchequedate)
+  //       : '';
+
+  //     const branchName =
+  //       typeof element.pbranchname === 'string' && element.pbranchname.trim() !== ''
+  //         ? element.pbranchname
+  //         : '';
+
+  //     const selfCheque =
+  //       element.selfchequestatus === true ? 'Yes'
+  //         : element.selfchequestatus === false ? 'No'
+  //           : '';
+
+  //     const chitStatus = element.chitstatus || '';
+  //     const depositedBank = element.pdepositedBankName || '';
+
+
+  //     const receiptNumber =
+  //       element.receiptnumbers
+  //       || element.preceiptnumbers
+  //       || element.preceiptnumber
+  //       || element.receipt_number
+  //       || element.receiptno
+  //       || element.preceiptid
+  //       || '';
+
+
+  //     let totalreceivedamt = '';
+  //     try {
+  //       if (
+  //         element.ptotalreceivedamount != null &&
+  //         element.ptotalreceivedamount !== undefined &&
+  //         element.ptotalreceivedamount !== 0
+  //       ) {
+  //         const amt = parseFloat(element.ptotalreceivedamount) || 0;
+  //         totalreceivedamt = this._commonService.convertAmountToPdfFormat(
+  //           this._commonService.currencyformat(parseFloat(amt.toFixed(2)))
+  //         );
+  //         this.Totalamount += amt;
+  //       }
+  //     } catch (e) {
+  //       totalreceivedamt = element.ptotalreceivedamount?.toString() || '';
+  //       this.Totalamount += parseFloat(element.ptotalreceivedamount) || 0;
+  //     }
+
+  //     const row = isDepositOrCancel
+  //       ? [
+  //         element.pChequenumber || '',
+  //         branchName,
+  //         totalreceivedamt,
+  //         receiptNumber,
+  //         datereceipt,
+  //         chequedate,
+  //         depositeddate,
+  //         element.ptypeofpayment || '',
+  //         element.cheque_bank || '',
+  //         element.ppartyname || ''
+  //       ]
+  //       : [
+  //         element.pChequenumber || '',
+  //         branchName,
+  //         totalreceivedamt,
+  //         receiptNumber,
+  //         datereceipt,
+  //         chequedate,
+  //         element.ptypeofpayment || '',
+  //         element.cheque_bank || '',
+  //         element.ppartyname || '',
+  //         selfCheque,
+  //         chitStatus,
+  //         depositedBank
+  //       ];
+
+  //     rows.push(row);
+  //   });
+
+  //   console.log('=== PDF DEBUG ===');
+  //   console.log('1. gridData length:', gridData.length);
+  //   console.log('2. isDepositOrCancel:', isDepositOrCancel);
+  //   console.log('3. headers:', gridheaders);
+  //   console.log('4. headers count:', gridheaders.length);
+  //   console.log('5. first row:', JSON.stringify(rows[0]));
+  //   console.log('6. first row length:', rows[0]?.length);
+  //   console.log('7. total row:', JSON.stringify(rows[rows.length - 1]));
+  //   console.log('8. bankname:', this.bankname());
+  //   console.log('9. brsdate:', this.brsdate());
+  //   console.log('10. pdfstatus:', this.pdfstatus);
+  //   console.log('=================');
+
+
+  //   let amounttotal = '';
+  //   try {
+  //     this.Totalamount = parseFloat(this.Totalamount.toFixed(2));
+  //     amounttotal = this._commonService.convertAmountToPdfFormat(
+  //       this._commonService.currencyformat(this.Totalamount)
+  //     );
+  //   } catch (e) {
+  //     amounttotal = parseFloat(this.Totalamount.toFixed(2)).toString() || '0';
+  //   }
+
+  //   const totalColCount = isDepositOrCancel ? 11 : 13;
+  //   const lbl = {
+  //     content: 'Total',
+  //     colSpan: 2,
+  //     styles: { halign: 'right', fontSize: 16, fontStyle: 'bold' }
+  //   };
+  //   const lblvalue = {
+  //     content: amounttotal,
+  //     styles: { halign: 'right', fontSize: 16, fontStyle: 'bold' }
+  //   };
+  //   const totalRow: any[] = [lbl, lblvalue];
+  //   for (let i = 0; i < totalColCount - 2; i++) {
+  //     totalRow.push('');
+  //   }
+  //   rows.push(totalRow);
+
+  //   this._commonService._downloadchequesReportsPdf(
+  //     reportname, rows, gridheaders, colWidthHeight, 'landscape',
+  //     this.bankname() || '', this.brsdate() || '', this.pdfstatus || '',
+  //     printOrPdf, ' '
+  //   );
+  // }
 
 
   pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
@@ -1082,7 +1496,6 @@ export class ChequesOnhand implements OnInit {
 
 
   private _generatePdf(printOrPdf: 'Print' | 'Pdf') {
-    
     this.Totalamount = 0;
     const isDeposited = this.status() === 'deposited';
     const isCancelled = this.status() === 'cancelled';
@@ -1356,19 +1769,6 @@ export class ChequesOnhand implements OnInit {
       rows.push(row);
     });
 
-     console.log('=== PDF DEBUG ===');
-    console.log('1. gridData length:', gridData.length);
-    console.log('2. isDepositOrCancel:', isDepositOrCancel);
-    console.log('3. headers:', gridheaders);
-    console.log('4. headers count:', gridheaders.length);
-    console.log('5. first row:', JSON.stringify(rows[0]));
-    console.log('6. first row length:', rows[0]?.length);
-    console.log('7. total row:', JSON.stringify(rows[rows.length - 1]));
-    console.log('8. bankname:', this.bankname());
-    console.log('9. brsdate:', this.brsdate());
-    console.log('10. pdfstatus:', this.pdfstatus);
-    console.log('=================');
-
 
     let amounttotal = '';
     try {
@@ -1404,6 +1804,7 @@ export class ChequesOnhand implements OnInit {
   }
 
 
+
   Save() {
     debugger
     this.count = 0;
@@ -1411,6 +1812,7 @@ export class ChequesOnhand implements OnInit {
     let isValid = true;
     let deposit = 0;
     this.ChequesOnHandValidation.set({});
+
 
     // if (!this.bankid || this.bankid === 0) {
     //   this._commonService.showWarningMessage('Please Select Bank Name');
@@ -1556,110 +1958,7 @@ export class ChequesOnhand implements OnInit {
     }
   }
 
-  // private _mapRowToSavePayload(row: any, status: string): any {
-  //   const str = (v: any) => v?.toString() || '';
-  //   return {
-  //     pRecordid: str(row.pRecordid),
-  //     pUpiname: str(row.pUpiname),
-  //     pUpiid: str(row.pUpiid),
-  //     pBankconfigurationId: str(row.pBankconfigurationId),
-  //     pBankName: str(row.pBankName),
-  //     ptranstype: str(row.ptranstype),
-  //     ptypeofpayment: str(row.ptypeofpayment),
-  //     pChequenumber: str(row.pChequenumber),
-  //     pchequedate: str(row.pchequedate),
-  //     pchequedepositdate: str(row.pchequedepositdate),
-  //     pchequecleardate: str(row.pchequecleardate),
-  //     pbankid: str(row.pbankid),
-  //     branchid: str(row.branchid),
-  //     pCardNumber: str(row.pCardNumber),
-  //     // pdepositbankid: status === 'P'
-  //     //   ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
-  //     //   : (str(row.pdepositbankid) || '0'),
-
-  //     pdepositbankid: status === 'P'
-  // ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
-  // : status === 'C'
-  //   ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositbankid) || '0') // ✅ send selected bank for cancel too
-  //   : (str(row.pdepositbankid) || '0'),
-
-  //     pdepositbankname: str(row.pdepositbankname),
-  //     pAccountnumber: str(row.pAccountnumber),
-  //     challanaNo: str(row.challanaNo),
-  //     preceiptid: str(row.preceiptid),
-  //     preceiptdate: str(row.preceiptdate),
-  //     pmodofreceipt: str(row.pmodofreceipt),
-  //     ptotalreceivedamount: str(row.ptotalreceivedamount),
-  //     pnarration: str(row.pnarration),
-  //     ppartyname: str(row.ppartyname),
-  //     ppartyid: str(row.ppartyid),
-  //     pistdsapplicable: str(row.pistdsapplicable),
-  //     pTdsSection: str(row.pTdsSection),
-  //     pTdsPercentage: str(row.pTdsPercentage),
-  //     ptdsamount: str(row.ptdsamount),
-  //     ptdscalculationtype: str(row.ptdscalculationtype),
-  //     ppartypannumber: str(row.ppartypannumber),
-  //     ppartyreftype: str(row.ppartyreftype),
-  //     ppartyreferenceid: str(row.ppartyreferenceid),
-  //     preceiptslist: row.preceiptslist || [],
-  //     pFilename: str(row.pFilename),
-  //     pFilepath: str(row.pFilepath),
-  //     pFileformat: str(row.pFileformat),
-  //     pCleardate: str(row.pCleardate),
-  //     pdepositeddate: status === 'P' ? '' : str(row.pdepositeddate),
-  //     ptdsaccountid: str(row.ptdsaccountid),
-  //     preceiptrecordid: str(row.preceiptrecordid),
-  //     pTdsSectionId: str(row.pTdsSectionId),
-  //     groupcode: str(row.groupcode),
-  //     preceiptno: str(row.preceiptno),
-  //     formname: str(row.formname),
-  //     chitpaymentid: str(row.chitpaymentid),
-  //     adjustmentid: str(row.adjustmentid),
-  //     pdepositstatus: row.pdepositstatus === true ? 'true' : 'false',
-  //     pcancelstatus: row.pcancelstatus === true ? 'true' : 'false',
-  //     preturnstatus: str(row.preturnstatus),
-  //     pbranchname: str(row.pbranchname),
-  //     pchequestatus: status,
-  //     pcancelcharges: str(row.pcancelcharges),
-  //     pactualcancelcharges: str(row.pactualcancelcharges) || '0',
-  //     pledger: str(row.pledger),
-  //     cancelstatus: str(row.cancelstatus),
-  //     returnstatus: str(row.returnstatus),
-  //     clearstatus: str(row.clearstatus),
-  //     chqueno: str(row.chqueno),
-  //     issueddate: str(row.issueddate),
-  //     chitgroupcode: str(row.chitgroupcode),
-  //     chitgroupid: str(row.chitgroupid),
-  //     ticketno: str(row.ticketno),
-  //     chequeamount: str(row.chequeamount),
-  //     zpdaccountid: str(row.zpdaccountid),
-  //     installmentno: str(row.installmentno),
-  //     schemesubscriberid: str(row.schemesubscriberid),
-  //     contactid: str(row.contactid),
-  //     schemetype: str(row.schemetype),
-  //     checksentryrecordid: str(row.checksentryrecordid),
-  //     cheque_bank: str(row.cheque_bank),
-  //     selfchequestatus: str(row.selfchequestatus),
-  //     branch_name: str(row.branch_name),
-  //     receipt_branch_name: str(row.receipt_branch_name),
-  //     subscriber_details: str(row.subscriber_details),
-  //     chitReceiptNo: str(row.chitReceiptNo),
-  //     total_count: str(row.total_count),
-  //     transactionNo: str(row.transactionNo),
-  //     transactiondate: str(row.transactiondate),
-  //     chitstatus: str(row.chitstatus),
-  //     chitgroupstatus: str(row.chitgroupstatus),
-  //     receiptnumbers: str(row.receiptnumbers),
-  //     pdepositedBankid: str(row.pdepositedBankid),
-  //     pdepositedBankName: str(row.pdepositedBankName),
-  //     preferencetext: str(row.preferencetext),
-  //     preceiptype: str(row.preceiptype),
-  //     puploadeddate: str(row.puploadeddate),
-  //     subscriberbankaccountno: str(row.subscriberbankaccountno),
-  //     pkgmsreceiptdate: str(row.pkgmsreceiptdate),
-  //     pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
-  //   };
-  // }
+ 
 
   private _mapRowToSavePayload(row: any, status: string): any {
     const str = (v: any) => v?.toString() || '';
@@ -1752,7 +2051,11 @@ export class ChequesOnhand implements OnInit {
       chitstatus: str(row.chitstatus),
       chitgroupstatus: str(row.chitgroupstatus),
       receiptnumbers: str(row.receiptnumbers),
-      pdepositedBankid: str(row.pdepositedBankid),
+      //pdepositedBankid: str(row.pdepositedBankid),
+      pdepositedBankid: status === 'P' || status === 'C'
+        ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositedBankid) || '0')
+        : str(row.pdepositedBankid),
+
       pdepositedBankName: str(row.pdepositedBankName),
       preferencetext: str(row.preferencetext),
       preceiptype: str(row.preceiptype),

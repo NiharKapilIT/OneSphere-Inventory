@@ -48,7 +48,7 @@ export class Address implements OnInit {
       paddress2: [''],
       pcity: ['', Validators.required],
       pRecordid: [0],
-      pCountryId: [''],
+      pCountryId: ['',Validators.required],
       pStateId: [''],
       pDistrictId: [''],
       pCountry: ['', Validators.required],
@@ -157,7 +157,6 @@ export class Address implements OnInit {
   // ── Dropdown Change Handlers ────────────────────────────────────────
 
   pCountry_Change(country: any): void {
-    debugger;
     if (country) {
       const countryId = country.tbl_mst_country_id;
       const countryName = country.country_name;
@@ -172,7 +171,6 @@ export class Address implements OnInit {
   }
 
   pState_Change(state: any): void {
-    debugger;
     if (state) {
       const stateId = state.tbl_mst_state_id;
       const stateName = state.state_name;
@@ -188,7 +186,6 @@ export class Address implements OnInit {
   }
 
   pDistrict_Change(district: any): void {
-    debugger;
     if (district) {
       const districtId = district.tbl_mst_district_id;
       const districtName = district.district_name;

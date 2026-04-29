@@ -708,6 +708,7 @@ export class AccountsReports {
 
     const drawPageHeader = (doc: jsPDF) => {
       const pageWidth = doc.internal.pageSize.getWidth();
+      if (doc.getNumberOfPages() === 1) {
       doc.setFont('helvetica', 'normal');
       doc.addImage(kapil_logo, 'JPEG', 10, 15, 20, 20);
       doc.setFontSize(15);
@@ -728,6 +729,7 @@ export class AccountsReports {
       }
       doc.line(10, 46, pageWidth - 10, 46);
     };
+  }
 
     // draw header on first page
     drawPageHeader(doc);

@@ -47,7 +47,7 @@ type AOA = any[][];
     ButtonModule,
     InputTextModule,
   ],
-  templateUrl: './cheques-inbank.html',
+  templateUrl:'./cheques-inbank.html',
   providers: [DatePipe, NumberToWordsPipe, CurrencyPipe],
 })
 export class ChequesInbank implements OnInit {
@@ -1670,10 +1670,7 @@ ShowBrsReturn() {
     return JSON.stringify(d);
   }
 
-  /**
-   * Clear – resets form dates using Date objects (compatible with p-datepicker),
-   * and also resets bank validation message.
-   */
+  
   // Clear() {
   //   const today = new Date();
   //   const yesterday = new Date();
@@ -1759,49 +1756,104 @@ ShowBrsReturn() {
   //   this.cdr.markForCheck();
   // }
 
+  // Clear() {
+  //   const today = new Date();
+
+  //   this.ChequesInBankForm.reset({
+  //     ptransactiondate: today,
+  //     pchequecleardate: today,
+  //     bankname: null,
+  //     pfrombrsdate: today,
+  //     ptobrsdate: today,
+  //     schemaname: this._commonService.getschemaname(),
+  //     searchtext: '',
+  //     receipttype: 'Adjusted',
+  //     auto_brs_type: 'Upload'
+  //   });
+  //   this.ChequesInBankForm.get('ptransactiondate')?.disable();
+
+  //   this.BrsDateForm.reset({ frombrsdate: today, tobrsdate: today });
+
+  //   this.chequeClearDateModel = new Date();
+  //   this.brsFromDateModel = new Date();
+  //   this.brsToDateModel = new Date();
+  //   this.brsReturnFromDateModel = new Date();
+  //   this.brsReturnToDateModel = new Date();
+
+  //   this.bankid = 0;
+  //   this.bankname = '';
+  //   this.bankbalance = 0;
+  //   this.bankbalancetype = '';
+  //   this.brsdate = '';
+  //   this.banknameshowhide = false;
+  //   this.ChequesInBankValidation = {};
+
+  //   this.gridData = []; this.gridDatatemp = [];
+  //   this.ChequesInBankData = []; this.ChequesClearReturnData = [];
+  //   this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
+  //   this.selectedTab = 'onlinereceipts';
+  //   this._searchText = ''; this.fromdate = ''; this.todate = '';
+  //   this.preferdrows = false;
+  //   this.amounttotal = 0; this.selectedamt = 0;
+  //   this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+  //   this.pageSetUp(); this.GetBankBalance(this.bankid);
+  //   this.cdr.markForCheck();
+  // }
+
   Clear() {
-    const today = new Date();
+  const today = new Date();
 
-    this.ChequesInBankForm.reset({
-      ptransactiondate: today,
-      pchequecleardate: today,
-      bankname: null,
-      pfrombrsdate: today,
-      ptobrsdate: today,
-      schemaname: this._commonService.getschemaname(),
-      searchtext: '',
-      receipttype: 'Adjusted',
-      auto_brs_type: 'Upload'
-    });
-    this.ChequesInBankForm.get('ptransactiondate')?.disable();
+  // Preserve date values before reset
+  const savedChequeClearDate = this.chequeClearDateModel;
+  const savedBrsFromDate = this.brsFromDateModel;
+  const savedBrsToDate = this.brsToDateModel;
+  const savedBrsReturnFromDate = this.brsReturnFromDateModel;
+  const savedBrsReturnToDate = this.brsReturnToDateModel;
 
-    this.BrsDateForm.reset({ frombrsdate: today, tobrsdate: today });
+  this.ChequesInBankForm.reset({
+    ptransactiondate: today,
+    pchequecleardate: savedChequeClearDate,
+    bankname: null,
+    pfrombrsdate: savedBrsFromDate,
+    ptobrsdate: savedBrsToDate,
+    schemaname: this._commonService.getschemaname(),
+    searchtext: '',
+    receipttype: 'Adjusted',
+    auto_brs_type: 'Upload'
+  });
+  this.ChequesInBankForm.get('ptransactiondate')?.disable();
 
-    this.chequeClearDateModel = new Date();
-    this.brsFromDateModel = new Date();
-    this.brsToDateModel = new Date();
-    this.brsReturnFromDateModel = new Date();
-    this.brsReturnToDateModel = new Date();
+  this.BrsDateForm.reset({
+    frombrsdate: savedBrsReturnFromDate,
+    tobrsdate: savedBrsReturnToDate
+  });
 
-    this.bankid = 0;
-    this.bankname = '';
-    this.bankbalance = 0;
-    this.bankbalancetype = '';
-    this.brsdate = '';
-    this.banknameshowhide = false;
-    this.ChequesInBankValidation = {};
+  // Restore preserved date models
+  this.chequeClearDateModel = savedChequeClearDate;
+  this.brsFromDateModel = savedBrsFromDate;
+  this.brsToDateModel = savedBrsToDate;
+  this.brsReturnFromDateModel = savedBrsReturnFromDate;
+  this.brsReturnToDateModel = savedBrsReturnToDate;
 
-    this.gridData = []; this.gridDatatemp = [];
-    this.ChequesInBankData = []; this.ChequesClearReturnData = [];
-    this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
-    this.selectedTab = 'onlinereceipts';
-    this._searchText = ''; this.fromdate = ''; this.todate = '';
-    this.preferdrows = false;
-    this.amounttotal = 0; this.selectedamt = 0;
-    this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
-    this.pageSetUp(); this.GetBankBalance(this.bankid);
-    this.cdr.markForCheck();
-  }
+  this.bankid = 0;
+  this.bankname = '';
+  this.bankbalance = 0;
+  this.bankbalancetype = '';
+  this.brsdate = '';
+  this.banknameshowhide = false;
+  this.ChequesInBankValidation = {};
+
+  this.gridData = []; this.gridDatatemp = [];
+  this.ChequesInBankData = []; this.ChequesClearReturnData = [];
+  this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
+  this.selectedTab = 'onlinereceipts';
+  this._searchText = ''; this.fromdate = ''; this.todate = '';
+  this.preferdrows = false;
+  this.amounttotal = 0; this.selectedamt = 0;
+  this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+  this.pageSetUp(); this.GetBankBalance(this.bankid);
+  this.cdr.markForCheck();
+}
   checkDuplicateValueslatest(event: any, rowIndex: any, row: any) {
     const value = event.target.value.trim();
     if (!value) { row.preferencetext = ''; this.gridData = [...this.gridData]; return; }
@@ -2339,3 +2391,5 @@ function isNullOrEmptyString(value: any): boolean {
   return value === null || value === undefined ||
     value === '' || value.toString().trim() === '';
 }
+
+// 12345

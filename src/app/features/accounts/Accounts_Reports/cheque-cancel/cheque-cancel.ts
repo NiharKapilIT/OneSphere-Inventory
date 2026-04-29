@@ -74,6 +74,7 @@ export class ChequeCancel implements OnInit {
   sortColumn = '';
   sortDirection: 1 | -1 = 1;
   private rawData: any[] = [];
+  toDateMinDate: Date | null = null;
 
   ngOnInit(): void {
     this.dpConfig = {
@@ -89,13 +90,26 @@ export class ChequeCancel implements OnInit {
       showWeekNumbers: false,
       maxDate: new Date()
     };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     this.FrmChequeCancel = this.fb.group({
-      fromdate: [new Date(), Validators.required],
-      todate: [new Date(), Validators.required]
+      fromdate: [today, Validators.required],
+      todate: [today, Validators.required]
     });
 
     this.setPageModel();
+    const initialFrom = this.FrmChequeCancel.get('fromdate')?.value as Date | null;
+this.toDateMinDate = initialFrom ?? null;
+
+this.FrmChequeCancel.get('fromdate')?.valueChanges.subscribe((val: unknown) => {
+  const fromVal = val as Date | null;
+  this.toDateMinDate = fromVal ?? null;
+  const toDate = this.FrmChequeCancel.get('todate')?.value as Date | null;
+  if (toDate && fromVal && toDate < fromVal) {
+    this.FrmChequeCancel.get('todate')?.setValue(null as unknown as Date);
+  }
+});
   }
 
   dateRangeValidator(): ValidatorFn {

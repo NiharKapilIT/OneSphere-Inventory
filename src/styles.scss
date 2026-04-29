@@ -3978,6 +3978,106 @@ select.erp-select-sm {
   @extend .erp-toggle-group;
 }
 
+/* Enhanced Tax Panels (Petty Cash) */
+.tax-panel-enhanced {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  animation: taxPanelIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.tax-panel-header {
+  background: #f1f5f9;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tax-panel-header i {
+  color: #3b82f6;
+  font-size: 14px;
+}
+
+.tax-panel-body {
+  padding: 16px;
+}
+
+.tax-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.tax-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+
+.tax-item .label {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tax-item .value {
+  font-size: 13px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* Balance Pill */
+.erp-balance-pill {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 4px 10px;
+  border-radius: 8px;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Stable Narration & Upload Positioning */
+.narration-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.narration-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.upload-doc-absolute {
+  margin-top: auto;
+  /* Pushes upload to the bottom of the narration flex container */
+  padding-top: 15px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+/* Scale Utility */
+.scale-90 {
+  transform: scale(0.9);
+  transform-origin: left center;
+}
+
 /* Radio Button with Label (erp-radio-btn) */
 .erp-radio-btn {
   display: flex;
@@ -5377,7 +5477,7 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
   gap: 20px !important;
 }
 
-.row > [class*='col-'] {
+.row>[class*='col-'] {
   min-width: 0;
 }
 
@@ -5385,65 +5485,214 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
   grid-column: auto;
 }
 
-.col-1 { grid-column: span 1; }
-.col-2 { grid-column: span 2; }
-.col-3 { grid-column: span 3; }
-.col-4 { grid-column: span 4; }
-.col-5 { grid-column: span 5; }
-.col-6 { grid-column: span 6; }
-.col-7 { grid-column: span 7; }
-.col-8 { grid-column: span 8; }
-.col-9 { grid-column: span 9; }
-.col-10 { grid-column: span 10; }
-.col-11 { grid-column: span 11; }
-.col-12 { grid-column: span 12; }
+.col-1 {
+  grid-column: span 1;
+}
+
+.col-2 {
+  grid-column: span 2;
+}
+
+.col-3 {
+  grid-column: span 3;
+}
+
+.col-4 {
+  grid-column: span 4;
+}
+
+.col-5 {
+  grid-column: span 5;
+}
+
+.col-6 {
+  grid-column: span 6;
+}
+
+.col-7 {
+  grid-column: span 7;
+}
+
+.col-8 {
+  grid-column: span 8;
+}
+
+.col-9 {
+  grid-column: span 9;
+}
+
+.col-10 {
+  grid-column: span 10;
+}
+
+.col-11 {
+  grid-column: span 11;
+}
+
+.col-12 {
+  grid-column: span 12;
+}
 
 @media (min-width: 576px) {
-  .col-sm-auto { grid-column: auto; }
-  .col-sm-1 { grid-column: span 1; }
-  .col-sm-2 { grid-column: span 2; }
-  .col-sm-3 { grid-column: span 3; }
-  .col-sm-4 { grid-column: span 4; }
-  .col-sm-5 { grid-column: span 5; }
-  .col-sm-6 { grid-column: span 6; }
-  .col-sm-7 { grid-column: span 7; }
-  .col-sm-8 { grid-column: span 8; }
-  .col-sm-9 { grid-column: span 9; }
-  .col-sm-10 { grid-column: span 10; }
-  .col-sm-11 { grid-column: span 11; }
-  .col-sm-12 { grid-column: span 12; }
+  .col-sm-auto {
+    grid-column: auto;
+  }
+
+  .col-sm-1 {
+    grid-column: span 1;
+  }
+
+  .col-sm-2 {
+    grid-column: span 2;
+  }
+
+  .col-sm-3 {
+    grid-column: span 3;
+  }
+
+  .col-sm-4 {
+    grid-column: span 4;
+  }
+
+  .col-sm-5 {
+    grid-column: span 5;
+  }
+
+  .col-sm-6 {
+    grid-column: span 6;
+  }
+
+  .col-sm-7 {
+    grid-column: span 7;
+  }
+
+  .col-sm-8 {
+    grid-column: span 8;
+  }
+
+  .col-sm-9 {
+    grid-column: span 9;
+  }
+
+  .col-sm-10 {
+    grid-column: span 10;
+  }
+
+  .col-sm-11 {
+    grid-column: span 11;
+  }
+
+  .col-sm-12 {
+    grid-column: span 12;
+  }
 }
 
 @media (min-width: 768px) {
-  .col-md-auto { grid-column: auto; }
-  .col-md-1 { grid-column: span 1; }
-  .col-md-2 { grid-column: span 2; }
-  .col-md-3 { grid-column: span 3; }
-  .col-md-4 { grid-column: span 4; }
-  .col-md-5 { grid-column: span 5; }
-  .col-md-6 { grid-column: span 6; }
-  .col-md-7 { grid-column: span 7; }
-  .col-md-8 { grid-column: span 8; }
-  .col-md-9 { grid-column: span 9; }
-  .col-md-10 { grid-column: span 10; }
-  .col-md-11 { grid-column: span 11; }
-  .col-md-12 { grid-column: span 12; }
+  .col-md-auto {
+    grid-column: auto;
+  }
+
+  .col-md-1 {
+    grid-column: span 1;
+  }
+
+  .col-md-2 {
+    grid-column: span 2;
+  }
+
+  .col-md-3 {
+    grid-column: span 3;
+  }
+
+  .col-md-4 {
+    grid-column: span 4;
+  }
+
+  .col-md-5 {
+    grid-column: span 5;
+  }
+
+  .col-md-6 {
+    grid-column: span 6;
+  }
+
+  .col-md-7 {
+    grid-column: span 7;
+  }
+
+  .col-md-8 {
+    grid-column: span 8;
+  }
+
+  .col-md-9 {
+    grid-column: span 9;
+  }
+
+  .col-md-10 {
+    grid-column: span 10;
+  }
+
+  .col-md-11 {
+    grid-column: span 11;
+  }
+
+  .col-md-12 {
+    grid-column: span 12;
+  }
 }
 
 @media (min-width: 992px) {
-  .col-lg-auto { grid-column: auto; }
-  .col-lg-1 { grid-column: span 1; }
-  .col-lg-2 { grid-column: span 2; }
-  .col-lg-3 { grid-column: span 3; }
-  .col-lg-4 { grid-column: span 4; }
-  .col-lg-5 { grid-column: span 5; }
-  .col-lg-6 { grid-column: span 6; }
-  .col-lg-7 { grid-column: span 7; }
-  .col-lg-8 { grid-column: span 8; }
-  .col-lg-9 { grid-column: span 9; }
-  .col-lg-10 { grid-column: span 10; }
-  .col-lg-11 { grid-column: span 11; }
-  .col-lg-12 { grid-column: span 12; }
+  .col-lg-auto {
+    grid-column: auto;
+  }
+
+  .col-lg-1 {
+    grid-column: span 1;
+  }
+
+  .col-lg-2 {
+    grid-column: span 2;
+  }
+
+  .col-lg-3 {
+    grid-column: span 3;
+  }
+
+  .col-lg-4 {
+    grid-column: span 4;
+  }
+
+  .col-lg-5 {
+    grid-column: span 5;
+  }
+
+  .col-lg-6 {
+    grid-column: span 6;
+  }
+
+  .col-lg-7 {
+    grid-column: span 7;
+  }
+
+  .col-lg-8 {
+    grid-column: span 8;
+  }
+
+  .col-lg-9 {
+    grid-column: span 9;
+  }
+
+  .col-lg-10 {
+    grid-column: span 10;
+  }
+
+  .col-lg-11 {
+    grid-column: span 11;
+  }
+
+  .col-lg-12 {
+    grid-column: span 12;
+  }
 }
 
 .erp-card form .row.align-items-end,
@@ -5496,7 +5745,7 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
   pointer-events: none;
 }
 
-.erp-radio > span,
+.erp-radio>span,
 .form-check:has(input[type='radio']) label {
   color: inherit;
   font: inherit;
@@ -5607,7 +5856,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
 
 .erp-field-error,
 .invalid-feedback {
- position: static !important;
+  position: relative !important;
   inset: auto !important;
   width: fit-content;
   max-width: 100%;
@@ -5993,7 +6242,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
     background: #fff;
   }
 
-  .p-datatable-tfoot > tr > td {
+  .p-datatable-tfoot>tr>td {
     background: #f8fafc !important;
     border-top: 1px solid #dbe8f9 !important;
     color: #111827 !important;
@@ -6072,8 +6321,9 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
     background: #ffffff !important;
     display: inline-flex !important;
     align-items: center !important;
-    
-    .p-select-label, .p-dropdown-label {
+
+    .p-select-label,
+    .p-dropdown-label {
       padding: 0 8px !important;
       font-size: 12px !important;
       height: 30px !important;
@@ -6081,8 +6331,9 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
       display: flex !important;
       align-items: center !important;
     }
-    
-    .p-select-dropdown, .p-dropdown-trigger {
+
+    .p-select-dropdown,
+    .p-dropdown-trigger {
       width: 2rem !important;
       display: flex !important;
       align-items: center !important;
@@ -6238,6 +6489,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
 }
 
 @media (max-width: 768px) {
+
   .module-page .erp-card form .erp-field-error,
   .module-page .erp-card form .invalid-feedback,
   .screen-container form .erp-field-error,
@@ -6246,4 +6498,23 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
   .report-view-container form .invalid-feedback {
     max-width: min(280px, 100%);
   }
+}
+
+/* Payment Voucher: keep attachment close to narration only on this stack */
+.pv-attachment-stack .erp-form-group {
+  margin-bottom: 6px;
+}
+
+.pv-attachment-stack > .col-12:last-child .erp-form-group {
+  margin-bottom: 0;
+}
+
+/* Petty Cash: let the routed layout own height so toggle sections do not leave trailing space */
+.petty-cash-page {
+  min-height: 0 !important;
+  padding-bottom: 0;
+}
+
+.petty-cash-page > .erp-card:last-child {
+  margin-bottom: 0;
 }
