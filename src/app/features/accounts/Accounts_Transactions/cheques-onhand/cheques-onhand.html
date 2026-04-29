@@ -73,7 +73,7 @@
             formControlName="bankname" (change)="SelectBank($event)" placeholder="Select" [closeOnSelect]="true"
             [clearable]="true" [ngClass]="{ 'ng-invalid':ChequesOnHandValidation()?.bankname }" />
 
-  @if (ChequesOnHandValidation()?.bankname) {
+          @if (ChequesOnHandValidation()?.bankname) {
           <div class="erp-field-error">{{ ChequesOnHandValidation()?.bankname}}</div>
           }
           <!-- <app-validation-message [messgae]="ChequesOnHandValidation()['bankname']" /> -->
@@ -239,9 +239,8 @@
           [paginator]="!isCleared() && page().totalElements > 0" [rows]="pageCriteria.pageSize"
           [totalRecords]="page().totalElements" [first]="pageCriteria.offset * pageCriteria.pageSize"
           [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
-
-          [rowsPerPageOptions]="[5, 10, 20, 50]" 
-          sortField="preceiptdate" [sortOrder]="1" [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
+          [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"
+          [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
 
           <ng-template pTemplate="header">

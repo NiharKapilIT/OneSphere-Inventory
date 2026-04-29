@@ -505,6 +505,7 @@ export class ChequesOnhand implements OnInit {
   }
 
   SelectBank(event: any) {
+    debugger
     if (!event) {
       this.bankid = 0;
       this.bankname.set(null);
@@ -542,6 +543,8 @@ export class ChequesOnhand implements OnInit {
     this.GetChequesOnHand_Load(this.bankid);
     this.ChequesOnHandForm.controls['SearchClear'].setValue('');
   }
+
+
 
   onSearch(event: any) {
     const searchText = event.toString();
@@ -789,6 +792,7 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+
   OnlineReceipts() {
     this.pageSetUp();
     this.chequeboxshoworhide = true;
@@ -836,7 +840,7 @@ export class ChequesOnhand implements OnInit {
   }
 
 
-
+ 
   Deposited() {
     this.pageSetUp();
     this.chequeboxshoworhide = false;
@@ -1024,6 +1028,7 @@ export class ChequesOnhand implements OnInit {
 
 
 
+
   pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
     debugger
     this.Totalamount = 0;
@@ -1077,6 +1082,7 @@ export class ChequesOnhand implements OnInit {
 
 
   private _generatePdf(printOrPdf: 'Print' | 'Pdf') {
+    
     this.Totalamount = 0;
     const isDeposited = this.status() === 'deposited';
     const isCancelled = this.status() === 'cancelled';
@@ -1350,6 +1356,19 @@ export class ChequesOnhand implements OnInit {
       rows.push(row);
     });
 
+     console.log('=== PDF DEBUG ===');
+    console.log('1. gridData length:', gridData.length);
+    console.log('2. isDepositOrCancel:', isDepositOrCancel);
+    console.log('3. headers:', gridheaders);
+    console.log('4. headers count:', gridheaders.length);
+    console.log('5. first row:', JSON.stringify(rows[0]));
+    console.log('6. first row length:', rows[0]?.length);
+    console.log('7. total row:', JSON.stringify(rows[rows.length - 1]));
+    console.log('8. bankname:', this.bankname());
+    console.log('9. brsdate:', this.brsdate());
+    console.log('10. pdfstatus:', this.pdfstatus);
+    console.log('=================');
+
 
     let amounttotal = '';
     try {
@@ -1393,10 +1412,10 @@ export class ChequesOnhand implements OnInit {
     let deposit = 0;
     this.ChequesOnHandValidation.set({});
 
-    if (!this.bankid || this.bankid === 0) {
-      this._commonService.showWarningMessage('Please Select Bank Name');
-      return;
-    }
+    // if (!this.bankid || this.bankid === 0) {
+    //   this._commonService.showWarningMessage('Please Select Bank Name');
+    //   return;
+    // }
 
 
     const hasSelectedRows = this.gridData().some(
@@ -1404,10 +1423,10 @@ export class ChequesOnhand implements OnInit {
     );
 
 
-    if (!hasSelectedRows) {
-      this._commonService.showWarningMessage('Please Select Atleast One Record');
-      return;
-    }
+    // if (!hasSelectedRows) {
+    //   this._commonService.showWarningMessage('Please Select Atleast One Record');
+    //   return;
+    // }
 
     this.gridData().forEach(aa => {
       if ((aa.pchequestatus || '').trim() === 'P') deposit++;
@@ -1537,7 +1556,110 @@ export class ChequesOnhand implements OnInit {
     }
   }
 
+  // private _mapRowToSavePayload(row: any, status: string): any {
+  //   const str = (v: any) => v?.toString() || '';
+  //   return {
+  //     pRecordid: str(row.pRecordid),
+  //     pUpiname: str(row.pUpiname),
+  //     pUpiid: str(row.pUpiid),
+  //     pBankconfigurationId: str(row.pBankconfigurationId),
+  //     pBankName: str(row.pBankName),
+  //     ptranstype: str(row.ptranstype),
+  //     ptypeofpayment: str(row.ptypeofpayment),
+  //     pChequenumber: str(row.pChequenumber),
+  //     pchequedate: str(row.pchequedate),
+  //     pchequedepositdate: str(row.pchequedepositdate),
+  //     pchequecleardate: str(row.pchequecleardate),
+  //     pbankid: str(row.pbankid),
+  //     branchid: str(row.branchid),
+  //     pCardNumber: str(row.pCardNumber),
+  //     // pdepositbankid: status === 'P'
+  //     //   ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
+  //     //   : (str(row.pdepositbankid) || '0'),
 
+  //     pdepositbankid: status === 'P'
+  // ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
+  // : status === 'C'
+  //   ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositbankid) || '0') // ✅ send selected bank for cancel too
+  //   : (str(row.pdepositbankid) || '0'),
+
+  //     pdepositbankname: str(row.pdepositbankname),
+  //     pAccountnumber: str(row.pAccountnumber),
+  //     challanaNo: str(row.challanaNo),
+  //     preceiptid: str(row.preceiptid),
+  //     preceiptdate: str(row.preceiptdate),
+  //     pmodofreceipt: str(row.pmodofreceipt),
+  //     ptotalreceivedamount: str(row.ptotalreceivedamount),
+  //     pnarration: str(row.pnarration),
+  //     ppartyname: str(row.ppartyname),
+  //     ppartyid: str(row.ppartyid),
+  //     pistdsapplicable: str(row.pistdsapplicable),
+  //     pTdsSection: str(row.pTdsSection),
+  //     pTdsPercentage: str(row.pTdsPercentage),
+  //     ptdsamount: str(row.ptdsamount),
+  //     ptdscalculationtype: str(row.ptdscalculationtype),
+  //     ppartypannumber: str(row.ppartypannumber),
+  //     ppartyreftype: str(row.ppartyreftype),
+  //     ppartyreferenceid: str(row.ppartyreferenceid),
+  //     preceiptslist: row.preceiptslist || [],
+  //     pFilename: str(row.pFilename),
+  //     pFilepath: str(row.pFilepath),
+  //     pFileformat: str(row.pFileformat),
+  //     pCleardate: str(row.pCleardate),
+  //     pdepositeddate: status === 'P' ? '' : str(row.pdepositeddate),
+  //     ptdsaccountid: str(row.ptdsaccountid),
+  //     preceiptrecordid: str(row.preceiptrecordid),
+  //     pTdsSectionId: str(row.pTdsSectionId),
+  //     groupcode: str(row.groupcode),
+  //     preceiptno: str(row.preceiptno),
+  //     formname: str(row.formname),
+  //     chitpaymentid: str(row.chitpaymentid),
+  //     adjustmentid: str(row.adjustmentid),
+  //     pdepositstatus: row.pdepositstatus === true ? 'true' : 'false',
+  //     pcancelstatus: row.pcancelstatus === true ? 'true' : 'false',
+  //     preturnstatus: str(row.preturnstatus),
+  //     pbranchname: str(row.pbranchname),
+  //     pchequestatus: status,
+  //     pcancelcharges: str(row.pcancelcharges),
+  //     pactualcancelcharges: str(row.pactualcancelcharges) || '0',
+  //     pledger: str(row.pledger),
+  //     cancelstatus: str(row.cancelstatus),
+  //     returnstatus: str(row.returnstatus),
+  //     clearstatus: str(row.clearstatus),
+  //     chqueno: str(row.chqueno),
+  //     issueddate: str(row.issueddate),
+  //     chitgroupcode: str(row.chitgroupcode),
+  //     chitgroupid: str(row.chitgroupid),
+  //     ticketno: str(row.ticketno),
+  //     chequeamount: str(row.chequeamount),
+  //     zpdaccountid: str(row.zpdaccountid),
+  //     installmentno: str(row.installmentno),
+  //     schemesubscriberid: str(row.schemesubscriberid),
+  //     contactid: str(row.contactid),
+  //     schemetype: str(row.schemetype),
+  //     checksentryrecordid: str(row.checksentryrecordid),
+  //     cheque_bank: str(row.cheque_bank),
+  //     selfchequestatus: str(row.selfchequestatus),
+  //     branch_name: str(row.branch_name),
+  //     receipt_branch_name: str(row.receipt_branch_name),
+  //     subscriber_details: str(row.subscriber_details),
+  //     chitReceiptNo: str(row.chitReceiptNo),
+  //     total_count: str(row.total_count),
+  //     transactionNo: str(row.transactionNo),
+  //     transactiondate: str(row.transactiondate),
+  //     chitstatus: str(row.chitstatus),
+  //     chitgroupstatus: str(row.chitgroupstatus),
+  //     receiptnumbers: str(row.receiptnumbers),
+  //     pdepositedBankid: str(row.pdepositedBankid),
+  //     pdepositedBankName: str(row.pdepositedBankName),
+  //     preferencetext: str(row.preferencetext),
+  //     preceiptype: str(row.preceiptype),
+  //     puploadeddate: str(row.puploadeddate),
+  //     subscriberbankaccountno: str(row.subscriberbankaccountno),
+  //     pkgmsreceiptdate: str(row.pkgmsreceiptdate),
+  //     pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
+  //   };
+  // }
 
   private _mapRowToSavePayload(row: any, status: string): any {
     const str = (v: any) => v?.toString() || '';
@@ -1558,7 +1680,9 @@ export class ChequesOnhand implements OnInit {
       pCardNumber: str(row.pCardNumber),
       pdepositbankid: status === 'P'
         ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
-        : (str(row.pdepositbankid) || '0'),
+        : status === 'C'
+          ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositbankid) || '0')
+          : (str(row.pdepositbankid) || '0'),
       pdepositbankname: str(row.pdepositbankname),
       pAccountnumber: str(row.pAccountnumber),
       challanaNo: str(row.challanaNo),
@@ -1615,7 +1739,9 @@ export class ChequesOnhand implements OnInit {
       schemetype: str(row.schemetype),
       checksentryrecordid: str(row.checksentryrecordid),
       cheque_bank: str(row.cheque_bank),
-      selfchequestatus: str(row.selfchequestatus),
+      selfchequestatus: row.selfchequestatus === true ? 'true'
+        : row.selfchequestatus === false ? 'false'
+          : str(row.selfchequestatus),
       branch_name: str(row.branch_name),
       receipt_branch_name: str(row.receipt_branch_name),
       subscriber_details: str(row.subscriber_details),
@@ -1636,6 +1762,8 @@ export class ChequesOnhand implements OnInit {
       pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
     };
   }
+
+
 
 
   Clear() {
