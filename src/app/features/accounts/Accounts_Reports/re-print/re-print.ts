@@ -315,6 +315,7 @@ export class RePrint implements OnInit {
 
   // ── generate report ────────────────────────────────────────────────────────
   getduplicateReport(): void {
+    debugger
     this.submitted = true;
     this.ReprintRepotForm.markAllAsTouched();
     if (this.ReprintRepotForm.invalid) return;
@@ -343,11 +344,15 @@ export class RePrint implements OnInit {
               )
               .subscribe(res => {
                 if (res) {
+
                   const receipt = btoa(`${transNo},General Receipt,Reprint,${schemaName}`);
-                  window.open(
-                    this.router.serializeUrl(this.router.createUrlTree(['/GeneralReceiptReport', receipt])),
-                    '_blank'
-                  );
+                 
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/general-receipt', receipt])
+    );
+    window.open(url, '_blank');
+
+
                 } else alert('Transaction No. Does Not Exit !');
               });
           } else {
@@ -420,10 +425,15 @@ export class RePrint implements OnInit {
         )
         .subscribe(res => {
           if (res?.length > 0) {
-            window.open(
-              this.router.serializeUrl(this.router.createUrlTree(['/JournalVoucherReport', receipt])),
-              '_blank'
-            );
+
+
+            
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/journal-voucher', receipt])
+    );
+    window.open(url, '_blank');
+
+
           } else alert('Transaction No. Does Not Exit !');
         });
     }
@@ -440,11 +450,14 @@ export class RePrint implements OnInit {
         .subscribe(res => {
           if (res?.length > 0) {
             const receipt      = btoa(`${transNo},Payment Voucher,Reprint`);
-            const encodedForUrl = encodeURIComponent(receipt);
-            window.open(
-              this.router.serializeUrl(this.router.createUrlTree(['/PaymentVoucherReport', encodedForUrl])),
-              '_blank'
-            );
+
+           
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/payment-voucher', receipt])
+    );
+    window.open(url, '_blank');
+
+
           } else alert('Transaction No. Does Not Exit !');
         });
     }
@@ -474,10 +487,11 @@ export class RePrint implements OnInit {
         .subscribe(res => {
           if (res?.length > 0) {
             const receipt = btoa(`${transNo},Petty Cash,Reprint`);
-            window.open(
-              this.router.serializeUrl(this.router.createUrlTree(['/PaymentVoucherReport', receipt])),
-              '_blank'
-            );
+             const url = this.router.serializeUrl(
+      this.router.createUrlTree(['/payment-voucher', receipt])
+    );
+    window.open(url, '_blank');
+
           } else alert('Transaction No. Does Not Exit !');
         });
     }
@@ -495,7 +509,7 @@ export class RePrint implements OnInit {
           if (res?.length > 0) {
             const receipt = btoa(`${transNo},Chit Payment Voucher,Reprint`);
             window.open(
-              this.router.serializeUrl(this.router.createUrlTree(['/PaymentVoucherReport', receipt])),
+              this.router.serializeUrl(this.router.createUrlTree(['/PaymentVoucher', receipt])),
               '_blank'
             );
           } else alert('Transaction No. Does Not Exist !');
