@@ -456,7 +456,7 @@
       </div>
 
       <!-- Card Footer -->
-      <div class="card-footer">
+      <!-- <div class="card-footer">
         <div class="d-flex gap-2 flex-wrap">
           <button (click)="Clear()" class="erp-btn btn-secondary">
             <i class="pi pi-times"></i> Clear
@@ -464,12 +464,25 @@
           <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
             <i class="pi pi-check"></i>
 
-            <!-- {{ buttonname ?? 'Save' }} -->
+           
             {{ buttonname }}
           </button>
         </div>
-      </div>
-
+      </div> -->
+       <!-- Card Footer -->
+@if (status !== 'cleared' && status !== 'returned') {
+<div class="card-footer">
+  <div class="d-flex gap-2 flex-wrap">
+    <button (click)="Clear()" class="erp-btn btn-secondary">
+      <i class="pi pi-times"></i> Clear
+    </button>
+    <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton">
+      <i class="pi pi-check"></i>
+      {{ buttonname }}
+    </button>
+  </div>
+</div>
+}
     </div>
   </div>
 </form>
