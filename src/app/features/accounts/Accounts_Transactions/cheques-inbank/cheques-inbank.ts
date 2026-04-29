@@ -186,10 +186,6 @@ export class ChequesInbank implements OnInit {
       this.disabletransactiondate = this._commonService.comapnydetails.pdatepickerenablestatus;
   }
 
-
-
-
-
   ngOnInit(): void {
     this.showicons = true;
     this.rowHeight = Number(this.page?.rowHeight) || 50;
@@ -222,7 +218,7 @@ export class ChequesInbank implements OnInit {
       tobrsdate: [today]
     });
 
-    // ✅ Set both form control and model together - no setTimeout
+    //  Set both form control and model together - no setTimeout
     this.chequeClearDateModel = today;
     this.ChequesInBankForm.get('pchequecleardate')?.setValue(today);
 
@@ -831,13 +827,48 @@ export class ChequesInbank implements OnInit {
   // }
 
   // ── Search ────────────────────────────────────────────────────────────────────
+  // ShowBrsClear() {
+  //   this._searchText = ''; this.gridData = [];
+  //   this.amounttotal = 0;
+  //   const fromdate = this.brsFromDateModel;
+  //   const todate = this.brsToDateModel;
+  //   if (fromdate != null && todate != null) {
+  //     this.OnBrsDateChanges(fromdate, todate);
+  //     if (!this.validate) {
+  //       this.validatebrsdateclear = false;
+  //       const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
+  //       const td = new Date(todate as Date); td.setHours(23, 59, 59, 999);
+
+  //       const bankFilter = (d: any) => this.bankid == 0 || d?.pdepositbankid == this.bankid;
+  //       const filtered = this.ChequesClearReturnData
+  //         .filter(bankFilter)
+  //         .filter((d: any) => d.pchequestatus === 'Y')
+  //         .filter((d: any) => {
+  //           if (!d.pCleardate) return false;
+  //           const clearDate = new Date(this._commonService.getDateObjectFromDataBase(d.pCleardate) as Date);
+  //           clearDate.setHours(0, 0, 0, 0);
+  //           return clearDate >= fd && clearDate <= td;
+  //         });
+
+  //       this.gridData = JSON.parse(JSON.stringify(filtered));
+  //       this.gridDatatemp = [...this.gridData];
+  //       this.cleared = this.gridData.length;
+  //       this.amounttotal = this.gridData.reduce((s: number, c: any) => s + (c.ptotalreceivedamount || 0), 0);
+  //       this.page.totalElements = this.gridData.length;
+  //       this.page.totalPages = Math.ceil(this.gridData.length / (this.page.size || 10));
+  //       this.cdr.markForCheck();
+  //     } else { this.validatebrsdateclear = true; }
+  //   } else { this._commonService.showWarningMessage('Select fromdate and todate'); }
+  // }
   ShowBrsClear() {
     this._searchText = ''; this.gridData = [];
     this.amounttotal = 0;
     const fromdate = this.brsFromDateModel;
     const todate = this.brsToDateModel;
     if (fromdate != null && todate != null) {
-      this.OnBrsDateChanges(fromdate, todate);
+      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);  
+      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);    
+      this.validate = fdCheck > tdCheck;                                   
       if (!this.validate) {
         this.validatebrsdateclear = false;
         const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
@@ -865,13 +896,48 @@ export class ChequesInbank implements OnInit {
     } else { this._commonService.showWarningMessage('Select fromdate and todate'); }
   }
 
+  // ShowBrsReturn() {
+  //   this._searchText = ''; this.gridData = [];
+  //   this.amounttotal = 0;
+  //   const fromdate = this.brsReturnFromDateModel;
+  //   const todate = this.brsReturnToDateModel;
+  //   if (fromdate != null && todate != null) {
+  //     this.OnBrsDateChanges(fromdate, todate);
+  //     if (!this.validate) {
+  //       this.validatebrsdatereturn = false;
+  //       const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
+  //       const td = new Date(todate as Date); td.setHours(23, 59, 59, 999);
+
+  //       const bankFilter = (d: any) => this.bankid == 0 || d?.pdepositbankid == this.bankid;
+  //       const filtered = this.ChequesClearReturnData
+  //         .filter(bankFilter)
+  //         .filter((d: any) => d.pchequestatus === 'R')
+  //         .filter((d: any) => {
+  //           if (!d.pCleardate) return false;
+  //           const returnDate = new Date(this._commonService.getDateObjectFromDataBase(d.pCleardate) as Date);
+  //           returnDate.setHours(0, 0, 0, 0);
+  //           return returnDate >= fd && returnDate <= td;
+  //         });
+
+  //       this.gridData = JSON.parse(JSON.stringify(filtered));
+  //       this.gridDatatemp = [...this.gridData];
+  //       this.returned = this.gridData.length;
+  //       this.amounttotal = this.gridData.reduce((s: number, c: any) => s + (c.ptotalreceivedamount || 0), 0);
+  //       this.page.totalElements = this.gridData.length;
+  //       this.page.totalPages = Math.ceil(this.gridData.length / (this.page.size || 10));
+  //       this.cdr.markForCheck();
+  //     } else { this.validatebrsdatereturn = true; }
+  //   } else { this._commonService.showWarningMessage('Select fromdate and todate'); }
+  // }
   ShowBrsReturn() {
     this._searchText = ''; this.gridData = [];
     this.amounttotal = 0;
     const fromdate = this.brsReturnFromDateModel;
     const todate = this.brsReturnToDateModel;
     if (fromdate != null && todate != null) {
-      this.OnBrsDateChanges(fromdate, todate);
+      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);  
+      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);    
+      this.validate = fdCheck > tdCheck;                                  
       if (!this.validate) {
         this.validatebrsdatereturn = false;
         const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
@@ -1653,6 +1719,54 @@ export class ChequesInbank implements OnInit {
 
 
 
+  // Clear() {
+  //   const today = new Date();
+
+  //   this.ChequesInBankForm.reset({
+  //     ptransactiondate: today,
+  //     pchequecleardate: today,
+  //     bankname: null,
+  //     pfrombrsdate: today,
+  //     ptobrsdate: today,
+  //     schemaname: this._commonService.getschemaname(),
+  //     searchtext: '',
+  //     receipttype: 'Adjusted',
+  //     auto_brs_type: 'Upload'
+  //   });
+  //   this.ChequesInBankForm.get('ptransactiondate')?.disable();
+
+  //   this.BrsDateForm.reset({
+  //     frombrsdate: today,
+  //     tobrsdate: today
+  //   });
+
+
+  //   this.chequeClearDateModel = new Date();
+  //   this.brsFromDateModel = new Date();
+  //   this.brsToDateModel = new Date();
+  //   this.brsReturnFromDateModel = new Date();
+  //   this.brsReturnToDateModel = new Date();
+
+  //   this.bankid = 0;
+  //   this.bankname = '';
+  //   this.bankbalance = 0;
+  //   this.bankbalancetype = '';
+  //   this.brsdate = '';
+  //   this.banknameshowhide = false;
+  //   this.ChequesInBankValidation = {};
+
+  //   this.gridData = []; this.gridDatatemp = [];
+  //   this.ChequesInBankData = []; this.ChequesClearReturnData = [];
+  //   this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
+  //   this.selectedTab = 'onlinereceipts';
+  //   this._searchText = ''; this.fromdate = ''; this.todate = '';
+  //   this.preferdrows = false;
+  //   this.amounttotal = 0; this.selectedamt = 0;
+  //   this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+  //   this.pageSetUp(); this.GetBankBalance(this.bankid);
+  //   this.cdr.markForCheck();
+  // }
+
   Clear() {
     const today = new Date();
 
@@ -1673,7 +1787,6 @@ export class ChequesInbank implements OnInit {
       frombrsdate: today,
       tobrsdate: today
     });
-
 
     this.chequeClearDateModel = new Date();
     this.brsFromDateModel = new Date();
@@ -1697,6 +1810,8 @@ export class ChequesInbank implements OnInit {
     this.preferdrows = false;
     this.amounttotal = 0; this.selectedamt = 0;
     this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
+    this.validatebrsdateclear = false;    
+    this.validatebrsdatereturn = false;   
     this.pageSetUp(); this.GetBankBalance(this.bankid);
     this.cdr.markForCheck();
   }
@@ -1821,7 +1936,7 @@ export class ChequesInbank implements OnInit {
   // ── Export / Print 
 
   pdfOrprint(printorpdf: any) {
-    debugger;
+    
     if (!this.gridData?.length) {
       this._commonService.showWarningMessage('No data available'); return;
     }
