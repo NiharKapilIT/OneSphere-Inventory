@@ -16,9 +16,11 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePickerModule } from 'primeng/datepicker';
 import { NgSelectModule } from "@ng-select/ng-select";
+import { BsDatepickerConfig } from "ngx-bootstrap/datepicker";
 
 @Component({
   selector: "app-company-config",
+  standalone:true,
   imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule],
   templateUrl: "./company-config.html",
 })
@@ -35,6 +37,7 @@ export class CompanyConfig {
   branchshowgrid = signal<boolean>(false);
   visible = signal<boolean>(false);
   companyConfigvalidations: any = {};
+
   submitted = false;
   today:any = new Date();
   statusOptions: any = []
@@ -53,13 +56,16 @@ export class CompanyConfig {
     {value:'Inactive', label:'Inactive'},
   ];  
   private readonly destroyRef = inject(DestroyRef);
-
+  private readonly datepipe = inject(DatePipe);
   private readonly _commonService = inject(CommonService);
+  // formValidationMessages: Record<string, string> = {};
+
+  currentdate: Partial<BsDatepickerConfig> = new BsDatepickerConfig();
+
   companyConfigForm!: FormGroup<any>;
   BranchConfigForm!: FormGroup<any>;
   constructor(private fb: FormBuilder) {
     this.pageCriteria = new PageCriteria();
-
   }
 
 
@@ -72,14 +78,15 @@ export class CompanyConfig {
   private buildForm(): void {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
+      currencyFormate: ['', Validators.required],
       date: [''],
-      contactNumber:[''],
-      email:[''],
-      status:[''],
-      registrationAddress:[''],
-      panNumber:[''],
-      cinNumber:[''],
-      companyCode:['']
+      contactNumber: [''],
+      email: [''],
+      status: [''],
+      registrationAddress: ['', Validators.required],
+      panNumber: ['', Validators.required],
+      cinNumber: ['', Validators.required],
+      companyCode: ['', Validators.required]
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
@@ -102,6 +109,19 @@ export class CompanyConfig {
 
 
   }
+
+  // allowNumberOnly(event: KeyboardEvent): void {
+  //   const ctrl = ['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete'];
+  //   if (ctrl.includes(event.key)) return;
+  //   const input = event.target as HTMLInputElement;
+  //   if (event.key === '.' && input.value.includes('.')) {
+  //     event.preventDefault();
+  //     return;
+  //   }
+  //   if (!/[0-9.]/.test(event.key)) event.preventDefault();
+  // }
+
+
 
   BlurEventAllControll(fromgroup: FormGroup): void {
     try {
@@ -171,6 +191,8 @@ export class CompanyConfig {
   showDialog() {
     this.visible.set(true);
   }
+
+  currency_formate(){}
 
   private pageSetUp() {
     this.page.offset = 0; this.page.pageNumber = 1;

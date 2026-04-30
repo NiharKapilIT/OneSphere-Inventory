@@ -26,248 +26,398 @@
         </button>
 
 
-
       </div>
     </div>
 
-    <!-- Card Header with Search -->
-    <div class="card-header">
-      <div class="card-title">
-        <i class="pi pi-list"></i> Receipt Transactions
-      </div>
+      <!-- Card Header with Search -->
+      <div class="card-header">
+        <div class="card-title">
+          <i class="pi pi-list"></i> Receipt Transactions
+        </div>
 
-      <!-- Search in header -->
-      <div class="header-search" style="flex: 1; max-width: 300px;">
-        <div class="erp-input-wrap">
-          <i class="pi pi-search erp-input-icon"></i>
-          <input type="text" class="erp-input icon-pad" placeholder="Search receipt..."
-            style="font-size: 12px; color: #374151;" />
+        <!-- Search in header -->
+        <div class="header-search" style="flex: 1; max-width: 300px;">
+          <div class="erp-input-wrap">
+            <i class="pi pi-search erp-input-icon"></i>
+            <input type="text" class="erp-input icon-pad" placeholder="Search receipt..."
+              style="font-size: 12px; color: #374151;" />
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="erp-btn btn-white btn-sm" (click)="showDialog()" label="Show">
+            <i class="pi pi-plus"></i> New
+          </button>
+
         </div>
       </div>
 
-      <div class="card-actions">
-        <button class="erp-btn btn-white btn-sm" (click)="showDialog()" label="Show">
-          <i class="pi pi-plus"></i> New
-        </button>
 
-      </div>
-    </div>
+      <!-- Card Body -->
+      <div class="card-body p-0">
 
-
-    <!-- Card Body -->
-    <div class="card-body p-0">
-
-      <!-- Table Toolbar -->
-      <div class="erp-table-toolbar tbl-toolbar-flush">
-        <div class="tb-left">
-          <span class="erp-badge badge-primary badge-dot">
-            1 of 10 records
-          </span>
-        </div>
-        <!-- <div class="tb-right">
+        <!-- Table Toolbar -->
+        <div class="erp-table-toolbar tbl-toolbar-flush">
+          <div class="tb-left">
+            <span class="erp-badge badge-primary badge-dot">
+              1 of 10 records
+            </span>
+          </div>
+          <!-- <div class="tb-right">
           <span class="text-muted text-small">
             Currency: <strong class="text-primary">{{ currencySymbol }}</strong>
           </span>
         </div> -->
-      </div>
+        </div>
 
-      <!-- DataTable -->
-      <div class="tbl-wrap">
-        <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
-          [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+        <!-- DataTable -->
+        <div class="tbl-wrap">
+          @if(companyshowgrid()){
+          <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
+            [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
-          <!-- Header -->
-          <ng-template pTemplate="header">
-            <tr>
+            <!-- Header -->
+            <ng-template pTemplate="header">
+              <tr>
+                <th>
+                  <div class="th-cell">Company Name</div>
+                </th>
+                <th>
+                  <div class="th-cell">Company code</div>
+                </th>
+                <th>
+                  <div class="th-cell">CIN Number</div>
+                </th>
+                <th>
+                  <div class="th-cell">PAN Number</div>
+                </th>
+                <th>
+                  <div class="th-cell">Regristration addres</div>
+                </th>
+              </tr>
+            </ng-template>
+          </p-table>
+          }
+          @if(branchshowgrid()){
+          <div class="card-body p-4">
+            <form [formGroup]="BranchConfigForm" autocomplete="off">
 
-              @if(companyshowgrid()){
-              <th>
-                <div class="th-cell">Company Name</div>
-              </th>
-              <th>
-                <div class="th-cell">Company code</div>
-              </th>
-              <th>
-                <div class="th-cell">CIN Number</div>
-              </th>
-              <th>
-                <div class="th-cell">PAN Number</div>
-              </th>
-              <th>
-                <div class="th-cell">Regristration addres</div>
-              </th>
+              <div class="form-wrapper">
+                <div class="form-section">
+                  <h3 class="section-heading">
+                    <i class="pi pi-info-circle"></i> Branch Configuration
+                  </h3>
 
-              }
-              
+                  <div class="row g-2">
+
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Branch Name <span class="required">*</span></label>
+                        <ng-select appendTo="body" [items]="barnchname" bindLabel="label" bindValue="value"
+                          placeholder="Select status" formControlName="barnchname" [clearable]="true"
+                          [class.is-invalid]="BranchConfigForm?.get('barnchname')?.touched && BranchConfigForm?.get('barnchname')?.invalid">
+                        </ng-select>
+                        <div
+                          *ngIf="BranchConfigForm?.get('barnchname')?.touched && BranchConfigForm?.get('barnchname ')?.invalid"
+                          class="erp-field-error">
+                          Branch Name is required
+                        </div>
+                      </div>
+                    </div>
 
 
-            </tr>
-          </ng-template>
 
 
-     
 
-        </p-table>
-      </div>
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Branch Code <span class="required">*</span></label>
+                        <input class="erp-input" type="text" formControlName="branchCode" maxlength="150"
+                          [class.is-invalid]="BranchConfigForm?.get('branchCode')?.touched && BranchConfigForm?.get('branchCode')?.invalid" />
+                        <div
+                          *ngIf="BranchConfigForm?.get('branchCode')?.touched && BranchConfigForm?.get('branchCode')?.invalid"
+                          class="erp-field-error">
+                          Branch Code is required
+                        </div>
+                      </div>
+                    </div>
 
-    </div>
 
-  </div>
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">GST Number </label>
+                        <input class="erp-input" type="text" formControlName="gstNumber" maxlength="150"
+                          [class.is-invalid]="BranchConfigForm?.get('gstNumber')?.touched && BranchConfigForm?.get('gstNumber')?.invalid" />
 
-</div>
+                      </div>
+                    </div>
 
-<div class="card flex justify-center">
-  <p-dialog header="Company Configuration" [modal]="true" [(visible)]="visible" [style]="{ width: '50rem' }"
-    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
 
-    <div class="card-body p-4">
-      <form [formGroup]="companyConfigForm" autocomplete="off">
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Status Code </label>
+                        <ng-select appendTo="body" [items]="statusCode" bindLabel="label" bindValue="value"
+                          placeholder="Select status" formControlName="statuscode" [clearable]="true"
+                          [class.is-invalid]="BranchConfigForm?.get('statuscode')?.touched && BranchConfigForm?.get('statuscode')?.invalid">
+                        </ng-select>
 
-        <div class="form-wrapper">
-          <div class="form-section">
-            <h3 class="section-heading">
-              <i class="pi pi-info-circle"></i> Company Details
-            </h3>
+                      </div>
+                    </div>
 
-            <div class="row g-2">
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Date <span class="required">*</span></label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="date" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" appendTo="body"
-                      styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-                      [readonlyInput]="true"></p-datepicker>
-                  </div>
-                  <div *ngIf="companyConfigForm?.get('date')?.touched && companyConfigForm?.get('date')?.invalid"
-                    class="erp-field-error">
-                    Date is required
-                  </div>
-                </div>
-              </div>
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Branch Email </label>
+                        <input class="erp-input" type="text" formControlName="branchEmail" maxlength="150"
+                          [class.is-invalid]="BranchConfigForm?.get('branchEmail')?.touched && BranchConfigForm?.get('branchEmail')?.invalid" />
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Status <span class="required">*</span></label>
-                  <ng-select appendTo="body" [items]="statusOptions" bindLabel="label" bindValue="value"
-                    placeholder="Select status" formControlName="status" [clearable]="true"
-                    [class.is-invalid]="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid">
-                  </ng-select>
-                  <div *ngIf="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid"
-                    class="erp-field-error">
-                    Status is required
-                  </div>
-                </div>
-              </div>
+                      </div>
+                    </div>
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Company Name <span class="required">*</span></label>
-                  <input class="erp-input" type="text" formControlName="companyName" maxlength="150"
-                    [class.is-invalid]="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid" />
-                  <div
-                    *ngIf="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid"
-                    class="erp-field-error">
-                    Company Name is required
-                  </div>
-                </div>
-              </div>
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Branch Contact Number </label>
+                        <input class="erp-input" type="text" formControlName="branchContactNumber" maxlength="150"
+                          [class.is-invalid]="BranchConfigForm?.get('branchContactNumber')?.touched && BranchConfigForm?.get('branchContactNumber')?.invalid" />
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Company Code <span class="required">*</span></label>
-                  <input class="erp-input" type="text" formControlName="companyCode" maxlength="20"
-                    [class.is-invalid]="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid" />
-                  <div
-                    *ngIf="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid"
-                    class="erp-field-error">
-                    Company Code is required
-                  </div>
-                </div>
-              </div>
+                      </div>
+                    </div>
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">CIN Number <span class="required">*</span></label>
-                  <input class="erp-input" type="text" formControlName="cinNumber" maxlength="21"
-                    [class.is-invalid]="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid" />
-                  <div
-                    *ngIf="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid"
-                    class="erp-field-error">
-                    CIN Number is required
-                  </div>
-                </div>
-              </div>
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">PAN Number <span class="required">*</span></label>
-                  <input class="erp-input" type="text" formControlName="panNumber" maxlength="10"
-                    [class.is-invalid]="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid" />
-                  <div
-                    *ngIf="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid"
-                    class="erp-field-error">
-                    PAN Number is required
-                  </div>
-                </div>
-              </div>
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Status </label>
+                        <ng-select appendTo="body" [items]="status" bindLabel="label" bindValue="value"
+                          placeholder="Select status" formControlName="status" [clearable]="true"
+                          [class.is-invalid]="BranchConfigForm?.get('status')?.touched && BranchConfigForm?.get('status')?.invalid">
+                        </ng-select>
 
-              <div class="col-12">
-                <div class="erp-form-group">
-                  <label class="erp-label">Registration Address <span class="required">*</span></label>
-                  <textarea class="erp-input" formControlName="registrationAddress" rows="3" maxlength="500"
-                    placeholder="Enter complete registration address"
-                    [class.is-invalid]="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"></textarea>
-                  <div
-                    *ngIf="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"
-                    class="erp-field-error">
-                    Registration Address is required
-                  </div>
-                </div>
-              </div>
+                      </div>
+                    </div>
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Email <span class="required">*</span></label>
-                  <input class="erp-input" type="email" formControlName="email" maxlength="100"
-                    [class.is-invalid]="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid" />
-                  <div *ngIf="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid"
-                    class="erp-field-error">
-                    Valid email is required
-                  </div>
-                </div>
-              </div>
 
-              <div class="col-12 col-md-6">
-                <div class="erp-form-group">
-                  <label class="erp-label">Contact Number <span class="required">*</span></label>
-                  <input class="erp-input" type="tel" formControlName="contactNumber" maxlength="15"
-                    [class.is-invalid]="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid" />
-                  <div
-                    *ngIf="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid"
-                    class="erp-field-error">
-                    Contact Number is required
+
+
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">
+                          Branch Address
+                        </label>
+                        <textarea class="erp-input" formControlName="branchAddress" maxlength="150" rows="3"
+                          [class.is-invalid]="BranchConfigForm?.get('branchAddress')?.touched && BranchConfigForm?.get('branchAddress')?.invalid">
+                            </textarea>
+                        <!-- 
+                            <div
+                              *ngIf="BranchConfigForm?.get('branchAddress')?.touched && BranchConfigForm?.get('branchAddress')?.invalid"
+                              class="erp-field-error">
+                              Branch Address is required
+                            </div> -->
+                      </div>
+                    </div>
+
+
+                    <div class="col-12 col-md-6">
+                      <div class="erp-form-group">
+                        <label class="erp-label">Date <span class="required">*</span></label>
+                        <div class="erp-input-wrap erp-date-wrap">
+                          <i class="pi pi-calendar erp-input-icon"></i>
+                          <p-datepicker formControlName="branchDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                            appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                            [readonlyInput]="true"></p-datepicker>
+                        </div>
+                        <!-- <div
+                              *ngIf="companyConfigForm?.get('date')?.touched && companyConfigForm?.get('date')?.invalid"
+                              class="erp-field-error">
+                              Date is required
+                            </div> -->
+                      </div>
+                    </div>
+
+
+
                   </div>
                 </div>
+
               </div>
 
-            </div>
+              <div class="form-footer">
+                <button type="button" class="erp-btn btn-secondary">
+                  <i class="pi pi-times"></i> Clear
+                </button>
+                <button type="submit" class="erp-btn btn-primary" [disabled]="BranchConfigForm?.invalid">
+                  <i class="pi pi-check"></i> Save
+                </button>
+              </div>
+            </form>
           </div>
+          }
+        </div>
+        <div class="card flex justify-center">
+          <p-dialog header="Company Configuration" [modal]="true" [(visible)]="visible" [style]="{ width: '50rem' }"
+            [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
 
+            <div class="card-body p-4">
+              <form [formGroup]="companyConfigForm" autocomplete="off">
+
+                <div class="form-wrapper">
+                  <div class="form-section">
+                    <h3 class="section-heading">
+                      <i class="pi pi-info-circle"></i> Company Details
+                    </h3>
+
+                    <div class="row g-2">
+
+
+                      <!-- <div class="col-12 col-md-6">
+                                <div class="erp-form-group">
+                                    <label class="erp-label">Status <span class="required">*</span></label>
+                                    <ng-select appendTo="body" [items]="statusOptions" bindLabel="label"
+                                        bindValue="value" placeholder="Select status" formControlName="status"
+                                        [clearable]="true"
+                                        [class.is-invalid]="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid">
+                                    </ng-select>
+                                    <div *ngIf="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid"
+                                        class="erp-field-error">
+                                        Status is required
+                                    </div>
+                                </div>
+                            </div> -->
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">Company Name <span class="required">*</span></label>
+                          <input class="erp-input" type="text" formControlName="companyName" maxlength="150"
+                            [class.is-invalid]="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid" />
+                          <div
+                            *ngIf="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid"
+                            class="erp-field-error">
+                            Company Name is required
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">Company Code <span class="required">*</span></label>
+                          <input class="erp-input" type="text" formControlName="companyCode" maxlength="20"
+                            [class.is-invalid]="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid" />
+                          <div
+                            *ngIf="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid"
+                            class="erp-field-error">
+                            Company Code is required
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">CIN Number <span class="required">*</span></label>
+                          <input class="erp-input" type="text" formControlName="cinNumber" maxlength="21"
+                            [class.is-invalid]="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid" />
+                          <div
+                            *ngIf="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid"
+                            class="erp-field-error">
+                            CIN Number is required
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">PAN Number <span class="required">*</span></label>
+                          <input class="erp-input" type="text" formControlName="panNumber" maxlength="10"
+                            [class.is-invalid]="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid" />
+                          <div
+                            *ngIf="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid"
+                            class="erp-field-error">
+                            PAN Number is required
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <div class="erp-form-group">
+                          <label class="erp-label">Registration Address <span class="required">*</span></label>
+                          <textarea class="erp-input" formControlName="registrationAddress" rows="3" maxlength="500"
+                            placeholder="Enter complete registration address"
+                            [class.is-invalid]="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"></textarea>
+                          <div
+                            *ngIf="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"
+                            class="erp-field-error">
+                            Registration Address is required
+                          </div>
+                        </div>
+                      </div>
+
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">Currency Formate<span class="required">*</span></label>
+                          <input class="erp-input" type="text" formControlName="currencyFormate" maxlength="10"
+                            [class.is-invalid]="companyConfigForm?.get('currencyFormate')?.touched && companyConfigForm?.get('currencyFormate')?.invalid" />
+                          <div
+                            *ngIf="companyConfigForm?.get('currencyFormate')?.touched && companyConfigForm?.get('currencyFormate')?.invalid"
+                            class="erp-field-error">
+                            Currency Formate is required
+                          </div>
+                        </div>
+                      </div>
+
+
+                      <div class="col-12 col-md-6">
+                        <div class="erp-form-group">
+                          <label class="erp-label">Date <span class="required">*</span></label>
+                          <div class="erp-input-wrap erp-date-wrap">
+                            <i class="pi pi-calendar erp-input-icon"></i>
+                            <p-datepicker formControlName="pBankdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                              [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                              inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- <div class="col-12 col-md-6">
+                                <div class="erp-form-group">
+                                    <label class="erp-label">Email <span class="required">*</span></label>
+                                    <input class="erp-input" type="email" formControlName="email" maxlength="100"
+                                        [class.is-invalid]="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid" />
+                                    <div *ngIf="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid"
+                                        class="erp-field-error">
+                                        Valid email is required
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="erp-form-group">
+                                    <label class="erp-label">Contact Number <span class="required">*</span></label>
+                                    <input class="erp-input" type="tel" formControlName="contactNumber" maxlength="15"
+                                        [class.is-invalid]="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid" />
+                                    <div *ngIf="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid"
+                                        class="erp-field-error">
+                                        Contact Number is required
+                                    </div>
+                                </div>
+                            </div> -->
+
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="form-footer">
+                  <button type="button" class="erp-btn btn-secondary">
+                    <i class="pi pi-times"></i> Clear
+                  </button>
+                  <button type="submit" class="erp-btn btn-primary">
+                    <i class="pi pi-check"></i> Save
+                  </button>
+                </div>
+              </form>
+            </div>
+
+          </p-dialog>
         </div>
 
-        <div class="form-footer">
-          <button type="button" class="erp-btn btn-secondary">
-            <i class="pi pi-times"></i> Clear
-          </button>
-          <button type="submit" class="erp-btn btn-primary" [disabled]="companyConfigForm?.invalid">
-            <i class="pi pi-check"></i> Save
-          </button>
-        </div>
-      </form>
-    </div>
-
-  </p-dialog>
-</div>
+      </div>
