@@ -64,13 +64,19 @@ export class NavigationService {
                   route: '/dashboard/accounts/accounts-config/bank-config-view',
                   relatedRoutes: ['/dashboard/accounts/accounts-config/bank-config']
                 },
-    
+  
                 {
                   id: 'cheque-management',
                   name: 'Cheque Management',
                   route: '/dashboard/accounts/accounts-config/cheque-management',
                   relatedRoutes: ['/dashboard/accounts/accounts-config/cheque-managementnew']
-                }
+                },
+                {
+                  id: 'company-config',
+                  name: 'Company Config',
+                  route: '/dashboard/accounts/accounts-config/company-config',
+                  relatedRoutes: ['/dashboard/accounts/accounts-config/company-config']
+                },
     
               ]
             },
@@ -221,6 +227,54 @@ export class NavigationService {
                 { id: 'jv-details', name: 'JV Details', route: '/dashboard/hrms/hrms-payroll/jv-details' },
                 { id: 'khc-details', name: 'KHC Details', route: '/dashboard/hrms/hrms-payroll/khc-details' },
                 { id: 'biometric-attendance', name: 'Biometric Attendance', route: '/dashboard/hrms/hrms-payroll/biometric-attendance' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
               ]
             }
           ]

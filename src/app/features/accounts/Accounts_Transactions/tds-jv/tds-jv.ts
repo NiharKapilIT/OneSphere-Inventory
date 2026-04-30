@@ -186,7 +186,7 @@ export class TdsJv implements OnInit {
       DebitLedger: [null, Validators.required],
       pCalendarMonth: [null, Validators.required],
       CreditLedger: [null, Validators.required],
-      preceiptdate: [''],
+      preceiptdate: [{value: '', disabled:true}, Validators.required],
       pnarration: ['', Validators.required],
     });
   }

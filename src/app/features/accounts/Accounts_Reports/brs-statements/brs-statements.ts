@@ -28,7 +28,7 @@ interface BrsForm {
   standalone:true,
   imports: [CommonModule, ReactiveFormsModule, DatePickerModule, NgSelectModule, TableModule],
   templateUrl: "./brs-statements.html",
-  styleUrl: "./brs-statements.css",
+  // styleUrl: "./brs-statements.css",
 })
 
 export class BrsStatements implements OnInit {

@@ -88,7 +88,7 @@
             <!-- Show Button -->
             <div class="col-12 col-md-3">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100" (click)="Show()" [disabled]="loading()">
+                <button type="button" class="erp-btn btn-primary" (click)="Show()" [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ saveButtonLabel() }}
                 </button>

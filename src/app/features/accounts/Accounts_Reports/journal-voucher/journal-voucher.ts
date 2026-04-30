@@ -12,7 +12,7 @@ import { CompanyDetailsService } from '../../../../core/services/Common/company-
     DatePipe,
     TitleCasePipe],
   templateUrl: "./journal-voucher.html",
-  styleUrl: "./journal-voucher.css",
+  // styleUrl: "./journal-voucher.css",
   providers: [DatePipe]
 })
 

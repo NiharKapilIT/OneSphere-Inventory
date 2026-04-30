@@ -15,7 +15,7 @@ import { CompanyDetailsService } from '../../../../core/services/Common/company-
   standalone: true,
   imports: [CommonModule, DatePipe, DecimalPipe, TitleCasePipe, NumberToWordsPipe],
   templateUrl: "./general-receipt.html",
-  styleUrl: "./general-receipt.css",
+  // styleUrl: "./general-receipt.css",
   providers: [NumberToWordsPipe, DatePipe]
 })
 

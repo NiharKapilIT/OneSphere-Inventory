@@ -53,7 +53,6 @@ function dateRangeValidator(group: AbstractControl): ValidationErrors | null {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, NgSelectModule, DatePickerModule, TableModule, Companydetails],
   templateUrl: "./account-ledger.html",
-  styleUrl: "./account-ledger.css",
   providers: [DatePipe]
 })
 
