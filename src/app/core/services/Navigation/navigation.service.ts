@@ -248,6 +248,54 @@ export class NavigationService {
               ]
             }
           ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
+              ]
+            }
+          ]
         }
       ];
 

@@ -30,7 +30,7 @@ interface LedgerRow {
   standalone:true,
   imports: [CommonModule, FormsModule, DatePickerModule],
   templateUrl: "./ledger-extract.html",
-  styleUrl: "./ledger-extract.css",
+  // styleUrl: "./ledger-extract.css",
 })
 
 export class LedgerExtract implements OnInit {

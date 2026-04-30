@@ -79,9 +79,9 @@
             </div>
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-2">
-              <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100" (click)="generateReport()" [disabled]="loading()">
+            <div class="col-12 col-md-2 position-relative mb-3">
+              <div class="erp-form-group d-flex justify-content-end position-relative">
+                <button type="button" class="erp-btn btn-primary position-absolute top-0 end-0" (click)="generateReport()" [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ loading() ? 'Processing' : 'Generate' }}
                 </button>

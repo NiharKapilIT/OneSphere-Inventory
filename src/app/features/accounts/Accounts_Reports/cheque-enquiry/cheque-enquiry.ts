@@ -15,7 +15,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
   standalone: true,
   imports: [FormsModule, CommonModule, ReactiveFormsModule, TableModule],
   templateUrl: './cheque-enquiry.html',
-  styleUrl: './cheque-enquiry.css',
+  // styleUrl: './cheque-enquiry.css',
 })
 export class ChequeEnquiry implements OnInit {
 

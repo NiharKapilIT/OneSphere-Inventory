@@ -21,7 +21,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   providers: [DatePipe],
   templateUrl: './trial-balance.html',
-  styleUrl: './trial-balance.css'
+  // styleUrl: './trial-balance.css'
 })
 export class TrialBalance implements OnInit {
   pDatepickerMaxDate: Date = new Date();

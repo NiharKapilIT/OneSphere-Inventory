@@ -18,7 +18,6 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
   standalone: true,
   imports: [ ReactiveFormsModule, CommonModule, NgSelectModule, TableModule],
   templateUrl: './re-print.html',
-  styleUrl: './re-print.css',
   providers: [NumberToWordsPipe]
 })
 export class RePrint implements OnInit {

@@ -4155,11 +4155,11 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         )
       );
 
-    if (!this.validatesavePaymentVoucher()) {
-      this.disableSaveButton.set(false);
-      this.saveButtonLabel.set('Save');
-      return;
-    }
+    // if (!this.validatesavePaymentVoucher()) {
+    //   this.disableSaveButton.set(false);
+    //   this.saveButtonLabel.set('Save');
+    //   return;
+    // }
 
     const accountIds = this.paymentsList.map((p) => p.psubledgerid).join(',');
     const transDate = this.commonService.getFormatDateNormal(

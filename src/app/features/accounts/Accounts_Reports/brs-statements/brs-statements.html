@@ -77,7 +77,7 @@
             <!-- Generate Button -->
             <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="show()" [disabled]="isSaving()">
+                <button type="button" class="erp-btn btn-primary shadow-sm" (click)="show()" [disabled]="isSaving()">
                   <i class="pi" [ngClass]="isSaving() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ isSaving() ? 'Processing' : saveButtonLabel() }}
                 </button>
