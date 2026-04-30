@@ -878,7 +878,8 @@ allowNumbersOnly1(event: any) {
         this.checkValidations(formcontrol, isValid);
       } else if (formcontrol.validator) {
         this.bankmastervalidations[key] = '';
-        if (formcontrol.errors || formcontrol.invalid || formcontrol.touched || formcontrol.dirty) {
+        if ((this.submitted || formcontrol.dirty || formcontrol.touched) &&
+  (formcontrol.errors || formcontrol.invalid)) {
           const el = document.getElementById(key);
           if (el) {
             const lablename = (el as HTMLInputElement).title;
