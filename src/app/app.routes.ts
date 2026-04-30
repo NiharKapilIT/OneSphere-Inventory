@@ -42,39 +42,55 @@ export const routes: Routes = [
   },
 
   // reports
+  // {
+  //   path: 'general-receipt/:id',
+  //   component: MainLayoutComponent,
+  //   canActivate: [authGuard],
+  //   children: [
+  //     {
+  //       path: '',
+  //       component: GeneralReceipt
+  //     }
+  //   ]
+  // },
+  // {
+  //   path: 'payment-voucher/:id',
+  //   component: MainLayoutComponent,
+  //   canActivate: [authGuard],
+  //   children: [
+  //     {
+  //       path: '',
+  //       component: PaymentVoucher
+  //     }
+  //   ]
+  // },
+  // {
+  //   path: 'journal-voucher/:id',
+  //   component: MainLayoutComponent,
+  //   canActivate: [authGuard],
+  //   children: [
+  //     {
+  //       path: '',
+  //       component: JournalVoucher
+  //     }
+  //   ]
+  // },
+
   {
-    path: 'general-receipt/:id',
-    component: MainLayoutComponent,
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        component: GeneralReceipt
-      }
-    ]
-  },
-  {
-    path: 'payment-voucher/:id',
-    component: MainLayoutComponent,
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        component: PaymentVoucher
-      }
-    ]
-  },
-  {
-    path: 'journal-voucher/:id',
-    component: MainLayoutComponent,
-    canActivate: [authGuard],
-    children: [
-      {
-        path: '',
-        component: JournalVoucher
-      }
-    ]
-  },
+  path: 'payment-voucher/:id',
+  component: PaymentVoucher,
+  canActivate: [authGuard]
+},
+{
+  path: 'general-receipt/:id',
+  component: GeneralReceipt,
+  canActivate: [authGuard]
+},
+{
+  path: 'journal-voucher/:id',
+  component: JournalVoucher,
+  canActivate: [authGuard]
+},
   {
     path: '',
     redirectTo: '/login',

@@ -36,8 +36,7 @@ import { DatePickerModule } from 'primeng/datepicker';
     NgSelectModule
   ],
   templateUrl: './bank-book.html',
-  styleUrl: './bank-book.css',
-  providers: [DatePipe]
+   providers: [DatePipe]
 })
 export class BankBook implements OnInit {
   pDatepickerMaxDate: Date = new Date();

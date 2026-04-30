@@ -16,7 +16,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   standalone:true,
   imports: [CommonModule, ReactiveFormsModule, DatePickerModule, TableModule, DatePipe],
   templateUrl: "./bank-entries.html",
-  styleUrl: "./bank-entries.css",
+  // styleUrl: "./bank-entries.css",
 })
 
 export class BankEntries implements OnInit {

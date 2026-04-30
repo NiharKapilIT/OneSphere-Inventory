@@ -244,12 +244,11 @@
                         <label class="erp-label">Name on Card <span class="required">*</span></label>
                         <input class="erp-input" type="text" formControlName="pCardName" placeholder="XYZ"
                           maxlength="50" (input)="lettersOnly($event)" (blur)="convertTitleCase('pCardName')"
-                          [class.is-invalid]="bankmastervalidations.pCardName ||
-                                     (f['pCardName'].invalid && (f['pCardName'].dirty || f['pCardName'].touched))" />
-                        @if (f['pCardName'].errors?.['required']) {
+                          [class.is-invalid]="(f['pCardName'].invalid && (f['pCardName'].dirty || f['pCardName'].touched))" />
+                        @if (f['pCardName'].invalid && (f['pCardName'].dirty || f['pCardName'].touched)) {
                         <div class="erp-field-error">Name is required.</div>
                         }
-                        <app-validation-message [messgae]="bankmastervalidations.pCardName"></app-validation-message>
+                        <!-- <app-validation-message [messgae]="bankmastervalidations.pCardName"></app-validation-message> -->
                       </div>
                     </div>
                     }
@@ -375,9 +374,9 @@
                           { value: 'interest', label: 'Interest Payment Bank' }
                         ]" bindLabel="label" bindValue="value" placeholder="Select Bank Type" [clearable]="true"
                         (change)="bankchange($any({ target: { value: $event?.value || $event } }))"
-                        [class.is-invalid]="f['bankType'].invalid">
+                        [class.is-invalid]="f['bankType'].invalid && (f['bankType'].dirty || f['bankType'].touched)">
                       </ng-select>
-                      @if (f['bankType'].invalid) {
+                      @if (f['bankType'].invalid && (f['bankType'].dirty || f['bankType'].touched)) {
                       <div class="erp-field-error">Bank Type is required</div>
                       }
                     </div>

@@ -98,19 +98,19 @@
                 <label class="erp-label">&nbsp;</label>
                 <label class="erp-checkbox m-0">
                   <input type="checkbox" id="WithNarration" (change)="onNarrationChange($event)" />
-                  <span>With Narration</span>
+                  <span>&nbsp; With Narration</span>
                 </label>
               </div>
             </div>
 
             <!-- Row 3: Generate Button -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-4 offset-6">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100" (click)="generateReport()"
+                <button type="button" class="erp-btn btn-primary" (click)="generateReport()"
                   [disabled]="isLoading()">
 
                   @if (!isLoading()) {
-                  <i class="pi pi-search"></i> Generate Report
+                  <i class="pi pi-search"></i> Generate
                   } @else {
                   <i class="pi pi-spin pi-spinner"></i> Processing...
                   }
