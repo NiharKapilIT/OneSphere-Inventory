@@ -17,12 +17,16 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePickerModule } from 'primeng/datepicker';
 import { NgSelectModule } from "@ng-select/ng-select";
 import { BsDatepickerConfig } from "ngx-bootstrap/datepicker";
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: "app-company-config",
   standalone: true,
-  imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule],
+  imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule, ToastModule],
   templateUrl: "./company-config.html",
+  providers: [MessageService]
+
 })
 export class CompanyConfig implements OnInit {
 
@@ -39,9 +43,26 @@ export class CompanyConfig implements OnInit {
   branchshowgrid = signal<boolean>(false);
   visible = signal<boolean>(false);
   companyConfigvalidations: any = {};
+  private readonly messageService = inject(MessageService);
+
 
   submitted = false;
+  today: any = new Date();
   statusOptions: any = []
+  barnchname: any[] = [
+    { value: 'Branch1', label: 'Branch1' },
+    { value: 'Branch2', label: 'Branch2' },
+    { value: 'Branch3', label: 'Branch3' },
+  ];
+  statusCode: any[] = [
+    { value: 'Status1', label: 'Status1' },
+    { value: 'Status2', label: 'Status2' },
+    { value: 'Status3', label: 'Status3' },
+  ];
+  status: any[] = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
+  ];
   private readonly destroyRef = inject(DestroyRef);
   private readonly datepipe = inject(DatePipe);
   private readonly _commonService = inject(CommonService);
@@ -50,6 +71,7 @@ export class CompanyConfig implements OnInit {
   currentdate: Partial<BsDatepickerConfig> = new BsDatepickerConfig();
 
   companyConfigForm!: FormGroup<any>;
+  BranchConfigForm!: FormGroup<any>;
   constructor(private fb: FormBuilder) {
     this.pageCriteria = new PageCriteria();
   }
@@ -65,7 +87,7 @@ export class CompanyConfig implements OnInit {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
       currencyFormate: ['', Validators.required],
-      pBankdate: [''],
+      pBankdate: [this.today],
       contactNumber: [''],
       email: [''],
       status: [''],
@@ -76,6 +98,24 @@ export class CompanyConfig implements OnInit {
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
+
+    this.BranchConfigForm = this.fb.group({
+      barnchname: ['', Validators.required],
+      branchCode: ['', Validators.required],
+      gstNumber: [''],
+      statuscode: [''],
+      branchEmail: [''],
+      branchContactNumber: [''],
+      status: [''],
+      branchAddress: [''],
+      branchDate: [this.today]
+    } as any);
+    this.BlurEventAllControll(this.BranchConfigForm);
+
+
+
+
+
   }
 
   // allowNumberOnly(event: KeyboardEvent): void {
@@ -99,7 +139,21 @@ export class CompanyConfig implements OnInit {
       return;
     }
 
-    console.log('Company Config Data:', this.companyConfigForm.value);
+    const formData = this.companyConfigForm.value;
+
+    //  Save in Console
+    console.log(' Company Config Saved:', formData);
+
+    // Toast Alert Message
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Company configuration saved successfully!'
+    });
+
+    //  Browser Alert
+    alert(' Company configuration saved successfully!');
+
     this.onClear();
     this.visible.set(false);
   }
