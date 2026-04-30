@@ -25,38 +25,6 @@ interface Page {
   totalElements: number; pageSize: number; pageNumber: number;
   offset: number; size: number; totalPages: number;
 }
-// interface ChequesIssuedRow {
-//   preceiptrecordid?: any; pUpiname?: string; pUpiid?: string;
-//   pBankconfigurationId?: string; pBankName?: string; ptranstype?: string;
-//   ptypeofpayment?: string; pChequenumber?: string; pchequedate?: any;
-//   pchequedepositdate?: any; pchequecleardate?: any; pbankid?: any;
-//   branchid?: any; pCardNumber?: string; pdepositbankid?: any;
-//   pdepositbankname?: string; pAccountnumber?: string; challanaNo?: string;
-//   preceiptid?: any; preceiptdate?: any; pmodofreceipt?: string;
-//   ptotalreceivedamount: number; pnarration?: string; ppartyname?: string;
-//   ppartyid?: any; pistdsapplicable?: boolean; pTdsSection?: string;
-//   pTdsPercentage?: string; ptdsamount?: number; ptdscalculationtype?: string;
-//   ppartypannumber?: string; ppartyreftype?: string; ppartyreferenceid?: string;
-//   preceiptslist?: any[]; pFilename?: string; pFilepath?: string; pFileformat?: string;
-//   pCleardate?: any; pdepositeddate?: any; ptdsaccountid?: string;
-//   pTdsSectionId?: string; groupcode?: string; preceiptno?: string; formname?: string;
-//   chitpaymentid?: string; adjustmentid?: string; pdepositstatus?: boolean;
-//   pcancelstatus?: boolean; preturnstatus?: boolean; pbranchname?: string;
-//   pchequestatus?: string; pcancelcharges?: string; pactualcancelcharges?: string;
-//   pledger?: string; cancelstatus?: string; returnstatus?: string; clearstatus?: string;
-//   chqueno?: string; issueddate?: any; chitgroupcode?: string; chitgroupid?: any;
-//   ticketno?: any; chequeamount?: any; zpdaccountid?: string; installmentno?: string;
-//   schemesubscriberid?: string; contactid?: string; schemetype?: string;
-//   checksentryrecordid?: string; cheque_bank?: string; selfchequestatus?: string;
-//   branch_name?: string; receipt_branch_name?: string; subscriber_details?: string;
-//   chitReceiptNo?: string; total_count?: string; transactionNo?: string;
-//   transactiondate?: any; chitstatus?: string; chitgroupstatus?: string;
-//   receiptnumbers?: string; pdepositedBankid?: string; pdepositedBankName?: string;
-//   preferencetext?: string; preceiptype?: string; puploadeddate?: any;
-//   subscriberbankaccountno?: string; pkgmsreceiptdate?: any; chequeStatus?: string;
-//   pCreatedby?: any; pipaddress?: string; pclearstatus?: boolean;[key: string]: any;
-// }
-
 interface ChequesIssuedRow {
   preceiptrecordid?: any; pUpiname?: string; pUpiid?: string;
   pBankconfigurationId?: string; pBankName?: string; ptranstype?: string;
@@ -104,11 +72,6 @@ type ActiveTabType =
 export class ChequesIssued implements OnInit {
 
   @Input() fromFormName: any;
-
-  // =========================================================================
-  // SIGNALS — replaces plain properties
-  // =========================================================================
-
   tabsShowOrHideBasedOnfromFormName = signal<boolean>(false);
   amounttotal = signal<any>(0);
   showicons = signal<boolean>(false);
@@ -160,9 +123,7 @@ export class ChequesIssued implements OnInit {
     footerPageHeight: 50, totalrows: 0, TotalPages: 0, currentPageRows: 0
   });
 
-  // =========================================================================
-  // NON-SIGNAL state (internal, not used in templates directly)
-  // =========================================================================
+
   schemaname: any;
   gridDatatemp: ChequesIssuedRow[] = [];
   BanksList: any[] = [];
@@ -226,9 +187,7 @@ export class ChequesIssued implements OnInit {
     this.brstoConfig.maxDate = new Date();
   }
 
-  // =========================================================================
-  // SAFE HELPERS
-  // =========================================================================
+
 
   private safeBank(b: any): number {
     return (b !== null && b !== undefined && b !== '') ? Number(b) : 0;
@@ -294,9 +253,7 @@ export class ChequesIssued implements OnInit {
     return d;
   }
 
-  // =========================================================================
-  // LIFECYCLE
-  // =========================================================================
+
 
   ngOnInit(): void {
     this.pageSetUp();
@@ -411,9 +368,6 @@ export class ChequesIssued implements OnInit {
     }
   }
 
-  // =========================================================================
-  // BANK BALANCE
-  // =========================================================================
 
   GetBankBalance(bankid: any): void {
     this._accountingtransaction.GetBankBalance(
@@ -457,80 +411,9 @@ export class ChequesIssued implements OnInit {
     });
   }
 
-  // onBankChange(bank: any): void {
-  //   if (!bank) {
-  //     this.selectedBankName.set('');
-  //     this.bankname = '';
-  //     this.bankbalance.set(0);
-  //     this.bankbalancetype.set('');
-  //     this.brsdate.set('');
-  //     this.bankid = 0;
-  //     this.bankbalancedetails = { pfrombrsdate: null, ptobrsdate: null };
-  //     this.gridData.set([]);
-  //     return;
-  //   }
-  //   this.selectedBankName.set(bank.pdepositbankname);
-  //   this.bankname = bank.pdepositbankname;
-  //   this.bankid = bank.pbankid;
 
-  // onBankChange(bank: any): void {
-  //   if (!bank) {
-  //     this.selectedBankName.set('');
-  //     this.bankname = '';
-  //     this.bankbalance.set(0);
-  //     this.bankbalancetype.set('');
-  //     this.brsdate.set('');
-  //     this.bankid = 0;
-  //     this.banknameshowhide.set(false);          // ← signal
-  //     this.bankbalancedetails = { pfrombrsdate: null, ptobrsdate: null };
-  //     this.gridData.set([]);
-  //     return;
-  //   }
-  //   this.selectedBankName.set(bank.pbankname  
-  //     || bank.pdepositbankname || '');
-  //   this.bankname = this.selectedBankName();
-  //   this.bankid = bank.pbankid;
-  //   this.banknameshowhide.set(true);
-
-  //   const bal = bank.pbankbalance ?? 0;
-  //   if (bal < 0) {
-  //     this.bankbalance.set(Math.abs(bal));
-  //     this.bankbalancetype.set('Cr');
-  //   } else if (bal === 0) {
-  //     this.bankbalance.set(0);
-  //     this.bankbalancetype.set('');
-  //   } else {
-  //     this.bankbalance.set(bal);
-  //     this.bankbalancetype.set('Dr');
-  //   }
-
-  //   this.brsdate.set(this.buildTodayBrsDate());
-  //   this.ChequesIssuedValidation.update(v => ({ ...v, bankname: '' }));
-
-  //   const formattedDate = this.datepipe.transform(
-  //     this.ChequesIssuedForm.value.ptransactiondate, 'yyyy-MM-dd') || '';
-
-  //   this._accountingtransaction.GetBankBalance(
-  //     formattedDate, bank.pbankid,
-  //     this._commonService.getbranchname(),
-  //     this._commonService.getBranchCode(),
-  //     this._commonService.getCompanyCode()
-  //   ).subscribe((res: any) => {
-  //     this.bankbalancedetails = { pfrombrsdate: res?.pfrombrsdate || null, ptobrsdate: res?.ptobrsdate || null };
-  //     const fromDateBank = this.safeBrsDate(res?.pfrombrsdate, 'yesterday');
-  //     const toDateBank = this.safeBrsDate(res?.ptobrsdate, 'today');
-  //     this.ChequesIssuedForm.patchValue({ pfrombrsdate: fromDateBank, ptobrsdate: toDateBank });
-  //     this.BrsReturnForm.patchValue({ frombrsdate: fromDateBank, tobrsdate: toDateBank });
-  //     this.BrsCancelForm.patchValue({ frombrsdate: fromDateBank, tobrsdate: toDateBank });
-  //     this.clearMinToDate = fromDateBank;
-  //     this.returnMinToDate = fromDateBank;
-  //     this.cancelMinToDate = fromDateBank;
-  //     this.GetChequesIssued_Load(this.bankid);
-  //   });
-  // }
 
   onBankChange(bank: any): void {
-    // Guard: ng-select can emit null/undefined on clear
     if (bank === null || bank === undefined) {
       this.selectedBankName.set('');
       this.bankname = '';
@@ -652,9 +535,6 @@ export class ChequesIssued implements OnInit {
     }
   }
 
-  // =========================================================================
-  // DATA LOADERS
-  // =========================================================================
 
   GetChequesIssued_Load(bankid: any): void {
     this.gridData.set([]);
@@ -731,10 +611,6 @@ export class ChequesIssued implements OnInit {
       error: (err: any) => { this.gridLoading.set(false); this._commonService.showErrorMessage(err); }
     });
   }
-
-  // =========================================================================
-  // SEARCH
-  // =========================================================================
 
   onSearch(event: any): void {
     const searchText = event?.toString() || '';
@@ -884,7 +760,6 @@ export class ChequesIssued implements OnInit {
   }
 
   OnlinePayments(): void {
-    debugger
     this.fromdate = null; this.todate = null;
     this.brsdateshowhidereturned.set(false);
     this.brsdateshowhidecleared.set(false);
@@ -903,7 +778,6 @@ export class ChequesIssued implements OnInit {
     if (this.page.totalElements > 10) this.page.totalPages = Math.ceil(this.page.totalElements / 10);
   }
   OnlinePayments1(): void {
-    debugger
     this.brsdateshowhidereturned.set(false);
     this.brsdateshowhidecleared.set(false);
     this.brsdateshowhidecancelled.set(false);
@@ -915,13 +789,24 @@ export class ChequesIssued implements OnInit {
     this.applyGridData(this.buildGridByType(this.ChequesIssuedData, 'CHEQUE', true));
   }
 
+
+
   Cleared(): void {
-    debugger
-    if (!this.bankid || this.bankid === 0) { this._commonService.showWarningMessage('Please Select Bank first'); return; }
-    this.fromdate = null; this.todate = null;
-    this.today = new Date(); this.clearMinToDate = new Date(1900, 0, 1);
-    this.datetitle.set('Cleared Date'); this.status.set('cleared'); this.activeTab.set('cleared');
-    this.pdfstatus = 'Cleared'; this.modeofreceipt = 'CLEAR';
+    if (!this.bankid || this.bankid === 0) {
+      this._commonService.showWarningMessage('Please Select Bank first');
+      return;
+    }
+
+    this.fromdate = null;
+    this.todate = null;
+    this.today = new Date();
+    this.clearMinToDate = new Date(1900, 0, 1);
+    this.datetitle.set('Cleared Date');
+    this.status.set('cleared');
+    this.activeTab.set('cleared');
+    this.pdfstatus = 'Cleared';
+    this.modeofreceipt = 'CLEAR';
+
     this.showOrHideOtherChequesGrid.set(false);
     this.showOrHideAllChequesGrid.set(false);
     this.showOrHideChequesIssuedGrid.set(true);
@@ -929,21 +814,56 @@ export class ChequesIssued implements OnInit {
     this.brsdateshowhidereturned.set(false);
     this.brsdateshowhidecancelled.set(false);
     this.GridColumnsHide();
+
+    const fromDateVal = this.safeBrsDate(this.bankbalancedetails?.pfrombrsdate, 'yesterday');
+    const toDateVal = this.safeBrsDate(this.bankbalancedetails?.ptobrsdate, 'today');
+
     this.ChequesIssuedForm.patchValue({
-      pfrombrsdate: this.safeBrsDate(this.bankbalancedetails?.pfrombrsdate, 'yesterday'),
-      ptobrsdate: this.safeBrsDate(this.bankbalancedetails?.ptobrsdate, 'today')
+      pfrombrsdate: fromDateVal,
+      ptobrsdate: toDateVal
     });
-    const fo = this.safeBrsDate(this.bankbalancedetails?.pfrombrsdate, 'yesterday');
-    if (fo) this.clearMinToDate = fo;
+
+    if (fromDateVal) this.clearMinToDate = fromDateVal;
+
     this.pageSetUp();
-    this.GetChequesIssued(this.bankid, this.startindex, this.endindex, this._searchText);
-    this.applyGridData(this.buildGridByChequeStatus(this.ChequesClearReturnData, 'P'));
-    this.totalElements = this._countData['clear_count'] || 0;
-    this.page.totalElements = this.totalElements;
-    if (this.page.totalElements > 10) this.page.totalPages = Math.ceil(this.page.totalElements / 10);
+
+    const fromdate = this.datepipe.transform(fromDateVal, 'MM/dd/yyyy') || '';
+    const todate = this.datepipe.transform(toDateVal, 'MM/dd/yyyy') || '';
+
+    if (fromdate && todate) {
+      this.fromdate = fromdate;
+      this.todate = todate;
+
+      this.GetDataOnBrsDates(fromdate, todate, this.bankid);
+    } else {
+
+      this._accountingtransaction.GetChequesIssued(
+        this.safeBank(this.bankid),
+        this._commonService.getbranchname(),
+        this.startindex, this.endindex,
+        this.modeofreceipt,
+        this.safeSearch(this._searchText),
+        this._commonService.getschemaname(),
+        this._commonService.getBranchCode(),
+        this._commonService.getCompanyCode()
+      ).subscribe({
+        next: (data: any) => {
+          this.ChequesClearReturnData = (data?.pchequesclearreturnlist || [])
+            .map((i: any) => this.normalizeDates(i));
+          this.applyGridData(
+            this.buildGridByChequeStatus(this.ChequesClearReturnData, 'P')
+          );
+          this.totalElements = this._countData['clear_count'] || 0;
+          this.page.totalElements = this.totalElements;
+          if (this.page.totalElements > 10)
+            this.page.totalPages = Math.ceil(this.page.totalElements / 10);
+        },
+        error: (err: any) => this._commonService.showErrorMessage(err)
+      });
+    }
   }
+
   Cleared1(): void {
-    debugger
     this.datetitle.set('Cleared Date'); this.status.set('cleared'); this.pdfstatus = 'Cleared'; this.modeofreceipt = 'CLEAR';
     this.showOrHideOtherChequesGrid.set(false);
     this.showOrHideAllChequesGrid.set(false);
@@ -1114,13 +1034,11 @@ export class ChequesIssued implements OnInit {
   SelectBank(event: any): void {
     const value = event?.target?.value;
     if (!value) {
-      // this.bankid = 0; this.bankname = ''; this.banknameshowhide = false;
       this.bankid = 0; this.bankname = ''; this.banknameshowhide.set(false);
       this.selectedBankName.set(''); this.bankbalance.set(0); this.bankbalancetype.set(''); this.brsdate.set('');
       this.bankbalancedetails = { pfrombrsdate: null, ptobrsdate: null };
       this.ChequesIssuedValidation.update(v => ({ ...v, bankname: '' }));
     } else {
-      // this.banknameshowhide = true;
       this.banknameshowhide.set(true);
 
       this.bankdetails = this.BanksList.find((b: any) => b.pdepositbankname === value);
@@ -1144,9 +1062,7 @@ export class ChequesIssued implements OnInit {
     this.CountOfRecords();
   }
 
-  // =========================================================================
-  // BRS DATE METHODS
-  // =========================================================================
+
 
   OnBrsDateChanges(fromdate: any, todate: any): void {
     this.validate = new Date(fromdate).setHours(0, 0, 0, 0) > new Date(todate).setHours(0, 0, 0, 0);
@@ -1199,9 +1115,6 @@ export class ChequesIssued implements OnInit {
     } else { this._commonService.showWarningMessage('select fromdate and todate'); }
   }
 
-  // =========================================================================
-  // CLEAR
-  // =========================================================================
 
   Clear(): void {
     this.ChequesIssuedForm.reset({
@@ -1215,7 +1128,6 @@ export class ChequesIssued implements OnInit {
 
     this.bankid = 0; this.bankname = '';
     this.selectedBankName.set(''); this.bankbalance.set(0); this.bankbalancetype.set(''); this.brsdate.set('');
-    // this.banknameshowhide = false; this.ChequesIssuedValidation.set({});
     this.banknameshowhide.set(false); this.ChequesIssuedValidation.set({});
     this.bankbalancedetails = { pfrombrsdate: null, ptobrsdate: null };
 
@@ -1241,9 +1153,7 @@ export class ChequesIssued implements OnInit {
     this.GetChequesIssued_Load(this.bankid);
   }
 
-  // =========================================================================
-  // BRS DATA LOADERS
-  // =========================================================================
+
 
   GetDataOnBrsDates(frombrsdate: any, tobrsdate: any, bankid: any): void {
     const bank = this.safeBank(bankid);
@@ -1310,9 +1220,7 @@ export class ChequesIssued implements OnInit {
     });
   }
 
-  // =========================================================================
-  // CHECKBOX HANDLERS
-  // =========================================================================
+
 
   checkedClear(event: any, data: ChequesIssuedRow): void {
     const ro = this._commonService.getDateObjectFromDataBase(data.preceiptdate);
@@ -1361,9 +1269,7 @@ export class ChequesIssued implements OnInit {
     this.gridData.set([...this.gridData()]);
   }
 
-  // =========================================================================
-  // VALIDATION
-  // =========================================================================
+
 
   checkValidations(group: FormGroup, isValid: boolean): boolean {
     try { Object.keys(group.controls).forEach(k => { isValid = this.GetValidationByControl(group, k, isValid); }); }
@@ -1409,10 +1315,6 @@ export class ChequesIssued implements OnInit {
     } catch (e: any) { this.showErrorMessage(e); return false; }
     return true;
   }
-
-  // =========================================================================
-  // SAVE
-  // =========================================================================
 
   Save(): void {
     const dupbool = this.validateDuplicates();
@@ -1527,32 +1429,6 @@ export class ChequesIssued implements OnInit {
       }))
     });
 
-    // const payload = {
-    //   global_schema: this._commonService.getschemaname(),
-    //   branch_schema: this._commonService.getbranchname(),
-    //   companycode: this._commonService.getCompanyCode(),
-    //   branchcode: this._commonService.getBranchCode(),
-    //   pCreatedby: this._commonService.getCreatedBy() || 0,
-    //   ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
-    //   // ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
-    //   pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
-    //   pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
-    //   ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
-    //   _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
-    //   chequestype: this.modeofreceipt || '', banknameForLegal: this.selectedBankName() || '',
-    //   pchequesOnHandlist: this.DataForSaving.map(mapCheque),
-    //   pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
-    //   pchequesotherslist: this.OtherChequesData().map((item: any) => ({
-    //     ptransactionnumber: item.ptransactionnumber || '', ptransactiondate: item.ptransactiondate || '',
-    //     particulars: item.particulars || '', debitamount: String(item.debitamount || '0'),
-    //     creditamount: String(item.creditamount || '0'), accountname: item.accountname || '',
-    //     chequereturncharges: String(item.chequereturncharges || '0')
-    //   })),
-    //   auto_brs_type_name: formVal.auto_brs_type || 'Upload'
-    // };
-
-
-
     const payload = {
       global_schema: this._commonService.getschemaname(),
       branch_schema: this._commonService.getbranchname(),
@@ -1560,13 +1436,9 @@ export class ChequesIssued implements OnInit {
       branchcode: this._commonService.getBranchCode(),
       pCreatedby: this._commonService.getCreatedBy() || 0,
       ptransactiondate: this.datepipe.transform(formVal.ptransactiondate, 'dd-MM-yyyy') || '',
-      // ptransactiondate: this._commonService.getFormatDateNormal(formVal.ptransactiondate) || '',
       pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
-      // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
       pfrombrsdate: formVal.pfrombrsdate ? this.datepipe.transform(formVal.pfrombrsdate, 'dd-MM-yyyy') : '',
       ptobrsdate: formVal.ptobrsdate ? this.datepipe.transform(formVal.ptobrsdate, 'dd-MM-yyyy') : '',
-      // pfrombrsdate: formVal.pfrombrsdate ? this._commonService.getFormatDateNormal(formVal.pfrombrsdate) : '',
-      // ptobrsdate: formVal.ptobrsdate ? this._commonService.getFormatDateNormal(formVal.ptobrsdate) : '',
       _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
       chequestype: this.modeofreceipt || '', banknameForLegal: this.selectedBankName() || '',
       pchequesOnHandlist: this.DataForSaving.map(mapCheque),
@@ -1613,66 +1485,9 @@ export class ChequesIssued implements OnInit {
     }));
   }
 
-  // pdfOrprint(printorpdf: string): void {
-  //   forkJoin([
-  //     this._accountingtransaction.GetChequesIssued(
-  //       this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
-  //       this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
-  //       this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
-  //     this._accountingtransaction.DataFromBrsDatesChequesIssued(
-  //       this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
-  //       this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
-  //   ]).subscribe(([r0, r1]: any) => {
-  //     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
-  //     const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
-  //     const rows: any[] = [];
-  //     gd.forEach((e: any) => {
-  //       const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
-  //       let dd = this._commonService.getFormatDateGlobal(e.pdepositeddate); if (!dd) dd = '--NA--';
-  //       let amt = ''; if (e.ptotalreceivedamount) { amt = this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(e.ptotalreceivedamount)); }
-  //       rows.push(isCRC
-  //         ? [e.pChequenumber, amt, e.preceiptid, dr, dd, e.ptypeofpayment, e.ppartyname]
-  //         : [e.pChequenumber, amt, e.preceiptid, dr, e.ptypeofpayment, e.ppartyname]);
-  //     });
-  //     this._commonService._downloadchequesReportsPdf('Cheques Issued', rows, [], {}, 'landscape', '', '', '', printorpdf,
-  //       this._commonService.convertAmountToPdfFormat(this._commonService.currencyformat(this.amounttotal())));
-  //   });
-  // }
 
-  // export(): void {
-  //   forkJoin([
-  //     this._accountingtransaction.GetChequesIssued(
-  //       this.safeBank(this.bankid), this._commonService.getbranchname(), 0, 999999,
-  //       this.modeofreceipt, this.safeSearch(this._searchText), this._commonService.getschemaname(),
-  //       this._commonService.getBranchCode(), this._commonService.getCompanyCode()),
-  //     this._accountingtransaction.DataFromBrsDatesChequesIssued(
-  //       this.safeDateBrs(this.fromdate), this.safeDateBrs(this.todate),
-  //       this.safeBank(this.bankid), this.modeofreceipt, this.safeSearch(this._searchText), 0, 99999, '')
-  //   ]).subscribe(([r0, r1]: any) => {
-  //     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
-  //     const gd: any[] = isCRC ? (r1?.pchequesclearreturnlist || []) : (r0?.pchequesOnHandlist || []);
-  //     const rows: any[] = [];
-  //     gd.forEach((e: any) => {
-  //       const dr = this._commonService.getFormatDateGlobal(e.preceiptdate);
-  //       const dd = this._commonService.getFormatDateGlobal(e.pdepositeddate) || '--NA--';
-  //       const amt = e.ptotalreceivedamount || 0;
-  //       rows.push(isCRC
-  //         ? { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, [`${this.pdfstatus} Date`]: dd, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname }
-  //         : { 'Cheque/ Reference No.': e.pChequenumber, 'Amount': amt, 'Payment Id': e.preceiptid, 'Payment Date': dr, 'Transaction Mode': e.ptypeofpayment, 'Party': e.ppartyname });
-  //     });
-  //     this._commonService.exportAsExcelFile(rows, 'Cheques Issued');
-  //   });
-  // }
-
-
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // PDF / PRINT  ← mirrors Cheques In Bank pdfOrprint() exactly
-  // ─────────────────────────────────────────────────────────────────────────
   pdfOrprint(printorpdf: string): void {
     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
-
-    // Use already-loaded in-memory data — no API calls needed
     const gd: any[] = isCRC
       ? this.ChequesClearReturnData
       : [...this.ChequesIssuedData, ...this.OtherChequesData()];
@@ -1684,7 +1499,7 @@ export class ChequesIssued implements OnInit {
 
     let Totlaamount = 0;
 
-    // ── Build headers (same pattern as Cheques In Bank) ──
+
     const headers: string[] = [
       'Cheque/\nReference No.',
       'Amount',
@@ -1695,7 +1510,7 @@ export class ChequesIssued implements OnInit {
       'Party'
     ];
 
-    // ── Column styles (same pattern as Cheques In Bank) ──
+
     const colStyles: Record<number, any> = {
       0: { cellWidth: 30, halign: 'center' },
       1: { cellWidth: 28, halign: 'right' },
@@ -1711,7 +1526,7 @@ export class ChequesIssued implements OnInit {
       colStyles[5] = { cellWidth: 55, halign: 'left' };
     }
 
-    // ── Build data rows ──
+
     const data: any[][] = [];
     gd.forEach((e: any) => {
       const amt = Number(e?.ptotalreceivedamount || 0);
@@ -1730,7 +1545,6 @@ export class ChequesIssued implements OnInit {
       ]);
     });
 
-    // ── Total row (same pattern as Cheques In Bank) ──
     const totalRow: any[] = [
       { content: 'Total', colSpan: 1, styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } },
       { content: this._commonService.convertAmountToPdfFormat(Totlaamount), styles: { halign: 'right', fontSize: 12, fontStyle: 'bold', textColor: [0, 0, 0] } }
@@ -1755,7 +1569,7 @@ export class ChequesIssued implements OnInit {
   export(): void {
     const isCRC = ['Cleared', 'Returned', 'Cancelled'].includes(this.pdfstatus);
 
-    // Use already-loaded in-memory data (same approach as Cheques In Bank)
+
     const gd: any[] = isCRC
       ? this.ChequesClearReturnData
       : [...this.ChequesIssuedData, ...this.OtherChequesData()];
