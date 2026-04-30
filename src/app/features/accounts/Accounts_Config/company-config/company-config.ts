@@ -36,7 +36,7 @@ export class CompanyConfig {
   visible = signal<boolean>(false);
   companyConfigvalidations: any = {};
   submitted = false;
-  items: any = []
+  statusOptions: any = []
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly _commonService = inject(CommonService);
@@ -56,6 +56,13 @@ export class CompanyConfig {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
       date: [''],
+      contactNumber:[''],
+      email:[''],
+      status:[''],
+      registrationAddress:[''],
+      panNumber:[''],
+      cinNumber:[''],
+      companyCode:['']
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
