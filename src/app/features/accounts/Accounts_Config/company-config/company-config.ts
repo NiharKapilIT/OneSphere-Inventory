@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, DestroyRef, inject, OnInit, signal } from "@angular/core";
 import { TableModule } from "primeng/table";
 import { DialogModule } from "primeng/dialog";
 import { PageCriteria } from "../../../../core/models/pagecriteria";
@@ -20,11 +20,13 @@ import { BsDatepickerConfig } from "ngx-bootstrap/datepicker";
 
 @Component({
   selector: "app-company-config",
-  standalone:true,
+  standalone: true,
   imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule],
   templateUrl: "./company-config.html",
 })
-export class CompanyConfig {
+export class CompanyConfig implements OnInit {
+
+
   selectedTab = 'companyConfiguration';
   gridData: any[] = [];
   pageCriteria: PageCriteria;
@@ -63,7 +65,7 @@ export class CompanyConfig {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
       currencyFormate: ['', Validators.required],
-      date: [''],
+      pBankdate: [''],
       contactNumber: [''],
       email: [''],
       status: [''],
@@ -88,6 +90,26 @@ export class CompanyConfig {
   // }
 
 
+  onSave(): void {
+    this.submitted = true;
+    this.checkValidations(this.companyConfigForm, true);
+
+    if (this.companyConfigForm.invalid) {
+      this.companyConfigForm.markAllAsTouched();
+      return;
+    }
+
+    console.log('Company Config Data:', this.companyConfigForm.value);
+    this.onClear();
+    this.visible.set(false);
+  }
+
+  // Clear method
+  onClear(): void {
+    this.submitted = false;
+    this.companyConfigForm.reset();
+    this.companyConfigvalidations = {};
+  }
 
   BlurEventAllControll(fromgroup: FormGroup): void {
     try {
@@ -158,7 +180,7 @@ export class CompanyConfig {
     this.visible.set(true);
   }
 
-  currency_formate(){}
+  currency_formate() { }
 
   private pageSetUp() {
     this.page.offset = 0; this.page.pageNumber = 1;

@@ -10,21 +10,17 @@
                 <button class="tab-item" [class.active]="selectedTab === 'companyConfiguration'" (click)="companyConfiguration();
            selectedTab = 'companyConfiguration'">
                     <span class="tab-label">Company Configuration</span>
-                    <!-- <span class="erp-badge badge-warning">{{ companyConfiguration?? 0 }}</span> -->
                 </button>
 
                 <button class="tab-item" [class.active]="selectedTab === 'branchConfiguration'"
                     (click)="branchConfiguration(); selectedTab = 'branchConfiguration'">
                     <span class="tab-label">Branch Configuration</span>
-                    <!-- <span class="erp-badge badge-secondary">{{ branchConfiguration ?? 0 }}</span> -->
                 </button>
 
                 <button class="tab-item" [class.active]="selectedTab === 'userInfo'"
                     (click)="userInfo(); selectedTab = 'userInfo'">
                     <span class="tab-label">User Info</span>
-                    <!-- <span class="erp-badge badge-primary">{{ userInfo ?? 0 }}</span> -->
                 </button>
-
 
             </div>
         </div>
@@ -48,10 +44,8 @@
                 <button class="erp-btn btn-white btn-sm" (click)="showDialog()" label="Show">
                     <i class="pi pi-plus"></i> New
                 </button>
-
             </div>
         </div>
-
 
         <!-- Card Body -->
         <div class="card-body p-0">
@@ -63,11 +57,6 @@
                         1 of 10 records
                     </span>
                 </div>
-                <!-- <div class="tb-right">
-          <span class="text-muted text-small">
-            Currency: <strong class="text-primary">{{ currencySymbol }}</strong>
-          </span>
-        </div> -->
             </div>
 
             <!-- DataTable -->
@@ -98,8 +87,8 @@
                             <th>
                                 <div class="th-cell">Regristration addres</div>
                             </th>
-
                             }
+
                             @if(branchshowgrid()){
                             <th>
                                 <div class="th-cell">Branch Name</div>
@@ -124,10 +113,8 @@
                             </th>
                             }
 
-
                         </tr>
                     </ng-template>
-
 
                     <!-- Empty Message -->
                     <ng-template pTemplate="emptymessage">
@@ -140,9 +127,6 @@
                             </td>
                         </tr>
                     </ng-template>
-
-
-
 
                 </p-table>
             </div>
@@ -164,109 +148,58 @@
 
                                 <div class="row g-2">
 
-
-                                    <!-- <div class="col-12 col-md-6">
-                                <div class="erp-form-group">
-                                    <label class="erp-label">Status <span class="required">*</span></label>
-                                    <ng-select appendTo="body" [items]="statusOptions" bindLabel="label"
-                                        bindValue="value" placeholder="Select status" formControlName="status"
-                                        [clearable]="true"
-                                        [class.is-invalid]="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid">
-                                    </ng-select>
-                                    <div *ngIf="companyConfigForm?.get('status')?.touched && companyConfigForm?.get('status')?.invalid"
-                                        class="erp-field-error">
-                                        Status is required
-                                    </div>
-                                </div>
-                            </div> -->
-
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">Company Name <span
-                                                    class="required">*</span></label>
+                                            <label class="erp-label">Company Name</label>
                                             <input class="erp-input" type="text" formControlName="companyName"
-                                                maxlength="150"
-                                                [class.is-invalid]="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid" />
-                                            <div *ngIf="companyConfigForm?.get('companyName')?.touched && companyConfigForm?.get('companyName')?.invalid"
-                                                class="erp-field-error">
-                                                Company Name is required
-                                            </div>
+                                                maxlength="150" />
                                         </div>
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">Company Code <span
-                                                    class="required">*</span></label>
+                                            <label class="erp-label">Company Code</label>
                                             <input class="erp-input" type="text" formControlName="companyCode"
-                                                maxlength="20"
-                                                [class.is-invalid]="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid" />
-                                            <div *ngIf="companyConfigForm?.get('companyCode')?.touched && companyConfigForm?.get('companyCode')?.invalid"
-                                                class="erp-field-error">
-                                                Company Code is required
-                                            </div>
+                                                maxlength="20" />
                                         </div>
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">CIN Number <span class="required">*</span></label>
+                                            <label class="erp-label">CIN Number</label>
                                             <input class="erp-input" type="text" formControlName="cinNumber"
-                                                maxlength="21"
-                                                [class.is-invalid]="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid" />
-                                            <div *ngIf="companyConfigForm?.get('cinNumber')?.touched && companyConfigForm?.get('cinNumber')?.invalid"
-                                                class="erp-field-error">
-                                                CIN Number is required
-                                            </div>
+                                                maxlength="21" />
                                         </div>
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">PAN Number <span class="required">*</span></label>
+                                            <label class="erp-label">PAN Number</label>
                                             <input class="erp-input" type="text" formControlName="panNumber"
-                                                maxlength="10"
-                                                [class.is-invalid]="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid" />
-                                            <div *ngIf="companyConfigForm?.get('panNumber')?.touched && companyConfigForm?.get('panNumber')?.invalid"
-                                                class="erp-field-error">
-                                                PAN Number is required
-                                            </div>
+                                                maxlength="10" />
                                         </div>
                                     </div>
 
                                     <div class="col-12">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">Registration Address <span
-                                                    class="required">*</span></label>
+                                            <label class="erp-label">Registration Address</label>
                                             <textarea class="erp-input" formControlName="registrationAddress" rows="3"
-                                                maxlength="500" placeholder="Enter complete registration address"
-                                                [class.is-invalid]="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"></textarea>
-                                            <div *ngIf="companyConfigForm?.get('registrationAddress')?.touched && companyConfigForm?.get('registrationAddress')?.invalid"
-                                                class="erp-field-error">
-                                                Registration Address is required
-                                            </div>
+                                                maxlength="500"
+                                                placeholder="Enter complete registration address"></textarea>
                                         </div>
                                     </div>
 
-
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">Currency Formate<span
-                                                    class="required">*</span></label>
+                                            <label class="erp-label">Currency Formate</label>
                                             <input class="erp-input" type="text" formControlName="currencyFormate"
-                                                maxlength="10"
-                                                [class.is-invalid]="companyConfigForm?.get('currencyFormate')?.touched && companyConfigForm?.get('currencyFormate')?.invalid" />
-                                            <div *ngIf="companyConfigForm?.get('currencyFormate')?.touched && companyConfigForm?.get('currencyFormate')?.invalid"
-                                                class="erp-field-error">
-                                                Currency Formate is required
-                                            </div>
+                                                maxlength="10" />
                                         </div>
                                     </div>
 
-
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
-                                            <label class="erp-label">Date <span class="required">*</span></label>
+                                            <label class="erp-label">Date</label>
                                             <div class="erp-input-wrap erp-date-wrap">
                                                 <i class="pi pi-calendar erp-input-icon"></i>
                                                 <p-datepicker formControlName="pBankdate" dateFormat="dd-M-yy"
@@ -277,43 +210,19 @@
                                         </div>
                                     </div>
 
-                                    <!-- <div class="col-12 col-md-6">
-                                <div class="erp-form-group">
-                                    <label class="erp-label">Email <span class="required">*</span></label>
-                                    <input class="erp-input" type="email" formControlName="email" maxlength="100"
-                                        [class.is-invalid]="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid" />
-                                    <div *ngIf="companyConfigForm?.get('email')?.touched && companyConfigForm?.get('email')?.invalid"
-                                        class="erp-field-error">
-                                        Valid email is required
-                                    </div>
                                 </div>
                             </div>
-
-                            <div class="col-12 col-md-6">
-                                <div class="erp-form-group">
-                                    <label class="erp-label">Contact Number <span class="required">*</span></label>
-                                    <input class="erp-input" type="tel" formControlName="contactNumber" maxlength="15"
-                                        [class.is-invalid]="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid" />
-                                    <div *ngIf="companyConfigForm?.get('contactNumber')?.touched && companyConfigForm?.get('contactNumber')?.invalid"
-                                        class="erp-field-error">
-                                        Contact Number is required
-                                    </div>
-                                </div>
-                            </div> -->
-
-                                </div>
-                            </div>
-
                         </div>
 
                         <div class="form-footer">
-                            <button type="button" class="erp-btn btn-secondary">
+                            <button type="button" class="erp-btn btn-secondary" (click)="onClear()">
                                 <i class="pi pi-times"></i> Clear
                             </button>
-                            <button type="submit" class="erp-btn btn-primary">
+                            <button type="submit" class="erp-btn btn-primary" (click)="onSave()">
                                 <i class="pi pi-check"></i> Save
                             </button>
                         </div>
+
                     </form>
                 </div>
 
