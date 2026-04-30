@@ -6,9 +6,7 @@ import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
 
-// import { AuthService }              from '../../services/auth.service';
-// import { CompanyDetailsService }    from '../../services/company-details.service';
-// import { environment }              from '../../envir/environment.prod';
+
 import {
   CompanyCode, BranchCode, LoginResponse
 } from './login.models';
@@ -69,12 +67,22 @@ export class LoginComponent implements OnInit {
 
   // ── ngOnInit: set API URL then load companies ────────
   async ngOnInit(): Promise<void> {
-    sessionStorage.setItem('apiURL', environment.apiUrl);
-    await this.loadCompanyCodes();
+     let urldata = environment.apiURL;
+      let res = await this.http.get<{ apiURL: string }[]>(urldata).toPromise();
+
+  if (res?.length && res[0].apiURL) {
+    let url = new URL(res[0].apiURL);
+    let apiURL = url.origin + '/api';
+
+    sessionStorage.setItem('apiURL', apiURL);
+  }
+
+  await this.loadCompanyCodes();
   }
 
   // ── Load companies ───────────────────────────────────────────────
   private async loadCompanyCodes(): Promise<void> {
+
     const api = sessionStorage.getItem('apiURL') ?? '';
     try {
       const data = await firstValueFrom(
