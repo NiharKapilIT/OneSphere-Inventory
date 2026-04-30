@@ -15,10 +15,11 @@
 
             <!-- Date Mode Toggle -->
             <div class="col-12 col-md-2">
-              <div class="erp-form-group pb-2">
-                <label class="erp-checkbox">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
+                <label class="erp-checkbox m-0">
                   <input type="checkbox" id="asdate" formControlName="date" (change)="dte = !dte; onDateToggle()" />
-                  <span>Range Mode</span>
+                  <span>&nbsp; Date </span>
                 </label>
               </div>
             </div>
@@ -58,7 +59,7 @@
             <!-- Generate Buttons -->
             <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="getDayBookData()" [disabled]="loading()">
+                <button type="button" class="erp-btn btn-primary shadow-sm" (click)="getDayBookData()" [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ loading() ? 'Generating' : 'Generate' }}
                 </button>
@@ -67,8 +68,8 @@
 
             <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-white w-100 shadow-sm" (click)="GetChequeonHandDetails()">
-                  <i class="pi pi-ticket"></i> Cheques Info
+                <button type="button" class="erp-btn btn-secondary shadow-sm" (click)="GetChequeonHandDetails()">
+                  <i class="pi pi-ticket"></i> &nbsp; Cheques Info
                 </button>
               </div>
             </div>

@@ -43,10 +43,11 @@
 
             <!-- Summary Toggle -->
             <div class="col-12 col-md-3">
-              <div class="erp-form-group mb-2">
-                <label class="erp-checkbox">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
+                <label class="erp-checkbox m-0">
                   <input type="checkbox" (change)="CheckSummery($event)" />
-                  <span>For Summary</span>
+                  <span>&nbsp;For Summary</span>
                 </label>
               </div>
             </div>
@@ -54,7 +55,7 @@
             <!-- Generate Button -->
             <div class="col-12 col-md-3">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100" (click)="getbankBookReports()" [disabled]="loading()">
+                <button type="button" class="erp-btn btn-primary" (click)="getbankBookReports()" [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ loading() ? 'Processing' : 'Generate Report' }}
                 </button>

@@ -33,7 +33,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   templateUrl: './gst-report.html',
   providers: [DatePipe],
-  styleUrl: './gst-report.css'
+  // styleUrl: './gst-report.css'
 })
 export class GstReport implements OnInit {
   pDatepickerMaxDate: Date = new Date();
@@ -82,7 +82,7 @@ export class GstReport implements OnInit {
   paymentsSortColumn    = '';
   paymentsSortDirection: 1 | -1 = 1;
   private rawPaymentsData: any[] = [];
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   private loginBranchSchema: any;
 

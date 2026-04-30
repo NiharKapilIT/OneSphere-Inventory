@@ -2,14 +2,14 @@
 <div class="module-page">
 
   <!-- Breadcrumb Section -->
-  <div class="d-flex justify-between align-center gap-4 mb-2 p-4">
+  <!-- <div class="d-flex justify-between align-center gap-4 mb-2 p-4">
     <div>
       <h1 class="page-title">
         <i class="pi pi-list"></i> Cheques Issued
       </h1>
       <p class="page-subtitle">Track and manage all issued cheques and online payments</p>
     </div>
-  </div>
+  </div> -->
 
   <!-- Main Card -->
   <div class="erp-card">
@@ -53,7 +53,7 @@
             <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker formControlName="ptransactiondate" id="ptransactiondate" dateFormat="dd-M-yy"
               placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              inputStyleClass="erp-input icon-pad w-100"  ></p-datepicker>
+              inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
           </div>
         </div>
 
@@ -61,9 +61,16 @@
           <label class="filter-lbl">
             Bank <span class="required">*</span>
           </label>
+          <!-- <ng-select appendTo="body" [items]="bankList()" bindLabel="pbankname" bindValue="pbankid"
+            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bank Name" [closeOnSelect]="false"
+            [clearable]="true" /> -->
           <ng-select appendTo="body" [items]="bankList()" bindLabel="pbankname" bindValue="pbankid"
-            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select" [closeOnSelect]="true"
-            [clearable]="true" />
+            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bank Name"
+            [closeOnSelect]="true" [clearable]="true" [searchable]="true">
+            <ng-template ng-label-tmp let-item="item">
+              <span>{{ item.pbankname }}</span>
+            </ng-template>
+          </ng-select>
         </div>
 
         <!-- Balance Info Card (Reserved space) -->
@@ -154,9 +161,9 @@
           </span>
         </div>
         <div class="tb-right">
-          <span class="text-muted text-small">
+          <!-- <span class="text-muted text-small">
             Currency: <strong class="text-primary">{{ currencySymbol() }}</strong>
-          </span>
+          </span> -->
         </div>
       </div>
 
@@ -165,11 +172,11 @@
 
 
 
-      <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
+        <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
           [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="gr-table p-datatable-sm p-datatable-gridlines"
-          [resizableColumns]="true">
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true"
+          columnResizeMode="expand">
 
           <!-- HEADER -->
           <ng-template pTemplate="header">
@@ -311,10 +318,10 @@
             </tr>
             }
           </ng-template>
-          
 
 
-    
+
+
 
           <!-- EMPTY -->
           <ng-template pTemplate="emptymessage">

@@ -14,17 +14,19 @@
           <div class="row g-2 align-items-end">
 
             <!-- Date Range -->
-            <div class="col-12 col-md-4">
-              <div class="row g-2">
+            <div class="col-12 col-md-6">
+              <div class="row g-2 align-items-end">
                 <div class="col-6">
                   <div class="erp-form-group">
                     <label class="erp-label required">From Date <span class="required">*</span></label>
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
-                      <p-datepicker formControlName="fromDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                      <p-datepicker formControlName="fromDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                        [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                        inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
                     </div>
                     @if (submitted && f['fromDate'].errors?.['required']) {
-                      <div class="erp-field-error">Start date is required</div>
+                    <div class="erp-field-error">Start date is required</div>
                     }
                   </div>
                 </div>
@@ -33,10 +35,13 @@
                     <label class="erp-label required">To Date <span class="required">*</span></label>
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
-                      <p-datepicker formControlName="toDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
+                      <p-datepicker formControlName="toDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                        [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                        inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"
+                        [minDate]="toDateMinDate"></p-datepicker>
                     </div>
                     @if (submitted && f['toDate'].errors?.['required']) {
-                      <div class="erp-field-error">End date is required</div>
+                    <div class="erp-field-error">End date is required</div>
                     }
                   </div>
                 </div>
@@ -47,44 +52,42 @@
             <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label required">Source Form <span class="required">*</span></label>
-                <ng-select
-                  formControlName="formName"
-                  [items]="formNameData()"
-                  bindLabel="formNames"
-                  bindValue="formNames"
-                  placeholder="Select Source"
-                  [searchable]="true"
-                  appendTo="body"
-                  class="erp-ng-select"
-                  [class.is-invalid]="submitted && f['formName'].invalid">
+                <ng-select formControlName="formName" [items]="formNameData()" bindLabel="formNames"
+                  bindValue="formNames" placeholder="Select Source" [searchable]="true" appendTo="body"
+                  class="erp-ng-select" [class.is-invalid]="submitted && f['formName'].invalid">
                 </ng-select>
                 @if (submitted && f['formName'].errors?.['required']) {
-                  <div class="erp-field-error">Form selection is required</div>
+                <div class="erp-field-error">Form selection is required</div>
                 }
               </div>
             </div>
 
             <!-- Transaction Type -->
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label required">Entry Type <span class="required">*</span></label>
-                <select class="erp-input form-select shadow-none" formControlName="ptranstype" (change)="SelectTransactiontype()" [class.is-invalid]="submitted && f['ptranstype'].invalid">
+                <!-- <select class="erp-ng-select shadow-none" formControlName="ptranstype" (change)="SelectTransactiontype()" [class.is-invalid]="submitted && f['ptranstype'].invalid">
                   <option value="All">ALL ENTRIES</option>
                   <option value="Auto">AUTOMATIC</option>
                   <option value="Manual">MANUAL</option>
-                </select>
+                </select> -->
+                <ng-select formControlName="ptranstype" [items]="jvlistData1" bindLabel="viewValue" bindValue="value"
+                  placeholder="Select Entry Type" [searchable]="true" appendTo="body" class="erp-ng-select"
+                  [class.is-invalid]="submitted && f['ptranstype'].invalid">
+                </ng-select>
                 @if (submitted && f['ptranstype'].errors?.['required']) {
-                  <div class="erp-field-error">Type is required</div>
+                <div class="erp-field-error">Type is required</div>
                 }
               </div>
             </div>
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-3">
-              <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="getjvListReports()" [disabled]="loading()">
+            <div class="col-md-12 col-12 position-relative mb-2">
+              <div class="erp-form-group d-flex justify-content-end position-relative">
+                <button type="button" class="erp-btn btn-primary shadow-sm position-absolute top-0 end-0" (click)="getjvListReports()"
+                  [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
-                  {{ loading() ? 'Fetching Data' : 'Generate Report' }}
+                  {{ loading() ? 'Fetching Data' : 'Generate' }}
                 </button>
               </div>
             </div>
@@ -95,105 +98,109 @@
 
       <!-- Report Section -->
       @if (!showHide()) {
-        <div class="p-4">
-          
-          <!-- Toolbar -->
-          <div class="erp-table-toolbar mb-4 d-print-none">
-            <div class="tb-left">
-              <h6 class="mb-0 font-bold text-primary">Journal Entry Register</h6>
-            </div>
-            <div class="tb-right">
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
-              </button>
-            </div>
-          </div>
+      <div class="p-4">
 
-          <div class="report-view-container">
-            <!-- Header Summary Box -->
-            <div class="report-header-section mb-4 p-3 bg-light rounded border border-primary-subtle shadow-sm">
-              <app-companydetails [printedDateShowhide]="printedDate" />
-              <div class="row mt-4 align-items-center">
-                <div class="col-md-6 border-end border-primary-subtle">
-                  <div class="d-flex align-items-center">
-                    <div class="bg-primary-subtle text-primary p-2 rounded-circle me-3"><i class="pi pi-calendar small"></i></div>
-                    <div>
-                      <p class="mb-0 x-small text-muted text-uppercase letter-spacing-1">Analysis Period</p>
-                      <p class="mb-0 font-bold text-dark">{{ startDate | date:'dd-MMM-yyyy' }} <span class="text-muted fw-normal mx-1">to</span> {{ endDate | date:'dd-MMM-yyyy' }}</p>
-                    </div>
+        <!-- Toolbar -->
+        <div class="erp-table-toolbar mb-4 d-print-none">
+          <div class="tb-left">
+            <h6 class="mb-0 font-bold text-primary">Journal Entry Register</h6>
+          </div>
+          <div class="tb-right">
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i> PDF
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
+              <i class="pi pi-print"></i> Print
+            </button>
+          </div>
+        </div>
+
+        <div class="report-view-container">
+          <!-- Header Summary Box -->
+          <div class="report-header-section mb-4 p-3 bg-light rounded border border-primary-subtle shadow-sm">
+            <app-companydetails [printedDateShowhide]="printedDate" />
+            <div class="row mt-4 align-items-center">
+              <div class="col-md-6 border-end border-primary-subtle">
+                <div class="d-flex align-items-center">
+                  <div class="bg-primary-subtle text-primary p-2 rounded-circle me-3"><i
+                      class="pi pi-calendar small"></i></div>
+                  <div>
+                    <p class="mb-0 x-small text-muted text-uppercase letter-spacing-1">Analysis Period</p>
+                    <p class="mb-0 font-bold text-dark">{{ startDate | date:'dd-MMM-yyyy' }} <span
+                        class="text-muted fw-normal mx-1">to</span> {{ endDate | date:'dd-MMM-yyyy' }}</p>
                   </div>
                 </div>
-                <div class="col-md-6 ps-md-4">
-                  <div class="d-flex align-items-center">
-                    <div class="bg-info-subtle text-info p-2 rounded-circle me-3"><i class="pi pi-info-circle small"></i></div>
-                    <div>
-                      <p class="mb-0 x-small text-muted text-uppercase letter-spacing-1">Journal Type</p>
-                      <p class="mb-0 font-bold text-dark">{{ jvtype }}</p>
-                    </div>
+              </div>
+              <div class="col-md-6 ps-md-4">
+                <div class="d-flex align-items-center">
+                  <div class="bg-info-subtle text-info p-2 rounded-circle me-3"><i class="pi pi-info-circle small"></i>
+                  </div>
+                  <div>
+                    <p class="mb-0 x-small text-muted text-uppercase letter-spacing-1">Journal Type</p>
+                    <p class="mb-0 font-bold text-dark">{{ jvtype }}</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Data Table -->
-            <div class="tbl-wrap">
-              <p-table
-                [value]="jvlistDataa()"
-                [paginator]="true"
-                [rows]="10"
-                [rowsPerPageOptions]="[10, 20, 50, 100]"
-                responsiveLayout="scroll"
-                styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th style="min-width: 300px;">Particulars / Description</th>
-                    <th (click)="sortJv('pdebitamount')" class="cursor-pointer" style="width: 200px;">
-                      <div class="th-cell justify-content-end">Debit Amount <span class="sort-icon" [innerHTML]="getSortIconJv('pdebitamount')"></span></div>
-                    </th>
-                    <th (click)="sortJv('pcreditamount')" class="cursor-pointer" style="width: 200px;">
-                      <div class="th-cell justify-content-end">Credit Amount <span class="sort-icon" [innerHTML]="getSortIconJv('pcreditamount')"></span></div>
-                    </th>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr [class.bg-light-primary]="isDateRow(row)">
-                    <td [class.font-bold]="isDateRow(row)" [class.text-primary]="isDateRow(row)">
-                      @if (isDateRow(row)) {
-                        <div class="d-flex align-items-center">
-                          <i class="pi pi-calendar-plus me-2 text-primary small"></i>
-                          <span class="letter-spacing-1 text-uppercase">{{ (row.formOrModulename || row.pparticulars) | date:'dd-MMM-yyyy' }}</span>
-                        </div>
-                      } @else {
-                        <span class="small ps-4">{{ row.formOrModulename || row.pparticulars }}</span>
-                      }
-                    </td>
-                    <td class="td-right font-black" [class.text-danger]="row.pdebitamount != 0">
-                      @if (row.pdebitamount != 0) {
-                        {{ currencysymbol }} {{ row.pdebitamount | number:'1.2-2' }}
-                      } @else {
-                        <span class="smaller text-muted">--</span>
-                      }
-                    </td>
-                    <td class="td-right font-black" [class.text-success]="row.pcreditamount != 0">
-                      @if (row.pcreditamount != 0) {
-                        {{ currencysymbol }} {{ row.pcreditamount | number:'1.2-2' }}
-                      } @else {
-                        <span class="smaller text-muted">--</span>
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="emptymessage">
-                  <tr><td colspan="3" class="p-4 text-center text-muted italic">No journal entries found for the selected period and criteria</td></tr>
-                </ng-template>
-              </p-table>
-            </div>
           </div>
 
+          <!-- Data Table -->
+          <div class="tbl-wrap">
+            <p-table [value]="jvlistDataa()" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50, 100]"
+              responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="min-width: 300px;">Particulars / Description</th>
+                  <th (click)="sortJv('pdebitamount')" class="cursor-pointer" style="width: 200px;">
+                    <div class="th-cell justify-content-end">Debit Amount <span class="sort-icon"
+                        [innerHTML]="getSortIconJv('pdebitamount')"></span></div>
+                  </th>
+                  <th (click)="sortJv('pcreditamount')" class="cursor-pointer" style="width: 200px;">
+                    <div class="th-cell justify-content-end">Credit Amount <span class="sort-icon"
+                        [innerHTML]="getSortIconJv('pcreditamount')"></span></div>
+                  </th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr [class.bg-light-primary]="isDateRow(row)">
+                  <td [class.font-bold]="isDateRow(row)" [class.text-primary]="isDateRow(row)">
+                    @if (isDateRow(row)) {
+                    <div class="d-flex align-items-center">
+                      <i class="pi pi-calendar-plus me-2 text-primary small"></i>
+                      <span class="letter-spacing-1 text-uppercase">{{ (row.formOrModulename || row.pparticulars) |
+                        date:'dd-MMM-yyyy' }}</span>
+                    </div>
+                    } @else {
+                    <span class="small ps-4">{{ row.formOrModulename || row.pparticulars }}</span>
+                    }
+                  </td>
+                  <td class="td-right font-black" [class.text-danger]="row.pdebitamount != 0">
+                    @if (row.pdebitamount != 0) {
+                    {{ currencysymbol }} {{ row.pdebitamount | number:'1.2-2' }}
+                    } @else {
+                    <span class="smaller text-muted">--</span>
+                    }
+                  </td>
+                  <td class="td-right font-black" [class.text-success]="row.pcreditamount != 0">
+                    @if (row.pcreditamount != 0) {
+                    {{ currencysymbol }} {{ row.pcreditamount | number:'1.2-2' }}
+                    } @else {
+                    <span class="smaller text-muted">--</span>
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td colspan="3" class="p-4 text-center text-muted italic">No journal entries found for the selected
+                    period and criteria</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
         </div>
+
+      </div>
       }
 
     </div>
@@ -201,13 +208,33 @@
 </div>
 
 <style>
-  .letter-spacing-1 { letter-spacing: 0.5px; }
-  .font-black { font-weight: 900; }
-  .x-small { font-size: 0.7rem; }
-  .smaller { font-size: 0.75rem; }
-  .bg-light-primary { background-color: rgba(13, 110, 253, 0.03); }
+  .letter-spacing-1 {
+    letter-spacing: 0.5px;
+  }
+
+  .font-black {
+    font-weight: 900;
+  }
+
+  .x-small {
+    font-size: 0.7rem;
+  }
+
+  .smaller {
+    font-size: 0.75rem;
+  }
+
+  .bg-light-primary {
+    background-color: rgba(13, 110, 253, 0.03);
+  }
+
   @media print {
-    .report-view-container { padding: 0 !important; }
-    .gr-table { border: 1px solid #000 !important; }
+    .report-view-container {
+      padding: 0 !important;
+    }
+
+    .gr-table {
+      border: 1px solid #000 !important;
+    }
   }
 </style>

@@ -45,7 +45,6 @@ export class NavigationService {
       private selectedModuleSubject = new BehaviorSubject<Module | null>(null);
       private selectedSubModuleSubject = new BehaviorSubject<SubModule | null>(null);
       private selectedScreenSubject = new BehaviorSubject<Screen | null>(null);
-    
       public selectedModule$: Observable<Module | null> = this.selectedModuleSubject.asObservable();
       public selectedSubModule$: Observable<SubModule | null> = this.selectedSubModuleSubject.asObservable();
       public selectedScreen$: Observable<Screen | null> = this.selectedScreenSubject.asObservable();
@@ -54,13 +53,11 @@ export class NavigationService {
         {
           id: 'accounts',
           name: 'Accounts',
-          icon: '💼',
-          subModules: [
+           subModules: [
             {
               id: 'accounts-config',
-              name: 'Accounts Config',
-              icon: '👥',
-              screens: [
+              name: 'Config.',
+                screens: [
                 {
                   id: 'bank-config',
                   name: 'Bank Configuration',
@@ -79,9 +76,8 @@ export class NavigationService {
             },
             {
               id: 'accounts-transactions',
-              name: 'Accounts Transactions',
-              icon: '🏦',
-              screens: [
+              name: 'Transactions',
+               screens: [
                 {
                   id: 'general-receipt',
                   name: 'General Receipt',
@@ -138,8 +134,7 @@ export class NavigationService {
             },
             {
               id: 'accounts-reports',
-              name: 'Accounts Reports',
-              icon: '📊',
+              name: 'Reports',
               screens: [
                 { id: 'account-ledger', name: 'Account Ledger', route: '/dashboard/accounts/accounts-reports/account-ledger' },
                 
@@ -173,13 +168,11 @@ export class NavigationService {
         {
           id: 'inventory',
           name: 'Inventory',
-          icon: '💳',
-          subModules: [
+            subModules: [
             {
               id: 'deposits',
               name: 'Deposits',
-              icon: '⬇️',
-              screens: [
+                screens: [
                 { id: 'cash-deposit', name: 'Cash Deposit', route: '/dashboard/inventory/deposits/cash-deposit' },
                 { id: 'cheque-deposit', name: 'Cheque Deposit', route: '/dashboard/inventory/deposits/cheque-deposit' },
                 { id: 'online-deposit', name: 'Online Deposit', route: '/dashboard/inventory/deposits/online-deposit' }
@@ -188,8 +181,7 @@ export class NavigationService {
             {
               id: 'withdrawals',
               name: 'Withdrawals',
-              icon: '⬆️',
-              screens: [
+               screens: [
                 { id: 'cash-withdrawal', name: 'Cash Withdrawal', route: '/dashboard/inventory/withdrawals/cash-withdrawal' },
                 { id: 'online-transfer', name: 'Online Transfer', route: '/dashboard/inventory/withdrawals/online-transfer' },
                 { id: 'cheque-withdrawal', name: 'Cheque Withdrawal', route: '/dashboard/inventory/withdrawals/cheque-withdrawal' }
@@ -198,8 +190,7 @@ export class NavigationService {
             {
               id: 'transfers',
               name: 'Transfers',
-              icon: '🔄',
-              screens: [
+               screens: [
                 { id: 'internal-transfer', name: 'Internal Transfer', route: '/dashboard/inventory/transfers/internal-transfer' },
                 { id: 'external-transfer', name: 'External Transfer', route: '/dashboard/inventory/transfers/external-transfer' },
                 { id: 'scheduled-transfer', name: 'Scheduled Transfer', route: '/dashboard/inventory/transfers/scheduled-transfer' }
@@ -210,63 +201,26 @@ export class NavigationService {
         {
           id: 'hrms',
           name: 'HRMS',
-          icon: '📊',
-          
           subModules: [
             {
-              id: 'hrms-reports',
-              name: 'HRMS Reports',
-              icon: '📊',
+              id: 'hrms-dashboard',
+              name: 'Dashboard',
               screens: [
-                { id: 'salary-statement', name: 'Salary Statement', route: '/dashboard/hrms/hrms-reports/salary-statement' },
-                { id: 'esi-statement', name: 'ESI Statement', route: '/dashboard/hrms/hrms-reports/esi-statement' },
-                { id: 'pf-statement', name: 'PF Statement', route: '/dashboard/hrms/hrms-reports/pf-statement' },
-                { id: 'professional-tax', name: 'Professional Tax', route: '/dashboard/hrms/hrms-reports/professional-tax' },
-                { id: 'employee-month-bonus', name: 'Employee Month Bonus Report', route: '/dashboard/hrms/hrms-reports/employee-month-bonus' },
-                { id: 'earned-leaves', name: 'Earned Leaves', route: '/dashboard/hrms/hrms-reports/earned-leaves' },
-                { id: 'loyalty-statement', name: 'Loyalty Statement', route: '/dashboard/hrms/hrms-reports/loyalty-statement' },
-                { id: 'payslip', name: 'PaySlip', route: '/dashboard/hrms/hrms-reports/payslip' },
-                { id: 'biometric-report', name: 'Biometric Report', route: '/dashboard/hrms/hrms-reports/biometric-report' },
-                { id: 'transferred-employees', name: 'Transferred Employees', route: '/dashboard/hrms/hrms-reports/transferred-employees' },
-                { id: 'khc-renewals', name: 'KHC Renewals', route: '/dashboard/hrms/hrms-reports/khc-renewals' },
-                { id: 'allowance-details', name: 'Allowance Details', route: '/dashboard/hrms/hrms-reports/allowance-details' },
-                { id: 'biometric-summary', name: 'Biometric Summary Report', route: '/dashboard/hrms/hrms-reports/biometric-summary' },
-                { id: 'biometric-modifications', name: 'Biometric Modifications', route: '/dashboard/hrms/hrms-reports/biometric-modifications' }
-              ]
-            },
-            {
-              id: 'payroll',
-              name: 'Payroll',
-              icon: '🏦',
-              screens: [
-                { id: 'daily-transactions', name: 'Daily Transactions', route: '/dashboard/hrms/transaction-reports/daily-transactions' },
-                { id: 'monthly-summary', name: 'Monthly Summary', route: '/dashboard/hrms/transaction-reports/monthly-summary' },
-                { id: 'audit-trail', name: 'Audit Trail', route: '/dashboard/hrms/transaction-reports/audit-trail' }
-              ]
-            },
-            {
-              id: 'customer-reports',
-              name: 'Customer Reports',
-              icon: '👤',
-              screens: [
-                { id: 'customer-list', name: 'Customer List', route: '/dashboard/hrms/customer-reports/customer-list' },
-                { id: 'customer-activity', name: 'Customer Activity', route: '/dashboard/hrms/customer-reports/customer-activity' },
-                { id: 'kyc-reports', name: 'KYC Reports', route: '/dashboard/hrms/customer-reports/kyc-reports' }
+                { id: 'hrms-dashboard', name: 'HRMS Dashboard', route: '/dashboard/hrms/hrms-dashboard/dashboard' }
               ]
             },
             {
               id: 'hrms-payroll',
-              name: 'Hrms Payroll',
-              icon: '💰',
+              name: 'HRMS Payroll',
               screens: [
                 { id: 'ssc-agenda', name: 'SSC Agenda', route: '/dashboard/hrms/hrms-payroll/ssc-agenda' },
-                { id: 'employee-on-roll', name: 'Employee Onroll', route: '/dashboard/hrms/hrms-payroll/employee-on-roll' },
+                { id: 'employee-on-roll', name: 'Employee On Roll', route: '/dashboard/hrms/hrms-payroll/employee-on-roll' },
                 { id: 'employee-attendance', name: 'Employee Attendance', route: '/dashboard/hrms/hrms-payroll/employee-attendance' },
-                { id: 'employee-payroll', name: 'Payroll Process', route: '/dashboard/hrms/hrms-payroll/employee-payroll' },
+                { id: 'payroll-process', name: 'Payroll Process', route: '/dashboard/hrms/hrms-payroll/payroll-process' },
                 { id: 'payroll-approval', name: 'Payroll Approval', route: '/dashboard/hrms/hrms-payroll/payroll-approval' },
-                { id: 'jv-details', name: 'Jv Details', route: '/dashboard/hrms/hrms-payroll/jv-details' },
+                { id: 'jv-details', name: 'JV Details', route: '/dashboard/hrms/hrms-payroll/jv-details' },
                 { id: 'khc-details', name: 'KHC Details', route: '/dashboard/hrms/hrms-payroll/khc-details' },
-                { id: 'biometric-attendance', name: 'Biometric Attendance', route: '/dashboard/hrms/hrms-payroll/biometric-attendance' },
+                { id: 'biometric-attendance', name: 'Biometric Attendance', route: '/dashboard/hrms/hrms-payroll/biometric-attendance' }
               ]
             }
           ]
@@ -274,13 +228,11 @@ export class NavigationService {
         {
           id: 'settings',
           name: 'Settings',
-          icon: '⚙️',
-          subModules: [
+        subModules: [
             {
               id: 'user-management',
               name: 'User Management',
-              icon: '👨‍💼',
-              screens: [
+               screens: [
                 { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
                 { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
                 { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
@@ -289,8 +241,55 @@ export class NavigationService {
             {
               id: 'system-config',
               name: 'System Configuration',
-              icon: '🔧',
-              screens: [
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
+                { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
+                { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
+                { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
+              ]
+            }
+          ]
+        },
+        {
+          id: 'settings',
+          name: 'Settings',
+        subModules: [
+            {
+              id: 'user-management',
+              name: 'User Management',
+               screens: [
+                { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
+                { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
+                { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
+              ]
+            },
+            {
+              id: 'system-config',
+              name: 'System Configuration',
+               screens: [
                 { id: 'general-settings', name: 'General Settings', route: '/dashboard/settings/system-config/general-settings' },
                 { id: 'email-config', name: 'Email Configuration', route: '/dashboard/settings/system-config/email-config' },
                 { id: 'backup-restore', name: 'Backup & Restore', route: '/dashboard/settings/system-config/backup-restore' }
@@ -332,14 +331,38 @@ export class NavigationService {
     }
 
 
-
-
-
     
 //global_ERP
     
       getModules(): Module[] {
         return this.modulesData;
+      }
+
+      /** Add a brand-new top-level module (e.g. a feature module loaded lazily). */
+      registerModule(module: Module): void {
+        if (this.modulesData.find(m => m.id === module.id)) return;
+        this.modulesData.push(module);
+      }
+
+      /** Add a sub-module to an existing module. */
+      registerSubModule(moduleId: string, subModule: SubModule): void {
+        const mod = this.modulesData.find(m => m.id === moduleId);
+        if (!mod) return;
+        if (mod.subModules.find(s => s.id === subModule.id)) return;
+        mod.subModules.push(subModule);
+      }
+
+      /** Add or merge screens into an existing sub-module. */
+      registerScreens(moduleId: string, subModuleId: string, screens: Screen[]): void {
+        const mod = this.modulesData.find(m => m.id === moduleId);
+        if (!mod) return;
+        const sub = mod.subModules.find(s => s.id === subModuleId);
+        if (!sub) return;
+        for (const screen of screens) {
+          if (!sub.screens.find(s => s.id === screen.id)) {
+            sub.screens.push(screen);
+          }
+        }
       }
 
       findPathByRoute(route: string): NavigationPath | null {

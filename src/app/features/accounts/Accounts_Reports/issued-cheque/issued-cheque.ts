@@ -23,7 +23,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
     Companydetails
   ],
   templateUrl: './issued-cheque.html',
-  styleUrl: './issued-cheque.css',
+  // styleUrl: './issued-cheque.css',
   providers: [DatePipe]
 })
 export class IssuedCheque implements OnInit {

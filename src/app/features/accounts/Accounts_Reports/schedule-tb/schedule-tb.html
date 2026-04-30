@@ -29,7 +29,7 @@
           <!-- Print Button -->
           <div class="col-12 col-md-3">
             <div class="erp-form-group">
-              <button type="submit" class="erp-btn btn-primary w-100 shadow-sm" [disabled]="loading()">
+              <button type="submit" class="erp-btn btn-primary shadow-sm" [disabled]="loading()">
                 <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-print'"></i>
                 {{ loading() ? 'Generating' : btnPrint() }}
               </button>

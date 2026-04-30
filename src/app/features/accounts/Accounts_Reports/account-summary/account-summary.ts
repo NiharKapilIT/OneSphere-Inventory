@@ -9,8 +9,8 @@ import {
   Validators
 } from '@angular/forms';
 
+import { NgSelectModule } from '@ng-select/ng-select';
 import { ButtonModule } from 'primeng/button';
-import { MultiSelectModule } from 'primeng/multiselect';
 import { TableModule } from 'primeng/table';
 import { Companydetails } from '../../../common/company-details/companydetails/companydetails';
 import { CommonService } from '../../../../core/services/Common/common.service';
@@ -28,12 +28,11 @@ import { DatePickerModule } from 'primeng/datepicker';
     FormsModule,
     TableModule,
     ButtonModule,
-    MultiSelectModule,
+    NgSelectModule,
     Companydetails
   ],
   providers: [DatePipe],
   templateUrl: './account-summary.html',
-  styleUrl: './account-summary.css'
 })
 export class AccountSummary implements OnInit {
   pDatepickerMaxDate: Date = new Date();

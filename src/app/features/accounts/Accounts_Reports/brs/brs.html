@@ -14,7 +14,7 @@
           <div class="row g-2 align-items-end">
 
             <!-- Bank Name -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label required">Bank Name <span class="required">*</span></label>
                 <ng-select
@@ -35,18 +35,20 @@
             </div>
 
             <!-- Cheques Info Toggle -->
-            <div class="col-12 col-md-auto">
-              <div class="erp-form-group mb-2">
-                <label class="erp-checkbox">
+            <div class="col-12 col-md-3">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp; &nbsp;</label>
+                <label class="erp-checkbox m-0">
                   <input type="checkbox" id="chequesInfo" (change)="onChequesInfoChange($event)" />
-                  <span>Cheques Info</span>
+                  <span> Cheques Info</span>
                 </label>
               </div>
             </div>
-
+</div>
+              <div class="row g-2">
             <!-- Conditional Date Filters -->
             @if (chequesInfo()) {
-              <div class="col-12 col-md-2">
+              <div class="col-12 col-md-3">
                 <div class="erp-form-group">
                   <label class="erp-label required">From Date <span class="required">*</span></label>
                   <div class="erp-input-wrap erp-date-wrap">
@@ -58,7 +60,7 @@
                   }
                 </div>
               </div>
-              <div class="col-12 col-md-2">
+              <div class="col-12 col-md-3">
                 <div class="erp-form-group">
                   <label class="erp-label required">To Date <span class="required">*</span></label>
                   <div class="erp-input-wrap erp-date-wrap">
@@ -86,7 +88,7 @@
             }
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-auto">
+            <div class="col-12 col-md-4 offset-6 align-center mt-5">
               <div class="erp-form-group">
                 <button type="submit" class="erp-btn btn-primary">
                   <i class="pi pi-search"></i> {{ savebutton() }}
@@ -230,7 +232,7 @@
                   </div>
 
                   <!-- Reconciliation Form Fields -->
-                  <div class="row g-3">
+                  <div class="row g-2 align-items-end">
                     <div class="col-md-6">
                       <div class="erp-form-group">
                         <label class="erp-label required">Verified Bank Balance <span class="required">*</span></label>
@@ -244,10 +246,10 @@
                     <div class="col-md-6">
                       <div class="erp-form-group">
                         <label class="erp-label">Support Document (Passbook/Statement)</label>
-                        <div class="erp-input-wrap">
-                          <input type="text" class="erp-input pe-5 bg-light" formControlName="pFilename" readonly placeholder="No file selected" />
-                          <button type="button" class="erp-btn btn-primary btn-sm position-absolute end-0 top-50 translate-middle-y me-1" (click)="fileInput.click()" style="height: 28px;">
-                            <i class="pi pi-upload small"></i> Browse
+                        <div class="erp-file-upload">
+                          <input type="text" class="erp-input erp-file-input" formControlName="pFilename" readonly placeholder="No file selected" />
+                          <button type="button" class="erp-file-btn" (click)="fileInput.click()">
+                            <i class="pi pi-upload"></i> Browse
                           </button>
                           <input hidden type="file" #fileInput (change)="uploadAndProgress($event)" />
                         </div>

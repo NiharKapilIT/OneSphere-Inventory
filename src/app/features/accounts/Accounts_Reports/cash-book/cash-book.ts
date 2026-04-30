@@ -14,7 +14,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   standalone:true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule, DatePickerModule, TableModule, Companydetails],
   templateUrl: "./cash-book.html",
-  styleUrl: "./cash-book.css",
+  // styleUrl: "./cash-book.css",
   providers: [DatePipe]
 })
 
@@ -64,7 +64,7 @@ export class CashBook implements OnInit {
   private rawData: any[] = [];
   private sortColumn = '';
   private sortDirection = 1;
-   toDateMinDate: Date | null = null;
+   toDateMinDate: any | null = null;
   
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────

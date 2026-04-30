@@ -3,7 +3,7 @@ import { mergeMap, of, Subject } from 'rxjs';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { map, catchError, switchMap } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
-import { ToastrService } from 'ngx-toastr';
+import { MessageService } from 'primeng/api';
 
 import { formatDate } from '@angular/common';
 import { CookieService } from 'ngx-cookie-service';
@@ -82,10 +82,10 @@ export class CommonService {
 
 
   showSuccessMessage() {
-    this.toastr.success("Saved successfully", "Success", { timeOut: this.messageShowTimeOut });
+    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Saved successfully', life: this.messageShowTimeOut });
   }
   showSuccessMsg(message: any) {
-    this.toastr.success(message, "Success", { timeOut: this.messageShowTimeOut });
+    this.messageService.add({ severity: 'success', summary: 'Success', detail: message, life: this.messageShowTimeOut });
   }
   showErrorMessage(error: any) {
     console.warn('API disabled (mock mode):', error?.message || error);
@@ -466,7 +466,7 @@ export class CommonService {
 
 
   showWarningMessage(message: string) {
-    this.toastr.warning(message);
+    this.messageService.add({ severity: 'warn', summary: 'Warning', detail: message });
   }
   convertAmountToPdfFormat(value: number | string | null | undefined): string {
 
@@ -663,7 +663,7 @@ export class CommonService {
   // currencysymbol = sessionStorage.getItem("currencyformat");
   currencysymbol = '₹'
 
-  constructor(private http: HttpClient, private toastr: ToastrService, private _CookieService: CookieService, private datepipe: DatePipe, @Inject(LOCALE_ID) private locale: string) {
+  constructor(private http: HttpClient, private messageService: MessageService, private _CookieService: CookieService, private datepipe: DatePipe, @Inject(LOCALE_ID) private locale: string) {
     this.pCreatedby = 'admin'; // or from auth/user session
     this.ipaddress = '127.0.0.1';
     console.log('DatePipe injected:', this.datepipe);
@@ -975,7 +975,7 @@ export class CommonService {
 
   // showErrorMessage(errormsg: string) {
 
-  //   this.toastr.error(errormsg, "Error!", { timeOut: this.messageShowTimeOut });
+  //   this.messageService.add({ severity: 'error', summary: 'Error!', detail: errormsg, life: this.messageShowTimeOut });
   // }
 
   // pdfProperties(propertyType: string): string | number {
@@ -2090,7 +2090,7 @@ let Company = this._getCompanyDetails();
   }
   showInfoMessage(errormsg: string) {
 
-    this.toastr.success(errormsg, "Success!", { timeOut: this.messageShowTimeOut });
+    this.messageService.add({ severity: 'success', summary: 'Success!', detail: errormsg, life: this.messageShowTimeOut });
   }
 
 
@@ -3082,7 +3082,7 @@ let Company = this._getCompanyDetails();
 
 
           doc.setFont('times', 'bold');
-          doc.setFontSize(14);
+          doc.setFontSize(10);
           doc.text(`Bank Reconciliation - ${bankname}`, centerX, 34, { align: 'center' });
 
           doc.setFontSize(10);
@@ -3679,7 +3679,7 @@ let Company = this._getCompanyDetails();
   ]
 
   exceptionHandlingMessages(formName: string, methodName: string, errorMessage: string) {
-    this.toastr.error(errorMessage, "Error!", { timeOut: 2500 });
+    this.messageService.add({ severity: 'error', summary: 'Error!', detail: errorMessage, life: 2500 });
   }
   getFormatDate1(date: Date | string | null): string | null {
 

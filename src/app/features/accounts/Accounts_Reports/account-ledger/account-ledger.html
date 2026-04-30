@@ -15,7 +15,7 @@
         <div class="p-4 border-bottom">
 
           <!-- Proper 2 Column Form Layout -->
-          <div class="row g-3">
+          <div class="row g-2 align-items-end">
 
             <!-- Row 1: Ledger -->
             <div class="col-12 col-md-4">
@@ -94,22 +94,23 @@
 
             <!-- Row 3: With Narration -->
             <div class="col-12 col-md-4">
-              <div class="erp-form-group d-flex align-items-center" style="min-height: 38px;">
+              <div class="erp-form-group">
+                <label class="erp-label">&nbsp;</label>
                 <label class="erp-checkbox m-0">
                   <input type="checkbox" id="WithNarration" (change)="onNarrationChange($event)" />
-                  <span>With Narration</span>
+                  <span>&nbsp; With Narration</span>
                 </label>
               </div>
             </div>
 
             <!-- Row 3: Generate Button -->
-            <div class="col-12 col-md-4">
-              <div class="erp-form-group d-flex justify-content-end">
-                <button type="button" class="erp-btn btn-primary" style="min-width: 180px;" (click)="generateReport()"
+            <div class="col-12 col-md-4 offset-6">
+              <div class="erp-form-group">
+                <button type="button" class="erp-btn btn-primary" (click)="generateReport()"
                   [disabled]="isLoading()">
 
                   @if (!isLoading()) {
-                  <i class="pi pi-search"></i> Generate Report
+                  <i class="pi pi-search"></i> Generate
                   } @else {
                   <i class="pi pi-spin pi-spinner"></i> Processing...
                   }

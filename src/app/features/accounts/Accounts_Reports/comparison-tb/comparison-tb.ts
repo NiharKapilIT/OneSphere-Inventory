@@ -32,7 +32,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   providers: [DatePipe],
   templateUrl: './comparison-tb.html',
-  styleUrl: './comparison-tb.css'
+  // styleUrl: './comparison-tb.css'
 })
 export class ComparisonTb implements OnInit {
   pDatepickerMaxDate: Date = new Date();
@@ -79,7 +79,7 @@ export class ComparisonTb implements OnInit {
   dpConfig1: any = {};
 
   @ViewChild('myTable') table: any;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   constructor() {
     this.currencysymbol = String(

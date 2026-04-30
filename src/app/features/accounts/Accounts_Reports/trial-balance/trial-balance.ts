@@ -21,7 +21,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   providers: [DatePipe],
   templateUrl: './trial-balance.html',
-  styleUrl: './trial-balance.css'
+  // styleUrl: './trial-balance.css'
 })
 export class TrialBalance implements OnInit {
   pDatepickerMaxDate: Date = new Date();
@@ -56,7 +56,7 @@ export class TrialBalance implements OnInit {
   betweento         = '';
   sortColumn        = '';
   sortDirection     = 1;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
 
   private trialBalanceRaw: any[] = [];
 

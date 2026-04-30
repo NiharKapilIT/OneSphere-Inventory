@@ -30,7 +30,7 @@ interface LedgerRow {
   standalone:true,
   imports: [CommonModule, FormsModule, DatePickerModule],
   templateUrl: "./ledger-extract.html",
-  styleUrl: "./ledger-extract.css",
+  // styleUrl: "./ledger-extract.css",
 })
 
 export class LedgerExtract implements OnInit {
@@ -74,7 +74,7 @@ export class LedgerExtract implements OnInit {
     this.rc.ToDate = today;
     this.toDateMinDate = today;
   }
-  onFromDateChange(val: Date | null): void {
+  onFromDateChange(val: any | null): void {
   this.toDateMinDate = val ?? null;
   if (this.rc.ToDate && val && this.rc.ToDate < val) {
     this.rc.ToDate = null;

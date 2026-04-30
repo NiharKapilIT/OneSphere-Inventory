@@ -28,7 +28,7 @@ interface BrsForm {
   standalone:true,
   imports: [CommonModule, ReactiveFormsModule, DatePickerModule, NgSelectModule, TableModule],
   templateUrl: "./brs-statements.html",
-  styleUrl: "./brs-statements.css",
+  // styleUrl: "./brs-statements.css",
 })
 
 export class BrsStatements implements OnInit {
@@ -88,7 +88,7 @@ export class BrsStatements implements OnInit {
   dpConfig: any = {};
   dpConfig1: any = {};
   form!: FormGroup<BrsForm>;
-  toDateMinDate: Date | null = null;
+  toDateMinDate: any | null = null;
    today = new Date(new Date().setHours(0, 0, 0, 0));
 
   constructor() {
