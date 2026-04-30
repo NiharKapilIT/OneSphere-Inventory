@@ -36,11 +36,27 @@ export class CompanyConfig {
   visible = signal<boolean>(false);
   companyConfigvalidations: any = {};
   submitted = false;
+  today:any = new Date();
   statusOptions: any = []
+  barnchname:any[] = [
+    {value:'Branch1', label:'Branch1'},
+    {value:'Branch2', label:'Branch2'},
+    {value:'Branch3', label:'Branch3'},
+  ];  
+  statusCode:any[] = [
+    {value:'Status1', label:'Status1'},
+    {value:'Status2', label:'Status2'},
+    {value:'Status3', label:'Status3'},
+  ];  
+  status:any[] = [
+    {value:'Active', label:'Active'},
+    {value:'Inactive', label:'Inactive'},
+  ];  
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly _commonService = inject(CommonService);
   companyConfigForm!: FormGroup<any>;
+  BranchConfigForm!: FormGroup<any>;
   constructor(private fb: FormBuilder) {
     this.pageCriteria = new PageCriteria();
 
@@ -49,6 +65,7 @@ export class CompanyConfig {
 
   ngOnInit(): void {
     this.pageSetUp();
+   this.buildForm();
   }
 
   // ── Form Construction ────────────────────────────────────────────────────────
@@ -66,6 +83,24 @@ export class CompanyConfig {
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
+   
+ this.BranchConfigForm=this.fb.group({
+      barnchname:['',Validators.required],
+      branchCode:['',Validators.required ],
+      gstNumber:['' ],
+      statuscode:[''],
+      branchEmail:['' ],
+      branchContactNumber:[''],
+      status:[''],
+      branchAddress:[''], 
+      branchDate:[this.today]
+    }as any);
+    this.BlurEventAllControll(this.BranchConfigForm);  
+
+
+
+
+
   }
 
   BlurEventAllControll(fromgroup: FormGroup): void {
