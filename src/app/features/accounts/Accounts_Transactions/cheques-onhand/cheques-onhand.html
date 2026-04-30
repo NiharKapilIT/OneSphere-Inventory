@@ -65,18 +65,44 @@
           </app-validation-message>
         </div>
 
+        <!-- <div class="filter-group">
+          <label class="filter-lbl">
+            Bank <span class="required">*</span>
+          </label>
+
+          <ng-select appendTo="body" [items]="BanksList()" bindLabel="pdepositbankname" bindValue="pbankid"
+            formControlName="bankname" (change)="SelectBank($event)" placeholder="Select Bankname"
+            [closeOnSelect]="true" [clearable]="true" [ngClass]="{
+      'ng-invalid ng-touched':
+      ChequesOnHandForm.get('bankname')?.invalid &&
+      ChequesOnHandForm.get('bankname')?.touched
+    }">
+          </ng-select>
+
+          @if (ChequesOnHandForm.get('bankname')?.invalid
+          && ChequesOnHandForm.get('bankname')?.touched) {
+          <div class="erp-field-error">
+            ● Bank Name is Required
+          </div>
+          }
+        </div> -->
+
         <div class="filter-group">
           <label class="filter-lbl">
             Bank <span class="required">*</span>
           </label>
-          <ng-select appendTo="body" [items]="BanksList()" bindLabel="pdepositbankname" bindValue="pbankid"
-            formControlName="bankname" (change)="SelectBank($event)" placeholder="Select" [closeOnSelect]="true"
-            [clearable]="true" [ngClass]="{ 'ng-invalid':ChequesOnHandValidation()?.bankname }" />
 
-          @if (ChequesOnHandValidation()?.bankname) {
-          <div class="erp-field-error">{{ ChequesOnHandValidation()?.bankname}}</div>
+          <ng-select appendTo="body" [items]="BanksList()" bindLabel="pdepositbankname" bindValue="pbankid"
+            formControlName="bankname" (change)="SelectBank($event)" placeholder="Select Bankname"
+            [closeOnSelect]="true" [clearable]="true"
+            [ngClass]="{ 'ng-invalid': ChequesOnHandValidation()['bankname'] }">
+          </ng-select>
+
+          @if (ChequesOnHandValidation()['bankname']) {
+          <div class="erp-field-error">
+            ● {{ ChequesOnHandValidation()['bankname'] }}
+          </div>
           }
-          <!-- <app-validation-message [messgae]="ChequesOnHandValidation()['bankname']" /> -->
         </div>
 
         <!-- Balance Info Card (Reserved space) -->
@@ -226,9 +252,7 @@
           </span>
         </div>
         <div class="tb-right">
-          <!-- <span class="text-muted text-small">
-            Currency: <strong class="text-primary">{{ currencySymbol() }}</strong>
-          </span> -->
+
         </div>
       </div>
 
@@ -239,9 +263,9 @@
           [paginator]="!isCleared() && page().totalElements > 0" [rows]="pageCriteria.pageSize"
           [totalRecords]="page().totalElements" [first]="pageCriteria.offset * pageCriteria.pageSize"
           [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
-          [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"  [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          [resizableColumns]="true">
+          [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"
+          [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" [resizableColumns]="true">
 
           <ng-template pTemplate="header">
             <tr>
@@ -338,11 +362,14 @@
     </div>
 
     <!-- Action Buttons -->
+
     <div class="card-footer">
       <div class="d-flex gap-2 flex-wrap">
         <button (click)="Clear()" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
         </button>
+
+        @if (status() !== 'deposited' && status() !== 'cancelled') {
         <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton()">
           @if (!disablesavebutton()) {
           <i class="pi pi-check"></i>
@@ -350,6 +377,7 @@
           <i class="fa" [ngClass]="{ 'fa-spin fa-spinner': disablesavebutton() }"></i>
           {{ buttonname() }}
         </button>
+        }
       </div>
     </div>
 

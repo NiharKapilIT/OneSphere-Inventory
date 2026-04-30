@@ -140,28 +140,27 @@
             <p-table [value]="tdsJvDetailsGrid" [paginator]="true" [rows]="pageCriteria.pageSize"
               [first]="pageCriteria.offset" [responsiveLayout]="'scroll'" [scrollable]="true" scrollHeight="400px"
               selectionMode="multiple" [(selection)]="selected1" (selectionChange)="onSelect($event)"
-              [showCurrentPageReport]="true" styleClass="gr-table p-datatable-sm p-datatable-gridlines"
-              [resizableColumns]="true">
+              [showCurrentPageReport]="true" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
               <!-- Header -->
               <ng-template pTemplate="header">
                 <tr>
-                  <th pResizableColumn class="th-actions th-col-checkbox">
+                  <th class="th-actions th-col-checkbox">
                     <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
                   </th>
-                  <th pResizableColumn class="th-cell">
+                  <th class="th-cell">
                     <div class="th-cell">
                       <i class="pi pi-align-left"></i>
                       Particulars
                     </div>
                   </th>
-                  <th pResizableColumn class="th-right th-col-amount">
+                  <th class="th-right th-col-amount">
                     <div class="th-cell th-cell-end">
                       <i class="pi pi-arrow-down"></i>
                       Debit Amount
                     </div>
                   </th>
-                  <th pResizableColumn class="th-right th-col-amount">
+                  <th class="th-right th-col-amount">
                     <div class="th-cell th-cell-end">
                       <i class="pi pi-arrow-up"></i>
                       Credit Amount

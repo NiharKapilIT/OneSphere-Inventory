@@ -42,7 +42,7 @@
             </div>
 
             <!-- Grouping Checkbox -->
-            <div class="col-12 col-md-2">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label">&nbsp;</label>
                 <label class="erp-checkbox m-0">
@@ -53,9 +53,9 @@
             </div>
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-4">
-              <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="show()" [disabled]="loading()">
+            <div class="col-12 col-md-3 position-relative">
+              <div class="erp-form-group d-flex justify-content-end position-relative">
+                <button type="button" class="erp-btn btn-primary shadow-sm position-absolute top-0 end-0" (click)="show()" [disabled]="loading()">
                   <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ loading() ? 'Generating' : savebutton() }}
                 </button>

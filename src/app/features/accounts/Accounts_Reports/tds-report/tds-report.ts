@@ -17,7 +17,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   standalone:true,
   imports: [DatePickerModule, CommonModule, FormsModule, ReactiveFormsModule, TableModule, NgSelectModule, SelectModule],
   templateUrl: "./tds-report.html",
-  styleUrl: "./tds-report.css",
+  // styleUrl: "./tds-report.css",
   host: { ngSkipHydration: '' }
 })
 

@@ -61,7 +61,7 @@
             <!-- Generate Button -->
             <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="generateReport()" [disabled]="savebutton() === 'Processing...'">
+                <button type="button" class="erp-btn btn-primary shadow-sm" (click)="generateReport()" [disabled]="savebutton() === 'Processing...'">
                   <i class="pi" [ngClass]="savebutton() === 'Processing...' ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                   {{ savebutton() === 'Processing...' ? 'Generating' : 'Generate' }}
                 </button>

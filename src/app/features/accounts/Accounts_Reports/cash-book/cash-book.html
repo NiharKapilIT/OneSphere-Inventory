@@ -68,9 +68,9 @@
             <!-- Generate Button -->
             <div class="col-12 col-md-2">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary w-100 shadow-sm" (click)="generateReport()" [disabled]="isLoading()">
+                <button type="button" class="erp-btn btn-primary shadow-md" (click)="generateReport()" [disabled]="isLoading()">
                   <i class="pi" [ngClass]="isLoading() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
-                  {{ isLoading() ? 'Processing' : 'Generate Report' }}
+                  {{ isLoading() ? 'Processing' : 'Generate' }}
                 </button>
               </div>
             </div>

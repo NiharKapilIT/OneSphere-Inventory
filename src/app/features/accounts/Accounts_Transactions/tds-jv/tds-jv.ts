@@ -421,8 +421,7 @@ export class TdsJv implements OnInit {
     this.totaldebitamount = 0;
     this.totalcreditamount = 0;
     this.showhidetable = false;
-   // this.dataisempty = false;
-    this.dataisempty = true;
+    this.dataisempty = false;
     this.tdsJvDetailsGrid = [];
 
     const creditledger = this.tdsJvDetailsForm.controls['CreditLedger'].value || '';

@@ -33,7 +33,7 @@ import { DatePickerModule } from 'primeng/datepicker';
   ],
   standalone: true,
   templateUrl: './cheque-cancel.html',
-  styleUrl: './cheque-cancel.css'
+  // styleUrl: './cheque-cancel.css'
 })
 export class ChequeCancel implements OnInit {
   pDatepickerMaxDate: Date = new Date();
