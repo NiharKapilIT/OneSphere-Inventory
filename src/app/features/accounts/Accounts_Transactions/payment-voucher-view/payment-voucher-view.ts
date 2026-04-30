@@ -2313,6 +2313,7 @@ import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-payment-voucher-view',
@@ -2379,6 +2380,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   readonly saveButtonLabel = signal('Save');
   readonly disableTransactionDate = signal(false);
   readonly bankExists = signal(false);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   displayCardName = 'Debit Card';
   displayChequeNo = 'Cheque No';
@@ -2925,7 +2927,37 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   }
 
   // ─── Data Loading ─────────────────────────────────────────────────────────
+  // getLoadData(): void {
+  //   this.accountingTxService
+  //     .GetReceiptsandPaymentsLoadingData2(
+  //       'PAYMENT VOUCHER',
+  //       this.commonService.getbranchname(),
+  //       this.commonService.getschemaname(),
+  //       this.commonService.getCompanyCode(),
+  //       this.commonService.getBranchCode(),
+  //       'taxes'
+  //     )
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe({
+  //       next: (json: any) => {
+  //         if (!json) return;
+  //         this.banklist = json.banklist;
+  //         this.modeOfTransactionsList = json.modeofTransactionslist;
+  //         this.typeOfPaymentList = this.getTypeOfPaymentData();
+  //         this.ledgerAccountsList = json.accountslist;
+  //         this.partyList = json.partylist;
+  //         this.gstList = json.gstlist;
+  //         this.debitCardList = json.bankdebitcardslist;
+  //         this.setBalances('CASH', json.cashbalance);
+  //         this.setBalances('BANK', json.bankbalance);
+  //         this.cashRestrictAmount = json.cashRestrictAmount;
+  //       },
+  //       error: (err) => this.commonService.showErrorMessage(err),
+  //     });
+  // }
+
   getLoadData(): void {
+    debugger;
     this.accountingTxService
       .GetReceiptsandPaymentsLoadingData2(
         'PAYMENT VOUCHER',
@@ -2946,9 +2978,12 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           this.partyList = json.partylist;
           this.gstList = json.gstlist;
           this.debitCardList = json.bankdebitcardslist;
+          this.cashRestrictAmount = json.cashRestrictAmount;
           this.setBalances('CASH', json.cashbalance);
           this.setBalances('BANK', json.bankbalance);
-          this.cashRestrictAmount = json.cashRestrictAmount;
+
+          //  Force Angular to re-render the template
+          this.cdr.detectChanges();
         },
         error: (err) => this.commonService.showErrorMessage(err),
       });
@@ -3158,6 +3193,73 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   }
 
   // ─── Party ────────────────────────────────────────────────────────────────
+  // partyName_Change(event: any): void {
+  //   debugger;
+  //   const group = this.paymentVoucherForm.get('ppaymentsslistcontrols');
+  //   const ppartyid = event?.ppartyid;
+
+  //   this.availableAmount = 0;
+  //   this.stateList = [];
+  //   this.tdsSectionList = [];
+  //   this.tdsPercentageList = [];
+  //   this.partyjournalentrylist = [];
+  //   this.partyBalance = '';
+
+  //   group?.patchValue({
+  //     pStateId: '',
+  //     pState: '',
+  //     pTdsSection: '',
+  //     pTdsPercentage: '',
+  //     ppartyreferenceid: '',
+  //     ppartyreftype: '',
+  //     ppartypannumber: '',
+  //   });
+
+  //   const transDate = this.commonService.getFormatDateNormal(
+  //     this.paymentVoucherForm.get('ppaymentdate')?.value
+  //   );
+
+  //   this.accountingTxService
+  //     .GetCashRestrictAmountpercontact1(
+  //       'PAYMENT VOUCHER',
+  //       'KGMS',
+  //       this.commonService.getbranchname(),
+  //       ppartyid,
+  //       transDate,
+  //       this.commonService.getCompanyCode(),
+  //       this.commonService.getschemaname(),
+  //       this.commonService.getBranchCode()
+  //     )
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe((amt: number) => {
+  //       this.availableAmount = this.cashRestrictAmount - amt;
+  //     });
+
+  //   if (ppartyid) {
+  //     this.selectedPartyStateName = event.state_name ?? '';
+  //     group?.get('ppartyname')?.setValue(event.ppartyname);
+
+  //     const partyData = this.partyList.find((x) => x.ppartyid === ppartyid);
+  //     if (partyData) {
+  //       group?.patchValue({
+  //         ppartyreferenceid: partyData.ppartyreferenceid,
+  //         ppartyreftype: partyData.ppartyreftype,
+  //         ppartypannumber: partyData.pan_no,
+  //       });
+  //     }
+
+  //     this.getPartyDetailsById(ppartyid, event.ppartyname);
+  //     this.setEnableOrDisableTdsGst(event.ppartyname, 'PARTYCHANGE');
+  //     this.disableGst.set(false);
+  //   } else {
+  //     this.setBalances('PARTY', 0);
+  //     group?.get('ppartyname')?.setValue('');
+  //     this.disableGst.set(true);
+  //   }
+  // }
+
+
+
   partyName_Change(event: any): void {
     const group = this.paymentVoucherForm.get('ppaymentsslistcontrols');
     const ppartyid = event?.ppartyid;
@@ -3167,7 +3269,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     this.tdsSectionList = [];
     this.tdsPercentageList = [];
     this.partyjournalentrylist = [];
-    this.partyBalance = '';
+    this.partyBalance = `${this.currencySymbol}`;
 
     group?.patchValue({
       pStateId: '',
@@ -3216,6 +3318,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       this.setEnableOrDisableTdsGst(event.ppartyname, 'PARTYCHANGE');
       this.disableGst.set(false);
     } else {
+      this.partyBalance = `${this.currencySymbol} 0.00 Dr`;
       this.setBalances('PARTY', 0);
       group?.get('ppartyname')?.setValue('');
       this.disableGst.set(true);
@@ -3255,6 +3358,50 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     }
   }
 
+  // getPartyDetailsById(ppartyid: any, _partyName: string): void {
+  //   this.accountingTxService
+  //     .getPartyDetailsbyid(
+  //       ppartyid,
+  //       this.commonService.getbranchname(),
+  //       this.commonService.getBranchCode(),
+  //       this.commonService.getCompanyCode(),
+  //       this.commonService.getschemaname(),
+  //       'taxes'
+  //     )
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe({
+  //       next: (json: any) => {
+  //         if (!json) return;
+  //         this.tdsSectionList = [];
+  //         this.tdsList = json.lstTdsSectionDetails ?? [];
+  //         const uniqueSections = [
+  //           ...new Set(this.tdsList.map((i: any) => i.pTdsSection)),
+  //         ];
+  //         this.tdsSectionList = uniqueSections.map((s) => ({ pTdsSection: s }));
+
+  //         const partyState = (this.selectedPartyStateName ?? '').toLowerCase().trim();
+  //         if (partyState && json.statelist?.length) {
+  //           this.stateList = json.statelist.filter((st: any) => {
+  //             const s = (st.pState ?? st.pStatename ?? '').toLowerCase().trim();
+  //             return (
+  //               s === partyState ||
+  //               s.includes(partyState) ||
+  //               partyState.includes(s)
+  //             );
+  //           });
+  //         } else {
+  //           this.stateList = [];
+  //         }
+  //         this.calculateGstTdsAmounts();
+  //         this.setBalances('PARTY', json.accountbalance);
+  //       },
+  //       error: (err) => this.commonService.showErrorMessage(err),
+  //     });
+  // }
+
+  // ─── UPI ─────────────────────────────────────────────────────────────────
+
+
   getPartyDetailsById(ppartyid: any, _partyName: string): void {
     this.accountingTxService
       .getPartyDetailsbyid(
@@ -3289,14 +3436,22 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           } else {
             this.stateList = [];
           }
+
           this.calculateGstTdsAmounts();
+
+          // ✅ Set balance immediately and trigger CD
           this.setBalances('PARTY', json.accountbalance);
+          this.cdr.detectChanges(); // <-- ADD THIS
         },
-        error: (err) => this.commonService.showErrorMessage(err),
+        error: (err) => {
+          this.partyBalance = `${this.currencySymbol} 0.00 Dr`; // reset on error
+          this.commonService.showErrorMessage(err);
+        },
       });
   }
 
-  // ─── UPI ─────────────────────────────────────────────────────────────────
+
+
   upiName_Change(event: any): void {
     const upiname = event?.target?.value;
     this.upiIdList = this.upiNamesList.filter((r) => r.pUpiname === upiname);
