@@ -506,7 +506,7 @@ export class ChequesOnhand implements OnInit {
   }
 
   SelectBank(event: any) {
-    debugger
+
     if (!event) {
       this.bankid = 0;
       this.bankname.set(null);
@@ -883,7 +883,7 @@ export class ChequesOnhand implements OnInit {
   }
 
   Deposited1() {
-    debugger
+
     this.modeofreceipt = 'DEPOSIT';
     this.status.set('deposited');
     this.pdfstatus = 'Deposited';
@@ -931,7 +931,7 @@ export class ChequesOnhand implements OnInit {
     this.gridData.set(JSON.parse(JSON.stringify(grid)));
     this.gridDatatemp.set(this.gridData());
     this.showicons.set(this.gridData().length > 0);
-    debugger
+
     const total = this._countData && +this._countData['clear_count'] > 0
       ? +this._countData['clear_count']
       : this.gridData().length;
@@ -993,7 +993,7 @@ export class ChequesOnhand implements OnInit {
     this.BrsDateForm.controls['frombrsdate'].updateValueAndValidity();
     this.BrsDateForm.controls['tobrsdate'].updateValueAndValidity();
 
-    debugger
+
     const grid = this.ChequesClearReturnData
       .filter(i => i.pchequestatus === 'C')
       .map(i => ({
@@ -1028,7 +1028,7 @@ export class ChequesOnhand implements OnInit {
 
 
   pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
-    debugger
+
     this.Totalamount = 0;
     const s = this.status();
     if (s === 'all') this.modeofreceipt = 'ALL';
@@ -2069,7 +2069,6 @@ export class ChequesOnhand implements OnInit {
   }
 
   onDepositChange(event: any, row: any) {
-    debugger
     if (event.checked) {
       this.checked = event.checked;
       row.pcancelstatus = false;
@@ -2078,7 +2077,6 @@ export class ChequesOnhand implements OnInit {
   }
 
   onCancelChange(event: any, row: any) {
-    debugger
     if (event.checked) {
       this.checked = event.checked;
       row.pdepositstatus = false;
