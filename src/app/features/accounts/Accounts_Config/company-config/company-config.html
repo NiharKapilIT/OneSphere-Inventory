@@ -1,102 +1,218 @@
-<div class="tabs-section">
-    <div class="tabs-nav">
+<div class="module-page">
 
-        <button class="tab-item" [class.active]="selectedTab === 'companyConfiguration'" (click)="companyConfiguration();
+    <!-- Main Card -->
+    <div class="erp-card">
+
+        <!-- Status Tabs (Horizontal) -->
+        <div class="tabs-section">
+            <div class="tabs-nav">
+
+                <button class="tab-item" [class.active]="selectedTab === 'companyConfiguration'" (click)="companyConfiguration();
            selectedTab = 'companyConfiguration'">
-            <span class="tab-label">Company Configuration</span>
-            <!-- <span class="erp-badge badge-warning">{{ companyConfiguration?? 0 }}</span> -->
-        </button>
+                    <span class="tab-label">Company Configuration</span>
+                    <!-- <span class="erp-badge badge-warning">{{ companyConfiguration?? 0 }}</span> -->
+                </button>
 
-        <button class="tab-item" [class.active]="selectedTab === 'branchConfiguration'"
-            (click)="branchConfiguration(); selectedTab = 'branchConfiguration'">
-            <span class="tab-label">Branch Configuration</span>
-            <!-- <span class="erp-badge badge-secondary">{{ branchConfiguration ?? 0 }}</span> -->
-        </button>
+                <button class="tab-item" [class.active]="selectedTab === 'branchConfiguration'"
+                    (click)="branchConfiguration(); selectedTab = 'branchConfiguration'">
+                    <span class="tab-label">Branch Configuration</span>
+                    <!-- <span class="erp-badge badge-secondary">{{ branchConfiguration ?? 0 }}</span> -->
+                </button>
 
-        <button class="tab-item" [class.active]="selectedTab === 'userInfo'"
-            (click)="userInfo(); selectedTab = 'userInfo'">
-            <span class="tab-label">User Info</span>
-            <!-- <span class="erp-badge badge-primary">{{ userInfo ?? 0 }}</span> -->
-        </button>
+                <button class="tab-item" [class.active]="selectedTab === 'userInfo'"
+                    (click)="userInfo(); selectedTab = 'userInfo'">
+                    <span class="tab-label">User Info</span>
+                    <!-- <span class="erp-badge badge-primary">{{ userInfo ?? 0 }}</span> -->
+                </button>
 
 
+
+            </div>
+        </div>
+
+        <!-- Card Header with Search -->
+        <div class="card-header">
+            <div class="card-title">
+                <i class="pi pi-list"></i> Receipt Transactions
+            </div>
+
+            <!-- Search in header -->
+            <div class="header-search" style="flex: 1; max-width: 300px;">
+                <div class="erp-input-wrap">
+                    <i class="pi pi-search erp-input-icon"></i>
+                    <input type="text" class="erp-input icon-pad" placeholder="Search receipt..."
+                        style="font-size: 12px; color: #374151;" />
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="erp-btn btn-white btn-sm" (click)="showDialog()" label="Show">
+                    <i class="pi pi-plus"></i> New
+                </button>
+
+            </div>
+        </div>
+
+
+        <!-- Card Body -->
+        <div class="card-body p-0">
+
+            <!-- Table Toolbar -->
+            <div class="erp-table-toolbar tbl-toolbar-flush">
+                <div class="tb-left">
+                    <span class="erp-badge badge-primary badge-dot">
+                        1 of 10 records
+                    </span>
+                </div>
+                <!-- <div class="tb-right">
+          <span class="text-muted text-small">
+            Currency: <strong class="text-primary">{{ currencySymbol }}</strong>
+          </span>
+        </div> -->
+            </div>
+
+            <!-- DataTable -->
+            <div class="tbl-wrap">
+                <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize"
+                    [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px"
+                    responsiveLayout="scroll" [showCurrentPageReport]="true"
+                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+                    styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+
+                    <!-- Header -->
+                    <ng-template pTemplate="header">
+                        <tr>
+
+                            @if(companyshowgrid()){
+                            <th>
+                                <div class="th-cell">Company Name</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Company code</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">CIN Number</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">PAN Number</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Regristration addres</div>
+                            </th>
+
+                            }
+                            @if(branchshowgrid()){
+                            <th>
+                                <div class="th-cell">Branch Name</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Branch code</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">GST Number</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">State Code</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Branch Email</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Branch Contact Number</div>
+                            </th>
+                            <th>
+                                <div class="th-cell">Status</div>
+                            </th>
+                            }
+
+
+                        </tr>
+                    </ng-template>
+
+
+                    <!-- Empty Message -->
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="13" class="p-4">
+                                <div class="empty-state">
+                                    <i class="pi pi-inbox empty-state__icon"></i>
+                                    <p class="empty-state__text">No cheques found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+
+
+
+
+                </p-table>
+            </div>
+
+        </div>
 
     </div>
+
 </div>
 
+<div class="card flex justify-center">
+<p-dialog header="Header" [modal]="true" [(visible)]="visible" [style]="{ width: '50rem' }"
+    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
+    
+    <div class="card-body p-4">
+      <form [formGroup]="companyConfigForm" autocomplete="off">
+        <!-- <div class="erp-table-toolbar tbl-toolbar-flush mb-4">
+          <div class="tb-left">
+            <span class="erp-badge badge-primary badge-dot">Bank Configuration Form</span>
+          </div>
+        </div> -->
 
+        <div class="form-wrapper">
+          <div class="form-section">
+            <h3 class="section-heading">
+              <i class="pi pi-info-circle"></i> Basic Bank Details
+            </h3>
 
-<div class="tbl-wrap">
-    <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
-        [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label class="erp-label">Date <span class="required">*</span></label>
+                  <div class="erp-input-wrap erp-date-wrap">
+                    <i class="pi pi-calendar erp-input-icon"></i>
+                    <p-datepicker formControlName="date" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                      appendTo="body" styleClass="w-100"
+                      inputStyleClass="erp-input icon-pad w-100" ></p-datepicker>
+                  </div>
+                </div>
+              </div>
 
-        <!-- Header -->
-        <ng-template pTemplate="header">
-            <tr>
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label class="erp-label">A/C Type <span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="items" bindLabel="label" bindValue="value"
+                    placeholder="Select type" formControlName="companyName"
+                    [clearable]="true" >
+                  </ng-select>
+                  <!-- <div *ngIf="f['companyName'].touched && f['companyName'].invalid" class="erp-field-error">
+                    A/C Type is required
+                  </div> -->
+                </div>
+              </div>
 
-                @if(companyshowgrid()){
-                <th>
-                    <div class="th-cell">Company Name</div>
-                </th>
-                <th>
-                    <div class="th-cell">Company code</div>
-                </th>
-                <th>
-                    <div class="th-cell">CIN Number</div>
-                </th>
-                <th>
-                    <div class="th-cell">PAN Number</div>
-                </th>
-                <th>
-                    <div class="th-cell">Regristration addres</div>
-                </th>
+            </div>
+          </div>
 
-                }
-                @if(branchshowgrid()){
-                <th>
-                    <div class="th-cell">Branch Name</div>
-                </th>
-                <th>
-                    <div class="th-cell">Branch code</div>
-                </th>
-                <th>
-                    <div class="th-cell">GST Number</div>
-                </th>
-                <th>
-                    <div class="th-cell">State Code</div>
-                </th>
-                <th>
-                    <div class="th-cell">Branch Email</div>
-                </th>
-                <th>
-                    <div class="th-cell">Branch Contact Number</div>
-                </th>
-                <th>
-                    <div class="th-cell">Status</div>
-                </th>
-                }
+          
 
+        </div>
 
-            </tr>
-        </ng-template>
+        <div class="form-footer">
+          <button type="button"  class="erp-btn btn-secondary">
+            <i class="pi pi-times"></i> Clear
+          </button>
+          
+        </div>
+      </form>
+    </div>
 
-
-        <!-- Empty Message -->
-        <ng-template pTemplate="emptymessage">
-            <tr>
-                <td colspan="13" class="p-4">
-                    <div class="empty-state">
-                        <i class="pi pi-inbox empty-state__icon"></i>
-                        <p class="empty-state__text">No cheques found</p>
-                    </div>
-                </td>
-            </tr>
-        </ng-template>
-
-
-
-
-    </p-table>
+</p-dialog>
 </div>
