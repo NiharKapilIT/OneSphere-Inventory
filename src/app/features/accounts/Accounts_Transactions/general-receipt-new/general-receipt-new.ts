@@ -1827,7 +1827,7 @@ export class GeneralReceiptNew implements OnInit {
 
 
   saveGeneralReceipt(): void {
-    debugger;
+    
     // Force-enable pdepositbankid so getRawValue() always captures the selected value
     this.GeneralReceiptForm.get('pdepositbankid')?.enable();
 

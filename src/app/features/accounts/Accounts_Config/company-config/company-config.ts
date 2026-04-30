@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { Component, DestroyRef, inject, OnInit, signal } from "@angular/core";
 import { TableModule } from "primeng/table";
 import { DialogModule } from "primeng/dialog";
 import { PageCriteria } from "../../../../core/models/pagecriteria";
@@ -17,14 +17,20 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePickerModule } from 'primeng/datepicker';
 import { NgSelectModule } from "@ng-select/ng-select";
 import { BsDatepickerConfig } from "ngx-bootstrap/datepicker";
+import { MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: "app-company-config",
-  standalone:true,
-  imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule],
+  standalone: true,
+  imports: [TableModule, DialogModule, DatePickerModule, ReactiveFormsModule, CommonModule, NgSelectModule, ToastModule],
   templateUrl: "./company-config.html",
+  providers: [MessageService]
+
 })
-export class CompanyConfig {
+export class CompanyConfig implements OnInit {
+
+
   selectedTab = 'companyConfiguration';
   gridData: any[] = [];
   pageCriteria: PageCriteria;
@@ -37,9 +43,26 @@ export class CompanyConfig {
   branchshowgrid = signal<boolean>(false);
   visible = signal<boolean>(false);
   companyConfigvalidations: any = {};
+  private readonly messageService = inject(MessageService);
+
 
   submitted = false;
+  today: any = new Date();
   statusOptions: any = []
+  barnchname: any[] = [
+    { value: 'Branch1', label: 'Branch1' },
+    { value: 'Branch2', label: 'Branch2' },
+    { value: 'Branch3', label: 'Branch3' },
+  ];
+  statusCode: any[] = [
+    { value: 'Status1', label: 'Status1' },
+    { value: 'Status2', label: 'Status2' },
+    { value: 'Status3', label: 'Status3' },
+  ];
+  status: any[] = [
+    { value: 'Active', label: 'Active' },
+    { value: 'Inactive', label: 'Inactive' },
+  ];
   private readonly destroyRef = inject(DestroyRef);
   private readonly datepipe = inject(DatePipe);
   private readonly _commonService = inject(CommonService);
@@ -48,6 +71,7 @@ export class CompanyConfig {
   currentdate: Partial<BsDatepickerConfig> = new BsDatepickerConfig();
 
   companyConfigForm!: FormGroup<any>;
+  BranchConfigForm!: FormGroup<any>;
   constructor(private fb: FormBuilder) {
     this.pageCriteria = new PageCriteria();
   }
@@ -63,7 +87,7 @@ export class CompanyConfig {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
       currencyFormate: ['', Validators.required],
-      date: [''],
+      pBankdate: [this.today],
       contactNumber: [''],
       email: [''],
       status: [''],
@@ -74,6 +98,24 @@ export class CompanyConfig {
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
+
+    this.BranchConfigForm = this.fb.group({
+      barnchname: ['', Validators.required],
+      branchCode: ['', Validators.required],
+      gstNumber: [''],
+      statuscode: [''],
+      branchEmail: [''],
+      branchContactNumber: [''],
+      status: [''],
+      branchAddress: [''],
+      branchDate: [this.today]
+    } as any);
+    this.BlurEventAllControll(this.BranchConfigForm);
+
+
+
+
+
   }
 
   // allowNumberOnly(event: KeyboardEvent): void {
@@ -88,6 +130,40 @@ export class CompanyConfig {
   // }
 
 
+  onSave(): void {
+    this.submitted = true;
+    this.checkValidations(this.companyConfigForm, true);
+
+    if (this.companyConfigForm.invalid) {
+      this.companyConfigForm.markAllAsTouched();
+      return;
+    }
+
+    const formData = this.companyConfigForm.value;
+
+    //  Save in Console
+    console.log(' Company Config Saved:', formData);
+
+    // Toast Alert Message
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Success',
+      detail: 'Company configuration saved successfully!'
+    });
+
+    //  Browser Alert
+    alert(' Company configuration saved successfully!');
+
+    this.onClear();
+    this.visible.set(false);
+  }
+
+  // Clear method
+  onClear(): void {
+    this.submitted = false;
+    this.companyConfigForm.reset();
+    this.companyConfigvalidations = {};
+  }
 
   BlurEventAllControll(fromgroup: FormGroup): void {
     try {
@@ -158,7 +234,7 @@ export class CompanyConfig {
     this.visible.set(true);
   }
 
-  currency_formate(){}
+  currency_formate() { }
 
   private pageSetUp() {
     this.page.offset = 0; this.page.pageNumber = 1;
