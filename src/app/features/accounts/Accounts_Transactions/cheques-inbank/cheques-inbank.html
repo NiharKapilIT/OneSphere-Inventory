@@ -73,6 +73,7 @@
             Cheque Clear Date <span class="required">*</span>
           </label>
           <div class="erp-input-wrap erp-date-wrap">
+            <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker [(ngModel)]="chequeClearDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
               dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
               (onSelect)="ChequesInBankForm.get('pchequecleardate')?.setValue($event)">
