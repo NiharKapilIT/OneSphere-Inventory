@@ -166,7 +166,7 @@ export class GeneralReceiptNew implements OnInit {
   readonly currencySymbol = this.cs.currencysymbol || '₹';
   readonly today = new Date();
   readonly maxDate = new Date();
-  chequeDateValue: Date = new Date();
+  chequeDateValue: any = new Date();
   readonly gstnopattern = '^(0[1-9]|[1-2][0-9]|3[0-9])([a-zA-Z]){5}([0-9]){4}([a-zA-Z]){1}([a-zA-Z0-9]){1}([a-zA-Z]){1}([a-zA-Z0-9]){1}?';
   readonly CASH_TRANSACTION_LIMIT = 200000;
   readonly rowsPerPageOptions = [5, 10, 20, 50];
@@ -281,6 +281,8 @@ export class GeneralReceiptNew implements OnInit {
       ptypeofpayment: [null],
       pAccountnumber: [''],
       pChequenumber: [''],
+      chequeDateValue: [this.today],
+      transcatioindate: [this.today],
       // pchequedate: [{ value: this.today, disabled: false }],
       pchequedate: [new Date()],
       pbankid: [null],

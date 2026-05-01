@@ -1,4 +1,4 @@
-<div class="module-page">
+ <div class="module-page">
 
   <!-- ── Cash Warning Alert ── -->
   @if (showCashWarning()) {
@@ -85,9 +85,9 @@
                 <label class="erp-label">Transaction Date <span class="required">*</span></label>
                 <div class="erp-input-wrap erp-date-wrap">
                   <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"   formControlName="chequeDateValue"
                     styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-                    [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                    ></p-datepicker>
                 </div>
               </div>
             </div>
@@ -185,10 +185,11 @@
               <label class="erp-label">Cheque Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
+                <!-- [(ngModel)]="chequeDateValue "  [ngModelOptions]="{standalone: true}" -->
 
-                <p-datepicker [(ngModel)]="chequeDateValue" [ngModelOptions]="{standalone: true}"
+                <p-datepicker   formControlName="chequeDateValue" [maxDate]="chequeDateValue"
                   [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
-                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="maxDate"
+                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" 
                   [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
@@ -269,9 +270,9 @@
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
                
-                <p-datepicker [(ngModel)]="chequeDateValue" [ngModelOptions]="{standalone: true}"
+                <p-datepicker formControlName="chequeDateValue" [maxDate]="chequeDateValue"  
                   [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
-                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="maxDate"
+                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"  
                   [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
