@@ -71,7 +71,7 @@
           <!-- Header -->
           <ng-template pTemplate="header">
             <tr>
-              <th pResizableColumn class="th-actions">Actions</th>
+              <!-- <th pResizableColumn class="th-actions">Actions</th> -->
               <th pResizableColumnpSortableColumn="bankName">
                 <div class="th-cell">
                   <i class="pi pi-building"></i>
@@ -111,11 +111,11 @@
           <!-- Body -->
           <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
             <tr class="table-row">
-              <td class="td-actions">
+              <!-- <td class="td-actions">
                 <button class="erp-btn btn-white btn-sm" (click)="editHandler(row)" title="Edit">
                   <i class="pi pi-pencil"></i>
                 </button>
-              </td>
+              </td> -->
               <td>{{ row.bankName || '--' }}</td>
               <td>{{ row.account_number || '--' }}</td>
               <td>{{ row.account_name || '--' }}</td>

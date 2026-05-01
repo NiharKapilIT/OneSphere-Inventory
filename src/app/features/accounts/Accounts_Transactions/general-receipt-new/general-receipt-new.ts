@@ -118,7 +118,10 @@ export class GeneralReceiptNew implements OnInit {
   showcgst = signal(false);
   showsgst = signal(false);
   showutgst = signal(false);
+  //showCashWarning = signal(false);
   showCashWarning = signal(false);
+  chequeDate = signal<Date>(new Date());
+  transactionDate = signal<Date>(new Date());
   submitted = signal(false);
   disablesavebutton = signal(false);
   savebutton = signal('Save');
@@ -163,6 +166,7 @@ export class GeneralReceiptNew implements OnInit {
   readonly currencySymbol = this.cs.currencysymbol || '₹';
   readonly today = new Date();
   readonly maxDate = new Date();
+  chequeDateValue: any = new Date();
   readonly gstnopattern = '^(0[1-9]|[1-2][0-9]|3[0-9])([a-zA-Z]){5}([0-9]){4}([a-zA-Z]){1}([a-zA-Z0-9]){1}([a-zA-Z]){1}([a-zA-Z0-9]){1}?';
   readonly CASH_TRANSACTION_LIMIT = 200000;
   readonly rowsPerPageOptions = [5, 10, 20, 50];
@@ -200,6 +204,7 @@ export class GeneralReceiptNew implements OnInit {
   DepositBankDisable = false;
   private _selectedPartyStateName = '';
   disabletransactiondate = false;
+  private _depositBankId: any = null;
 
   readonly Bankbuttondata = [
     { type: 'Cheque', chequeshowhide: true, onlineshowhide: false, debitShowhide: false, creditShowhide: false },
@@ -215,7 +220,7 @@ export class GeneralReceiptNew implements OnInit {
   ];
 
 
-  // ── Lifecycle  
+
   ngOnInit(): void {
     this._configureDatepickers();
     this._buildForm();
@@ -253,7 +258,11 @@ export class GeneralReceiptNew implements OnInit {
   private _buildForm(): void {
     this.GeneralReceiptForm = this.fb.group({
       preceiptid: [''],
-      preceiptdate: [{ value: this.today, disabled: true }, Validators.required],
+      //  preceiptdate: [{ value: this.today, disabled: true }, Validators.required],
+      preceiptdate: [this.today, Validators.required],
+
+
+      // preceiptdate: [{ value: new Date(), disabled: true }, Validators.required],
       pmodofreceipt: ['CASH', Validators.required],
       ptotalreceivedamount: [0],
       pnarration: ['', [Validators.required, Validators.maxLength(250)]],
@@ -272,11 +281,13 @@ export class GeneralReceiptNew implements OnInit {
       ptypeofpayment: [null],
       pAccountnumber: [''],
       pChequenumber: [''],
-      pchequedate: [{ value: this.today, disabled: false }],
+      chequeDateValue: [this.today],
+      transcatioindate: [this.today],
+      // pchequedate: [{ value: this.today, disabled: false }],
+      pchequedate: [new Date()],
       pbankid: [null],
       pCardNumber: ['', cardNumberValidator],
-      // pdepositbankid: ['', Validators.required],
-      // pdepositbankid1: [null, Validators.required],
+
       pdepositbankid: [''],
       pdepositbankid1: [null],
       pdepositbankname: [''],
@@ -348,12 +359,6 @@ export class GeneralReceiptNew implements OnInit {
     sub('pTdsPercentage', () => this.recalculateAll());
     sub('preceiptslist.pgstpercentage', () => this.recalculateAll());
 
-    // sub('pbankid', () => {
-    //   if (this.GeneralReceiptForm.get('ptranstype')?.value === 'Online') {
-    //     this.toggleReferenceNo(this.GeneralReceiptForm.get('pbankid')?.value);
-    //   }
-    //   this.checkDepositBankEnable();
-    // });
     sub('pbankid', () => {
       if (this.GeneralReceiptForm.get('ptranstype')?.value === 'Online') {
         this.toggleReferenceNo(this.GeneralReceiptForm.get('pbankid')?.value);
@@ -489,10 +494,11 @@ export class GeneralReceiptNew implements OnInit {
     const ctrl = this.GeneralReceiptForm.get(key)
       ?? this.GeneralReceiptForm.get('preceiptslist.' + key);
 
-    // if (!ctrl || !ctrl.errors || !(ctrl.touched || ctrl.dirty || this.submitted())) {
+
+    // if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted())) {
     //   return '';
     // }
-    if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted())) {
+    if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted()) || !this.formValidationMessages[key]) {
       return '';
     }
 
@@ -549,9 +555,12 @@ export class GeneralReceiptNew implements OnInit {
 
 
 
+
   Paymenttype(type: string): void {
     this.formValidationMessages = {};
     this.submitted.set(false);
+    this.GeneralReceiptForm.markAsUntouched();
+    this.GeneralReceiptForm.markAsPristine();
 
     // reset non-bank fields touched/pristine so they dont fire on mode switch
     const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
@@ -561,6 +570,7 @@ export class GeneralReceiptNew implements OnInit {
     });
     this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
     this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
+    this.GeneralReceiptForm.get('pnarration')?.setValue('');
     this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
     this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
 
@@ -572,13 +582,17 @@ export class GeneralReceiptNew implements OnInit {
 
     this.GeneralReceiptForm.controls['pbankname'].setValue('');
     this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-    this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
+    // this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
+    //this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
+    this.chequeDateValue = new Date();
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
     this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
     this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
     this.GeneralReceiptForm.controls['pbranchname'].setValue('');
     this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
     this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
 
+    this._depositBankId = null;
     this.setBalances('BANKBOOK', 0);
     this.setBalances('PASSBOOK', 0);
     this.showCashWarning.set(false);
@@ -613,15 +627,24 @@ export class GeneralReceiptNew implements OnInit {
       this.Transtype = '';
     }
   }
+
+
+
+
+
+
   Banktype(type: string): void {
     this.formValidationMessages = {};
     this.submitted.set(false);
+
+    this._depositBankId = null;
     this.validation(type);
 
     this.GeneralReceiptForm.controls['pbankid'].setValue(null);
     this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-    this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
-    //this.GeneralReceiptForm.controls['pdepositbankid'].setValue(null);
+
+    this.chequeDateValue = new Date();
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
     this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);
     this.GeneralReceiptForm.controls['pbranchname'].setValue('');
     this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
@@ -648,6 +671,7 @@ export class GeneralReceiptNew implements OnInit {
     });
     this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
     this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
+    this.GeneralReceiptForm.get('pnarration')?.setValue('');
     this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
     this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
 
@@ -1072,8 +1096,16 @@ export class GeneralReceiptNew implements OnInit {
       });
     }
 
+
     this.recalculateAll();
     this.gstvalidation(on);
+    this.formValidationMessages['pgstpercentage'] = '';
+    this.formValidationMessages['pStateId'] = '';
+    const gstCtrls = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
+    gstCtrls.get('pgstpercentage')?.markAsUntouched();
+    gstCtrls.get('pgstpercentage')?.markAsPristine();
+    gstCtrls.get('pStateId')?.markAsUntouched();
+    gstCtrls.get('pStateId')?.markAsPristine();
   }
 
   gst_Change($event: any): void {
@@ -1195,8 +1227,18 @@ export class GeneralReceiptNew implements OnInit {
       );
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     }
+    // this.recalculateAll();
+    // this.tdsvalidation(on);
+    //  this.formValidationMessages['pTdsSection'] = '';
+    // this.formValidationMessages['pTdsPercentage'] = '';
     this.recalculateAll();
     this.tdsvalidation(on);
+    this.formValidationMessages['pTdsSection'] = '';
+    this.formValidationMessages['pTdsPercentage'] = '';
+    this.GeneralReceiptForm.get('pTdsSection')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pTdsSection')?.markAsPristine();
+    this.GeneralReceiptForm.get('pTdsPercentage')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pTdsPercentage')?.markAsPristine();
   }
 
   tdsSection_Change(event: any): void {
@@ -1274,8 +1316,7 @@ export class GeneralReceiptNew implements OnInit {
               pModifiedby: this.cs.pCreatedby
             });
 
-            // ── Use getRawValue on the WHOLE form so disabled controls
-            //    (pChequenumber, pdepositbankid) are included in the entry ──
+
             const rawForm = this.GeneralReceiptForm.getRawValue();
             const fv = ctrl.value; // preceiptslist values (none are disabled here)
 
@@ -1573,9 +1614,10 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
+
   typeofDepositBank($event: any): void {
-    this.GeneralReceiptForm.get('pdepositbankid')?.enable();
     if (!$event) {
+      this._depositBankId = null;
       this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
       return;
     }
@@ -1583,6 +1625,8 @@ export class GeneralReceiptNew implements OnInit {
     const id = typeof $event === 'object'
       ? ($event.pbankId ?? $event.pbankid ?? $event.pBankId)
       : $event;
+
+    this._depositBankId = id;
 
     const obj = [...(this.banklist1() || []), ...(this.banklist() || [])]
       .find((b: any) => b.pbankId == id || b.pbankid == id || b.pBankId == id);
@@ -1599,7 +1643,6 @@ export class GeneralReceiptNew implements OnInit {
 
     // value selected — always clear error
     this.formValidationMessages['pdepositbankid'] = '';
-    // use setTimeout to ensure it overrides any other handler that may fire after
     setTimeout(() => {
       this.formValidationMessages['pdepositbankid'] = '';
     }, 0);
@@ -1790,6 +1833,12 @@ export class GeneralReceiptNew implements OnInit {
     this.GetValidationByControl(this.GeneralReceiptForm, 'pchequedate', true);
   }
 
+  onChequeDateChange(date: Date): void {
+    this.chequeDateValue = date;
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(date);
+    this.ChequeDateChange();
+  }
+
   CardNoChange(): void {
     const ctrl = this.GeneralReceiptForm.get('pCardNumber');
     if (ctrl?.value) {
@@ -1826,10 +1875,9 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
+
   saveGeneralReceipt(): void {
-    
-    // Force-enable pdepositbankid so getRawValue() always captures the selected value
-    this.GeneralReceiptForm.get('pdepositbankid')?.enable();
+    debugger;
 
     this.submitted.set(true);
     this.showCashWarning.set(false);
@@ -1874,12 +1922,7 @@ export class GeneralReceiptNew implements OnInit {
           this.formValidationMessages['pchequedate'] = 'Please Select Cheque Date';
           hasError = true;
         }
-        const depositCheque = this.GeneralReceiptForm.getRawValue().pdepositbankid
-          ?? this.GeneralReceiptForm.get('pdepositbankid')?.value;
-        if (!depositCheque || depositCheque === '' || depositCheque === 0) {
-          this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
-          hasError = true;
-        }
+
 
       } else if (this.Transtype === 'Online') {
         if (!this.GeneralReceiptForm.get('pbankid')?.value) {
@@ -1895,8 +1938,7 @@ export class GeneralReceiptNew implements OnInit {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid
-          ?? this.GeneralReceiptForm.get('pdepositbankid')?.value;
+        const depositVal = this._depositBankId;
         if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
@@ -1916,8 +1958,7 @@ export class GeneralReceiptNew implements OnInit {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid
-          ?? this.GeneralReceiptForm.get('pdepositbankid')?.value;
+        const depositVal = this._depositBankId;
         if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
@@ -1941,9 +1982,7 @@ export class GeneralReceiptNew implements OnInit {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        // FIXED: same pattern as Cheque/Online/Debit
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid
-          ?? this.GeneralReceiptForm.get('pdepositbankid')?.value;
+        const depositVal = this._depositBankId;
         if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
@@ -1983,14 +2022,14 @@ export class GeneralReceiptNew implements OnInit {
       hasError = true;
     }
 
-    // ── Stop here if any validation failed ──
-    //if (hasError) return;
-
     // ── Payments list ──
     if (this.paymentslist().length === 0) {
       this.cs.showWarningMessage('Please add at least one payment detail');
       return;
     }
+
+    // ── Stop here if any validation failed ──
+    if (hasError) return;
 
     // ── Cash limit check ──
     if (this.GeneralReceiptForm.get('pmodofreceipt')?.value?.toUpperCase() === 'CASH') {
@@ -2011,9 +2050,9 @@ export class GeneralReceiptNew implements OnInit {
       }
     }
 
-    // ── Prepare and submit ──
+
     const chequeDate = this.datepipe.transform(
-      this.GeneralReceiptForm.controls['pchequedate'].value, 'dd-MM-yyyy'
+      this.chequeDateValue, 'dd-MM-yyyy'
     );
     this.disablesavebutton.set(true);
     this.savebutton.set('Processing');
@@ -2046,7 +2085,7 @@ export class GeneralReceiptNew implements OnInit {
           );
 
           const rawForm = this.GeneralReceiptForm.getRawValue();
-          const depositBankId = rawForm.pdepositbankid ?? 0;
+          const depositBankId = this._depositBankId ?? rawForm.pdepositbankid ?? 0;
           const chequeNumber = rawForm.pChequenumber || '';
           const payments = this.paymentslist();
 
@@ -2069,7 +2108,6 @@ export class GeneralReceiptNew implements OnInit {
             pChequenumber: chequeNumber,
             pchequedate: chequeDate || '',
             pchequedepositdate: '',
-            // pchequeclearance: '',
             pchequecleardate: '',
             pCardNumber: this.GeneralReceiptForm.value.pCardNumber || '',
             pdepositbankid: depositBankId,
