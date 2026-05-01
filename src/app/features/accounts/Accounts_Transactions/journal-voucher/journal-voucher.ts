@@ -2453,10 +2453,15 @@ export class JournalVoucher implements OnInit {
     const dateOk = this.paymentVoucherForm.get('pjvdate')?.valid;
     const narratOk = this.paymentVoucherForm.get('pnarration')?.valid;
 
-    if (!dateOk || !narratOk) {
+    if (!dateOk) {
       this.paymentVoucherForm.get('pjvdate')?.markAsTouched();
+      // this.paymentVoucherForm.get('pnarration')?.markAsTouched();
+      this.commonService.showWarningMessage('Please fill all required fields (Date)');
+      return false;
+    }
+    if(!narratOk){
       this.paymentVoucherForm.get('pnarration')?.markAsTouched();
-      this.commonService.showWarningMessage('Please fill all required fields (Date and Narration)');
+      this.commonService.showWarningMessage('Please fill all required fields (Narration)');
       return false;
     }
     if (!this.paymentslist().length) {

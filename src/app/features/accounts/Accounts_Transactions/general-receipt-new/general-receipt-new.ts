@@ -118,7 +118,10 @@ export class GeneralReceiptNew implements OnInit {
   showcgst = signal(false);
   showsgst = signal(false);
   showutgst = signal(false);
+  //showCashWarning = signal(false);
   showCashWarning = signal(false);
+  chequeDate = signal<Date>(new Date());
+  transactionDate = signal<Date>(new Date());
   submitted = signal(false);
   disablesavebutton = signal(false);
   savebutton = signal('Save');
@@ -163,6 +166,7 @@ export class GeneralReceiptNew implements OnInit {
   readonly currencySymbol = this.cs.currencysymbol || '₹';
   readonly today = new Date();
   readonly maxDate = new Date();
+  chequeDateValue: any = new Date();
   readonly gstnopattern = '^(0[1-9]|[1-2][0-9]|3[0-9])([a-zA-Z]){5}([0-9]){4}([a-zA-Z]){1}([a-zA-Z0-9]){1}([a-zA-Z]){1}([a-zA-Z0-9]){1}?';
   readonly CASH_TRANSACTION_LIMIT = 200000;
   readonly rowsPerPageOptions = [5, 10, 20, 50];
@@ -200,6 +204,7 @@ export class GeneralReceiptNew implements OnInit {
   DepositBankDisable = false;
   private _selectedPartyStateName = '';
   disabletransactiondate = false;
+  private _depositBankId: any = null;
 
   readonly Bankbuttondata = [
     { type: 'Cheque', chequeshowhide: true, onlineshowhide: false, debitShowhide: false, creditShowhide: false },
@@ -215,7 +220,7 @@ export class GeneralReceiptNew implements OnInit {
   ];
 
 
-  // ── Lifecycle  
+
   ngOnInit(): void {
     this._configureDatepickers();
     this._buildForm();
@@ -253,7 +258,11 @@ export class GeneralReceiptNew implements OnInit {
   private _buildForm(): void {
     this.GeneralReceiptForm = this.fb.group({
       preceiptid: [''],
-      preceiptdate: [{ value: this.today, disabled: true }, Validators.required],
+      //  preceiptdate: [{ value: this.today, disabled: true }, Validators.required],
+      preceiptdate: [this.today, Validators.required],
+
+
+      // preceiptdate: [{ value: new Date(), disabled: true }, Validators.required],
       pmodofreceipt: ['CASH', Validators.required],
       ptotalreceivedamount: [0],
       pnarration: ['', [Validators.required, Validators.maxLength(250)]],
@@ -272,11 +281,15 @@ export class GeneralReceiptNew implements OnInit {
       ptypeofpayment: [null],
       pAccountnumber: [''],
       pChequenumber: [''],
-      pchequedate: [{ value: this.today, disabled: false }],
+      chequeDateValue: [this.today],
+      transcatioindate: [this.today],
+      // pchequedate: [{ value: this.today, disabled: false }],
+      pchequedate: [new Date()],
       pbankid: [null],
       pCardNumber: ['', cardNumberValidator],
-      pdepositbankid: ['', Validators.required],
-      pdepositbankid1: [null, Validators.required],
+
+      pdepositbankid: [''],
+      pdepositbankid1: [null],
       pdepositbankname: [''],
       pRecordid: [0],
       pUpiname: [''],
@@ -350,7 +363,6 @@ export class GeneralReceiptNew implements OnInit {
       if (this.GeneralReceiptForm.get('ptranstype')?.value === 'Online') {
         this.toggleReferenceNo(this.GeneralReceiptForm.get('pbankid')?.value);
       }
-      this.checkDepositBankEnable();
     });
 
     sub('pbankname', () => {
@@ -360,7 +372,8 @@ export class GeneralReceiptNew implements OnInit {
       }
     });
 
-    sub('ptypeofpayment', () => this.checkDepositBankEnable());
+    // sub('ptypeofpayment', () => this.checkDepositBankEnable());
+    sub('ptypeofpayment', () => { });
   }
 
   private _loadInitialData(): void {
@@ -409,11 +422,6 @@ export class GeneralReceiptNew implements OnInit {
         error: err => this.cs.showErrorMessage(err)
       });
   }
-
-
-
-
- 
 
   getValidationMsg(key: string): string {
 
@@ -486,12 +494,13 @@ export class GeneralReceiptNew implements OnInit {
     const ctrl = this.GeneralReceiptForm.get(key)
       ?? this.GeneralReceiptForm.get('preceiptslist.' + key);
 
-    // if (!ctrl || !ctrl.errors || !(ctrl.touched || ctrl.dirty || this.submitted())) {
+
+    // if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted())) {
     //   return '';
     // }
- if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted())) {
-    return '';
-  }
+    if (!ctrl || !ctrl.errors || !(ctrl.touched || this.submitted()) || !this.formValidationMessages[key]) {
+      return '';
+    }
 
     if (ctrl.errors['required']) return this._getRequiredMsg(key);
     if (ctrl.errors['minlength']) return `Minimum ${ctrl.errors['minlength'].requiredLength} characters required`;
@@ -546,292 +555,171 @@ export class GeneralReceiptNew implements OnInit {
 
 
 
-  
-// Paymenttype(type: string): void {
-//   this.formValidationMessages = {};
-//   this.submitted.set(false);
-//   const btn = this.Paymentbuttondata.find((b: any) => b.type === type);
-//     if (btn) {
-//       this.bankshowhide.set(btn.bankshowhide);
-//       this.walletshowhide.set(btn.walletshowhide);
-//     }
-
-//     this.GeneralReceiptForm.controls['pbankname'].setValue('');
-//     this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-//     this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
-//     this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
-//     this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-//     this.GeneralReceiptForm.controls['pbranchname'].setValue('');
-//     this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
-//     this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
-
-//     this.setBalances('BANKBOOK', 0);
-//     this.setBalances('PASSBOOK', 0);
-//     this.showCashWarning.set(false);
-//     this.cashWarningMessage.set('');
-//     this.formValidationMessages = {};
-
-//     // Reset UPI
-//     this.showupi.set(false);
-//     this.upinameslist.set([]);
-//     this.GeneralReceiptForm.get('pUpiname')?.setValue('');
-//     this.GeneralReceiptForm.get('pUpiid')?.setValue('');
-
-//     if (type === 'Bank') {
-//       this.GeneralReceiptForm.controls['ptranstype'].setValue('Cheque');
-//       this.Banktype('Cheque');
-//       this.Modeofpayment = type;
-//     } else {
-//       this.GeneralReceiptForm.controls['ptranstype'].setValue('');
-
-//       ['pdepositbankname', 'pbankid', 'pChequenumber', 'ptypeofpayment',
-//         'pbranchname', 'pCardNumber', 'pchequedate', 'pAccountnumber']
-//         .forEach(f => {
-//           this.GeneralReceiptForm.controls[f]?.clearValidators();
-//           this.GeneralReceiptForm.controls[f]?.updateValueAndValidity();
-//           this.GeneralReceiptForm.controls[f]?.enable();
-//         });
-
-//       this.chequeshowhide.set(false);
-//       this.onlineshowhide.set(false);
-//       this.creditShowhide.set(false);
-//       this.debitShowhide.set(false);
-//       this.Modeofpayment = type;
-//       this.Transtype = '';
-//     }
-//   }
-
-  // Banktype(type: string): void {
-  //   this.formValidationMessages = {};
-  //   this.submitted.set(false);
-  //   this.validation(type);
-
-  //   this.GeneralReceiptForm.controls['pbankid'].setValue(null);
-  //   this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-  //   this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
-  //   this.GeneralReceiptForm.controls['pdepositbankid'].setValue(null);
-  //   this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);
-  //   this.GeneralReceiptForm.controls['pbranchname'].setValue('');
-  //   this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
-  //   this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
-  //   this.GeneralReceiptForm.controls['pbankname'].setValue('');
-  //   this.GeneralReceiptForm.controls['pchequestatus'].setValue(type === 'Cheque');
-
-  //   // Clear ALL validation messages and reset touched/pristine on tab switch
-  //   this.formValidationMessages = {};
-  //   [
-  //     'pbankid', 'ptypeofpayment', 'pChequenumber', 'pdepositbankid',
-  //     'pCardNumber', 'pbankname', 'pbranchname', 'pAccountnumber', 'pchequedate'
-  //   ].forEach(k => {
-  //     const ctrl = this.GeneralReceiptForm.controls[k];
-  //     if (!ctrl) return;
-  //     ctrl.markAsUntouched();
-  //     ctrl.markAsPristine();
-  //   });
-
-  //   this.Transtype = type;
-  //   this.GeneralReceiptForm.get('ptypeofpayment')?.enable();
-
-  //   this.typeofpaymentlist.set(
-  //     type === 'Online'
-  //       ? this.modeoftransactionslist().filter(
-  //         (p: any) => p.ptranstype === 'Online' && p.ptypeofpayment !== 'Online'
-  //       )
-  //       : this._getTypeofPaymentData()
-  //   );
-
-  //   const btn = this.Bankbuttondata.find((b: any) => b.type === type);
-  //   if (btn) {
-  //     this.chequeshowhide.set(btn.chequeshowhide);
-  //     this.onlineshowhide.set(btn.onlineshowhide);
-  //     this.debitShowhide.set(btn.debitShowhide);
-  //     this.creditShowhide.set(btn.creditShowhide);
-  //   }
-
-  //   // Reset UPI fields
-  //   this.showupi.set(false);
-  //   this.upinameslist.set([]);
-  //   this.GeneralReceiptForm.get('pUpiname')?.setValue('');
-  //   this.GeneralReceiptForm.get('pUpiid')?.setValue('');
-
-  //   this.setBalances('BANKBOOK', 0);
-  //   this.setBalances('PASSBOOK', 0);
-
-  //   if (type === 'Online') {
-  //     this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-  //     this.GeneralReceiptForm.get('pChequenumber')?.disable();
-  //   } else {
-  //     this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
-  //     this.GeneralReceiptForm.get('pChequenumber')?.enable();
-  //   }
-
-  //   this.GeneralReceiptForm.controls['ptranstype'].setValue(type);
-  //   this.checkDepositBankEnable();
-  // }
 
   Paymenttype(type: string): void {
-  this.formValidationMessages = {};
-  this.submitted.set(false);
+    this.formValidationMessages = {};
+    this.submitted.set(false);
+    this.GeneralReceiptForm.markAsUntouched();
+    this.GeneralReceiptForm.markAsPristine();
 
-  // reset non-bank fields touched/pristine so they dont fire on mode switch
-  const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
-  ['pledgerid', 'psubledgerid', 'pactualpaidamount'].forEach(k => {
-    fg?.get(k)?.markAsUntouched();
-    fg?.get(k)?.markAsPristine();
-  });
-  this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
-  this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
-  this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
-  this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
+    // reset non-bank fields touched/pristine so they dont fire on mode switch
+    const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
+    ['pledgerid', 'psubledgerid', 'pactualpaidamount'].forEach(k => {
+      fg?.get(k)?.markAsUntouched();
+      fg?.get(k)?.markAsPristine();
+    });
+    this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
+    this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
+    this.GeneralReceiptForm.get('pnarration')?.setValue('');
+    this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
 
-  const btn = this.Paymentbuttondata.find((b: any) => b.type === type);
-  if (btn) {
-    this.bankshowhide.set(btn.bankshowhide);
-    this.walletshowhide.set(btn.walletshowhide);
+    const btn = this.Paymentbuttondata.find((b: any) => b.type === type);
+    if (btn) {
+      this.bankshowhide.set(btn.bankshowhide);
+      this.walletshowhide.set(btn.walletshowhide);
+    }
+
+    this.GeneralReceiptForm.controls['pbankname'].setValue('');
+    this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
+    // this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
+    //this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
+    this.chequeDateValue = new Date();
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
+    this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
+    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
+    this.GeneralReceiptForm.controls['pbranchname'].setValue('');
+    this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
+    this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
+
+    this._depositBankId = null;
+    this.setBalances('BANKBOOK', 0);
+    this.setBalances('PASSBOOK', 0);
+    this.showCashWarning.set(false);
+    this.cashWarningMessage.set('');
+
+    // Reset UPI
+    this.showupi.set(false);
+    this.upinameslist.set([]);
+    this.GeneralReceiptForm.get('pUpiname')?.setValue('');
+    this.GeneralReceiptForm.get('pUpiid')?.setValue('');
+
+    if (type === 'Bank') {
+      this.GeneralReceiptForm.controls['ptranstype'].setValue('Cheque');
+      this.Banktype('Cheque');
+      this.Modeofpayment = type;
+    } else {
+      this.GeneralReceiptForm.controls['ptranstype'].setValue('');
+
+      ['pdepositbankname', 'pbankid', 'pChequenumber', 'ptypeofpayment',
+        'pbranchname', 'pCardNumber', 'pchequedate', 'pAccountnumber']
+        .forEach(f => {
+          this.GeneralReceiptForm.controls[f]?.clearValidators();
+          this.GeneralReceiptForm.controls[f]?.updateValueAndValidity();
+          this.GeneralReceiptForm.controls[f]?.enable();
+        });
+
+      this.chequeshowhide.set(false);
+      this.onlineshowhide.set(false);
+      this.creditShowhide.set(false);
+      this.debitShowhide.set(false);
+      this.Modeofpayment = type;
+      this.Transtype = '';
+    }
   }
 
-  this.GeneralReceiptForm.controls['pbankname'].setValue('');
-  this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-  this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
-  this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
-  this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-  this.GeneralReceiptForm.controls['pbranchname'].setValue('');
-  this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
-  this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
 
-  this.setBalances('BANKBOOK', 0);
-  this.setBalances('PASSBOOK', 0);
-  this.showCashWarning.set(false);
-  this.cashWarningMessage.set('');
 
-  // Reset UPI
-  this.showupi.set(false);
-  this.upinameslist.set([]);
-  this.GeneralReceiptForm.get('pUpiname')?.setValue('');
-  this.GeneralReceiptForm.get('pUpiid')?.setValue('');
 
-  if (type === 'Bank') {
-    this.GeneralReceiptForm.controls['ptranstype'].setValue('Cheque');
-    this.Banktype('Cheque');
-    this.Modeofpayment = type;
-  } else {
-    this.GeneralReceiptForm.controls['ptranstype'].setValue('');
 
-    ['pdepositbankname', 'pbankid', 'pChequenumber', 'ptypeofpayment',
-      'pbranchname', 'pCardNumber', 'pchequedate', 'pAccountnumber']
-      .forEach(f => {
-        this.GeneralReceiptForm.controls[f]?.clearValidators();
-        this.GeneralReceiptForm.controls[f]?.updateValueAndValidity();
-        this.GeneralReceiptForm.controls[f]?.enable();
-      });
 
-    this.chequeshowhide.set(false);
-    this.onlineshowhide.set(false);
-    this.creditShowhide.set(false);
-    this.debitShowhide.set(false);
-    this.Modeofpayment = type;
-    this.Transtype = '';
-  }
-}
   Banktype(type: string): void {
-  this.formValidationMessages = {};
-  this.submitted.set(false);
-  this.validation(type);
+    this.formValidationMessages = {};
+    this.submitted.set(false);
 
-  this.GeneralReceiptForm.controls['pbankid'].setValue(null);
-  this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
-  this.GeneralReceiptForm.controls['pchequedate'].setValue(this.today);
-  this.GeneralReceiptForm.controls['pdepositbankid'].setValue(null);
-  this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);
-  this.GeneralReceiptForm.controls['pbranchname'].setValue('');
-  this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
-  this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
-  this.GeneralReceiptForm.controls['pbankname'].setValue('');
-  this.GeneralReceiptForm.controls['pchequestatus'].setValue(type === 'Cheque');
+    this._depositBankId = null;
+    this.validation(type);
 
-  // reset bank fields touched/pristine
-  [
-    'pbankid', 'ptypeofpayment', 'pChequenumber', 'pdepositbankid',
-    'pCardNumber', 'pbankname', 'pbranchname', 'pAccountnumber', 'pchequedate'
-  ].forEach(k => {
-    const ctrl = this.GeneralReceiptForm.controls[k];
-    if (!ctrl) return;
-    ctrl.markAsUntouched();
-    ctrl.markAsPristine();
-  });
+    this.GeneralReceiptForm.controls['pbankid'].setValue(null);
+    this.GeneralReceiptForm.controls['pChequenumber'].setValue('');
 
-  // reset non-bank fields touched/pristine so they dont fire on tab switch
-  const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
-  ['pledgerid', 'psubledgerid', 'pactualpaidamount'].forEach(k => {
-    fg?.get(k)?.markAsUntouched();
-    fg?.get(k)?.markAsPristine();
-  });
-  this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
-  this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
-  this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
-  this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
+    this.chequeDateValue = new Date();
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
+    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);
+    this.GeneralReceiptForm.controls['pbranchname'].setValue('');
+    this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
+    this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
+    this.GeneralReceiptForm.controls['pbankname'].setValue('');
+    this.GeneralReceiptForm.controls['pchequestatus'].setValue(type === 'Cheque');
 
-  this.Transtype = type;
-  this.GeneralReceiptForm.get('ptypeofpayment')?.enable();
+    // reset bank fields touched/pristine
+    [
+      'pbankid', 'ptypeofpayment', 'pChequenumber', 'pdepositbankid',
+      'pCardNumber', 'pbankname', 'pbranchname', 'pAccountnumber', 'pchequedate'
+    ].forEach(k => {
+      const ctrl = this.GeneralReceiptForm.controls[k];
+      if (!ctrl) return;
+      ctrl.markAsUntouched();
+      ctrl.markAsPristine();
+    });
 
-  this.typeofpaymentlist.set(
-    type === 'Online'
-      ? this.modeoftransactionslist().filter(
+    // reset non-bank fields touched/pristine so they dont fire on tab switch
+    const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
+    ['pledgerid', 'psubledgerid', 'pactualpaidamount'].forEach(k => {
+      fg?.get(k)?.markAsUntouched();
+      fg?.get(k)?.markAsPristine();
+    });
+    this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
+    this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
+    this.GeneralReceiptForm.get('pnarration')?.setValue('');
+    this.GeneralReceiptForm.get('pnarration')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pnarration')?.markAsPristine();
+
+    this.Transtype = type;
+    this.GeneralReceiptForm.get('ptypeofpayment')?.enable();
+
+    this.typeofpaymentlist.set(
+      type === 'Online'
+        ? this.modeoftransactionslist().filter(
           (p: any) => p.ptranstype === 'Online' && p.ptypeofpayment !== 'Online'
         )
-      : this._getTypeofPaymentData()
-  );
+        : this._getTypeofPaymentData()
+    );
 
-  const btn = this.Bankbuttondata.find((b: any) => b.type === type);
-  if (btn) {
-    this.chequeshowhide.set(btn.chequeshowhide);
-    this.onlineshowhide.set(btn.onlineshowhide);
-    this.debitShowhide.set(btn.debitShowhide);
-    this.creditShowhide.set(btn.creditShowhide);
+    const btn = this.Bankbuttondata.find((b: any) => b.type === type);
+    if (btn) {
+      this.chequeshowhide.set(btn.chequeshowhide);
+      this.onlineshowhide.set(btn.onlineshowhide);
+      this.debitShowhide.set(btn.debitShowhide);
+      this.creditShowhide.set(btn.creditShowhide);
+    }
+
+    // Reset UPI fields
+    this.showupi.set(false);
+    this.upinameslist.set([]);
+    this.GeneralReceiptForm.get('pUpiname')?.setValue('');
+    this.GeneralReceiptForm.get('pUpiid')?.setValue('');
+
+    this.setBalances('BANKBOOK', 0);
+    this.setBalances('PASSBOOK', 0);
+
+    if (type === 'Online') {
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
+      this.GeneralReceiptForm.get('pChequenumber')?.disable();
+    } else {
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
+      this.GeneralReceiptForm.get('pChequenumber')?.enable();
+    }
+
+    this.GeneralReceiptForm.controls['ptranstype'].setValue(type);
+    this.checkDepositBankEnable();
   }
-
-  // Reset UPI fields
-  this.showupi.set(false);
-  this.upinameslist.set([]);
-  this.GeneralReceiptForm.get('pUpiname')?.setValue('');
-  this.GeneralReceiptForm.get('pUpiid')?.setValue('');
-
-  this.setBalances('BANKBOOK', 0);
-  this.setBalances('PASSBOOK', 0);
-
-  if (type === 'Online') {
-    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-    this.GeneralReceiptForm.get('pChequenumber')?.disable();
-  } else {
-    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
-    this.GeneralReceiptForm.get('pChequenumber')?.enable();
-  }
-
-  this.GeneralReceiptForm.controls['ptranstype'].setValue(type);
-  this.checkDepositBankEnable();
-}
 
   checkDepositBankEnable(): void {
-    const transtype = this.GeneralReceiptForm.get('ptranstype')?.value;
-    const control = this.GeneralReceiptForm.get('pdepositbankid');
-
-    if (transtype === 'Debit Card' || transtype === 'Credit Card') {
-      control?.enable();
-      return;
-    }
-
-    const bank = this.GeneralReceiptForm.get('pbankid')?.value;
-    const payment = this.GeneralReceiptForm.get('ptypeofpayment')?.value;
-
-    if (bank && payment) {
-      control?.enable();
-    } else {
-      control?.setValue(null);
-      control?.disable();
-    }
+    this.GeneralReceiptForm.get('pdepositbankid')?.enable();
   }
 
-  
+
 
   toggleReferenceNo(value: any): void {
     const refCtrl = this.GeneralReceiptForm.get('pChequenumber');
@@ -1208,8 +1096,16 @@ export class GeneralReceiptNew implements OnInit {
       });
     }
 
+
     this.recalculateAll();
     this.gstvalidation(on);
+    this.formValidationMessages['pgstpercentage'] = '';
+    this.formValidationMessages['pStateId'] = '';
+    const gstCtrls = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
+    gstCtrls.get('pgstpercentage')?.markAsUntouched();
+    gstCtrls.get('pgstpercentage')?.markAsPristine();
+    gstCtrls.get('pStateId')?.markAsUntouched();
+    gstCtrls.get('pStateId')?.markAsPristine();
   }
 
   gst_Change($event: any): void {
@@ -1331,8 +1227,18 @@ export class GeneralReceiptNew implements OnInit {
       );
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     }
+    // this.recalculateAll();
+    // this.tdsvalidation(on);
+    //  this.formValidationMessages['pTdsSection'] = '';
+    // this.formValidationMessages['pTdsPercentage'] = '';
     this.recalculateAll();
     this.tdsvalidation(on);
+    this.formValidationMessages['pTdsSection'] = '';
+    this.formValidationMessages['pTdsPercentage'] = '';
+    this.GeneralReceiptForm.get('pTdsSection')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pTdsSection')?.markAsPristine();
+    this.GeneralReceiptForm.get('pTdsPercentage')?.markAsUntouched();
+    this.GeneralReceiptForm.get('pTdsPercentage')?.markAsPristine();
   }
 
   tdsSection_Change(event: any): void {
@@ -1370,7 +1276,7 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
-  
+
 
   addPaymentDetails(): void {
     const ledger = this.GeneralReceiptForm.get('preceiptslist.pledgerid');
@@ -1410,8 +1316,7 @@ export class GeneralReceiptNew implements OnInit {
               pModifiedby: this.cs.pCreatedby
             });
 
-            // ── Use getRawValue on the WHOLE form so disabled controls
-            //    (pChequenumber, pdepositbankid) are included in the entry ──
+
             const rawForm = this.GeneralReceiptForm.getRawValue();
             const fv = ctrl.value; // preceiptslist values (none are disabled here)
 
@@ -1488,7 +1393,7 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
- 
+
   addvalidations(): boolean {
     this.formValidationMessages = {};
     let isValid = true;
@@ -1624,7 +1529,7 @@ export class GeneralReceiptNew implements OnInit {
 
   }
 
- 
+
   clearPaymentDetails1(): void {
     const ctrl = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
     const curLedger = ctrl.get('pledgerid')?.value;
@@ -1669,7 +1574,7 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
-  // ── Bank ──────────────────────────────────────────────────────────────────
+  // ── Bank 
   BankIdChange($event: any): void {
     this._loadBankNtList();
     this.GeneralReceiptForm.get('pbankid')?.markAsTouched();
@@ -1708,81 +1613,49 @@ export class GeneralReceiptNew implements OnInit {
     this.setBalances('PASSBOOK', pb !== null && !isNaN(Number(pb)) ? Math.round(Number(pb)) : 0);
   }
 
-  // FIND and REPLACE entire method:
-  // typeofDepositBank($event: any): void {
-  //   if (!$event) {
-  //     this.formValidationMessages['pdepositbankid'] = '';
-  //     return;
-  //   }
 
-  //   const id = typeof $event === 'object'
-  //     ? ($event.pbankId ?? $event.pbankid ?? $event.pBankId)
-  //     : $event;
 
-  //   const obj = [...(this.banklist1() || []), ...(this.banklist() || [])]
-  //     .find((b: any) => b.pbankId == id || b.pbankid == id || b.pBankId == id);
+  typeofDepositBank($event: any): void {
+    if (!$event) {
+      this._depositBankId = null;
+      this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
+      return;
+    }
 
-  //   if (obj) {
-  //     this.GeneralReceiptForm.controls['pdepositbankname'].setValue(
-  //       obj.pbankname || obj.pBankName || ''
-  //     );
-  //     const bb = obj.pbankbalance ?? obj.pBankBalance ?? null;
-  //     const pb = obj.pbankpassbookbalance ?? obj.pBankPassbookBalance ?? null;
-  //     this.setBalances('BANKBOOK', bb !== null && !isNaN(Number(bb)) ? Math.round(Number(bb)) : 0);
-  //     this.setBalances('PASSBOOK', pb !== null && !isNaN(Number(pb)) ? Math.round(Number(pb)) : 0);
-  //   }
+    const id = typeof $event === 'object'
+      ? ($event.pbankId ?? $event.pbankid ?? $event.pBankId)
+      : $event;
 
-  //   // Clear validation message and mark as touched
-  //   this.formValidationMessages['pdepositbankid'] = '';
-  //   this.GeneralReceiptForm.get('pdepositbankid')?.markAsTouched();
-  // }
- typeofDepositBank($event: any): void {
-  if (!$event) {
-    this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
-    return;
-  }
+    this._depositBankId = id;
 
-  const id = typeof $event === 'object'
-    ? ($event.pbankId ?? $event.pbankid ?? $event.pBankId)
-    : $event;
+    const obj = [...(this.banklist1() || []), ...(this.banklist() || [])]
+      .find((b: any) => b.pbankId == id || b.pbankid == id || b.pBankId == id);
 
-  const obj = [...(this.banklist1() || []), ...(this.banklist() || [])]
-    .find((b: any) => b.pbankId == id || b.pbankid == id || b.pBankId == id);
+    if (obj) {
+      this.GeneralReceiptForm.controls['pdepositbankname'].setValue(
+        obj.pbankname || obj.pBankName || ''
+      );
+      const bb = obj.pbankbalance ?? obj.pBankBalance ?? null;
+      const pb = obj.pbankpassbookbalance ?? obj.pBankPassbookBalance ?? null;
+      this.setBalances('BANKBOOK', bb !== null && !isNaN(Number(bb)) ? Math.round(Number(bb)) : 0);
+      this.setBalances('PASSBOOK', pb !== null && !isNaN(Number(pb)) ? Math.round(Number(pb)) : 0);
+    }
 
-  if (obj) {
-    this.GeneralReceiptForm.controls['pdepositbankname'].setValue(
-      obj.pbankname || obj.pBankName || ''
-    );
-    const bb = obj.pbankbalance ?? obj.pBankBalance ?? null;
-    const pb = obj.pbankpassbookbalance ?? obj.pBankPassbookBalance ?? null;
-    this.setBalances('BANKBOOK', bb !== null && !isNaN(Number(bb)) ? Math.round(Number(bb)) : 0);
-    this.setBalances('PASSBOOK', pb !== null && !isNaN(Number(pb)) ? Math.round(Number(pb)) : 0);
-  }
-
-  // value selected — always clear error
-  this.formValidationMessages['pdepositbankid'] = '';
-  // use setTimeout to ensure it overrides any other handler that may fire after
-  setTimeout(() => {
+    // value selected — always clear error
     this.formValidationMessages['pdepositbankid'] = '';
-  }, 0);
-}
-
-  // onDepositBankClose(): void {
-  //   const v = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-  //   if (v !== null && v !== undefined && v !== '') {
-  //     this.formValidationMessages['pdepositbankid'] = '';
-  //   } else {
-  //     this.GeneralReceiptForm.get('pdepositbankid')?.markAsTouched();
-  //     this.GetValidationByControl(this.GeneralReceiptForm, 'pdepositbankid', true);
-  //   }
-  // }
-onDepositBankClose(): void {
-  const v = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-  if (!v || v === '' || v === 0) {
-    this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
+    setTimeout(() => {
+      this.formValidationMessages['pdepositbankid'] = '';
+    }, 0);
   }
-  // if value exists — do nothing, typeofDepositBank already cleared it
-}
+
+
+  onDepositBankClose(): void {
+    const v = this.GeneralReceiptForm.getRawValue().pdepositbankid;
+    if (!v || v === '' || v === 0) {
+      this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
+    }
+
+  }
 
   typeofPaymentChange(args: any): void {
     this.GetValidationByControl(this.GeneralReceiptForm, 'ptypeofpayment', true);
@@ -1792,7 +1665,7 @@ onDepositBankClose(): void {
 
     if (!this.Transtype) return;
 
-    this.GeneralReceiptForm.controls['pdepositbankid'].setValue(null);
+    // this.GeneralReceiptForm.controls['pdepositbankid'].setValue(null);
     this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
     this.formValidationMessages['pdepositbankid'] = '';
     this.showupi.set(false);
@@ -1824,7 +1697,7 @@ onDepositBankClose(): void {
   }
 
 
-  // ── Validation ────────────────────────────────────────────────────────────
+  // ── Validation  
   validation(type: string): void {
     // this.formValidationMessages = {};
     const cheque = this.GeneralReceiptForm.controls['pChequenumber'];
@@ -1837,6 +1710,7 @@ onDepositBankClose(): void {
     const branch = this.GeneralReceiptForm.controls['pbranchname'];
 
     deposit.clearValidators();
+    deposit.updateValueAndValidity();
     cheque.setValidators([Validators.required, alphanumericValidator]);
     payType.setValidators(Validators.required);
 
@@ -1872,7 +1746,7 @@ onDepositBankClose(): void {
   }
 
 
-  // ── Input helpers ─────────────────────────────────────────────────────────
+  // ── Input helpers  
   numberOnly(event: KeyboardEvent): boolean {
     const cc = event.which || event.keyCode;
     if (cc < 48 || cc > 57) { event.preventDefault(); return false; }
@@ -1893,101 +1767,94 @@ onDepositBankClose(): void {
     return false;
   }
 
-  // branchNameChange(event: any): void {
-  //   let v = event.target.value.replace(/[^a-zA-Z ]/g, '').substring(0, 40);
-  //   v = v.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
-  //   this.GeneralReceiptForm.get('pbranchname')?.setValue(v, { emitEvent: false });
-  //   this.GeneralReceiptForm.get('pbranchname')?.markAsTouched();
-  // }
+
   branchNameChange(event: any): void {
-  let v = event.target.value.replace(/[^a-zA-Z ]/g, '').substring(0, 40);
-  v = v.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
-  this.GeneralReceiptForm.get('pbranchname')?.setValue(v, { emitEvent: false });
-  this.GeneralReceiptForm.get('pbranchname')?.markAsTouched();
-  if (!v || v.trim() === '') {
-    this.formValidationMessages['pbranchname'] = 'Please Enter Branch Name';
-  } else {
-    this.formValidationMessages['pbranchname'] = '';
-  }
-}
-
-   
-  pAccountnumber_change(): void {
-  const ctrl = this.GeneralReceiptForm.get('pAccountnumber');
-  if (ctrl?.value) {
-    ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 40), { emitEvent: false });
-  }
-  ctrl?.markAsTouched();
-  this.GetValidationByControl(this.GeneralReceiptForm, 'pAccountnumber', true);
-  if (!ctrl?.value || ctrl.value.toString().trim() === '') {
-    this.formValidationMessages['pAccountnumber'] = 'Please Enter Account Number';
-  } else {
-    this.formValidationMessages['pAccountnumber'] = '';
-  }
-}
-
-   
-  BankNameChange(): void {
-  const ctrl = this.GeneralReceiptForm.get('pbankname');
-  if (ctrl?.value) {
-    ctrl.setValue(ctrl.value.toString().replace(/[^a-zA-Z\s]/g, '').substring(0, 40), { emitEvent: false });
-  }
-  ctrl?.markAsTouched();
-  this.GetValidationByControl(this.GeneralReceiptForm, 'pbankname', true);
-  if (this.Transtype === 'Credit Card') {
-    if (!ctrl?.value || ctrl.value.toString().trim() === '') {
-      this.formValidationMessages['pbankname'] = 'Bank / Financial Services Is Required';
+    let v = event.target.value.replace(/[^a-zA-Z ]/g, '').substring(0, 40);
+    v = v.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
+    this.GeneralReceiptForm.get('pbranchname')?.setValue(v, { emitEvent: false });
+    this.GeneralReceiptForm.get('pbranchname')?.markAsTouched();
+    if (!v || v.trim() === '') {
+      this.formValidationMessages['pbranchname'] = 'Please Enter Branch Name';
     } else {
-      this.formValidationMessages['pbankname'] = '';
+      this.formValidationMessages['pbranchname'] = '';
     }
   }
-}
+
+
+  pAccountnumber_change(): void {
+    const ctrl = this.GeneralReceiptForm.get('pAccountnumber');
+    if (ctrl?.value) {
+      ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 40), { emitEvent: false });
+    }
+    ctrl?.markAsTouched();
+    this.GetValidationByControl(this.GeneralReceiptForm, 'pAccountnumber', true);
+    if (!ctrl?.value || ctrl.value.toString().trim() === '') {
+      this.formValidationMessages['pAccountnumber'] = 'Please Enter Account Number';
+    } else {
+      this.formValidationMessages['pAccountnumber'] = '';
+    }
+  }
+
+
+  BankNameChange(): void {
+    const ctrl = this.GeneralReceiptForm.get('pbankname');
+    if (ctrl?.value) {
+      ctrl.setValue(ctrl.value.toString().replace(/[^a-zA-Z\s]/g, '').substring(0, 40), { emitEvent: false });
+    }
+    ctrl?.markAsTouched();
+    this.GetValidationByControl(this.GeneralReceiptForm, 'pbankname', true);
+    if (this.Transtype === 'Credit Card') {
+      if (!ctrl?.value || ctrl.value.toString().trim() === '') {
+        this.formValidationMessages['pbankname'] = 'Bank / Financial Services Is Required';
+      } else {
+        this.formValidationMessages['pbankname'] = '';
+      }
+    }
+  }
   ChequeNoChange(): void {
-  const ctrl = this.GeneralReceiptForm.get('pChequenumber');
-  if (ctrl?.value) {
-    ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 40), { emitEvent: false });
+    const ctrl = this.GeneralReceiptForm.get('pChequenumber');
+    if (ctrl?.value) {
+      ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 40), { emitEvent: false });
+    }
+    ctrl?.markAsTouched();
+    this.GetValidationByControl(this.GeneralReceiptForm, 'pChequenumber', true);
+    const val = this.GeneralReceiptForm.getRawValue().pChequenumber;
+    if (!val || val.toString().trim() === '') {
+      this.formValidationMessages['pChequenumber'] = this.Transtype === 'Cheque'
+        ? 'Cheque Number Is Required'
+        : 'Reference No Is Required';
+    } else {
+      this.formValidationMessages['pChequenumber'] = '';
+    }
   }
-  ctrl?.markAsTouched();
-  this.GetValidationByControl(this.GeneralReceiptForm, 'pChequenumber', true);
-  const val = this.GeneralReceiptForm.getRawValue().pChequenumber;
-  if (!val || val.toString().trim() === '') {
-    this.formValidationMessages['pChequenumber'] = this.Transtype === 'Cheque'
-      ? 'Cheque Number Is Required'
-      : 'Reference No Is Required';
-  } else {
-    this.formValidationMessages['pChequenumber'] = '';
-  }
-}
 
   ChequeDateChange(): void {
     this.GeneralReceiptForm.get('pchequedate')?.markAsTouched();
     this.GetValidationByControl(this.GeneralReceiptForm, 'pchequedate', true);
   }
 
-  // CardNoChange(): void {
-  //   const ctrl = this.GeneralReceiptForm.get('pCardNumber');
-  //   if (ctrl?.value) {
-  //     ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 16), { emitEvent: false });
-  //   }
-  //   ctrl?.markAsTouched();
-  //   this.GetValidationByControl(this.GeneralReceiptForm, 'pCardNumber', true);
-  // }
+  onChequeDateChange(date: Date): void {
+    this.chequeDateValue = date;
+    this.GeneralReceiptForm.controls['pchequedate'].setValue(date);
+    this.ChequeDateChange();
+  }
+
   CardNoChange(): void {
-  const ctrl = this.GeneralReceiptForm.get('pCardNumber');
-  if (ctrl?.value) {
-    ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 16), { emitEvent: false });
+    const ctrl = this.GeneralReceiptForm.get('pCardNumber');
+    if (ctrl?.value) {
+      ctrl.setValue(ctrl.value.toString().replace(/\D/g, '').substring(0, 16), { emitEvent: false });
+    }
+    ctrl?.markAsTouched();
+    this.GetValidationByControl(this.GeneralReceiptForm, 'pCardNumber', true);
+    const val = ctrl?.value;
+    if (!val || val.toString().trim() === '') {
+      this.formValidationMessages['pCardNumber'] = 'Card Number Is Required';
+    } else if (val.toString().length !== 16) {
+      this.formValidationMessages['pCardNumber'] = 'Card Number Must Be 16 Digits';
+    } else {
+      this.formValidationMessages['pCardNumber'] = '';
+    }
   }
-  ctrl?.markAsTouched();
-  this.GetValidationByControl(this.GeneralReceiptForm, 'pCardNumber', true);
-  const val = ctrl?.value;
-  if (!val || val.toString().trim() === '') {
-    this.formValidationMessages['pCardNumber'] = 'Card Number Is Required';
-  } else if (val.toString().length !== 16) {
-    this.formValidationMessages['pCardNumber'] = 'Card Number Must Be 16 Digits';
-  } else {
-    this.formValidationMessages['pCardNumber'] = '';
-  }
-}
 
   gstno_change(): void {
     this.GetValidationByControl(this.GeneralReceiptForm, 'pgstno', true);
@@ -2009,11 +1876,9 @@ onDepositBankClose(): void {
 
 
 
-
-   
-
   saveGeneralReceipt(): void {
-    debugger
+    debugger;
+
     this.submitted.set(true);
     this.showCashWarning.set(false);
     this.cashWarningMessage.set('');
@@ -2057,11 +1922,7 @@ onDepositBankClose(): void {
           this.formValidationMessages['pchequedate'] = 'Please Select Cheque Date';
           hasError = true;
         }
-        const depositCheque = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-        if (!depositCheque) {
-          this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
-          hasError = true;
-        }
+
 
       } else if (this.Transtype === 'Online') {
         if (!this.GeneralReceiptForm.get('pbankid')?.value) {
@@ -2077,8 +1938,8 @@ onDepositBankClose(): void {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-        if (!depositVal) {
+        const depositVal = this._depositBankId;
+        if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
         }
@@ -2097,8 +1958,8 @@ onDepositBankClose(): void {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-        if (!depositVal) {
+        const depositVal = this._depositBankId;
+        if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
         }
@@ -2121,37 +1982,13 @@ onDepositBankClose(): void {
           this.formValidationMessages['pChequenumber'] = 'Reference No Is Required';
           hasError = true;
         }
-        const depositVal = this.GeneralReceiptForm.getRawValue().pdepositbankid;
-        if (!depositVal) {
+        const depositVal = this._depositBankId;
+        if (!depositVal || depositVal === '' || depositVal === 0) {
           this.formValidationMessages['pdepositbankid'] = 'Please Select Deposited Bank Name';
           hasError = true;
         }
       }
     }
-
-   
-    // const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
-    // if (!fg.get('pledgerid')?.value) {
-    //   this.formValidationMessages['pledgerid'] = 'Ledger Is Required';
-    //   fg.get('pledgerid')?.markAsTouched();
-    //   hasError = true;
-    // }
-
-    // // ── Sub Ledger ──
-    // if (this.showsubledger() && !fg.get('psubledgerid')?.value) {
-    //   this.formValidationMessages['psubledgerid'] = 'Sub Ledger Is Required';
-    //   fg.get('psubledgerid')?.markAsTouched();
-    //   hasError = true;
-    // }
-
-    // // ── Amount ──
-    // const amt = fg.get('pactualpaidamount')?.value;
-    // if (!amt || Number(amt) <= 0) {
-    //   this.formValidationMessages['pactualpaidamount'] =
-    //     'Amount Received Is Required And Must Be Greater Than 0';
-    //   fg.get('pactualpaidamount')?.markAsTouched();
-    //   hasError = true;
-    // }
 
     // ── Ledger / SubLedger / Amount — only validate if no payments added yet ──
     const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
@@ -2185,14 +2022,14 @@ onDepositBankClose(): void {
       hasError = true;
     }
 
-    // ── Stop here if any validation failed ──
-    if (hasError) return;
-
     // ── Payments list ──
     if (this.paymentslist().length === 0) {
       this.cs.showWarningMessage('Please add at least one payment detail');
       return;
     }
+
+    // ── Stop here if any validation failed ──
+    if (hasError) return;
 
     // ── Cash limit check ──
     if (this.GeneralReceiptForm.get('pmodofreceipt')?.value?.toUpperCase() === 'CASH') {
@@ -2213,9 +2050,9 @@ onDepositBankClose(): void {
       }
     }
 
-    // ── Prepare and submit ──
+
     const chequeDate = this.datepipe.transform(
-      this.GeneralReceiptForm.controls['pchequedate'].value, 'dd-MM-yyyy'
+      this.chequeDateValue, 'dd-MM-yyyy'
     );
     this.disablesavebutton.set(true);
     this.savebutton.set('Processing');
@@ -2248,7 +2085,7 @@ onDepositBankClose(): void {
           );
 
           const rawForm = this.GeneralReceiptForm.getRawValue();
-          const depositBankId = rawForm.pdepositbankid ?? 0;
+          const depositBankId = this._depositBankId ?? rawForm.pdepositbankid ?? 0;
           const chequeNumber = rawForm.pChequenumber || '';
           const payments = this.paymentslist();
 
@@ -2373,6 +2210,7 @@ onDepositBankClose(): void {
           this.svc.saveGeneralReceipt(payload)
             .subscribe({
               next: (res: any) => {
+                console.log('Save response:', res);
                 if (res?.success) {
                   this.cs.showInfoMessage('Saved successfully');
                   this.ClearGenerealReceipt();
@@ -2410,9 +2248,7 @@ onDepositBankClose(): void {
     this.GeneralReceiptForm.controls['pmodofreceipt'].setValue('CASH');
     this.Paymenttype('Cash');
 
-    // ['ppartyid', 'ppartyname', 'pnarration', 'pFilename', 'pFileformat', 'pFilepath'].forEach(f =>
-    //   this.GeneralReceiptForm.controls[f]?.setValue(f === 'ppartyid' ? null : '')
-    // );
+
     ['ppartyid', 'ppartyname', 'pnarration', 'pFilename', 'pFileformat', 'pFilepath'].forEach(f => {
       const ctrl = this.GeneralReceiptForm.controls[f];
       ctrl?.setValue(f === 'ppartyid' ? null : '');
@@ -2443,9 +2279,7 @@ onDepositBankClose(): void {
     this.cashWarningMessage.set('');
     this.clearPaymentDetails();
     this.paymentlistcolumnwiselist = { ptotalamount: 0, pamount: 0, pgstamount: 0 };
-    // this.formValidationMessages = {};
-    // this.submitted.set(false);
-    // this.imageResponse.set({ name: '' });
+
     this.formValidationMessages = {};
     this.submitted.set(false);
     this.imageResponse.set({ name: '' });
@@ -2482,7 +2316,7 @@ onDepositBankClose(): void {
   }
 
 
-  // ── Validation helpers ────────────────────────────────────────────────────
+  // ── Validation helpers  
   checkValidations(group: FormGroup, isValid: boolean): boolean {
     Object.keys(group.controls).forEach(key => {
       group.get(key)?.markAsTouched();
@@ -2500,13 +2334,9 @@ onDepositBankClose(): void {
       } else if (ctrl.validator) {
         this.formValidationMessages[key] = '';
         if ((ctrl.touched || ctrl.dirty) && (ctrl.errors || ctrl.invalid)) {
-          // for (const ek in ctrl.errors) {
-          //   let label = key;
-          //   try { label = (document.getElementById(key) as HTMLInputElement).title; } catch { }
-          //   const msg = this.cs.getValidationMessage(ctrl, ek, label, key, '');
-          //   this.formValidationMessages[key] += msg + ' ';
+
           isValid = false;
-          // }
+
         }
       }
     } catch { }

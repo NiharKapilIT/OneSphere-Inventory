@@ -1395,6 +1395,10 @@ export class ChequesOnhand implements OnInit {
     let isValid = true;
     let deposit = 0;
     this.ChequesOnHandValidation.set({});
+    if (!this.bankid || this.bankid == 0) {
+        this._commonService.showWarningMessage('Please Select Bank');
+        return;
+      }
 
     const hasSelectedRows = this.gridData().some(
       row => row.pdepositstatus === true || row.pcancelstatus === true
@@ -1438,7 +1442,7 @@ export class ChequesOnhand implements OnInit {
       });
 
       if (this.DataForSaving.length === 0) {
-        setTimeout(() => this._commonService.showWarningMessage('No Data to Save'), 0);
+        setTimeout(() => this._commonService.showWarningMessage('Select the Checkbox'), 0);
         return;
       }
 
