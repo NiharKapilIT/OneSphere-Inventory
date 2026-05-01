@@ -15,6 +15,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-tds-jv',
@@ -92,6 +93,7 @@ export class TdsJv implements OnInit {
     private _employeeAttendService: AccountsTransactions,
     private datePipe: DatePipe,
     private _AccountingTransactionsService: AccountsTransactions,
+     private cdr: ChangeDetectorRef,
   ) {
     this.currencysymbol = this._commonService.datePickerPropertiesSetup('currencysymbol');
     this.pageCriteria = new PageCriteria();
@@ -421,8 +423,7 @@ export class TdsJv implements OnInit {
     this.totaldebitamount = 0;
     this.totalcreditamount = 0;
     this.showhidetable = false;
-   // this.dataisempty = false;
-    this.dataisempty = true;
+    this.dataisempty = false;
     this.tdsJvDetailsGrid = [];
 
     const creditledger = this.tdsJvDetailsForm.controls['CreditLedger'].value || '';
@@ -432,36 +433,35 @@ export class TdsJv implements OnInit {
     const monthYear = (this.CalendarYear || '').toString().toUpperCase();
     // const monthYear = (this.MonthName || '').toString().toUpperCase();
 
-    if (!debitledger) {
-      this._commonService.showWarningMessage('Please select Debit Ledger');
-      this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
-      return;
-    }
-    if (!creditledger) {
-      this._commonService.showWarningMessage('Please select Credit Ledger');
-      this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
-      return;
-    }
+  let isValid = true;
 
-    // ── NEW: validate Year ──────────────────────────────────────────────────
-    if (!selectedYear) {
-      this._commonService.showWarningMessage('Please select Year');
-      this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
-      return;
-    }
+if (!debitledger) {
+  this._commonService.showWarningMessage('Please select Debit Ledger');
+  this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
+  isValid = false;
+}
 
-    // ── NEW: validate Month ─────────────────────────────────────────────────
-    if (!selectedMonth || !this.CalendarYear) {
-      this._commonService.showWarningMessage('Please select Month');
-      this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
-      return;
-    }
+if (!creditledger) {
+  this._commonService.showWarningMessage('Please select Credit Ledger');
+  this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
+  isValid = false;
+}
 
-    if (!this.CalendarYear) {
-      this._commonService.showWarningMessage('Please select Year and Month');
-      return;
-    }
+if (!selectedYear) {
+  this._commonService.showWarningMessage('Please select Year');
+  this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
+  isValid = false;
+}
 
+if (!selectedMonth || !this.CalendarYear) {
+  this._commonService.showWarningMessage('Please select Month');
+  this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
+  isValid = false;
+}
+
+if (!isValid) {
+  return;
+}
     this.savebutton1 = 'Processing';
     this.disablesavebutton1 = true;
 
@@ -518,8 +518,11 @@ export class TdsJv implements OnInit {
           this.isExists = false;
         }
 
-        this.savebutton1 = 'Show';
-        this.disablesavebutton1 = false;
+      setTimeout(() => {
+  this.savebutton1 = 'Show';
+  this.disablesavebutton1 = false;
+  this.cdr.detectChanges();
+}, 1000);
       },
       error: (error: any) => {
         this.tdsJvDetailsGrid = [];
@@ -530,6 +533,8 @@ export class TdsJv implements OnInit {
         this.isExists = false;
         this.savebutton1 = 'Show';
         this.disablesavebutton1 = false;
+         this.cdr.detectChanges();
+
         this._commonService.showErrorMessage(error);
       },
     });

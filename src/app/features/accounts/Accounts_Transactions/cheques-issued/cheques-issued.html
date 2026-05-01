@@ -67,8 +67,6 @@
           <ng-select appendTo="body" [items]="bankList()" bindLabel="pbankname" bindValue="pbankid"
             formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bank Name"
             [closeOnSelect]="true" [clearable]="true" [searchable]="true">
-
-
             <ng-template ng-label-tmp let-item="item">
               <span>{{ item.pbankname }}</span>
             </ng-template>

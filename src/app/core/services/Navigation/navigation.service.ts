@@ -64,13 +64,19 @@ export class NavigationService {
                   route: '/dashboard/accounts/accounts-config/bank-config-view',
                   relatedRoutes: ['/dashboard/accounts/accounts-config/bank-config']
                 },
-    
+  
                 {
                   id: 'cheque-management',
                   name: 'Cheque Management',
                   route: '/dashboard/accounts/accounts-config/cheque-management',
                   relatedRoutes: ['/dashboard/accounts/accounts-config/cheque-managementnew']
-                }
+                },
+                {
+                  id: 'company-config',
+                  name: 'Company Config',
+                  route: '/dashboard/accounts/accounts-config/company-config',
+                  relatedRoutes: ['/dashboard/accounts/accounts-config/company-config']
+                },
     
               ]
             },
