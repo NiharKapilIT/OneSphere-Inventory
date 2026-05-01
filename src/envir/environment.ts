@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'assets/appsettings.json/appsettings.json',
-  // apiUrl: 'assets/aappsettings.json',
+  // apiUrl: 'assets/appsettings.json/appsettings.json',
+  apiUrl: 'assets/appsettings.json',
   emailjs: {
     serviceId: 'YOUR_SERVICE_ID',
     templateId: 'YOUR_TEMPLATE_ID',
