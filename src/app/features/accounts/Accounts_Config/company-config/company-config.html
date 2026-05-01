@@ -150,11 +150,35 @@
                                 <div class="row g-2">
 
                                     <div class="col-12 col-md-6">
-                                        <div class="erp-form-group">
+                                        <!-- <div class="erp-form-group">
                                             <label class="erp-label">Company Name</label>
-                                            <input class="erp-input" type="text" formControlName="companyName"
-                                                maxlength="150" />
+                                            <input class="erp-input" type="text" formControlName="companyName" />
+
+                                            @if(
+                                            "companyConfigForm?.get('companyName')?.touched &&
+                                            companyConfigForm?.get('companyName')?.invalid"
+                                            ){
+                                            <div class="erp-field-error">
+                                                Company name is required
+                                            </div>
+                                            }
+                                        </div> -->
+
+                                        <div class="erp-form-group">
+                                            <label class="erp-label">Company Name<span class="required">*</span></label>
+                                            <input class="erp-input" type="text" formControlName="companyName" />
+
+                                            @if (
+                                            companyConfigForm.get('companyName')?.touched &&
+                                            companyConfigForm.get('companyName')?.invalid
+                                            ) {
+                                            <div class="erp-field-error">
+                                                Company name is required
+                                            </div>
+                                            }
                                         </div>
+
+
                                     </div>
 
                                     <div class="col-12 col-md-6">
@@ -168,16 +192,18 @@
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
                                             <label class="erp-label">CIN Number</label>
-                                            <input class="erp-input" type="text" formControlName="cinNumber"
-                                                maxlength="21" />
+                                            <!-- <input class="erp-input" type="text" formControlName="cinNumber"
+                                                maxlength="21" /> -->
+                                            <input class="erp-input" type="text" maxlength="21" id:cinNumber
+                                                formControlName="cinNumber" (input)="onIfscInput()" />
                                         </div>
                                     </div>
 
                                     <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
                                             <label class="erp-label">PAN Number</label>
-                                            <input class="erp-input" type="text" formControlName="panNumber"
-                                                maxlength="10" />
+                                            <input class="erp-input" type="text" maxlength="10"
+                                                formControlName="panNumber" (input)="onIfscInput()" />
                                         </div>
                                     </div>
 
@@ -190,15 +216,76 @@
                                         </div>
                                     </div>
 
+
+
                                     <div class="col-12 col-md-6">
+                                        <div class="erp-form-group">
+                                            <label class="erp-label">Company Logo <span
+                                                    class="required">*</span></label>
+
+                                            <!-- File Upload Area -->
+                                            <div class="file-upload-container">
+                                                <p-fileupload #fileUpload name="logo[]" [multiple]="false"
+                                                    accept="image/jpeg,image/jpg,image/png,image/svg+xml"
+                                                    maxFileSize="2000000" [auto]="true"(onSelect)="onUpload($event)"
+                                                    [showUploadButton]="false" [showCancelButton]="false"
+                                                    customUpload="true" styleClass="file-upload-custom">
+                                                    <ng-template #empty>
+                                                        <div class="upload-area">
+                                                            <i class="pi pi-cloud-upload"></i>
+                                                            <p class="upload-text">Drag and drop your image here</p>
+                                                            <p class="upload-hint">or click to browse (512x512 px,
+                                                                JPG/PNG/SVG)</p>
+                                                        </div>
+                                                    </ng-template>
+                                                </p-fileupload>
+                                            </div>
+
+                                            <!-- Upload Error Message -->
+                                            @if (uploadError()) {
+                                            <div class="upload-error-message">
+                                                <i class="pi pi-exclamation-circle"></i>
+                                                <span>{{ uploadError() }}</span>
+                                            </div>
+                                            }
+
+                                            <!-- Success Message -->
+                                            @if (uploadSuccess()) {
+                                            <div class="upload-success-message">
+                                                <i class="pi pi-check-circle"></i>
+                                                <span>Image uploaded successfully!</span>
+                                            </div>
+                                            }
+
+                                            <!-- Image Preview -->
+                                            @if (uploadedImage()) {
+                                            <div class="image-preview-container">
+                                                <div class="image-preview-wrapper">
+                                                    <img [src]="uploadedImage()" alt="Uploaded Company Logo"
+                                                        class="image-preview">
+                                                    <button type="button" class="remove-image-btn"
+                                                        (click)="clearUploadedImage()" title="Remove image">
+                                                        <i class="pi pi-times"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="image-info">
+                                                    <p class="info-label">Dimensions: 512x512 px</p>
+                                                    <p class="info-text">✓ Image ready to save</p>
+                                                </div>
+                                            </div>
+                                            }
+                                        </div>
+                                    </div>
+
+                                    <!-- <div class="col-12 col-md-6" >
                                         <div class="erp-form-group">
                                             <label class="erp-label">Currency Formate</label>
                                             <input class="erp-input" type="text" formControlName="currencyFormate"
                                                 maxlength="10" />
                                         </div>
-                                    </div>
+                                    </div> -->
 
-                                    <div class="col-12 col-md-6">
+                                    <!-- <div class="col-12 col-md-6">
                                         <div class="erp-form-group">
                                             <label class="erp-label">Date</label>
                                             <div class="erp-input-wrap erp-date-wrap">
@@ -209,7 +296,7 @@
                                                     inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div> -->
 
                                 </div>
                             </div>
