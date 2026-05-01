@@ -32,14 +32,7 @@
               <label class="erp-label" for="preceiptdate">Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <!-- <p-datepicker formControlName="preceiptdate" id="preceiptdate" dateFormat="dd-M-yy"
-                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker> -->
-                <p-datepicker formControlName="preceiptdate" id="preceiptdate" dateFormat="dd-M-yyyy"
-                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"
-                  [inputStyle]="{'text-transform':'capitalize'}" [dateFormat]="'dd-M-yy'" [defaultDate]="today">
-                </p-datepicker>
+                <input class="erp-input icon-pad w-100" [value]="today | date:'dd-MMM-yyyy'" readonly>
               </div>
               @if (getValidationMsg('preceiptdate')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
@@ -49,7 +42,6 @@
           </div>
         </div>
       </div>
-
       <!-- ── MODE OF RECEIPT ── -->
       <div class="p-4">
         <h3 class="section-title mb-2">Mode Of Receipt</h3>
@@ -93,7 +85,7 @@
                 <label class="erp-label">Transaction Date <span class="required">*</span></label>
                 <div class="erp-input-wrap erp-date-wrap">
                   <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker dateFormat="dd-M-yyyy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
                     styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
                     [maxDate]="pDatepickerMaxDate"></p-datepicker>
                 </div>
@@ -193,9 +185,11 @@
               <label class="erp-label">Cheque Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="pchequedate" dateFormat="dd-M-yyyy" placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-                  [maxDate]="pDatepickerMaxDate" (onClose)="ChequeDateChange()">
+
+                <p-datepicker [(ngModel)]="chequeDateValue" [ngModelOptions]="{standalone: true}"
+                  [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="maxDate"
+                  [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
               @if (getValidationMsg('pchequedate')) {
@@ -274,9 +268,11 @@
               <label class="erp-label">Transaction Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="pchequedate" [maxDate]="maxDate" dateFormat="dd-M-yyyy"
-                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100" (onClose)="ChequeDateChange()">
+               
+                <p-datepicker [(ngModel)]="chequeDateValue" [ngModelOptions]="{standalone: true}"
+                  [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="maxDate"
+                  [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
               @if (getValidationMsg('pchequedate')) {
@@ -576,9 +572,8 @@
               <label class="erp-label">Section <span class="required">*</span></label>
               <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
                 formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="false"
-                placeholder="Select" [trackByFn]="trackByFn"
-                [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
+                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true" placeholder="Select"
+                [trackByFn]="trackByFn" [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
               </ng-select>
               @if (getValidationMsg('pTdsSection')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
