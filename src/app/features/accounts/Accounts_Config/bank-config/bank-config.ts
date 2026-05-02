@@ -251,7 +251,7 @@ export class BankConfig implements OnInit {
       pValidfrom:             [null as Date | null],
       pValidto:               [null as Date | null],
       // UPI — validators added dynamically when switch is ON
-      pUpiid:                 [''],
+      pUpiid:                 ['',Validators.required],
       upiname:                ['',Validators.required],
       // upiname:                [''],
       popeningjvno:           [''],
@@ -663,10 +663,23 @@ allowNumbersOnly1(event: any) {
       },
     ];
 
-    this.bankmasterform.patchValue({ pUpiid: '', upiname: '' });
-    this.submitted = false;
-    this.bankmastervalidations['pUpiid']  = '';
-    this.bankmastervalidations['upiname'] = '';
+    // this.bankmasterform.patchValue({ pUpiid: '', upiname: '' });
+    // this.submitted = false;
+    // this.bankmastervalidations['pUpiid']  = '';
+    // this.bankmastervalidations['upiname'] = '';
+
+
+
+    this.bankmasterform.patchValue({
+  pUpiid: '',
+  upiname: ''
+});
+   this.submitted = false;
+this.bankmasterform.get('pUpiid')?.markAsPristine();
+this.bankmasterform.get('pUpiid')?.markAsUntouched();
+
+this.bankmasterform.get('upiname')?.markAsPristine();
+this.bankmasterform.get('upiname')?.markAsUntouched();
   }
 
   validateupi(): boolean {
