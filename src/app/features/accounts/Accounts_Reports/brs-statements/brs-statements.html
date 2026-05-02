@@ -147,7 +147,10 @@
                       <th (click)="sortBy('preferencenumber')" style="cursor: pointer; width: 130px;">
                         <div class="th-cell">Cheque No <span class="sort-icon" [innerHTML]="getSortIcon('preferencenumber')"></span></div>
                       </th>
-                      <th style="width: 130px;" class="text-center">Cheque Date</th>
+                      <!-- <th style="width: 130px;" class="text-center">Cheque Date</th> -->
+                      <th (click)="sortBy('pissuedate')" style="cursor: pointer; width: 130px;">
+                        <div class="th-cell">Cheque No <span class="sort-icon" [innerHTML]="getSortIcon('pissuedate')"></span></div>
+                      </th>
                       <th (click)="sortBy('pdepositdate')" style="cursor: pointer; width: 140px;">
                         <div class="th-cell">Deposit Date <span class="sort-icon" [innerHTML]="getSortIcon('pdepositdate')"></span></div>
                       </th>
