@@ -53,7 +53,7 @@
               <div class="erp-form-group">
                 <label class="erp-label required">Source Form <span class="required">*</span></label>
                 <ng-select formControlName="formName" [items]="formNameData()" bindLabel="formNames"
-                  bindValue="formNames" placeholder="Select Source" [searchable]="true" appendTo="body"
+                  bindValue="formNames" placeholder="Select Source" [clearable]="true" [searchable]="true" appendTo="body"
                   class="erp-ng-select" [class.is-invalid]="submitted && f['formName'].invalid">
                 </ng-select>
                 @if (submitted && f['formName'].errors?.['required']) {

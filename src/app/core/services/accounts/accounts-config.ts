@@ -255,11 +255,19 @@ export class AccountsConfig {
     );
   }
 
+
+
   SaveAccountHeads(accountsdata: any): Observable<any> {
     return this._CommonService.postAPI(
       '/SaveAccHead',
       accountsdata
     );
+  }
+
+
+
+  SaveCompanyConfiguration(companydata: any): Observable<any> {
+    return this._CommonService.postAPI('/Accounts/SaveCompanyConfiguration', companydata);
   }
 
 }

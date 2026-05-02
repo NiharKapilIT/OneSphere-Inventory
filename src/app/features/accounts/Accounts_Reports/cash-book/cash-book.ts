@@ -131,8 +131,8 @@ export class CashBook implements OnInit {
     this.isLoading.set(true);
     this.syncDateSignals();
 
-    const formattedFrom = this.commonService.getFormatDateGlobal(fromDate) ?? '';
-    const formattedTo = this.commonService.getFormatDateGlobal(toDate) ?? '';
+    const formattedFrom = this.commonService.getFormatDateNormal(fromDate) ?? '';
+    const formattedTo = this.commonService.getFormatDateNormal(toDate) ?? '';
 
     this.reportService
       .GetCashBookReportbyDates(

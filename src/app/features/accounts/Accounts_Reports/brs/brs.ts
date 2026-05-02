@@ -108,7 +108,7 @@ export class Brs implements OnInit {
       {
         fromDate: [today],
         toDate: [today],
-        bankAccountId: ['', Validators.required],
+        bankAccountId: [null, Validators.required],
         pbankbalance: [0, [Validators.required, Validators.min(0)]],
         pFilename: ['']
       },
@@ -241,7 +241,7 @@ export class Brs implements OnInit {
     if (!this.chequesInfo()) {
       this.brstatement
         .GetBrStatementReportByDates(
-          fromDate, _pBankAccountId,
+          fromDate, _pBankAccountId??'',
           this.commonService.getbranchname(),
           this.commonService.getBranchCode(),
           this.commonService.getCompanyCode(),
@@ -287,7 +287,7 @@ export class Brs implements OnInit {
 
       this.brstatement
         .GetBrStatementReportByDatesChequesInfo(
-          formattedFrom, formattedTo, _pBankAccountId,
+          formattedFrom, formattedTo, _pBankAccountId??'',
           this.commonService.getbranchname(),
           this.commonService.getschemaname(),
           this.commonService.getCompanyCode(),

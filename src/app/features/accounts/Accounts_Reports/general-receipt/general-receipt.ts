@@ -164,7 +164,6 @@ export class GeneralReceipt implements OnInit {
     return typeof bank === 'string' ? bank : '';
   }
    getKapilGroupLogo() {
-debugger
 let img:string='';
 let Company = this.commonService._getCompanyDetails();
   img = Company.companyLogo;

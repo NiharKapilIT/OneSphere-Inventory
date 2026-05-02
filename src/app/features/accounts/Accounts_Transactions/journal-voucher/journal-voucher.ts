@@ -1097,10 +1097,17 @@ export class JournalVoucher implements OnInit {
     }
   }
 
+
   // ══════════════════════════════════════════════════════════════════════════
   // Validation before save
   // ══════════════════════════════════════════════════════════════════════════
+
+
   validatesaveJournalVoucher(): boolean {
+    if (!this.paymentslist().length) {
+      this.commonService.showWarningMessage('Please add at least one entry to the grid');
+      return false;
+    }
     
     const dateOk = this.paymentVoucherForm.get('pjvdate')?.valid;
     const narratOk = this.paymentVoucherForm.get('pnarration')?.valid;
@@ -1116,16 +1123,19 @@ export class JournalVoucher implements OnInit {
       this.commonService.showWarningMessage('Please fill all required fields (Narration)');
       return false;
     }
-    if (!this.paymentslist().length) {
-      this.commonService.showWarningMessage('Please add at least one entry to the grid');
-      return false;
-    }
+
+
+    
     return true;
+
   }
+
+
 
   // ══════════════════════════════════════════════════════════════════════════
   // Save
   // ══════════════════════════════════════════════════════════════════════════
+
   saveJournalVoucher(): void {
     
     if (!this.validatesaveJournalVoucher()) return;
@@ -1226,6 +1236,7 @@ export class JournalVoucher implements OnInit {
   // ══════════════════════════════════════════════════════════════════════════
   // Amount type control
   // ══════════════════════════════════════════════════════════════════════════
+
   disableamounttype(_type: string): void {
     const debit = this.pc.get('pdebitamount')!;
     const credit = this.pc.get('pcreditamount')!;
@@ -1279,6 +1290,7 @@ export class JournalVoucher implements OnInit {
   // ══════════════════════════════════════════════════════════════════════════
   // Journal entry display
   // ══════════════════════════════════════════════════════════════════════════
+  
   getpartyJournalEntryData(): void {
     this.partyjournalentrylist = [];
     const mode = this.paymentVoucherForm.get('pmodofpayment')?.value;

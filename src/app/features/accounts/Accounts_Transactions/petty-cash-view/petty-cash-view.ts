@@ -151,7 +151,6 @@ export class PettyCashView implements OnInit, OnDestroy {
 
   // ── View row ───────────────────────────────────────────────────────────────
   viewRow(row: any): void {
-    debugger
     if (!row?.paymentId) return;
     const receipt = btoa(`${row.paymentId},Petty Cash`);
     const url     = this.router.serializeUrl(
