@@ -510,14 +510,38 @@ if (!isValid) {
             this.isExists = !(result > 0);
           });
         } else {
-          this.tdsJvDetailsGrid = [];
-          this.showhidetable = false;
-          this.dataisempty = true;
-          this.totaldebitamount = 0;
-          this.totalcreditamount = 0;
-          this.isExists = false;
-        }
+  this.tdsJvDetailsGrid = [];
+  this.showhidetable = false;
+  this.dataisempty = true;
+  this.totaldebitamount = 0;
+  this.totalcreditamount = 0;
+  this.isExists = false;
 
+  this.selected1 = [];
+  this.selectedValues = [];
+
+  this.MonthName = '';
+  this.CalendarYear = '';
+  this.calendarMonthData = [];
+
+  // clear form + validations
+  this.tdsJvDetailsForm.reset();
+
+  Object.keys(this.tdsJvDetailsForm.controls).forEach(key => {
+    const control = this.tdsJvDetailsForm.get(key);
+
+    control?.setErrors(null);
+    control?.markAsPristine();
+    control?.markAsUntouched();
+    control?.updateValueAndValidity();
+  });
+
+  this.formValidationMessages = {};
+
+  this.tdsJvDetailsForm.controls['preceiptdate'].setValue(new Date());
+
+  this._commonService.showWarningMessage('No records found');
+}
       setTimeout(() => {
   this.savebutton1 = 'Show';
   this.disablesavebutton1 = false;
