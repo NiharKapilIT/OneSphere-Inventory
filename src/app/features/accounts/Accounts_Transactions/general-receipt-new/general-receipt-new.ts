@@ -1393,45 +1393,52 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
-
   addvalidations(): boolean {
     this.formValidationMessages = {};
     let isValid = true;
 
-    // Party
+    // ── Party ──
     if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
       this.GeneralReceiptForm.get('ppartyid')?.markAsTouched();
       this.formValidationMessages['ppartyid'] = 'Party Is Required';
       isValid = false;
     }
 
+    const fg = this.GeneralReceiptForm.controls['preceiptslist'] as FormGroup;
+    const ledgerid = fg.controls['pledgerid'].value;
+    const pactualpaidamount = fg.controls['pactualpaidamount'].value;
+    const subledgerid = fg.controls['psubledgerid'].value;
+
+    // ── Ledger ──
+    if (!ledgerid) {
+      this.formValidationMessages['pledgerid'] = 'Ledger Is Required';
+      fg.controls['pledgerid'].markAsTouched();
+      isValid = false;
+    }
+
+    // ── Sub Ledger — only when visible ──
+    if (this.showsubledger() && !subledgerid) {
+      this.formValidationMessages['psubledgerid'] = 'Sub Ledger Is Required';
+      fg.controls['psubledgerid'].markAsTouched();
+      isValid = false;
+    }
+
+    // ── Amount ──
+    if (!pactualpaidamount || pactualpaidamount === '' || Number(pactualpaidamount) <= 0) {
+      this.formValidationMessages['pactualpaidamount'] =
+        'Amount Received Is Required And Must Be Greater Than 0';
+      fg.controls['pactualpaidamount'].markAsTouched();
+      isValid = false;
+    }
+
+    // ── Duplicate check — only when all fields valid ──
     if (isValid) {
-      const fg = this.GeneralReceiptForm.controls['preceiptslist'] as FormGroup;
-      const ledgerid = fg.controls['pledgerid'].value;
-      const pactualpaidamount = fg.controls['pactualpaidamount'].value;
-
-      if (!ledgerid) {
-        this.formValidationMessages['pledgerid'] = 'Ledger Is Required';
-        fg.controls['pledgerid'].markAsTouched();
+      const dup = this.paymentslist().some(
+        (g: any) => g.pledgerid == ledgerid && g.psubledgerid == subledgerid
+      );
+      if (dup) {
+        this.cs.showWarningMessage('Ledger & Sub Ledger Already Exists');
         isValid = false;
-      }
-
-      if (!pactualpaidamount || pactualpaidamount === '' || Number(pactualpaidamount) <= 0) {
-        this.formValidationMessages['pactualpaidamount'] =
-          'Amount Received Is Required And Must Be Greater Than 0';
-        fg.controls['pactualpaidamount'].markAsTouched();
-        isValid = false;
-      }
-
-      if (isValid) {
-        const subledgerid = fg.controls['psubledgerid'].value;
-        const dup = this.paymentslist().some(
-          (g: any) => g.pledgerid == ledgerid && g.psubledgerid == subledgerid
-        );
-        if (dup) {
-          this.cs.showWarningMessage('Ledger & Sub Ledger Already Exists');
-          isValid = false;
-        }
       }
     }
 

@@ -80,7 +80,7 @@ toDateMinDate: Date | null = null;
     {
       fromDate: [this.today, Validators.required],
       toDate:   [this.today, Validators.required],
-      pbankname: ['',        Validators.required]
+      pbankname: [null,        Validators.required]
     },
     { validators: this.dateRangeValidator() }
   );
@@ -192,7 +192,7 @@ toDateMinDate: Date | null = null;
 
     this.bankBookService
       .GetBankBookReportbyDates(
-        from, to, pbankname,
+        from, to, pbankname??'',
         this.commonService.getschemaname(),
         this.commonService.getbranchname(),
         this.commonService.getCompanyCode(),

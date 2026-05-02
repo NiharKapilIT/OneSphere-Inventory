@@ -86,7 +86,7 @@ export class AccountsReports {
     return this._CommonService.getAPI('/Accounts/GetChequesIssued', params, 'YES')
   }
    GetChequeEnquiryData(bankid: any, startindex: any, endindex: any, modeofreceipt: any, searchtext: any): Observable<any> {
-    const params = new HttpParams().set('depositedBankid', bankid).set('BranchSchema', this._CommonService.getbranchname()).set('startindex', startindex).set('endindex', endindex).set('modeofreceipt', modeofreceipt).set('searchtext', searchtext).set('BrsFromDate', '01-01-1991').set('BrsTodate', '11-03-2026').set('GlobalSchema', this._CommonService.getschemaname()).set('CompanyCode', this._CommonService.getCompanyCode()).set('BranchCode', this._CommonService.getBranchCode());
+    const params = new HttpParams().set('depositedBankid', bankid).set('BranchSchema', this._CommonService.getbranchname()).set('startindex', startindex).set('endindex', endindex).set('modeofreceipt', modeofreceipt).set('searchtext', searchtext).set('BrsFromDate', '01-01-1991').set('BrsTodate', new Date().toLocaleDateString('en-GB').replace(/\//g, '-')).set('GlobalSchema', this._CommonService.getschemaname()).set('CompanyCode', this._CommonService.getCompanyCode()).set('BranchCode', this._CommonService.getBranchCode());
     return this._CommonService.getAPI('/Accounts/GetChequeEnquiryData', params, 'YES')
   }
    GetBankBalance(bankid: any) {
@@ -3120,8 +3120,8 @@ export class AccountsReports {
 
 
   public getTDSReportDetails(localSchema: any, sectionid: any, fromdate: any, todate: any, grouptype: any, reporttype: any) {
-    const params = new HttpParams().set("localSchema", localSchema).set("sectionid", sectionid).set("fromdate", fromdate).set("todate", todate).set("grouptype", grouptype).set("reporttype", reporttype);
-    return this._CommonService.getAPI('/ChitTransactions/ChitReports/getTDSReportDetails', params, 'YES');
+    const params = new HttpParams().set("localSchema", localSchema).set("sectionid", sectionid).set("fromdate", fromdate).set("todate", todate).set("grouptype", grouptype).set("reporttype", reporttype).set("globalSchema", this._CommonService.getschemaname());
+    return this._CommonService.getAPI('/Accounts/getTDSReportDetails', params, 'YES');
   }
 
   public getTDSReportDiffDetails(localSchema: any, sectionid: any, fromdate: any, todate: any) {
