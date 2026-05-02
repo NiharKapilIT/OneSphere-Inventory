@@ -93,7 +93,7 @@ export class TdsJv implements OnInit {
     private _employeeAttendService: AccountsTransactions,
     private datePipe: DatePipe,
     private _AccountingTransactionsService: AccountsTransactions,
-     private cdr: ChangeDetectorRef,
+    private cdr: ChangeDetectorRef,
   ) {
     this.currencysymbol = this._commonService.datePickerPropertiesSetup('currencysymbol');
     this.pageCriteria = new PageCriteria();
@@ -186,7 +186,7 @@ export class TdsJv implements OnInit {
       DebitLedger: [null, Validators.required],
       pCalendarMonth: [null, Validators.required],
       CreditLedger: [null, Validators.required],
-      preceiptdate: [{value: '', disabled:true}, Validators.required],
+      preceiptdate: [{ value: '', disabled: true }, Validators.required],
       pnarration: ['', Validators.required],
     });
   }
@@ -433,35 +433,37 @@ export class TdsJv implements OnInit {
     const monthYear = (this.CalendarYear || '').toString().toUpperCase();
     // const monthYear = (this.MonthName || '').toString().toUpperCase();
 
-  let isValid = true;
+    let isValid = true;
 
-if (!debitledger) {
-  this._commonService.showWarningMessage('Please select Debit Ledger');
-  this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
-  isValid = false;
-}
 
-if (!creditledger) {
-  this._commonService.showWarningMessage('Please select Credit Ledger');
-  this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
-  isValid = false;
-}
 
-if (!selectedYear) {
-  this._commonService.showWarningMessage('Please select Year');
-  this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
-  isValid = false;
-}
+    if (!debitledger) {
+     // this._commonService.showWarningMessage('Please select Debit Ledger');
+      this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
+      isValid = false;
+    }
 
-if (!selectedMonth || !this.CalendarYear) {
-  this._commonService.showWarningMessage('Please select Month');
-  this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
-  isValid = false;
-}
+    if (!creditledger) {
+     // this._commonService.showWarningMessage('Please select Credit Ledger');
+      this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
+      isValid = false;
+    }
 
-if (!isValid) {
-  return;
-}
+    if (!selectedYear) {
+     // this._commonService.showWarningMessage('Please select Year');
+      this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
+      isValid = false;
+    }
+
+    if (!selectedMonth || !this.CalendarYear) {
+     // this._commonService.showWarningMessage('Please select Month');
+      this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
+      isValid = false;
+    }
+
+    if (!isValid) {
+      return;
+    }
     this.savebutton1 = 'Processing';
     this.disablesavebutton1 = true;
 
@@ -516,13 +518,37 @@ if (!isValid) {
           this.totaldebitamount = 0;
           this.totalcreditamount = 0;
           this.isExists = false;
-        }
 
-      setTimeout(() => {
-  this.savebutton1 = 'Show';
-  this.disablesavebutton1 = false;
-  this.cdr.detectChanges();
-}, 1000);
+          this.selected1 = [];
+          this.selectedValues = [];
+
+          this.MonthName = '';
+          this.CalendarYear = '';
+          this.calendarMonthData = [];
+
+          // clear form + validations
+          this.tdsJvDetailsForm.reset();
+
+          Object.keys(this.tdsJvDetailsForm.controls).forEach(key => {
+            const control = this.tdsJvDetailsForm.get(key);
+
+            control?.setErrors(null);
+            control?.markAsPristine();
+            control?.markAsUntouched();
+            control?.updateValueAndValidity();
+          });
+
+          this.formValidationMessages = {};
+
+          this.tdsJvDetailsForm.controls['preceiptdate'].setValue(new Date());
+
+          this._commonService.showWarningMessage('No records found');
+        }
+        setTimeout(() => {
+          this.savebutton1 = 'Show';
+          this.disablesavebutton1 = false;
+          this.cdr.detectChanges();
+        }, 1000);
       },
       error: (error: any) => {
         this.tdsJvDetailsGrid = [];
@@ -533,7 +559,7 @@ if (!isValid) {
         this.isExists = false;
         this.savebutton1 = 'Show';
         this.disablesavebutton1 = false;
-         this.cdr.detectChanges();
+        this.cdr.detectChanges();
 
         this._commonService.showErrorMessage(error);
       },
