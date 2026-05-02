@@ -20,6 +20,7 @@ import { BsDatepickerConfig } from "ngx-bootstrap/datepicker";
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { FileUpload, FileUploadModule } from 'primeng/fileupload';
+import { AccountsConfig } from "../../../../core/services/accounts/accounts-config";
 
 
 @Component({
@@ -73,7 +74,10 @@ export class CompanyConfig implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly datepipe = inject(DatePipe);
   private readonly _commonService = inject(CommonService);
+  private readonly _accountsConfig = inject(AccountsConfig);
+
   // formValidationMessages: Record<string, string> = {};
+
 
   currentdate: Partial<BsDatepickerConfig> = new BsDatepickerConfig();
 
@@ -81,28 +85,93 @@ export class CompanyConfig implements OnInit {
   BranchConfigForm!: FormGroup<any>;
   constructor(private fb: FormBuilder) {
     this.pageCriteria = new PageCriteria();
+
   }
 
 
   ngOnInit(): void {
     this.pageSetUp();
     this.buildForm();
+
+    this.companyConfigForm.get('companyName')?.valueChanges
+      .subscribe(name => {
+        this.generateCompanyCode(name);
+      });
+
+
+    this.BranchConfigForm.get('barnchname')?.valueChanges
+      .subscribe(name => {
+        this.generateBranchCode(name);
+
+      });
   }
+  generateCompanyCode(name: string) {
+    if (!name) return;
+
+    const words = name.trim().split(' ');
+
+    const initials = words
+      .filter(w => w.length > 0)
+      .map(w => w[0].toUpperCase())
+      .join('');
+
+    const existing = (this.gridData || []).filter(x =>
+      (x.companyCode || '').startsWith(initials)
+    );
+
+    const nextNumber = (existing.length + 1)
+      .toString()
+      .padStart(2, '0');
+
+    const code = initials + nextNumber;
+
+    this.companyConfigForm.patchValue({
+      companyCode: code
+    }, { emitEvent: false });
+  }
+
+
+
+  generateBranchCode(name: string) {
+    if (!name) return;
+
+    const words = name.trim().split(' ');
+
+    const initials = words
+      .filter(w => w.length > 0)
+      .map(w => w[0].toUpperCase())
+      .join('');
+
+    const existing = (this.gridData || []).filter(x =>
+      (x.branchCode || '').startsWith(initials)
+    );
+
+    const nextNumber = (existing.length + 1)
+      .toString()
+      .padStart(2, '0');
+
+    const code = initials + nextNumber;
+
+    this.BranchConfigForm.patchValue({
+      branchCode: code
+    }, { emitEvent: false });
+  }
+
 
   // ── Form Construction ────────────────────────────────────────────────────────
   private buildForm(): void {
     this.companyConfigForm = this.fb.group({
       companyName: ['', Validators.required],
-      //currencyFormate: [''],
-      //pBankdate: [this.today],
-      //contactNumber: [''],
-      // email: [''],
+      createdBy: [''],
+      contactId: [''],
+      currencyFormate: [''],
+      dateFormat: [''],
       status: ['Active'],
       registrationAddress: [''],
       panNumber: [''],
       cinNumber: [''],
       companyCode: [''],
-
+      companyLogo: [''],
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
@@ -143,38 +212,141 @@ export class CompanyConfig implements OnInit {
     }
   }
 
+
+
+  // onSave(): void {
+  //   this.submitted = true;
+  //   this.checkValidations(this.companyConfigForm, true);
+
+  //   // if (this.companyConfigForm.invalid) {
+  //   //   this.companyConfigForm.markAllAsTouched();
+  //   //   return;
+  //   // }
+
+  //   if (this.companyConfigForm.valid) {
+  //     const formData = {
+  //       ...this.companyConfigForm.value,
+  //       logo: this.uploadedImage()
+  //     };
+  //     console.log(' Company Config Saved:', formData);
+  //     // Toast Alert Message
+  //     this.messageService.add({
+  //       severity: 'success',
+  //       summary: 'Success',
+  //       detail: 'Company configuration saved successfully!'
+  //     });
+
+  //     //  Browser Alert
+  //     alert(' Company configuration saved successfully!');
+
+  //     this.onClear();
+  //     this.clearUploadedImage();
+  //     this.visible.set(false);
+  //   }
+  // }
+
+
+
+
+
+
+  // onSave(): void {
+  //   debugger;
+  //   this.submitted = true;
+  //   this.checkValidations(this.companyConfigForm, true);
+
+  //   if (this.companyConfigForm.valid) {
+  //     const formData = {
+  //       ...this.companyConfigForm.value,
+  //       logo: this.uploadedImage()
+  //     };
+
+  //     this._accountsConfig.SaveCompanyConfiguration(formData).subscribe({
+  //       next: (response) => {
+  //         if (response.success) {
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'Success',
+  //             detail: response.message || 'Company configuration saved successfully!'
+  //           });
+
+  //           this.onClear();
+  //           this.clearUploadedImage();
+  //           this.visible.set(false);
+  //         } else {
+  //           this.messageService.add({
+  //             severity: 'error',
+  //             summary: 'Error',
+  //             detail: response.message || 'Failed to save configuration.'
+  //           });
+  //         }
+  //       },
+  //       error: (err: any) => {
+  //         console.error('API Error:', err);
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Error',
+  //           detail: 'Something went wrong. Please try again.'
+  //         });
+  //       }
+  //     });
+  //   }
+  // }
+
+
+
   onSave(): void {
     this.submitted = true;
     this.checkValidations(this.companyConfigForm, true);
 
-    // if (this.companyConfigForm.invalid) {
-    //   this.companyConfigForm.markAllAsTouched();
-    //   return;
-    // }
-
     if (this.companyConfigForm.valid) {
-      const formData = {
-        ...this.companyConfigForm.value,
-        logo: this.uploadedImage()
+
+      const payload = {
+        companyCode: this.companyConfigForm.value.companyCode || '',
+        companyName: this.companyConfigForm.value.companyName || '',
+        createdBy: this.companyConfigForm.value.createdBy || '',
+        contactId: this.companyConfigForm.value.contactId ? Number(this.companyConfigForm.value.contactId) : null,
+        currencyFormat: this.companyConfigForm.value.currencyFormate || '',
+        dateFormat: this.companyConfigForm.value.dateFormat || '',
+        cinNumber: this.companyConfigForm.value.cinNumber || '',
+        panNumber: this.companyConfigForm.value.panNumber || '',
+        registrationAddress: this.companyConfigForm.value.registrationAddress || '',
+        status: this.companyConfigForm.value.status === 'Active',
+        companyLogo: this.uploadedImage() || '',
       };
-      console.log(' Company Config Saved:', formData);
-      // Toast Alert Message
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Company configuration saved successfully!'
+
+      this._accountsConfig.SaveCompanyConfiguration(payload).subscribe({
+        next: (response) => {
+          if (response.success) {
+            console.log('Company configuration saved successfully:', response);
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Success',
+              detail: response.message || 'Company configuration saved successfully!'
+            });
+            this.onClear();
+            this.clearUploadedImage();
+            this.visible.set(false);
+          } else {
+            console.warn('Save failed:', response);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: response.message || 'Failed to save configuration.'
+            });
+          }
+        },
+        error: (err: any) => {
+          console.error('API Error:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Something went wrong. Please try again.'
+          });
+        }
       });
-
-      //  Browser Alert
-      alert(' Company configuration saved successfully!');
-
-      this.onClear();
-      this.clearUploadedImage();
-      this.visible.set(false);
     }
   }
-
-
 
 
   onClear(): void {
@@ -310,7 +482,7 @@ export class CompanyConfig implements OnInit {
           detail: 'Only JPG, JPEG, PNG, and SVG files are allowed.',
           life: 3000
         });
-          this.fileUploadRef?.clear(); 
+        this.fileUploadRef?.clear();
         return;
       }
 

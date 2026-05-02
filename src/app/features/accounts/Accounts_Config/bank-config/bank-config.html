@@ -284,36 +284,25 @@
                         <label class="erp-label">UPI ID <span class="required">*</span></label>
                         <input class="erp-input" type="text" appEmailFormat appEmailpattern maxlength="150"
                           placeholder="xyz@okicici" formControlName="pUpiid"
-                          [class.is-invalid]="submitted && f['pUpiid'].invalid" />
-                        @if (bankmastervalidations.pUpiid) {
-                        <div class="field-error">{{ bankmastervalidations.pUpiid }}</div>
+                          [class.is-invalid]="(f['pUpiid'].invalid && (f['pUpiid'].dirty || f['pUpiid'].touched))"/>
+
+                        @if (f['pUpiid'].invalid && (f['pUpiid'].dirty || f['pUpiid'].touched)) {
+                        <div class="erp-field-error">UPI ID required.</div>
                         }
                       </div>
 
                       <div class="erp-form-group">
                         <label class="erp-label">Link with <span class="required">*</span></label>
                         <div class="d-flex gap-2 align-items-end">
-                          <!-- <select class="erp-input flex-grow-1" formControlName="upiname"
-                            [class.is-invalid]="submitted && bankmastervalidations.upiname">
-                            <option value="" disabled>Select</option>
-                            @for (i of upiname; track i.upiname) {
-                            <option [value]="i.upiname">{{ i.upiname }}</option>
-                            }
-                          </select> -->
-
-
-
                           <ng-select appendTo="body" class="flex-grow-1" formControlName="upiname" [items]="upiname"
                             bindLabel="upiname" bindValue="upiname" placeholder="Select" [clearable]="true"
-                            [class.is-invalid]="submitted && bankmastervalidations.upiname">
+                            [class.is-invalid]="f['upiname'].invalid && (f['upiname'].dirty || f['upiname'].touched)">
                           </ng-select>
                           <button type="button" (click)="addtogrid()" class="erp-btn btn-primary btn-sm">
                             <i class="pi pi-plus"></i>
                           </button>
                         </div>
-                        <!-- @if (bankmastervalidations.upiname) {
-                        <div class="erp-field-error">{{ bankmastervalidations.upiname }}</div>
-                        } -->
+
                         @if (f['upiname'].touched && f['upiname'].invalid) {
                         <div class="erp-field-error">
                           @if (f['upiname'].errors?.['required']) {
