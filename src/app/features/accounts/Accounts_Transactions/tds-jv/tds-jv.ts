@@ -212,7 +212,6 @@ export class TdsJv implements OnInit {
   }
 
   CalendarYear_change_native(selectedId: any): void {
-    debugger;
     this.pmonth = this.notselected;
     this.cmonth = this.notselected;
     this.MonthName = '';
@@ -240,7 +239,6 @@ export class TdsJv implements OnInit {
 
   // Keep old ng-select handler in case it is called elsewhere
   CalendarYear_change(event: any): void {
-    debugger;
     this.pmonth = this.notselected;
     this.cmonth = this.notselected;
     if (event != null) {
@@ -417,7 +415,6 @@ export class TdsJv implements OnInit {
   //   this.disablesavebutton1 = true;
 
   gettdsjvdetails(): void {
-    debugger
     this.selected1 = [];
     this.selectedValues = [];
     this.totaldebitamount = 0;

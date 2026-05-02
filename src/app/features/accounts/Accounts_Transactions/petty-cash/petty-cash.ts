@@ -2263,7 +2263,6 @@ export class PettyCash implements OnInit {
 
 
   private getTdsPercentage(section: any): void {
-    debugger
     console.log("chyeolomfnmf");
 
     this.tdspercentagelist = this.tdslist.filter((t: any) => t.pTdsSection === section);
@@ -2707,7 +2706,7 @@ export class PettyCash implements OnInit {
 
 
   validatesavePaymentVoucher(): boolean {
-    debugger
+
     this.formValidationMessages = {};
 
     if (!this.paymentslist || this.paymentslist.length === 0) {
@@ -2766,8 +2765,6 @@ export class PettyCash implements OnInit {
 
 
   savePaymentVoucher(): void {
-    debugger;
-
     if (!this.validatesavePaymentVoucher()) {
      return;
    }
