@@ -631,19 +631,23 @@
             </div>
           </div>
 
-          <div class="col-12 col-md-6">
+          <!-- <div class="col-12 col-md-6">
             <h3 class="section-title mb-3">Narration & Attachment</h3>
             <div class="row g-1 pv-attachment-stack">
               <div class="col-12">
                 <div class="erp-form-group">
                   <label class="erp-label" id="pnarration" title="Narration">Narration <span
                       class="required">*</span></label>
-                  <textarea class="erp-textarea"
-                    [class.erp-input--invalid]="paymentVoucherForm.get('pnarration')?.touched && !paymentVoucherForm.get('pnarration')?.value"
-                    rows="5" formControlName="pnarration" maxlength="250" placeholder="Enter narration"
+                  
+                  <textarea class="erp-textarea" formControlName="pnarration" rows="5" maxlength="250"
+                    placeholder="Enter narration"
+                    [class.erp-input--invalid]="paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid"
                     (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"></textarea>
-                  @if (formValidationMessages['pnarration']) {
-                  <div class="erp-field-error">{{ formValidationMessages['pnarration'] }}</div>
+                  
+                  @if (paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid) {
+                  <div class="erp-field-error">
+                    Narration is required
+                  </div>
                   }
                   <div style="text-align:right;font-size:11px;color:#94a3b8;margin-top:4px;">
                     {{ paymentVoucherForm.get('pnarration')?.value?.length || 0 }} / 250
@@ -665,9 +669,56 @@
                 </div>
               </div>
             </div>
-          </div>
+          </div> -->
+  
+  
+  
+          <div class="col-12 col-md-6">
+  <h3 class="section-title mb-3">Narration & Attachment</h3>
+  <div class="row g-1 pv-attachment-stack">
+    <div class="col-12">
+      <div class="erp-form-group">
+        <label class="erp-label" id="pnarration" title="Narration">Narration <span
+            class="required">*</span></label>
+
+        <textarea class="erp-textarea" formControlName="pnarration" rows="5" maxlength="250"
+          placeholder="Enter narration"
+          [class.erp-input--invalid]="paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid"
+          (blur)="paymentVoucherForm.get('pnarration')?.markAsTouched()"></textarea>
+
+        @if (paymentVoucherForm.get('pnarration')?.touched && paymentVoucherForm.get('pnarration')?.invalid) {
+        <div class="erp-field-error">
+          Narration is required
+        </div>
+        }
+
+      </div>
+    </div>
+    
+
+    <div class="col-12">
+      <br />
+      <div class="erp-form-group">
+        <label class="erp-label" id="pDocStorePath" title="Upload Document">Upload Document</label>
+        <div class="erp-file-upload">
+          <input type="text" class="erp-input erp-file-input" formControlName="pDocStorePath"
+            [value]="imageResponse?.name" readonly placeholder="No file selected">
+          <button type="button" class="erp-file-btn" (click)="fileInput.click()">
+            <i class="pi pi-upload"></i> Upload
+          </button>
+          <input type="file" hidden (change)="uploadAndProgress($event, fileInput.files)" #fileInput>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+    
+        </div>
+        
+       
+      </div>
+     
 
       <!-- FOOTER -->
       <div class="card-footer d-flex gap-2 justify-end">
