@@ -314,7 +314,7 @@ export class BankConfig implements OnInit {
 
   // ── Edit mode initialisation ─────────────────────────────────────────────────
   private checkEditMode(): void {
-    debugger;
+    
     const type = this._accountingMasterSvc.newstatus();
     this.buttonType.set(type);
 
@@ -343,7 +343,7 @@ export class BankConfig implements OnInit {
   }
 
   private populateFormForEdit(): void {
-    debugger;
+  
     const d    = this.datatobind[0];
     const det  = this.bankdetails;
     const form = this.bankmasterform;
@@ -962,7 +962,7 @@ this.bankmasterform.get('upiname')?.markAsUntouched();
 
   // ── Save ──────────────────────────────────────────────────────────────────────
   save(): void {
-    debugger;
+   
     this.bankmasterform.markAllAsTouched();
 
     // Clear address fields from bankmasterform — managed by AddressComponent
