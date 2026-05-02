@@ -113,7 +113,7 @@ export class JvList implements OnInit {
     this.JvlistReportForm = this.fb.group({
       fromDate:    [today, Validators.required],
       toDate:      [today, Validators.required],
-      formName:    ['',         Validators.required],
+      formName:    [null,         Validators.required],
       ptranstype:  ['All',      Validators.required]
     });
     const initialFrom = this.JvlistReportForm.get('fromDate')?.value;

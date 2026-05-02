@@ -119,7 +119,7 @@ export class BrsStatements implements OnInit {
       {
         fromDate: this.fb.control<Date | null>(this.today),
         toDate: this.fb.control<Date | null>(this.today),
-        pbankname: this.fb.control<string | null>('', Validators.required),
+        pbankname: this.fb.control<string | null>(null, Validators.required),
         branchschema: this.fb.control<string | null>(null),
         Bank: this.fb.control<string>('CREDIT')
       },
