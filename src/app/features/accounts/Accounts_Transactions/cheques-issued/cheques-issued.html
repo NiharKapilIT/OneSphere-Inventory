@@ -14,8 +14,12 @@
       <div class="header-search">
         <div class="erp-input-wrap">
           <i class="pi pi-search erp-input-icon"></i>
-          <input type="search" class="erp-input icon-pad" placeholder="Search cheques..."
-            (input)="onSearch($any($event.target).value)" />
+          <!-- <input type="search" class="erp-input icon-pad" placeholder="Search cheques..."
+            (input)="onSearch($any($event.target).value)" /> -->
+
+          <!-- In card-header, find your search input and update it -->
+          <input #searchInput type="search" class="erp-input icon-pad" placeholder="Search cheques..."
+            [value]="_searchText" (input)="onSearch($any($event.target).value)" />
         </div>
       </div>
 
@@ -450,7 +454,11 @@
 
     <div class="card-footer">
       <div class="d-flex gap-2 flex-wrap">
-        <button (click)="Clear()" class="erp-btn btn-secondary">
+        <!-- <button (click)="Clear()" class="erp-btn btn-secondary">
+          <i class="pi pi-times"></i> Clear
+        </button> -->
+
+        <button (click)="Clear(searchInput)" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
         </button>
 

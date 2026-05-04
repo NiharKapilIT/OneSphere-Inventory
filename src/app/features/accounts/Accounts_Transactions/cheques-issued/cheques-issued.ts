@@ -722,10 +722,11 @@ export class ChequesIssued implements OnInit {
 
 
   ChequesIssued(): void {
+    debugger;
     this.activeTab.set('chequesissued');
     this.status.set('chequesissued');
     this.pdfstatus = 'Cheques Issued';
-    this.modeofreceipt = 'ALL';
+    this.modeofreceipt = 'CHEQUE';
     this.fromdate = null;
     this.todate = null;
     this._resetBrsDateVisibility();
@@ -740,6 +741,7 @@ export class ChequesIssued implements OnInit {
 
 
   ChequesIssued1(): void {
+    debugger;
     this.activeTab.set('chequesissued');
     this.status.set('chequesissued');
     this.pdfstatus = 'Cheques Issued';
@@ -793,7 +795,6 @@ export class ChequesIssued implements OnInit {
     this.datetitle.set('Cleared Date');
     this.pdfstatus = 'Cleared';
     this.modeofreceipt = 'CLEAR';
-
     this._showMainGrid();
     this.brsdateshowhidecleared.set(true);
     this.brsdateshowhidereturned.set(false);
@@ -1175,17 +1176,76 @@ export class ChequesIssued implements OnInit {
   // }
 
 
-  Clear(): void {
+  // Clear(): void {
+  //   const today = new Date();
+  //   this.ChequesIssuedForm.reset();
+  //   this.transactionDateValue = new Date();
+  //   this.todayDate = new Date();
+  //   this._searchText='';
+  //   this.ChequesIssuedForm.patchValue({ searchText: '' }); 
+  //   this.fromdate = null;
+  //   this.ChequesIssuedForm.patchValue({
+  //     ptransactiondate: today,
+  //     bankname: null,
+  //     pchequesOnHandlist: null,
+  //     pCreatedby: '',
+  //     schemaname: this._commonService.getschemaname(),
+  //     pipaddress: this._commonService.getIpAddress(),
+  //     auto_brs_type: 'Upload'
+  //   });
+
+  //   this.BrsReturnForm.reset({ frombrsdate: '', tobrsdate: '' });
+  //   this.BrsCancelForm.reset({ frombrsdate: '', tobrsdate: '' });
+  //   this.bankid = 0;
+  //   this.bankname = '';
+  //   this.selectedBankName.set('');
+  //   this.bankbalance.set(0);
+  //   this.bankbalancetype.set('');
+  //   this.brsdate.set('');
+  //   this.banknameshowhide.set(false);
+  //   this.ChequesIssuedValidation.set({});
+  //   this.bankbalancedetails = { pfrombrsdate: null, ptobrsdate: null };
+  //   this.gridData.set([]);
+  //   this.gridDatatemp = [];
+  //   this.ChequesIssuedData = [];
+  //   this.ChequesClearReturnData = [];
+  //   this.OtherChequesData.set([]);
+  //   this.DataForSaving = [];
+  //   this.dataTemp = [];
+  //   this.modeofreceipt = 'ALL';
+  //   this.status.set('all');
+  //   this.activeTab.set('all');
+  //   this.fromdate = null;
+  //   this.todate = null;
+  //   this.amounttotal.set(0);
+  //   this.clearMinToDate = today;
+  //   this.returnMinToDate = today;
+  //   this.cancelMinToDate = today;
+  //   this._resetBrsDateVisibility();
+  //   this.validatebrsdateclear.set(false);
+  //   this.validatebrsdatereturn.set(false);
+  //   this.validatebrsdatecancel.set(false);
+  //   this.buttonname.set('Save');
+  //   this.disablesavebutton.set(false);
+  //   this.pageSetUp();
+  //   this.cdr.detectChanges();
+
+  //   this.GetBankBalance(this.bankid);
+  //   this.GetChequesIssued_Load(this.bankid);
+  // }
+
+  Clear(searchInput?: HTMLInputElement): void {
     const today = new Date();
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    this._searchText = '';
 
     // Reset forms
     this.ChequesIssuedForm.reset();
-
-    // ✅ KEY FIX: reset the standalone ngModel variable
     this.transactionDateValue = new Date();
     this.todayDate = new Date();
 
-    // Patch form values (non-datepicker fields)
     this.ChequesIssuedForm.patchValue({
       ptransactiondate: today,
       bankname: null,
@@ -1200,7 +1260,6 @@ export class ChequesIssued implements OnInit {
     this.BrsReturnForm.reset({ frombrsdate: '', tobrsdate: '' });
     this.BrsCancelForm.reset({ frombrsdate: '', tobrsdate: '' });
 
-    // ... all your other resets ...
     this.bankid = 0;
     this.bankname = '';
     this.selectedBankName.set('');
@@ -1215,12 +1274,12 @@ export class ChequesIssued implements OnInit {
     this.ChequesIssuedData = [];
     this.ChequesClearReturnData = [];
     this.OtherChequesData.set([]);
+    this.OtherChequesDataTemp = [];
     this.DataForSaving = [];
     this.dataTemp = [];
     this.modeofreceipt = 'ALL';
     this.status.set('all');
     this.activeTab.set('all');
-    this._searchText = '';
     this.fromdate = null;
     this.todate = null;
     this.amounttotal.set(0);
@@ -1233,9 +1292,10 @@ export class ChequesIssued implements OnInit {
     this.validatebrsdatecancel.set(false);
     this.buttonname.set('Save');
     this.disablesavebutton.set(false);
+    this.showBankUploadSection = false;
+    this.PreDefinedAutoBrsArrayData.set([]);
     this.pageSetUp();
 
-    // ✅ Force change detection THEN call APIs
     this.cdr.detectChanges();
 
     this.GetBankBalance(this.bankid);
