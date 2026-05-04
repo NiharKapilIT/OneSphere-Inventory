@@ -1396,9 +1396,9 @@ export class ChequesOnhand implements OnInit {
     let deposit = 0;
     this.ChequesOnHandValidation.set({});
     if (!this.bankid || this.bankid == 0) {
-        this._commonService.showWarningMessage('Please Select Bank');
-        return;
-      }
+      this._commonService.showWarningMessage('Please Select Bank');
+      return;
+    }
 
     const hasSelectedRows = this.gridData().some(
       row => row.pdepositstatus === true || row.pcancelstatus === true
@@ -1442,7 +1442,7 @@ export class ChequesOnhand implements OnInit {
       });
 
       if (this.DataForSaving.length === 0) {
-        setTimeout(() => this._commonService.showWarningMessage('Select the Checkbox'), 0);
+        setTimeout(() => this._commonService.showWarningMessage('please select atleast one row'), 0);
         return;
       }
 
@@ -1465,9 +1465,14 @@ export class ChequesOnhand implements OnInit {
         companycode: this._commonService.getCompanyCode(),
         branchcode: this._commonService.getBranchCode(),
         pCreatedby: this._commonService.getCreatedBy()?.toString() || '1',
+        // ptransactiondate: this.datepipe.transform(
+        //   this.ChequesOnHandForm.controls['ptransactiondate'].value,
+        //   'yyyy-MM-dd'
+        // ),
+
         ptransactiondate: this.datepipe.transform(
           this.ChequesOnHandForm.controls['ptransactiondate'].value,
-          'yyyy-MM-dd'
+          'yyyy/MM/dd'
         ),
         pchequecleardate: '',
         pcaobranchcode: '',
@@ -1534,8 +1539,124 @@ export class ChequesOnhand implements OnInit {
 
 
 
+  // private _mapRowToSavePayload(row: any, status: string): any {
+  //   const str = (v: any) => v?.toString() || '';
+  //   return {
+  //     pRecordid: str(row.pRecordid),
+  //     pUpiname: str(row.pUpiname),
+  //     pUpiid: str(row.pUpiid),
+  //     pBankconfigurationId: str(row.pBankconfigurationId),
+  //     pBankName: str(row.pBankName),
+  //     ptranstype: str(row.ptranstype),
+  //     ptypeofpayment: str(row.ptypeofpayment),
+  //     pChequenumber: str(row.pChequenumber),
+  //     pchequedate: str(row.pchequedate),
+  //     pchequedepositdate: str(row.pchequedepositdate),
+  //     pchequecleardate: str(row.pchequecleardate),
+  //     pbankid: str(row.pbankid),
+  //     branchid: str(row.branchid),
+  //     pCardNumber: str(row.pCardNumber),
+  //     pdepositbankid: status === 'P'
+  //       ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
+  //       : status === 'C'
+  //         ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositbankid) || '0')
+  //         : (str(row.pdepositbankid) || '0'),
+  //     pdepositbankname: str(row.pdepositbankname),
+  //     pAccountnumber: str(row.pAccountnumber),
+  //     challanaNo: str(row.challanaNo),
+  //     preceiptid: str(row.preceiptid),
+  //     preceiptdate: str(row.preceiptdate),
+  //     pmodofreceipt: str(row.pmodofreceipt),
+  //     ptotalreceivedamount: str(row.ptotalreceivedamount),
+  //     pnarration: str(row.pnarration),
+  //     ppartyname: str(row.ppartyname),
+  //     ppartyid: str(row.ppartyid),
+  //     pistdsapplicable: str(row.pistdsapplicable),
+  //     pTdsSection: str(row.pTdsSection),
+  //     pTdsPercentage: str(row.pTdsPercentage),
+  //     ptdsamount: str(row.ptdsamount),
+  //     ptdscalculationtype: str(row.ptdscalculationtype),
+  //     ppartypannumber: str(row.ppartypannumber),
+  //     ppartyreftype: str(row.ppartyreftype),
+  //     ppartyreferenceid: str(row.ppartyreferenceid),
+  //     preceiptslist: row.preceiptslist || [],
+  //     pFilename: str(row.pFilename),
+  //     pFilepath: str(row.pFilepath),
+  //     pFileformat: str(row.pFileformat),
+  //     pCleardate: str(row.pCleardate),
+  //     pdepositeddate: status === 'P' ? '' : str(row.pdepositeddate),
+  //     ptdsaccountid: str(row.ptdsaccountid),
+  //     preceiptrecordid: str(row.preceiptrecordid),
+  //     pTdsSectionId: str(row.pTdsSectionId),
+  //     groupcode: str(row.groupcode),
+  //     preceiptno: str(row.preceiptno),
+  //     formname: str(row.formname),
+  //     chitpaymentid: str(row.chitpaymentid),
+  //     adjustmentid: str(row.adjustmentid),
+  //     pdepositstatus: row.pdepositstatus === true ? 'true' : 'false',
+  //     pcancelstatus: row.pcancelstatus === true ? 'true' : 'false',
+  //     preturnstatus: str(row.preturnstatus),
+  //     pbranchname: str(row.pbranchname),
+  //     pchequestatus: status,
+  //     pcancelcharges: str(row.pcancelcharges),
+  //     pactualcancelcharges: str(row.pactualcancelcharges) || '0',
+  //     pledger: str(row.pledger),
+  //     cancelstatus: str(row.cancelstatus),
+  //     returnstatus: str(row.returnstatus),
+  //     clearstatus: str(row.clearstatus),
+  //     chqueno: str(row.chqueno),
+  //     issueddate: str(row.issueddate),
+  //     chitgroupcode: str(row.chitgroupcode),
+  //     chitgroupid: str(row.chitgroupid),
+  //     ticketno: str(row.ticketno),
+  //     chequeamount: str(row.chequeamount),
+  //     zpdaccountid: str(row.zpdaccountid),
+  //     installmentno: str(row.installmentno),
+  //     schemesubscriberid: str(row.schemesubscriberid),
+  //     contactid: str(row.contactid),
+  //     schemetype: str(row.schemetype),
+  //     checksentryrecordid: str(row.checksentryrecordid),
+  //     cheque_bank: str(row.cheque_bank),
+  //     selfchequestatus: row.selfchequestatus === true ? 'true'
+  //       : row.selfchequestatus === false ? 'false'
+  //         : str(row.selfchequestatus),
+  //     branch_name: str(row.branch_name),
+  //     receipt_branch_name: str(row.receipt_branch_name),
+  //     subscriber_details: str(row.subscriber_details),
+  //     chitReceiptNo: str(row.chitReceiptNo),
+  //     total_count: str(row.total_count),
+  //     transactionNo: str(row.transactionNo),
+  //     transactiondate: str(row.transactiondate),
+  //     chitstatus: str(row.chitstatus),
+  //     chitgroupstatus: str(row.chitgroupstatus),
+  //     receiptnumbers: str(row.receiptnumbers),
+  //     //pdepositedBankid: str(row.pdepositedBankid),
+  //     pdepositedBankid: status === 'P' || status === 'C'
+  //       ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositedBankid) || '0')
+  //       : str(row.pdepositedBankid),
+
+  //     pdepositedBankName: str(row.pdepositedBankName),
+  //     preferencetext: str(row.preferencetext),
+  //     preceiptype: str(row.preceiptype),
+  //     puploadeddate: str(row.puploadeddate),
+  //     subscriberbankaccountno: str(row.subscriberbankaccountno),
+  //     pkgmsreceiptdate: str(row.pkgmsreceiptdate),
+  //     pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
+  //   };
+  // }
+
+
   private _mapRowToSavePayload(row: any, status: string): any {
     const str = (v: any) => v?.toString() || '';
+
+    // ADD this date formatter — YYYY/MM/DD to match procedure's to_date format
+    const fmtSlash = (d: any): string => {
+      if (!d) return '';
+      const parsed = d instanceof Date ? d : new Date(d);
+      if (isNaN(parsed.getTime())) return '';
+      return this.datepipe.transform(parsed, 'yyyy/MM/dd') || '';
+    };
+
     return {
       pRecordid: str(row.pRecordid),
       pUpiname: str(row.pUpiname),
@@ -1545,9 +1666,12 @@ export class ChequesOnhand implements OnInit {
       ptranstype: str(row.ptranstype),
       ptypeofpayment: str(row.ptypeofpayment),
       pChequenumber: str(row.pChequenumber),
-      pchequedate: str(row.pchequedate),
-      pchequedepositdate: str(row.pchequedepositdate),
-      pchequecleardate: str(row.pchequecleardate),
+
+      // ✅ FIXED — use YYYY/MM/DD format
+      pchequedate: fmtSlash(row.pchequedate),
+      pchequedepositdate: fmtSlash(row.pchequedepositdate),
+      pchequecleardate: fmtSlash(row.pchequecleardate),
+
       pbankid: str(row.pbankid),
       branchid: str(row.branchid),
       pCardNumber: str(row.pCardNumber),
@@ -1560,7 +1684,10 @@ export class ChequesOnhand implements OnInit {
       pAccountnumber: str(row.pAccountnumber),
       challanaNo: str(row.challanaNo),
       preceiptid: str(row.preceiptid),
-      preceiptdate: str(row.preceiptdate),
+
+      // ✅ FIXED
+      preceiptdate: fmtSlash(row.preceiptdate),
+
       pmodofreceipt: str(row.pmodofreceipt),
       ptotalreceivedamount: str(row.ptotalreceivedamount),
       pnarration: str(row.pnarration),
@@ -1578,8 +1705,11 @@ export class ChequesOnhand implements OnInit {
       pFilename: str(row.pFilename),
       pFilepath: str(row.pFilepath),
       pFileformat: str(row.pFileformat),
-      pCleardate: str(row.pCleardate),
-      pdepositeddate: status === 'P' ? '' : str(row.pdepositeddate),
+
+      // ✅ FIXED
+      pCleardate: fmtSlash(row.pCleardate),
+      pdepositeddate: status === 'P' ? '' : fmtSlash(row.pdepositeddate),
+
       ptdsaccountid: str(row.ptdsaccountid),
       preceiptrecordid: str(row.preceiptrecordid),
       pTdsSectionId: str(row.pTdsSectionId),
@@ -1600,7 +1730,10 @@ export class ChequesOnhand implements OnInit {
       returnstatus: str(row.returnstatus),
       clearstatus: str(row.clearstatus),
       chqueno: str(row.chqueno),
-      issueddate: str(row.issueddate),
+
+      // ✅ FIXED
+      issueddate: fmtSlash(row.issueddate),
+
       chitgroupcode: str(row.chitgroupcode),
       chitgroupid: str(row.chitgroupid),
       ticketno: str(row.ticketno),
@@ -1621,21 +1754,22 @@ export class ChequesOnhand implements OnInit {
       chitReceiptNo: str(row.chitReceiptNo),
       total_count: str(row.total_count),
       transactionNo: str(row.transactionNo),
-      transactiondate: str(row.transactiondate),
+
+      // ✅ FIXED
+      transactiondate: fmtSlash(row.transactiondate),
+
       chitstatus: str(row.chitstatus),
       chitgroupstatus: str(row.chitgroupstatus),
       receiptnumbers: str(row.receiptnumbers),
-      //pdepositedBankid: str(row.pdepositedBankid),
       pdepositedBankid: status === 'P' || status === 'C'
-        ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositedBankid) || '0')
-        : str(row.pdepositedBankid),
-
+        ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositedBankId) || '0')
+        : str(row.pdepositedBankId),
       pdepositedBankName: str(row.pdepositedBankName),
       preferencetext: str(row.preferencetext),
       preceiptype: str(row.preceiptype),
-      puploadeddate: str(row.puploadeddate),
+      puploadeddate: fmtSlash(row.puploadeddate),
+      pkgmsreceiptdate: fmtSlash(row.pkgmsreceiptdate),
       subscriberbankaccountno: str(row.subscriberbankaccountno),
-      pkgmsreceiptdate: str(row.pkgmsreceiptdate),
       pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
     };
   }
