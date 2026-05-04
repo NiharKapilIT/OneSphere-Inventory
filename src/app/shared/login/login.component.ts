@@ -54,6 +54,7 @@ export class LoginComponent implements OnInit {
   selectedCompanyId = signal<number | null>(null);
   selectedCompanyCode = signal('');
   selectedBranchCode = signal('');
+  // selectedBranchCode = signal('');
   username = signal('');
   password = signal('');
 

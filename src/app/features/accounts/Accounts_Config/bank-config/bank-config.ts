@@ -228,7 +228,8 @@ export class BankConfig implements OnInit {
     this.bankmasterform = this.fb.group({
       modeOfReceipt:          [null as string | null],
       bankDetailsType:        [null as string | null],
-      bankType:               ['', Validators.required],
+      bankType:               [null, Validators.required],
+      // bankType:               ['', Validators.required],
       pCreatedby:             [this._commonService.getCreatedBy()],
       pBankdate:              [null as Date | null],
       pAcctountype:           [null, Validators.required],
