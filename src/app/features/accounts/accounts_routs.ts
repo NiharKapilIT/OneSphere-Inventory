@@ -29,6 +29,12 @@ export const accountsRoutes: Routes = [
         loadComponent: () =>
           import('./Accounts_Config/cheque-managementnew/cheque-managementnew')
             .then(m => m.ChequeManagementnew)
+      },
+      {
+        path: 'company-config',
+        loadComponent: () =>
+          import('./Accounts_Config/company-config/company-config')
+            .then(m => m.CompanyConfig)
       }
     ]
   },

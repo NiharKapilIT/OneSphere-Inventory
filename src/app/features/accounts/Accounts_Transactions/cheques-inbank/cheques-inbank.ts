@@ -1,21 +1,11 @@
- import {
-  Component, OnInit, AfterViewInit, Input, inject, signal,
-  DestroyRef, ChangeDetectorRef, ChangeDetectionStrategy, NgZone
-}
-  from '@angular/core';
+import {Component, OnInit, AfterViewInit, Input, inject, signal,DestroyRef, ChangeDetectorRef, ChangeDetectionStrategy, NgZone}from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import {
-  FormBuilder, FormGroup, FormsModule,
-  ReactiveFormsModule, Validators
-} from '@angular/forms';
+import {FormBuilder, FormGroup, FormsModule,ReactiveFormsModule, Validators} from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-// ── PrimeNG DatePicker (replaces ngx-bootstrap bsDatepicker)
 import { DatePickerModule } from 'primeng/datepicker';
-
 import { TableModule } from 'primeng/table';
 import { CheckboxModule } from 'primeng/checkbox';
 import { PaginatorModule } from 'primeng/paginator';
@@ -31,9 +21,8 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 declare var $: any;
 type AOA = any[][];
 
-@Component({
-  selector: 'app-cheques-in-bank',
-  standalone: true,
+@Component({selector: 'app-cheques-in-bank',
+ standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
@@ -68,8 +57,6 @@ export class ChequesInbank implements OnInit {
   onChequeClearDateSelect(date: Date) {
     this.ChequesInBankForm.get('pchequecleardate')?.setValue(date);
   }
-
-
 
   @Input() fromFormName: any;
 
@@ -866,9 +853,9 @@ export class ChequesInbank implements OnInit {
     const fromdate = this.brsFromDateModel;
     const todate = this.brsToDateModel;
     if (fromdate != null && todate != null) {
-      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);  
-      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);    
-      this.validate = fdCheck > tdCheck;                                   
+      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);
+      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);
+      this.validate = fdCheck > tdCheck;
       if (!this.validate) {
         this.validatebrsdateclear = false;
         const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
@@ -935,9 +922,9 @@ export class ChequesInbank implements OnInit {
     const fromdate = this.brsReturnFromDateModel;
     const todate = this.brsReturnToDateModel;
     if (fromdate != null && todate != null) {
-      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);  
-      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);    
-      this.validate = fdCheck > tdCheck;                                  
+      const fdCheck = new Date(fromdate); fdCheck.setHours(0, 0, 0, 0);
+      const tdCheck = new Date(todate); tdCheck.setHours(0, 0, 0, 0);
+      this.validate = fdCheck > tdCheck;
       if (!this.validate) {
         this.validatebrsdatereturn = false;
         const fd = new Date(fromdate as Date); fd.setHours(0, 0, 0, 0);
@@ -1810,8 +1797,8 @@ export class ChequesInbank implements OnInit {
     this.preferdrows = false;
     this.amounttotal = 0; this.selectedamt = 0;
     this.brsdateshowhidecleared = false; this.brsdateshowhidereturned = false;
-    this.validatebrsdateclear = false;    
-    this.validatebrsdatereturn = false;   
+    this.validatebrsdateclear = false;
+    this.validatebrsdatereturn = false;
     this.pageSetUp(); this.GetBankBalance(this.bankid);
     this.cdr.markForCheck();
   }
@@ -1936,7 +1923,7 @@ export class ChequesInbank implements OnInit {
   // ── Export / Print 
 
   pdfOrprint(printorpdf: any) {
-    
+
     if (!this.gridData?.length) {
       this._commonService.showWarningMessage('No data available'); return;
     }
@@ -2354,7 +2341,7 @@ function isNullOrEmptyString(value: any): boolean {
     value === '' || value.toString().trim() === '';
 }
 
- 
+
 
 
 

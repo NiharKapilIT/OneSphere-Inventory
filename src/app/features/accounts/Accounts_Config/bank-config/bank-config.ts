@@ -93,7 +93,7 @@ interface BankMasterFormShape {
     BsDatepickerModule,
     DatePickerModule,
     TableModule,
-    ValidationMessageComponent,
+   // ValidationMessageComponent,
     Address,
     NgSelectModule,
     ButtonModule,
@@ -251,7 +251,7 @@ export class BankConfig implements OnInit {
       pValidfrom:             [null as Date | null],
       pValidto:               [null as Date | null],
       // UPI — validators added dynamically when switch is ON
-      pUpiid:                 [''],
+      pUpiid:                 ['',Validators.required],
       upiname:                ['',Validators.required],
       // upiname:                [''],
       popeningjvno:           [''],
@@ -314,7 +314,7 @@ export class BankConfig implements OnInit {
 
   // ── Edit mode initialisation ─────────────────────────────────────────────────
   private checkEditMode(): void {
-    debugger;
+    
     const type = this._accountingMasterSvc.newstatus();
     this.buttonType.set(type);
 
@@ -343,7 +343,7 @@ export class BankConfig implements OnInit {
   }
 
   private populateFormForEdit(): void {
-    debugger;
+  
     const d    = this.datatobind[0];
     const det  = this.bankdetails;
     const form = this.bankmasterform;
@@ -663,10 +663,23 @@ allowNumbersOnly1(event: any) {
       },
     ];
 
-    this.bankmasterform.patchValue({ pUpiid: '', upiname: '' });
-    this.submitted = false;
-    this.bankmastervalidations['pUpiid']  = '';
-    this.bankmastervalidations['upiname'] = '';
+    // this.bankmasterform.patchValue({ pUpiid: '', upiname: '' });
+    // this.submitted = false;
+    // this.bankmastervalidations['pUpiid']  = '';
+    // this.bankmastervalidations['upiname'] = '';
+
+
+
+    this.bankmasterform.patchValue({
+  pUpiid: '',
+  upiname: ''
+});
+   this.submitted = false;
+this.bankmasterform.get('pUpiid')?.markAsPristine();
+this.bankmasterform.get('pUpiid')?.markAsUntouched();
+
+this.bankmasterform.get('upiname')?.markAsPristine();
+this.bankmasterform.get('upiname')?.markAsUntouched();
   }
 
   validateupi(): boolean {
@@ -878,7 +891,8 @@ allowNumbersOnly1(event: any) {
         this.checkValidations(formcontrol, isValid);
       } else if (formcontrol.validator) {
         this.bankmastervalidations[key] = '';
-        if (formcontrol.errors || formcontrol.invalid || formcontrol.touched || formcontrol.dirty) {
+        if ((this.submitted || formcontrol.dirty || formcontrol.touched) &&
+  (formcontrol.errors || formcontrol.invalid)) {
           const el = document.getElementById(key);
           if (el) {
             const lablename = (el as HTMLInputElement).title;
@@ -948,7 +962,7 @@ allowNumbersOnly1(event: any) {
 
   // ── Save ──────────────────────────────────────────────────────────────────────
   save(): void {
-    debugger;
+   
     this.bankmasterform.markAllAsTouched();
 
     // Clear address fields from bankmasterform — managed by AddressComponent

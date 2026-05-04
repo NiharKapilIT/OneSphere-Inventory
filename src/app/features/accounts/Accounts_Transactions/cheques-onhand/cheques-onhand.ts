@@ -174,16 +174,17 @@ export class ChequesOnhand implements OnInit {
 
     this.pdatepickerenablestatus.set(this.companydetails?.pdatepickerenablestatus);
     this.currencySymbol.set(this._commonService.currencysymbol);
-
     this.ChequesOnHandForm = this.fb.group({
       ptransactiondate: [this.today2, Validators.required],
       bankname: [null, Validators.required],
-      pfrombrsdate: [this.today2, new Date()],
-      ptobrsdate: [this.today2, new Date()],
+      pfrombrsdate: [this.today2],
+      ptobrsdate: [this.today2],
+
       pchequesOnHandlist: [],
       SearchClear: [''],
       schemaname: [this._commonService.getschemaname()]
     });
+
     this.BrsDateForm = this.fb.group({
       frombrsdate: [''],
       tobrsdate: ['']
@@ -197,7 +198,7 @@ export class ChequesOnhand implements OnInit {
 
     this.setPageModel();
     this.pageSetUp();
-    this.BlurEventAllControll(this.ChequesOnHandForm);
+
 
     this._accountingtransaction
       .GetBankntList(
@@ -505,11 +506,12 @@ export class ChequesOnhand implements OnInit {
   }
 
   SelectBank(event: any) {
+
     if (!event) {
       this.bankid = 0;
       this.bankname.set(null);
       this.banknameshowhide.set(false);
-      this.ChequesOnHandValidation.update(v => ({ ...v, bankname: 'Please Select Bank Name' }));
+      this.ChequesOnHandValidation.update(v => ({ ...v, bankname: 'Bank Name is required' }));
     } else {
       this.bankdetails = event;
       this.banknameshowhide.set(true);
@@ -542,6 +544,8 @@ export class ChequesOnhand implements OnInit {
     this.GetChequesOnHand_Load(this.bankid);
     this.ChequesOnHandForm.controls['SearchClear'].setValue('');
   }
+
+
 
   onSearch(event: any) {
     const searchText = event.toString();
@@ -629,6 +633,7 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+
   checkedCancel(event: any, data: any) {
     const isChecked = event?.checked ?? false;
     const gridtemp = this.gridData().filter(a => a.preceiptid === data.preceiptid);
@@ -636,7 +641,8 @@ export class ChequesOnhand implements OnInit {
 
     if (isChecked) {
       const receiptdate = this._commonService.getDateObjectFromDataBase(gridtemp[0].preceiptdate);
-      const transactiondate = this.ChequesOnHandForm.controls['ptransactiondate'].value;
+      const transactiondateValue = this.ChequesOnHandForm.controls['ptransactiondate'].value;
+      const transactiondate = transactiondateValue ? new Date(transactiondateValue) : null;
 
       if (receiptdate && !isNaN(receiptdate.getTime())) {
         if (transactiondate && transactiondate.getTime() >= receiptdate.getTime()) {
@@ -788,6 +794,7 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+
   OnlineReceipts() {
     this.pageSetUp();
     this.chequeboxshoworhide = true;
@@ -876,6 +883,7 @@ export class ChequesOnhand implements OnInit {
   }
 
   Deposited1() {
+
     this.modeofreceipt = 'DEPOSIT';
     this.status.set('deposited');
     this.pdfstatus = 'Deposited';
@@ -934,7 +942,6 @@ export class ChequesOnhand implements OnInit {
       totalPages: total > 10 ? Math.ceil(total / 10) : p.totalPages
     }));
     this.totalElements = total;
-
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
@@ -986,6 +993,7 @@ export class ChequesOnhand implements OnInit {
     this.BrsDateForm.controls['frombrsdate'].updateValueAndValidity();
     this.BrsDateForm.controls['tobrsdate'].updateValueAndValidity();
 
+
     const grid = this.ChequesClearReturnData
       .filter(i => i.pchequestatus === 'C')
       .map(i => ({
@@ -1020,7 +1028,7 @@ export class ChequesOnhand implements OnInit {
 
 
   pdfOrprint(printOrPdf: 'Print' | 'Pdf') {
-    debugger
+
     this.Totalamount = 0;
     const s = this.status();
     if (s === 'all') this.modeofreceipt = 'ALL';
@@ -1380,43 +1388,31 @@ export class ChequesOnhand implements OnInit {
   }
 
 
+
   Save() {
-    debugger
-    console.log('Save() called');
     this.count = 0;
     this.DataForSaving = [];
     let isValid = true;
     let deposit = 0;
     this.ChequesOnHandValidation.set({});
-
-    if (!this.bankid || this.bankid === 0) {
-      this._commonService.showWarningMessage('Please Select Bank Name');
-      return;
-    }
-
-    console.log('bankid:', this.bankid);
+    if (!this.bankid || this.bankid == 0) {
+        this._commonService.showWarningMessage('Please Select Bank');
+        return;
+      }
 
     const hasSelectedRows = this.gridData().some(
       row => row.pdepositstatus === true || row.pcancelstatus === true
     );
-    console.log('hasSelectedRows:', hasSelectedRows);
-
-    if (!hasSelectedRows) {
-      this._commonService.showWarningMessage('Please Select Atleast One Record');
-      return;
-    }
 
     this.gridData().forEach(aa => {
       if ((aa.pchequestatus || '').trim() === 'P') deposit++;
     });
-    console.log('deposit count:', deposit);
 
     let validationcount = 0;
     this.gridData().forEach(row => {
       const s = (row.pchequestatus || '').trim();
       if ((s === 'P' || s === 'C') && row.selfchequestatus === true) validationcount++;
     });
-    console.log('validationcount:', validationcount);
 
     const control = this.ChequesOnHandForm.get('bankname');
     if (deposit > 0 && validationcount > 0) {
@@ -1427,7 +1423,6 @@ export class ChequesOnhand implements OnInit {
     control?.updateValueAndValidity();
 
     const formValid = this.checkValidations(this.ChequesOnHandForm, isValid);
-    console.log('formValid:', formValid);
 
     if (formValid) {
       const addedReceiptIds = new Set<string>();
@@ -1446,17 +1441,13 @@ export class ChequesOnhand implements OnInit {
         }
       });
 
-      console.log('DataForSaving length:', this.DataForSaving.length);
-      console.log('DataForSaving:', this.DataForSaving);
-
       if (this.DataForSaving.length === 0) {
-        setTimeout(() => this._commonService.showWarningMessage('No Data to Save'), 0);
+        setTimeout(() => this._commonService.showWarningMessage('Select the Checkbox'), 0);
         return;
       }
 
       const dataSnapshot = [...this.DataForSaving];
       const userConfirmed = confirm('Do You Want To Save ?');
-      console.log('userConfirmed:', userConfirmed);
 
       if (!userConfirmed) {
         this.checked = false;
@@ -1502,20 +1493,27 @@ export class ChequesOnhand implements OnInit {
           console.log('API response:', data);
           if (data?.success) {
             setTimeout(() => this._commonService.showSuccessMessage(), 0);
-            this.gridData.update(rows =>
-              rows.map(row => ({
-                ...row,
-                pdepositstatus: false,
-                pcancelstatus: false,
-                pchequestatus: 'N'
-              }))
-            );
+
             this.DataForSaving = [];
             this.count = 0;
             this.checked = false;
             this.disablesavebutton.set(false);
             this.buttonname.set('Save');
-            this.GetChequesOnHand_Load(this.bankid);
+            this.bankid = 0;
+            this.bankdetails = null;
+            this.bankname.set(null);
+            this.banknameshowhide.set(false);
+            const bankControl = this.ChequesOnHandForm.get('bankname');
+            bankControl?.clearValidators();
+            bankControl?.reset(null);
+            bankControl?.updateValueAndValidity({ emitEvent: false });
+
+
+            this.Clear();
+
+
+            this.GetChequesOnHand_Load(0);
+
           } else {
             setTimeout(() => this._commonService.showWarningMessage(data?.message || 'Save failed'), 0);
             this.checked = false;
@@ -1533,6 +1531,8 @@ export class ChequesOnhand implements OnInit {
       });
     }
   }
+
+
 
   private _mapRowToSavePayload(row: any, status: string): any {
     const str = (v: any) => v?.toString() || '';
@@ -1553,7 +1553,9 @@ export class ChequesOnhand implements OnInit {
       pCardNumber: str(row.pCardNumber),
       pdepositbankid: status === 'P'
         ? (this.bankdetails ? str(this.bankdetails.pbankid) : '0')
-        : (str(row.pdepositbankid) || '0'),
+        : status === 'C'
+          ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositbankid) || '0')
+          : (str(row.pdepositbankid) || '0'),
       pdepositbankname: str(row.pdepositbankname),
       pAccountnumber: str(row.pAccountnumber),
       challanaNo: str(row.challanaNo),
@@ -1610,7 +1612,9 @@ export class ChequesOnhand implements OnInit {
       schemetype: str(row.schemetype),
       checksentryrecordid: str(row.checksentryrecordid),
       cheque_bank: str(row.cheque_bank),
-      selfchequestatus: str(row.selfchequestatus),
+      selfchequestatus: row.selfchequestatus === true ? 'true'
+        : row.selfchequestatus === false ? 'false'
+          : str(row.selfchequestatus),
       branch_name: str(row.branch_name),
       receipt_branch_name: str(row.receipt_branch_name),
       subscriber_details: str(row.subscriber_details),
@@ -1621,7 +1625,11 @@ export class ChequesOnhand implements OnInit {
       chitstatus: str(row.chitstatus),
       chitgroupstatus: str(row.chitgroupstatus),
       receiptnumbers: str(row.receiptnumbers),
-      pdepositedBankid: str(row.pdepositedBankid),
+      //pdepositedBankid: str(row.pdepositedBankid),
+      pdepositedBankid: status === 'P' || status === 'C'
+        ? (this.bankdetails ? str(this.bankdetails.pbankid) : str(row.pdepositedBankid) || '0')
+        : str(row.pdepositedBankid),
+
       pdepositedBankName: str(row.pdepositedBankName),
       preferencetext: str(row.preferencetext),
       preceiptype: str(row.preceiptype),
@@ -1631,6 +1639,8 @@ export class ChequesOnhand implements OnInit {
       pCreatedby: this._commonService.getCreatedBy()?.toString() ?? '1'
     };
   }
+
+
 
 
   Clear() {
@@ -2063,7 +2073,6 @@ export class ChequesOnhand implements OnInit {
   }
 
   onDepositChange(event: any, row: any) {
-    debugger
     if (event.checked) {
       this.checked = event.checked;
       row.pcancelstatus = false;
@@ -2072,7 +2081,6 @@ export class ChequesOnhand implements OnInit {
   }
 
   onCancelChange(event: any, row: any) {
-    debugger
     if (event.checked) {
       this.checked = event.checked;
       row.pdepositstatus = false;

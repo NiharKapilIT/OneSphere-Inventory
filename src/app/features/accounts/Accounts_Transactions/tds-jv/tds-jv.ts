@@ -15,6 +15,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-tds-jv',
@@ -92,6 +93,7 @@ export class TdsJv implements OnInit {
     private _employeeAttendService: AccountsTransactions,
     private datePipe: DatePipe,
     private _AccountingTransactionsService: AccountsTransactions,
+    private cdr: ChangeDetectorRef,
   ) {
     this.currencysymbol = this._commonService.datePickerPropertiesSetup('currencysymbol');
     this.pageCriteria = new PageCriteria();
@@ -184,7 +186,7 @@ export class TdsJv implements OnInit {
       DebitLedger: [null, Validators.required],
       pCalendarMonth: [null, Validators.required],
       CreditLedger: [null, Validators.required],
-      preceiptdate: [{value: '', disabled:true}, Validators.required],
+      preceiptdate: [{ value: '', disabled: true }, Validators.required],
       pnarration: ['', Validators.required],
     });
   }
@@ -210,7 +212,6 @@ export class TdsJv implements OnInit {
   }
 
   CalendarYear_change_native(selectedId: any): void {
-    debugger;
     this.pmonth = this.notselected;
     this.cmonth = this.notselected;
     this.MonthName = '';
@@ -238,7 +239,6 @@ export class TdsJv implements OnInit {
 
   // Keep old ng-select handler in case it is called elsewhere
   CalendarYear_change(event: any): void {
-    debugger;
     this.pmonth = this.notselected;
     this.cmonth = this.notselected;
     if (event != null) {
@@ -415,14 +415,12 @@ export class TdsJv implements OnInit {
   //   this.disablesavebutton1 = true;
 
   gettdsjvdetails(): void {
-    debugger
     this.selected1 = [];
     this.selectedValues = [];
     this.totaldebitamount = 0;
     this.totalcreditamount = 0;
     this.showhidetable = false;
-   // this.dataisempty = false;
-    this.dataisempty = true;
+    this.dataisempty = false;
     this.tdsJvDetailsGrid = [];
 
     const creditledger = this.tdsJvDetailsForm.controls['CreditLedger'].value || '';
@@ -432,36 +430,37 @@ export class TdsJv implements OnInit {
     const monthYear = (this.CalendarYear || '').toString().toUpperCase();
     // const monthYear = (this.MonthName || '').toString().toUpperCase();
 
+    let isValid = true;
+
+
+
     if (!debitledger) {
-      this._commonService.showWarningMessage('Please select Debit Ledger');
+     // this._commonService.showWarningMessage('Please select Debit Ledger');
       this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
-      return;
+      isValid = false;
     }
+
     if (!creditledger) {
-      this._commonService.showWarningMessage('Please select Credit Ledger');
+     // this._commonService.showWarningMessage('Please select Credit Ledger');
       this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
-      return;
+      isValid = false;
     }
 
-    // ── NEW: validate Year ──────────────────────────────────────────────────
     if (!selectedYear) {
-      this._commonService.showWarningMessage('Please select Year');
+     // this._commonService.showWarningMessage('Please select Year');
       this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
-      return;
+      isValid = false;
     }
 
-    // ── NEW: validate Month ─────────────────────────────────────────────────
     if (!selectedMonth || !this.CalendarYear) {
-      this._commonService.showWarningMessage('Please select Month');
+     // this._commonService.showWarningMessage('Please select Month');
       this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
-      return;
+      isValid = false;
     }
 
-    if (!this.CalendarYear) {
-      this._commonService.showWarningMessage('Please select Year and Month');
+    if (!isValid) {
       return;
     }
-
     this.savebutton1 = 'Processing';
     this.disablesavebutton1 = true;
 
@@ -516,10 +515,37 @@ export class TdsJv implements OnInit {
           this.totaldebitamount = 0;
           this.totalcreditamount = 0;
           this.isExists = false;
-        }
 
-        this.savebutton1 = 'Show';
-        this.disablesavebutton1 = false;
+          this.selected1 = [];
+          this.selectedValues = [];
+
+          this.MonthName = '';
+          this.CalendarYear = '';
+          this.calendarMonthData = [];
+
+          // clear form + validations
+          this.tdsJvDetailsForm.reset();
+
+          Object.keys(this.tdsJvDetailsForm.controls).forEach(key => {
+            const control = this.tdsJvDetailsForm.get(key);
+
+            control?.setErrors(null);
+            control?.markAsPristine();
+            control?.markAsUntouched();
+            control?.updateValueAndValidity();
+          });
+
+          this.formValidationMessages = {};
+
+          this.tdsJvDetailsForm.controls['preceiptdate'].setValue(new Date());
+
+          this._commonService.showWarningMessage('No records found');
+        }
+        setTimeout(() => {
+          this.savebutton1 = 'Show';
+          this.disablesavebutton1 = false;
+          this.cdr.detectChanges();
+        }, 1000);
       },
       error: (error: any) => {
         this.tdsJvDetailsGrid = [];
@@ -530,6 +556,8 @@ export class TdsJv implements OnInit {
         this.isExists = false;
         this.savebutton1 = 'Show';
         this.disablesavebutton1 = false;
+        this.cdr.detectChanges();
+
         this._commonService.showErrorMessage(error);
       },
     });
