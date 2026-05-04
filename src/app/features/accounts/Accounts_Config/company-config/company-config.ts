@@ -171,7 +171,7 @@ export class CompanyConfig implements OnInit {
       panNumber: [''],
       cinNumber: [''],
       companyCode: [''],
-      companyLogo: [''],
+      companyLogo: ['',Validators.required],
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
@@ -211,88 +211,6 @@ export class CompanyConfig implements OnInit {
       control.setValue(clean, { emitEvent: false });
     }
   }
-
-
-
-  // onSave(): void {
-  //   this.submitted = true;
-  //   this.checkValidations(this.companyConfigForm, true);
-
-  //   // if (this.companyConfigForm.invalid) {
-  //   //   this.companyConfigForm.markAllAsTouched();
-  //   //   return;
-  //   // }
-
-  //   if (this.companyConfigForm.valid) {
-  //     const formData = {
-  //       ...this.companyConfigForm.value,
-  //       logo: this.uploadedImage()
-  //     };
-  //     console.log(' Company Config Saved:', formData);
-  //     // Toast Alert Message
-  //     this.messageService.add({
-  //       severity: 'success',
-  //       summary: 'Success',
-  //       detail: 'Company configuration saved successfully!'
-  //     });
-
-  //     //  Browser Alert
-  //     alert(' Company configuration saved successfully!');
-
-  //     this.onClear();
-  //     this.clearUploadedImage();
-  //     this.visible.set(false);
-  //   }
-  // }
-
-
-
-
-
-
-  // onSave(): void {
-  //   debugger;
-  //   this.submitted = true;
-  //   this.checkValidations(this.companyConfigForm, true);
-
-  //   if (this.companyConfigForm.valid) {
-  //     const formData = {
-  //       ...this.companyConfigForm.value,
-  //       logo: this.uploadedImage()
-  //     };
-
-  //     this._accountsConfig.SaveCompanyConfiguration(formData).subscribe({
-  //       next: (response) => {
-  //         if (response.success) {
-  //           this.messageService.add({
-  //             severity: 'success',
-  //             summary: 'Success',
-  //             detail: response.message || 'Company configuration saved successfully!'
-  //           });
-
-  //           this.onClear();
-  //           this.clearUploadedImage();
-  //           this.visible.set(false);
-  //         } else {
-  //           this.messageService.add({
-  //             severity: 'error',
-  //             summary: 'Error',
-  //             detail: response.message || 'Failed to save configuration.'
-  //           });
-  //         }
-  //       },
-  //       error: (err: any) => {
-  //         console.error('API Error:', err);
-  //         this.messageService.add({
-  //           severity: 'error',
-  //           summary: 'Error',
-  //           detail: 'Something went wrong. Please try again.'
-  //         });
-  //       }
-  //     });
-  //   }
-  // }
-
 
 
   onSave(): void {
@@ -562,57 +480,6 @@ export class CompanyConfig implements OnInit {
     }
   }
 
-
-
-  // onUpload(event: any) {
-  //   this.uploadError.set(null);
-  //   this.uploadSuccess.set(false);
-
-  //   for (const file of event.currentFiles) {
-  //     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
-  //     const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  //     const allowedExtensions = ['jpg', 'jpeg', 'png', 'svg'];
-
-  //     if (!allowedTypes.includes(file.type) || !allowedExtensions.includes(fileExtension)) {
-  //       this.uploadError.set('Only JPG, JPEG, PNG, and SVG files are allowed.');
-  //       this.messageService.add({
-  //         severity: 'error',
-  //         summary: 'Invalid File Type',
-  //         detail: 'Only JPG, JPEG, PNG, and SVG files are allowed.',
-  //         life: 3000
-  //       });
-  //       return;
-  //     }
-
-  //     // ✅ Send file to API uploads folder
-  //     const formData = new FormData();
-  //     formData.append('file', file, file.name);
-
-  //     this._commonService.uploadFile(formData).subscribe({
-  //       next: (res: any) => {
-  //         // this.uploadedImage.set(file.name); 
-  //         this.uploadedImage.set(res.filePath);
-  //         this.uploadSuccess.set(true);
-  //         this.uploadError.set(null);
-  //         this.messageService.add({
-  //           severity: 'success',
-  //           summary: 'Success',
-  //           detail: `Image uploaded successfully! (${file.name})`,
-  //           life: 3000
-  //         });
-  //       },
-  //       error: () => {
-  //         this.uploadError.set('Failed to upload file.');
-  //         this.messageService.add({
-  //           severity: 'error',
-  //           summary: 'Error',
-  //           detail: 'Failed to upload file.',
-  //           life: 3000
-  //         });
-  //       }
-  //     });
-  //   }
-  // }
 
 
   clearUploadedImage() {
