@@ -2221,10 +2221,20 @@ export class GeneralReceiptNew implements OnInit {
                 if (res?.success) {
                   this.cs.showInfoMessage('Saved successfully');
                   this.ClearGenerealReceipt();
-                  this.router.navigate([
-                    '/general-receipt',
-                    btoa(`${res.receipt_number},General Receipt`)
-                  ]);
+                  // this.router.navigate([
+                  //   '/general-receipt',
+                  //   btoa(`${res.receipt_number},General Receipt`)
+                  // ]);
+
+
+
+                  const receipt = btoa(res.receipt_number + ',' + 'General Receipt');
+                  const url = this.router.serializeUrl(
+                    this.router.createUrlTree(['/general-receipt', receipt])
+                  );
+                  window.open(url, '_blank');
+
+
                 }
                 this.disablesavebutton.set(false);
                 this.savebutton.set('Save');
