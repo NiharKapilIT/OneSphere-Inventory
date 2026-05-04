@@ -2764,7 +2764,6 @@ export class PettyCash implements OnInit {
 
 
   savePaymentVoucher(): void {
-    debugger
     if (!this.validatesavePaymentVoucher()) {
      return;
    }
