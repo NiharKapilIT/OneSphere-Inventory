@@ -67,7 +67,6 @@ export class JournalVoucher implements OnInit {
   }
 
   getKapilGroupLogo() {
-debugger
 let img:string='';
 let Company = this.commonService._getCompanyDetails();
   img = Company.companyLogo;

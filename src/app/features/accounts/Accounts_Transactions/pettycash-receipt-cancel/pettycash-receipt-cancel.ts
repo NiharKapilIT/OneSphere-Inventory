@@ -248,7 +248,6 @@ export class PettycashReceiptCancel implements OnInit {
 
 
   Save(): void {
-    debugger;
     if (this.PettyCashCancel.invalid) {
       this.PettyCashCancel.markAllAsTouched();
       return;
