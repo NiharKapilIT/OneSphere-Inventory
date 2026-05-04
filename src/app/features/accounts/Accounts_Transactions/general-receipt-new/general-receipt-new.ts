@@ -1,26 +1,8 @@
-import {
-  Component,
-  OnInit,
-  inject,
-  signal,
-  computed,
-  ChangeDetectionStrategy,
-  DestroyRef
-} from '@angular/core';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  FormBuilder,
-  FormGroup,
-  Validators,
-  FormControl,
-  FormsModule,
-  ReactiveFormsModule,
-  AbstractControl,
-  ValidationErrors
-} from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl, FormsModule, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-
 import { NgSelectModule } from '@ng-select/ng-select';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -153,6 +135,9 @@ export class GeneralReceiptNew implements OnInit {
   ledgerBalance = signal('');
   subledgerBalance = signal('');
   partyBalance = signal('');
+  uploadedFileName = signal('');
+  uploadedFilePath = signal('');
+  uploadedFileFormat = signal('');
 
   // ── Computed  
   paymentsTotal = computed(() =>
@@ -1883,7 +1868,7 @@ export class GeneralReceiptNew implements OnInit {
 
 
 
-  saveGeneralReceipt(): void {    
+  saveGeneralReceipt(): void {
 
     this.submitted.set(true);
     this.showCashWarning.set(false);
@@ -2138,9 +2123,12 @@ export class GeneralReceiptNew implements OnInit {
             ptdsaccountid: 0,
 
             pnarration: this.GeneralReceiptForm.value.pnarration || '',
-            pFilename: this.GeneralReceiptForm.value.pFilename || '',
-            pFilepath: this.GeneralReceiptForm.value.pFilepath || '',
-            pFileformat: this.GeneralReceiptForm.value.pFileformat || '',
+            // pFilename: this.GeneralReceiptForm.value.pFilename || '',
+            // pFilepath: this.GeneralReceiptForm.value.pFilepath || '',
+            // pFileformat: this.GeneralReceiptForm.value.pFileformat || '',
+             pFilename: this.uploadedFileName() || '',
+pFilepath: this.uploadedFilePath() || '',
+pFileformat: this.uploadedFileFormat() || '',
             pDocStorePath: '',
 
             global_schema: this.cs.getschemaname(),
@@ -2298,26 +2286,85 @@ export class GeneralReceiptNew implements OnInit {
 
     this.formValidationMessages = {};
     this.submitted.set(false);
+    //this.imageResponse.set({ name: '' });
     this.imageResponse.set({ name: '' });
+this.uploadedFileName.set('');
+this.uploadedFilePath.set('');
+this.uploadedFileFormat.set('');
     this.GeneralReceiptForm.markAsUntouched();
     this.GeneralReceiptForm.markAsPristine();
   }
 
+  // uploadAndProgress(event: any): void {
+  //   const ext = event.target.value
+  //     .substring(event.target.value.lastIndexOf('.') + 1)
+  //     .toLowerCase();
+  //   if (!['jpg', 'png', 'pdf'].includes(ext)) {
+  //     this.cs.showWarningMessage('Upload jpg, png or pdf files');
+  //     return;
+  //   }
+  //   const file = event.target.files[0];
+  //   if (!file) return;
+
+  //   const reader = new FileReader();
+  //   reader.readAsDataURL(file);
+  //   reader.onload = () =>
+  //     this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
+
+  //   const fd = new FormData();
+  //   fd.append(file.name, file);
+  //   fd.append('NewFileName', `General Receipt.${file.name.split('.').pop()}`);
+
+  //   // this.cs.fileUploadS3('Account', fd)
+  //   //   .pipe(takeUntilDestroyed(this.destroyRef))
+  //   //   .subscribe((data: any) => {
+  //   //     this.imageResponse.update(r => ({ ...r, name: data[0] }));
+  //   //     this.GeneralReceiptForm.controls['pFilename'].setValue(data[0]);
+  //   //   });
+  //   this.cs.fileUploadS3('Account', fd)
+  // .pipe(takeUntilDestroyed(this.destroyRef))
+  // .subscribe((data: any) => {
+  //   const uploadedFileName = data[0] || data?.fileName || data?.filePath || data;
+  //   const uploadedFilePath = data[1] || data?.filePath || uploadedFileName;
+
+  //   this.imageResponse.update(r => ({ ...r, name: uploadedFileName }));
+
+  //   this.GeneralReceiptForm.controls['pFilename'].setValue(uploadedFileName);
+  //   this.GeneralReceiptForm.controls['pFilepath'].setValue(uploadedFilePath);
+  //   this.GeneralReceiptForm.controls['pFileformat'].setValue(
+  //     uploadedFileName?.split('.')?.pop()?.toLowerCase() || ''
+  //   );
+  // });
+  // }
+
+
+  // ── Validation helpers  
+
   uploadAndProgress(event: any): void {
-    const ext = event.target.value
-      .substring(event.target.value.lastIndexOf('.') + 1)
-      .toLowerCase();
+    // const ext = event.target.value
+    //   .substring(event.target.value.lastIndexOf('.') + 1)
+    //   .toLowerCase();
+    const ext = event.target.files[0]?.name
+  .substring(event.target.files[0]?.name.lastIndexOf('.') + 1)
+  .toLowerCase() || '';
+
     if (!['jpg', 'png', 'pdf'].includes(ext)) {
       this.cs.showWarningMessage('Upload jpg, png or pdf files');
       return;
     }
+
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () =>
-      this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
+    // reader.onload = () =>
+    //   this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
+
+    reader.onload = () => {
+  this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
+  this.uploadedFileName.set(file.name); // show file name immediately before API responds
+};
 
     const fd = new FormData();
     fd.append(file.name, file);
@@ -2326,13 +2373,28 @@ export class GeneralReceiptNew implements OnInit {
     this.cs.fileUploadS3('Account', fd)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data: any) => {
-        this.imageResponse.update(r => ({ ...r, name: data[0] }));
-        this.GeneralReceiptForm.controls['pFilename'].setValue(data[0]);
+        console.log('Upload response:', data); // check once then remove
+
+        const fileName = Array.isArray(data)
+          ? data[0]
+          : (data?.fileName || data?.name || data?.filePath || '');
+
+        // const filePath = Array.isArray(data)
+        //   ? (data[1] || data[0])
+        //   : (data?.filePath || data?.path || fileName);
+        const filePath = fileName;
+        const fileFormat = ext;
+
+        this.uploadedFileName.set(fileName);
+       // this.uploadedFilePath.set(filePath);
+       this.uploadedFilePath.set(filePath || fileName);
+        this.uploadedFileFormat.set(fileFormat);
+
+        this.imageResponse.update(r => ({ ...r, name: fileName }));
       });
   }
 
 
-  // ── Validation helpers  
   checkValidations(group: FormGroup, isValid: boolean): boolean {
     Object.keys(group.controls).forEach(key => {
       group.get(key)?.markAsTouched();

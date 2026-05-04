@@ -854,8 +854,11 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Upload Attachment</label>
                   <div class="erp-file-upload">
-                    <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse()?.name" readonly placeholder="No file selected">
+                    <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
+                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
+                     <input type="text" class="erp-input erp-file-input"
+  [value]="uploadedFileName() || imageResponse()?.name || ''" 
+  readonly placeholder="No file selected">
                     <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                       <i class="pi pi-upload"></i> Upload
                     </button>

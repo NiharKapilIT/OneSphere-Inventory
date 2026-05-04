@@ -9,6 +9,7 @@
         </div>
       </div>
 
+
       <div class="p-4">
         <div class="erp-radio-button-group p-0">
           <label class="erp-radio-button" for="confirmation">
@@ -36,13 +37,8 @@
           <div class="col-xl-4 col-lg-5 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Select Employee <span class="required">*</span></label>
-              <ng-select
-                [items]="employeeOptions"
-                [(ngModel)]="selectedEmployee"
-                placeholder="Search by employee name"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="employeeOptions" [(ngModel)]="selectedEmployee" placeholder="Search by employee name"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -71,13 +67,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="designationOptions" [(ngModel)]="selectedDesignation" placeholder="Select designation"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -125,13 +116,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="promotionDesignationOptions"
-                [(ngModel)]="selectedPromotionDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="promotionDesignationOptions" [(ngModel)]="selectedPromotionDesignation"
+                placeholder="Select designation" [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -209,13 +195,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Posted to Branch <span class="required">*</span></label>
-              <ng-select
-                [items]="branchOptions"
-                [(ngModel)]="selectedBranch"
-                placeholder="Select branch"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="branchOptions" [(ngModel)]="selectedBranch" placeholder="Select branch"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -223,13 +204,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedTransferDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="designationOptions" [(ngModel)]="selectedTransferDesignation"
+                placeholder="Select designation" [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -250,13 +226,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Resignation Accept Authority <span class="required">*</span></label>
-              <ng-select
-                [items]="authorityOptions"
-                [(ngModel)]="selectedAuthority"
-                placeholder="Select authority"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="authorityOptions" [(ngModel)]="selectedAuthority" placeholder="Select authority"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
