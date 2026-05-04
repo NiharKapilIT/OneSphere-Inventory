@@ -1884,7 +1884,7 @@ export class GeneralReceiptNew implements OnInit {
 
 
   saveGeneralReceipt(): void {
-    debugger;
+     ;
 
     this.submitted.set(true);
     this.showCashWarning.set(false);

@@ -12,7 +12,7 @@ export class CompanyDetailsService {
 
 
   GetCompanyData(): Observable<any> {  
-    debugger
+     
         let params = new HttpParams().set('GlobalSchema', this.commonService.getschemaname()).set('CompanyCode', this.commonService.getCompanyCode()).set('BranchCode', this.commonService.getBranchCode());
         return this.commonService.getAPI('/Accounts/GetCompanyNameAndAddress', params, 'YES') .pipe(
           catchError((e:any) => {
