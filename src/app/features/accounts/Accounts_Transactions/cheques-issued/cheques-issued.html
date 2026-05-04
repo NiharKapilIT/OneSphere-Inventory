@@ -162,9 +162,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsClear()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsClear()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
       }
@@ -200,9 +202,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsReturn()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsReturn()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
     </form>
@@ -239,9 +243,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsCancel()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsCancel()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
     </form>
@@ -376,6 +382,7 @@
 
               <td>{{ row.ppartyname || row.partyname || row.pBankName || '--' }}</td>
 
+
               <td>{{ row.preceiptid || '--' }}</td>
 
               <td>
@@ -454,9 +461,6 @@
 
     <div class="card-footer">
       <div class="d-flex gap-2 flex-wrap">
-        <!-- <button (click)="Clear()" class="erp-btn btn-secondary">
-          <i class="pi pi-times"></i> Clear
-        </button> -->
 
         <button (click)="Clear(searchInput)" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
