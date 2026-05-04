@@ -1883,8 +1883,7 @@ export class GeneralReceiptNew implements OnInit {
 
 
 
-  saveGeneralReceipt(): void {
-    debugger;
+  saveGeneralReceipt(): void {    
 
     this.submitted.set(true);
     this.showCashWarning.set(false);

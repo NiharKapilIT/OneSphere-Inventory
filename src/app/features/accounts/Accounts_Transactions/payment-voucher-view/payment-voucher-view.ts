@@ -720,8 +720,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   //     });
   // }
 
-  getLoadData(): void {
-    debugger;
+  getLoadData(): void {    
     this.accountingTxService
       .GetReceiptsandPaymentsLoadingData2(
         'PAYMENT VOUCHER',
@@ -956,9 +955,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     );
   }
 
-  // ─── Party ────────────────────────────────────────────────────────────────
+  // ─── Party  
   // partyName_Change(event: any): void {
-  //   debugger;
+   
   //   const group = this.paymentVoucherForm.get('ppaymentsslistcontrols');
   //   const ppartyid = event?.ppartyid;
 
@@ -1399,9 +1398,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     }
   }
 
-  // ─── Add / Remove Row ─────────────────────────────────────────────────────
+  // ─── Add / Remove Row  
   // addPaymentDetails(): void {
-  //   debugger;
+ 
   //   const round = (n: number) =>
   //     Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -1543,7 +1542,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   // }
 
   validateAddPaymentDetails(currentRow: any): boolean {
-    debugger;
+    
     let isValid = true;
     try {
       const { pledgername, psubledgername, psubledgerid, ppartyid } =
@@ -1770,7 +1769,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   }
 
   // private savePaymentRow(row: any, ctrl: FormGroup): void {
-  //   debugger
+  
   //   this.paymentsList.push(row);
   //   this.paymentsList1 = [...this.paymentsList1, row];
   //   this.getPartyJournalEntryData();
@@ -2009,7 +2008,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   // ─── Save ─────────────────────────────────────────────────────────────────
   validatesavePaymentVoucher(): boolean {
-    debugger;;
+    
     let isValid = true;
     try {
       isValid = this.checkValidations(this.paymentVoucherForm, isValid);
@@ -2063,7 +2062,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
   //   savePaymentVoucher(): void {
-  //     debugger;
+  
   //     this.disableSaveButton.set(true);
   //     this.saveButtonLabel.set('Processing');
 
@@ -2399,7 +2398,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
   private buildSavePayload(formVal: any): any {
-    debugger
+  
     const safe = (val: any, def: any = "") => val ?? def;
     const str = (val: any) => (val ?? "").toString();
 
