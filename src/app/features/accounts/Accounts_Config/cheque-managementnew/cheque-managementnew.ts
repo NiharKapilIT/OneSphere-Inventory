@@ -634,6 +634,11 @@ export class ChequeManagementnew implements OnInit {
 
   // ─── Static date ─────────────────────────────────────────────────────────────
   readonly today = new Date();
+  readonly gridEffect = effect(() => {
+  if (this.gridData().length === 0) {
+    this.chequemanagementvalidations = {};
+  }
+});
 
   // ─── ngOnInit ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -642,12 +647,12 @@ export class ChequeManagementnew implements OnInit {
     this.loadBankDetails();
 
     // Angular 21: effect() to react to gridData changes
-    effect(() => {
-      const count = this.gridData().length;
-      if (count === 0) {
-        this.chequemanagementvalidations = {};
-      }
-    }, { allowSignalWrites: true });
+    // effect(() => {
+    //   const count = this.gridData().length;
+    //   if (count === 0) {
+    //     this.chequemanagementvalidations = {};
+    //   }
+    // }, { allowSignalWrites: true });
   }
 
   // ─── Form Initialization ─────────────────────────────────────────────────────
