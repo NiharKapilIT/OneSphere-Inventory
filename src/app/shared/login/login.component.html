@@ -229,8 +229,7 @@
           <label>Branch</label>
           <ng-select class="erp-ng-select login-combo" [items]="branchOptions()" bindLabel="label" bindValue="value"
             [ngModel]="selectedBranchCode()" (ngModelChange)="selectedBranchCode.set($event)"
-            [placeholder]="'Select Branch'" [disabled]="!branchOptions().length" appendTo="body" [searchable]="true"
-            [clearable]="true">
+            [placeholder]="'Select Branch'" appendTo="body" [searchable]="true" [clearable]="true">
           </ng-select>
           @if (noBranches()) {
           <small class="erp-field-hint">No branches found for this company.</small>

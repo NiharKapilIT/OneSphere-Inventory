@@ -14,8 +14,12 @@
       <div class="header-search">
         <div class="erp-input-wrap">
           <i class="pi pi-search erp-input-icon"></i>
-          <input type="search" class="erp-input icon-pad" placeholder="Search cheques..."
-            (input)="onSearch($any($event.target).value)" />
+          <!-- <input type="search" class="erp-input icon-pad" placeholder="Search cheques..."
+            (input)="onSearch($any($event.target).value)" /> -->
+
+          <!-- In card-header, find your search input and update it -->
+          <input #searchInput type="search" class="erp-input icon-pad" placeholder="Search cheques..."
+            [value]="_searchText" (input)="onSearch($any($event.target).value)" />
         </div>
       </div>
 
@@ -158,9 +162,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsClear()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsClear()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
       }
@@ -196,9 +202,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsReturn()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsReturn()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
     </form>
@@ -235,9 +243,11 @@
           }
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsCancel()">Show</button>
+
+        <div class="col-12">
+          <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsCancel()">
+            <i class="pi pi-search"></i> Show
+          </button>
         </div>
       </div>
     </form>
@@ -372,6 +382,7 @@
 
               <td>{{ row.ppartyname || row.partyname || row.pBankName || '--' }}</td>
 
+
               <td>{{ row.preceiptid || '--' }}</td>
 
               <td>
@@ -450,7 +461,8 @@
 
     <div class="card-footer">
       <div class="d-flex gap-2 flex-wrap">
-        <button (click)="Clear()" class="erp-btn btn-secondary">
+
+        <button (click)="Clear(searchInput)" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
         </button>
 

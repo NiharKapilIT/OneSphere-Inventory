@@ -52,11 +52,12 @@ export class LoginComponent implements OnInit {
   branchOptions = signal<{ label: string; value: string }[]>([]);
 
   selectedCompanyId = signal<number | null>(null);
-  selectedCompanyCode = signal('');
   selectedBranchCode = signal('');
-  // selectedBranchCode = signal('');
+  selectedCompanyCode = signal('');
   username = signal('');
   password = signal('');
+
+
 
   // ── Computed ─────────────────────────────────────────────────────
   noBranches = computed(() =>
@@ -67,18 +68,22 @@ export class LoginComponent implements OnInit {
 
 
   // ── ngOnInit: set API URL then load companies ────────
+
   async ngOnInit(): Promise<void> {
-     let urldata = environment.apiURL;
-      let res = await this.http.get<{ apiURL: string }[]>(urldata).toPromise();
+    (this.selectedBranchCode as any).set(null);
+    (this.selectedCompanyCode as any).set(null);
+    (this.selectedCompanyId as any).set(null);
 
-  if (res?.length && res[0].apiURL) {
-    let url = new URL(res[0].apiURL);
-    let apiURL = url.origin + '/api';
+    let urldata = environment.apiURL;
+    let res = await this.http.get<{ apiURL: string }[]>(urldata).toPromise();
 
-    sessionStorage.setItem('apiURL', apiURL);
-  }
+    if (res?.length && res[0].apiURL) {
+      let url = new URL(res[0].apiURL);
+      let apiURL = url.origin + '/api';
+      sessionStorage.setItem('apiURL', apiURL);
+    }
 
-  await this.loadCompanyCodes();
+    await this.loadCompanyCodes();
   }
 
   // ── Load companies ───────────────────────────────────────────────
@@ -107,7 +112,8 @@ export class LoginComponent implements OnInit {
     const api = sessionStorage.getItem('apiURL') ?? '';
 
     this.branchOptions.set([]);
-    this.selectedBranchCode.set('');
+    //this.selectedBranchCode.set('');
+    (this.selectedBranchCode as any).set(null);
     this.errorMessage.set('');
     if (!id) return;
 
@@ -146,7 +152,11 @@ export class LoginComponent implements OnInit {
   }
 
   // ── Go back ──────────────────────────────────────────────────────
+
   goBack(): void {
+    (this.selectedBranchCode as any).set(null);
+    (this.selectedCompanyCode as any).set(null);
+    (this.selectedCompanyId as any).set(null);
     this.step.set(1);
   }
 
