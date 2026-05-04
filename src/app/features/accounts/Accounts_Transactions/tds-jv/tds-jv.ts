@@ -304,7 +304,6 @@ export class TdsJv implements OnInit {
   }
 
   // BindCalendarMonth(): void {
-  //   debugger
   //   this.calendarMonthData = [];
   //   this._employeeAttendService
   //     .GetTDSJVCalendarYearMonth(this.CalendarId, this._commonService.getschemaname())

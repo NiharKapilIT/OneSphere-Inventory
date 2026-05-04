@@ -65,27 +65,7 @@
           </app-validation-message>
         </div>
 
-        <!-- <div class="filter-group">
-          <label class="filter-lbl">
-            Bank <span class="required">*</span>
-          </label>
-
-          <ng-select appendTo="body" [items]="BanksList()" bindLabel="pdepositbankname" bindValue="pbankid"
-            formControlName="bankname" (change)="SelectBank($event)" placeholder="Select Bankname"
-            [closeOnSelect]="true" [clearable]="true" [ngClass]="{
-      'ng-invalid ng-touched':
-      ChequesOnHandForm.get('bankname')?.invalid &&
-      ChequesOnHandForm.get('bankname')?.touched
-    }">
-          </ng-select>
-
-          @if (ChequesOnHandForm.get('bankname')?.invalid
-          && ChequesOnHandForm.get('bankname')?.touched) {
-          <div class="erp-field-error">
-            ● Bank Name is Required
-          </div>
-          }
-        </div> -->
+        
 
         <div class="filter-group">
           <label class="filter-lbl">

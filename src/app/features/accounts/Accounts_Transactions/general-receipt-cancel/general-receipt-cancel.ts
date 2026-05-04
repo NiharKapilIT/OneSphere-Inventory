@@ -166,13 +166,20 @@ export class GeneralReceiptCancel implements OnInit {
     );
   }
 
-  // ─── Receipt Selection Change ─────────────────────────────────────────────
+  // ─── Receipt Selection Change  
+
   getreceiptdata(event: any): void {
     if (!event) {
       this.clearReceiptFields();
       this.show.set(false);
       return;
     }
+    this.GeneralReceiptCancelForm.patchValue({
+      cancellationreason: '',
+      autorizedcontactid: '',
+    });
+    this.GeneralReceiptCancelForm.get('cancellationreason')?.markAsUntouched();
+    this.GeneralReceiptCancelForm.get('autorizedcontactid')?.markAsUntouched();
 
     const receiptId = typeof event === 'object'
       ? event.receiptnumber ?? event
@@ -199,7 +206,7 @@ export class GeneralReceiptCancel implements OnInit {
       });
   }
 
-  // ─── Bind Receipt Data ────────────────────────────────────────────────────
+  // ─── Bind Receipt Data  
   private bindReceiptData(data: any): void {
     if (!data) { this.clearReceiptFields(); return; }
 
@@ -244,9 +251,10 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Save  
+   
   Save(): void {
+    this.GeneralReceiptCancelForm.markAllAsTouched();
     if (this.GeneralReceiptCancelForm.invalid) {
-      this.GeneralReceiptCancelForm.markAllAsTouched();
       return;
     }
     if (!this.lstdetails().length) {
@@ -342,6 +350,8 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Helpers  
+   
+
   private clearReceiptFields(): void {
     this.receivedfrom.set('');
     this.receiptdate.set('');
@@ -352,6 +362,12 @@ export class GeneralReceiptCancel implements OnInit {
     this.lstdetails.set([]);
     this.generalReceiptData = [];
     this.pageCriteria.update(pc => ({ ...pc, totalrows: 0 }));
+    this.GeneralReceiptCancelForm.patchValue({
+      cancellationreason: '',
+      autorizedcontactid: '',
+    });
+    this.GeneralReceiptCancelForm.get('cancellationreason')?.markAsUntouched();
+    this.GeneralReceiptCancelForm.get('autorizedcontactid')?.markAsUntouched();
   }
 
   private resetLoadingState(): void {

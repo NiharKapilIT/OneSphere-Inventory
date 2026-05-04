@@ -687,19 +687,7 @@ export class ChequesIssued implements OnInit {
     this.cancelled.set(this._countData['cancel_count'] || 0);
   }
 
-  // ── Tab methods ────────────────────────────────────────────────────────────
-  //
-  // PATTERN:
-  //   Public tab click method  (e.g. All, Cleared, Returned …)
-  //     → sets signals/form → calls GetChequesIssued / GetChequesIssued_Load
-  //     → does NOT touch gridData directly
-  //
-  //   Private *1 method (e.g. All1, Cleared1 …)
-  //     → called by _applyTabGrid() AFTER API data is stored
-  //     → filters + applies gridData
-  //
-  // This eliminates the race condition that caused empty grids on
-  // Cleared / Returned / Cancelled tabs.
+
 
   All(): void {
     this.activeTab.set('all');
@@ -731,25 +719,13 @@ export class ChequesIssued implements OnInit {
     this._updatePageTotals(this._countData['total_count'] || grid.length);
   }
 
-  // ChequesIssued(): void {
-  //   this.activeTab.set('chequesissued');
-  //   this.status.set('chequesissued');
-  //   this.pdfstatus = 'Cheques Issued';
-  //   this.modeofreceipt = 'CHEQUE';
-  //   this.fromdate = null;
-  //   this.todate = null;
-  //   this._resetBrsDateVisibility();
-  //   this._showMainGrid();
-  //   this.fromFormName === 'fromChequesStatusInformationForm' ? this.GridColumnsHide() : this.GridColumnsShow();
-  //   this.pageSetUp();
-  //   this.GetChequesIssued(this.bankid, this.startindex, this.endindex, this._searchText);
-  // }
+
 
   ChequesIssued(): void {
     this.activeTab.set('chequesissued');
     this.status.set('chequesissued');
     this.pdfstatus = 'Cheques Issued';
-    this.modeofreceipt = 'CHEQUE';
+    this.modeofreceipt = 'ALL';
     this.fromdate = null;
     this.todate = null;
     this._resetBrsDateVisibility();
@@ -772,12 +748,14 @@ export class ChequesIssued implements OnInit {
     this._showMainGrid();
     this.fromFormName === 'fromChequesStatusInformationForm'
       ? this.GridColumnsHide() : this.GridColumnsShow();
-    const grid = this.bankid === 0
+    const grid: ChequesIssuedRow[] = this.bankid === 0
       ? [...this.ChequesIssuedData]
       : this.ChequesIssuedData.filter(d => d?.pdepositbankid == this.bankid);
+
     this._setGrid(grid);
-    this._updatePageTotals(this._countData['total_count'] || grid.length);
+    this._updatePageTotals(this._countData['cheques_count'] || grid.length);
   }
+
 
   OnlinePayments(): void {
     this.activeTab.set('onlinepayment');
@@ -839,7 +817,6 @@ export class ChequesIssued implements OnInit {
   }
 
 
-
   Cleared1(): void {
     this.activeTab.set('cleared');
     this.status.set('cleared');
@@ -857,12 +834,11 @@ export class ChequesIssued implements OnInit {
     this.ChequesIssuedForm.patchValue({ pfrombrsdate: fromDateVal, ptobrsdate: toDateVal });
     this.clearMinToDate = fromDateVal;
 
-    const fromOnHand = this.buildGridByChequeStatus(this.ChequesIssuedData, 'P');
-    const fromClearReturn = this.buildGridByChequeStatus(this.ChequesClearReturnData, 'P');
-    const merged = [...fromOnHand, ...fromClearReturn];
+    // Only take cleared records from ChequesClearReturnData (they have pCleardate)
+    const cleared = this.buildGridByChequeStatus(this.ChequesClearReturnData, 'P');
 
-    this.applyGridData(merged);
-    this._updatePageTotals(this._countData['clear_count'] || merged.length);
+    this.applyGridData(cleared);
+    this._updatePageTotals(this._countData['clear_count'] || cleared.length);
   }
 
   /**
@@ -1485,346 +1461,9 @@ export class ChequesIssued implements OnInit {
     return true;
   }
 
-  // ── Save ───────────────────────────────────────────────────────────────────
-
-  // Save(): void {
-  //   const dupbool = this.validateDuplicates();
-  //   const isempty = this.emptyValuesFound();
-  //   const selrec = this.gridData().filter(e => e.pchequestatus === 'P' || e.pchequestatus === 'R');
-  //   const iscancel = this.gridData().filter(e => e.pcancelstatus === true);
-  //   let isValid = true;
-
-  //   if (this.status() !== 'autobrs') {
-  //     if (!this.showhidegridcolumns()) {
-  //       if (dupbool > 0) { this._commonService.showWarningMessage('Duplicates Found please enter unique values'); isValid = false; }
-  //       else if (isempty) { this._commonService.showWarningMessage('Please enter all input fields!'); isValid = false; }
-  //       else if (selrec.length === 0) {
-  //         if (iscancel.length > 0) { isValid = true; }
-  //         else { this._commonService.showWarningMessage('Please Select records'); isValid = false; }
-  //       }
-  //     }
-  //   }
-
-  //   if (!isValid || !confirm('Do You Want To Save ?')) return;
-
-  //   this.DataForSaving = [];
-  //   if (!this.checkValidations(this.ChequesIssuedForm, isValid)) return;
-
-  //   this.buttonname.set('Processing'); this.disablesavebutton.set(true);
-
-  //   this.gridData().forEach((row: ChequesIssuedRow, i: number) => {
-  //     if (row.pchequestatus === 'P' || row.pchequestatus === 'R' || row.pchequestatus === 'C') {
-  //       if (i < this.dataTemp.length) this.dataTemp[i].pchequestatus = row.pchequestatus;
-  //       this.DataForSaving.push({ ...row });
-  //     }
-  //   });
-
-  //   if (this.DataForSaving.length === 0) {
-  //     this._commonService.showWarningMessage('Select atleast one record');
-  //     this.disablesavebutton.set(false); this.buttonname.set('Save'); return;
-  //   }
-
-  //   this.DataForSaving.forEach((item: ChequesIssuedRow) => {
-  //     item.pCreatedby = this._commonService.getCreatedBy();
-  //     item.pipaddress = this._commonService.getIpAddress();
-  //     item.preferencetext = (item.preferencetext || '') + '-' + new Date().getFullYear().toString();
-  //   });
-
-  //   const formVal = this.ChequesIssuedForm.value;
-  //   const fmt = (d: any) => d ? (this.datepipe.transform(d instanceof Date ? d : new Date(d), 'yyyy-MM-dd') || '') : '';
-
-  //   const mapCheque = (item: any): any => ({
-  //     pRecordid: item.pRecordid || '', pUpiname: item.pUpiname || '', pUpiid: item.pUpiid || '',
-  //     pBankconfigurationId: item.pBankconfigurationId || '', pBankName: item.pBankName || '',
-  //     pbranchname: item.pbranchname || '', ptranstype: item.ptranstype || '',
-  //     ptypeofpayment: item.ptypeofpayment || '', pChequenumber: item.pChequenumber || '',
-  //     pchequedate: fmt(item.pchequedate), pchequedepositdate: fmt(item.pchequedepositdate),
-  //     pchequecleardate: fmt(item.pchequecleardate), pbankid: item.pbankid || '',
-  //     branchid: item.branchid || '', pCardNumber: item.pCardNumber || '',
-  //     pdepositbankid: item.pdepositbankid || '', pdepositbankname: item.pdepositbankname || '',
-  //     pAccountnumber: item.pAccountnumber || '', ChallanaNo: item.ChallanaNo || '',
-  //     preceiptid: item.preceiptid || '', preceiptdate: fmt(item.preceiptdate),
-  //     pmodofreceipt: item.pmodofreceipt || '', ptotalreceivedamount: item.ptotalreceivedamount || '0',
-  //     pnarration: item.pnarration || '', ppartyname: item.ppartyname || '',
-  //     ppartyid: item.ppartyid || '', pistdsapplicable: item.pistdsapplicable || '',
-  //     pTdsSection: item.pTdsSection || '', pTdsPercentage: item.pTdsPercentage || '',
-  //     ptdsamount: item.ptdsamount || '', ptdscalculationtype: item.ptdscalculationtype || '',
-  //     ppartypannumber: item.ppartypannumber || '', ppartyreftype: item.ppartyreftype || '',
-  //     ppartyreferenceid: item.ppartyreferenceid || '', pFilename: item.pFilename || '',
-  //     pFilepath: item.pFilepath || '', pFileformat: item.pFileformat || '',
-  //     pCleardate: fmt(item.pCleardate), pdepositeddate: fmt(item.pdepositeddate),
-  //     ptdsaccountid: item.ptdsaccountid || '', preceiptrecordid: item.preceiptrecordid || '',
-  //     pTdsSectionId: item.pTdsSectionId || '', groupcode: item.groupcode || '',
-  //     preceiptno: item.preceiptno || '', formname: item.formname || 'CHEQUESISSUED',
-  //     chitpaymentid: item.chitpaymentid || '', adjustmentid: item.adjustmentid || '',
-  //     pdepositstatus: item.pdepositstatus || '', pcancelstatus: item.pcancelstatus || '',
-  //     preturnstatus: item.preturnstatus || '', pchequestatus: item.pchequestatus || '',
-  //     pcancelcharges: item.pcancelcharges || '', pactualcancelcharges: item.pactualcancelcharges || '',
-  //     pledger: item.pledger || '', cancelstatus: item.cancelstatus || '',
-  //     returnstatus: item.returnstatus || '', clearstatus: item.clearstatus || '',
-  //     chqueno: item.chqueno || item.pChequenumber || '', issueddate: fmt(item.issueddate),
-  //     chitgroupcode: item.chitgroupcode || '', chitgroupid: item.chitgroupid || '',
-  //     ticketno: item.ticketno || '', chequeamount: item.chequeamount || '',
-  //     zpdaccountid: item.zpdaccountid || '', installmentno: item.installmentno || '',
-  //     schemesubscriberid: item.schemesubscriberid || '', contactid: item.contactid || '',
-  //     schemetype: item.schemetype || '', checksentryrecordid: item.checksentryrecordid || '',
-  //     cheque_bank: item.cheque_bank || '', selfchequestatus: item.selfchequestatus || '',
-  //     branch_name: item.branch_name || '', receipt_branch_name: item.receipt_branch_name || '',
-  //     subscriber_details: item.subscriber_details || '', ChitReceiptNo: item.ChitReceiptNo || '',
-  //     total_count: item.total_count || '', transactionNo: item.transactionNo || '',
-  //     transactiondate: fmt(item.transactiondate), chitstatus: item.chitstatus || '',
-  //     chitgroupstatus: item.chitgroupstatus || '', receiptnumbers: item.receiptnumbers || '',
-  //     pdepositedBankid: item.pdepositedBankid || '', pdepositedBankName: item.pdepositedBankName || '',
-  //     preferencetext: item.preferencetext || '', preceiptype: item.preceiptype || '',
-  //     puploadeddate: fmt(item.puploadeddate), subscriberbankaccountno: item.subscriberbankaccountno || '',
-  //     pkgmsreceiptdate: fmt(item.pkgmsreceiptdate),
-  //     preceiptslist: (item.preceiptslist || []).map((sub: any) => ({
-  //       psubledgerid: sub.psubledgerid || '', psubledgername: sub.psubledgername || '',
-  //       pledgerid: sub.pledgerid || '', pledgername: sub.pledgername || '',
-  //       id: sub.id || '', text: sub.text || '', ptranstype: sub.ptranstype || '',
-  //       accountbalance: sub.accountbalance || '', pAccounttype: sub.pAccounttype || '',
-  //       legalcellReceipt: sub.legalcellReceipt || '', pbranchcode: sub.pbranchcode || '',
-  //       pbranchtype: sub.pbranchtype || '', groupcode: sub.groupcode || '',
-  //       chitgroupid: sub.chitgroupid || '', pamount: sub.pamount || '',
-  //       pgsttype: sub.pgsttype || '', pgstcalculationtype: sub.pgstcalculationtype || '',
-  //       pgstpercentage: sub.pgstpercentage || '', pigstamount: sub.pigstamount || '',
-  //       pcgstamount: sub.pcgstamount || '', psgstamount: sub.psgstamount || '',
-  //       putgstamount: sub.putgstamount || '', pState: sub.pState || '', pStateId: sub.pStateId || '',
-  //       pgstno: sub.pgstno || '', pgstamount: sub.pgstamount || '',
-  //       pigstpercentage: sub.pigstpercentage || '', pcgstpercentage: sub.pcgstpercentage || '',
-  //       psgstpercentage: sub.psgstpercentage || '', putgstpercentage: sub.putgstpercentage || '',
-  //       pactualpaidamount: sub.pactualpaidamount || '', ptotalamount: sub.ptotalamount || '',
-  //       pisgstapplicable: sub.pisgstapplicable || '', ptdsamountindividual: sub.ptdsamountindividual || '',
-  //       pTdsSection: sub.pTdsSection || '', pTdsPercentage: sub.pTdsPercentage || '',
-  //       preferencetext: sub.preferencetext || ''
-  //     }))
-  //   });
-
-  //   const payload = {
-  //     global_schema: this._commonService.getschemaname(),
-  //     branch_schema: this._commonService.getbranchname(),
-  //     companycode: this._commonService.getCompanyCode(),
-  //     branchcode: this._commonService.getBranchCode(),
-  //     pCreatedby: this._commonService.getCreatedBy() || 0,
-  //     ptransactiondate: this.datepipe.transform(formVal.ptransactiondate, 'dd-MM-yyyy') || '',
-  //     pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
-  //     pfrombrsdate: formVal.pfrombrsdate ? this.datepipe.transform(formVal.pfrombrsdate, 'dd-MM-yyyy') : '',
-  //     ptobrsdate: formVal.ptobrsdate ? this.datepipe.transform(formVal.ptobrsdate, 'dd-MM-yyyy') : '',
-  //     _BankBalance: this.bankbalance() || 0, _CashBalance: 0,
-  //     chequestype: this.modeofreceipt || '', banknameForLegal: this.selectedBankName() || '',
-  //     pchequesOnHandlist: this.DataForSaving.map(mapCheque),
-  //     pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
-  //     pchequesotherslist: this.OtherChequesData().map((item: any) => ({
-  //       ptransactionnumber: item.ptransactionnumber || '',
-  //       ptransactiondate: this.datepipe.transform(item.ptransactiondate, 'dd-MM-yyyy') || '',
-  //       particulars: item.particulars || '', debitamount: String(item.debitamount || '0'),
-  //       creditamount: String(item.creditamount || '0'), accountname: item.accountname || '',
-  //       chequereturncharges: String(item.chequereturncharges || '0')
-  //     })),
-  //     auto_brs_type_name: formVal.auto_brs_type || 'Upload'
-  //   };
-
-  //   this._accountingtransaction.SaveChequesIssued(JSON.stringify(payload)).subscribe({
-  //     next: (data: any) => {
-  //       if (data) { this._commonService.showSuccessMsg('Saved successfully'); this.Clear(); }
-  //       this.disablesavebutton.set(false); this.buttonname.set('Save');
-  //     },
-  //     error: (err: any) => {
-  //       this._commonService.showErrorMessage(err);
-  //       this.disablesavebutton.set(false); this.buttonname.set('Save');
-  //     }
-  //   });
-  // }
-
-
-  // Save(): void {
-  //   // ✅ Bank name validation first
-  //   if (!this.ChequesIssuedForm.controls['bankname'].value) {
-  //     this.ChequesIssuedValidation.update(v => ({
-  //       ...v,
-  //       bankname: 'Please Select Bank Name'
-  //     }));
-  //     this._commonService.showWarningMessage('Please Select Bank Name');
-  //     return;
-  //   }
-
-  //   // Clear bank validation error if bank is selected
-  //   this.ChequesIssuedValidation.update(v => ({ ...v, bankname: '' }));
-
-  //   const dupbool = this.validateDuplicates();
-  //   const isempty = this.emptyValuesFound();
-  //   const selrec = this.gridData().filter(e => e.pchequestatus === 'P' || e.pchequestatus === 'R');
-  //   const iscancel = this.gridData().filter(e => e.pcancelstatus === true);
-  //   let isValid = true;
-
-  //   if (this.status() !== 'autobrs') {
-  //     if (!this.showhidegridcolumns()) {
-  //       if (dupbool > 0) {
-  //         this._commonService.showWarningMessage('Duplicates Found please enter unique values');
-  //         isValid = false;
-  //       } else if (isempty) {
-  //         this._commonService.showWarningMessage('Please enter all input fields!');
-  //         isValid = false;
-  //       } else if (selrec.length === 0) {
-  //         if (iscancel.length > 0) {
-  //           isValid = true;
-  //         } else {
-  //           this._commonService.showWarningMessage('Please Select records');
-  //           isValid = false;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   if (!isValid || !confirm('Do You Want To Save ?')) return;
-
-  //   this.DataForSaving = [];
-  //   if (!this.checkValidations(this.ChequesIssuedForm, isValid)) return;
-
-  //   this.buttonname.set('Processing');
-  //   this.disablesavebutton.set(true);
-
-  //   this.gridData().forEach((row: ChequesIssuedRow, i: number) => {
-  //     if (row.pchequestatus === 'P' || row.pchequestatus === 'R' || row.pchequestatus === 'C') {
-  //       if (i < this.dataTemp.length) this.dataTemp[i].pchequestatus = row.pchequestatus;
-  //       this.DataForSaving.push({ ...row });
-  //     }
-  //   });
-
-  //   if (this.DataForSaving.length === 0) {
-  //     this._commonService.showWarningMessage('Select atleast one record');
-  //     this.disablesavebutton.set(false);
-  //     this.buttonname.set('Save');
-  //     return;
-  //   }
-
-  //   this.DataForSaving.forEach((item: ChequesIssuedRow) => {
-  //     item.pCreatedby = this._commonService.getCreatedBy();
-  //     item.pipaddress = this._commonService.getIpAddress();
-  //     item.preferencetext = (item.preferencetext || '') + '-' + new Date().getFullYear().toString();
-  //   });
-
-  //   const formVal = this.ChequesIssuedForm.value;
-  //   const fmt = (d: any) =>
-  //     d ? (this.datepipe.transform(d instanceof Date ? d : new Date(d), 'yyyy-MM-dd') || '') : '';
-
-  //   const mapCheque = (item: any): any => ({
-  //     pRecordid: item.pRecordid || '', pUpiname: item.pUpiname || '', pUpiid: item.pUpiid || '',
-  //     pBankconfigurationId: item.pBankconfigurationId || '', pBankName: item.pBankName || '',
-  //     pbranchname: item.pbranchname || '', ptranstype: item.ptranstype || '',
-  //     ptypeofpayment: item.ptypeofpayment || '', pChequenumber: item.pChequenumber || '',
-  //     pchequedate: fmt(item.pchequedate), pchequedepositdate: fmt(item.pchequedepositdate),
-  //     pchequecleardate: fmt(item.pchequecleardate), pbankid: item.pbankid || '',
-  //     branchid: item.branchid || '', pCardNumber: item.pCardNumber || '',
-  //     pdepositbankid: item.pdepositbankid || '', pdepositbankname: item.pdepositbankname || '',
-  //     pAccountnumber: item.pAccountnumber || '', ChallanaNo: item.ChallanaNo || '',
-  //     preceiptid: item.preceiptid || '', preceiptdate: fmt(item.preceiptdate),
-  //     pmodofreceipt: item.pmodofreceipt || '', ptotalreceivedamount: item.ptotalreceivedamount || '0',
-  //     pnarration: item.pnarration || '', ppartyname: item.ppartyname || '',
-  //     ppartyid: item.ppartyid || '', pistdsapplicable: item.pistdsapplicable || '',
-  //     pTdsSection: item.pTdsSection || '', pTdsPercentage: item.pTdsPercentage || '',
-  //     ptdsamount: item.ptdsamount || '', ptdscalculationtype: item.ptdscalculationtype || '',
-  //     ppartypannumber: item.ppartypannumber || '', ppartyreftype: item.ppartyreftype || '',
-  //     ppartyreferenceid: item.ppartyreferenceid || '', pFilename: item.pFilename || '',
-  //     pFilepath: item.pFilepath || '', pFileformat: item.pFileformat || '',
-  //     pCleardate: fmt(item.pCleardate), pdepositeddate: fmt(item.pdepositeddate),
-  //     ptdsaccountid: item.ptdsaccountid || '', preceiptrecordid: item.preceiptrecordid || '',
-  //     pTdsSectionId: item.pTdsSectionId || '', groupcode: item.groupcode || '',
-  //     preceiptno: item.preceiptno || '', formname: item.formname || 'CHEQUESISSUED',
-  //     chitpaymentid: item.chitpaymentid || '', adjustmentid: item.adjustmentid || '',
-  //     pdepositstatus: item.pdepositstatus || '', pcancelstatus: item.pcancelstatus || '',
-  //     preturnstatus: item.preturnstatus || '', pchequestatus: item.pchequestatus || '',
-  //     pcancelcharges: item.pcancelcharges || '', pactualcancelcharges: item.pactualcancelcharges || '',
-  //     pledger: item.pledger || '', cancelstatus: item.cancelstatus || '',
-  //     returnstatus: item.returnstatus || '', clearstatus: item.clearstatus || '',
-  //     chqueno: item.chqueno || item.pChequenumber || '', issueddate: fmt(item.issueddate),
-  //     chitgroupcode: item.chitgroupcode || '', chitgroupid: item.chitgroupid || '',
-  //     ticketno: item.ticketno || '', chequeamount: item.chequeamount || '',
-  //     zpdaccountid: item.zpdaccountid || '', installmentno: item.installmentno || '',
-  //     schemesubscriberid: item.schemesubscriberid || '', contactid: item.contactid || '',
-  //     schemetype: item.schemetype || '', checksentryrecordid: item.checksentryrecordid || '',
-  //     cheque_bank: item.cheque_bank || '', selfchequestatus: item.selfchequestatus || '',
-  //     branch_name: item.branch_name || '', receipt_branch_name: item.receipt_branch_name || '',
-  //     subscriber_details: item.subscriber_details || '', ChitReceiptNo: item.ChitReceiptNo || '',
-  //     total_count: item.total_count || '', transactionNo: item.transactionNo || '',
-  //     transactiondate: fmt(item.transactiondate), chitstatus: item.chitstatus || '',
-  //     chitgroupstatus: item.chitgroupstatus || '', receiptnumbers: item.receiptnumbers || '',
-  //     pdepositedBankid: item.pdepositedBankid || '', pdepositedBankName: item.pdepositedBankName || '',
-  //     preferencetext: item.preferencetext || '', preceiptype: item.preceiptype || '',
-  //     puploadeddate: fmt(item.puploadeddate), subscriberbankaccountno: item.subscriberbankaccountno || '',
-  //     pkgmsreceiptdate: fmt(item.pkgmsreceiptdate),
-  //     preceiptslist: (item.preceiptslist || []).map((sub: any) => ({
-  //       psubledgerid: sub.psubledgerid || '', psubledgername: sub.psubledgername || '',
-  //       pledgerid: sub.pledgerid || '', pledgername: sub.pledgername || '',
-  //       id: sub.id || '', text: sub.text || '', ptranstype: sub.ptranstype || '',
-  //       accountbalance: sub.accountbalance || '', pAccounttype: sub.pAccounttype || '',
-  //       legalcellReceipt: sub.legalcellReceipt || '', pbranchcode: sub.pbranchcode || '',
-  //       pbranchtype: sub.pbranchtype || '', groupcode: sub.groupcode || '',
-  //       chitgroupid: sub.chitgroupid || '', pamount: sub.pamount || '',
-  //       pgsttype: sub.pgsttype || '', pgstcalculationtype: sub.pgstcalculationtype || '',
-  //       pgstpercentage: sub.pgstpercentage || '', pigstamount: sub.pigstamount || '',
-  //       pcgstamount: sub.pcgstamount || '', psgstamount: sub.psgstamount || '',
-  //       putgstamount: sub.putgstamount || '', pState: sub.pState || '', pStateId: sub.pStateId || '',
-  //       pgstno: sub.pgstno || '', pgstamount: sub.pgstamount || '',
-  //       pigstpercentage: sub.pigstpercentage || '', pcgstpercentage: sub.pcgstpercentage || '',
-  //       psgstpercentage: sub.psgstpercentage || '', putgstpercentage: sub.putgstpercentage || '',
-  //       pactualpaidamount: sub.pactualpaidamount || '', ptotalamount: sub.ptotalamount || '',
-  //       pisgstapplicable: sub.pisgstapplicable || '', ptdsamountindividual: sub.ptdsamountindividual || '',
-  //       pTdsSection: sub.pTdsSection || '', pTdsPercentage: sub.pTdsPercentage || '',
-  //       preferencetext: sub.preferencetext || ''
-  //     }))
-  //   });
-
-  //   const payload = {
-  //     global_schema: this._commonService.getschemaname(),
-  //     branch_schema: this._commonService.getbranchname(),
-  //     companycode: this._commonService.getCompanyCode(),
-  //     branchcode: this._commonService.getBranchCode(),
-  //     pCreatedby: this._commonService.getCreatedBy() || 0,
-  //     ptransactiondate: this.datepipe.transform(formVal.ptransactiondate, 'dd-MM-yyyy') || '',
-  //     pchequecleardate: '', pcaobranchcode: '', pcaobranchname: '', pcaobranchid: 0,
-  //     pfrombrsdate: formVal.pfrombrsdate
-  //       ? this.datepipe.transform(formVal.pfrombrsdate, 'dd-MM-yyyy') : '',
-  //     ptobrsdate: formVal.ptobrsdate
-  //       ? this.datepipe.transform(formVal.ptobrsdate, 'dd-MM-yyyy') : '',
-  //     _BankBalance: this.bankbalance() || 0,
-  //     _CashBalance: 0,
-  //     chequestype: this.modeofreceipt || '',
-  //     banknameForLegal: this.selectedBankName() || '',
-  //     pchequesOnHandlist: this.DataForSaving.map(mapCheque),
-  //     pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
-  //     pchequesotherslist: this.OtherChequesData().map((item: any) => ({
-  //       ptransactionnumber: item.ptransactionnumber || '',
-  //       ptransactiondate: this.datepipe.transform(item.ptransactiondate, 'dd-MM-yyyy') || '',
-  //       particulars: item.particulars || '',
-  //       debitamount: String(item.debitamount || '0'),
-  //       creditamount: String(item.creditamount || '0'),
-  //       accountname: item.accountname || '',
-  //       chequereturncharges: String(item.chequereturncharges || '0')
-  //     })),
-  //     auto_brs_type_name: formVal.auto_brs_type || 'Upload'
-  //   };
-
-  //   this._accountingtransaction.SaveChequesIssued(JSON.stringify(payload)).subscribe({
-  //     next: (data: any) => {
-  //       if (data) {
-  //         this._commonService.showSuccessMsg('Saved successfully');
-  //         this.Clear();
-  //       }
-  //       this.disablesavebutton.set(false);
-  //       this.buttonname.set('Save');
-  //     },
-  //     error: (err: any) => {
-  //       this._commonService.showErrorMessage(err);
-  //       this.disablesavebutton.set(false);
-  //       this.buttonname.set('Save');
-  //     }
-  //   });
-  // }
-
 
   Save(): void {
-    // ✅ Bank name validation first
+    //  Bank name validation first
     if (!this.ChequesIssuedForm.controls['bankname'].value) {
       this.ChequesIssuedValidation.update(v => ({
         ...v,
@@ -1891,11 +1530,11 @@ export class ChequesIssued implements OnInit {
 
     const formVal = this.ChequesIssuedForm.value;
 
-    // ✅ fmt for item-level dates (yyyy-MM-dd for DB fields)
+    //  fmt for item-level dates (yyyy-MM-dd for DB fields)
     const fmt = (d: any) =>
       d ? (this.datepipe.transform(d instanceof Date ? d : new Date(d), 'yyyy-MM-dd') || '') : '';
 
-    // ✅ fmtTx for transaction date sent to stored procedure (dd/MM/yyyy)
+    //  fmtTx for transaction date sent to stored procedure (dd/MM/yyyy)
     const fmtTx = (d: any) =>
       d ? (this.datepipe.transform(d instanceof Date ? d : new Date(d), 'dd/MM/yyyy') || '') : '';
 
@@ -2035,15 +1674,15 @@ export class ChequesIssued implements OnInit {
       companycode: this._commonService.getCompanyCode(),
       branchcode: this._commonService.getBranchCode(),
       pCreatedby: this._commonService.getCreatedBy() || 0,
-      ptransactiondate: fmtTx(formVal.ptransactiondate), // ✅ dd/MM/yyyy
+      ptransactiondate: fmtTx(formVal.ptransactiondate),
       pchequecleardate: '',
       pcaobranchcode: '',
       pcaobranchname: '',
       pcaobranchid: 0,
       pfrombrsdate: formVal.pfrombrsdate
-        ? fmtTx(formVal.pfrombrsdate) : '',              // ✅ dd/MM/yyyy
+        ? fmtTx(formVal.pfrombrsdate) : '',
       ptobrsdate: formVal.ptobrsdate
-        ? fmtTx(formVal.ptobrsdate) : '',                // ✅ dd/MM/yyyy
+        ? fmtTx(formVal.ptobrsdate) : '',
       _BankBalance: this.bankbalance() || 0,
       _CashBalance: 0,
       chequestype: this.modeofreceipt || '',
@@ -2052,7 +1691,7 @@ export class ChequesIssued implements OnInit {
       pchequesclearreturnlist: this.ChequesClearReturnData.map(mapCheque),
       pchequesotherslist: this.OtherChequesData().map((item: any) => ({
         ptransactionnumber: item.ptransactionnumber || '',
-        ptransactiondate: fmtTx(item.ptransactiondate), // ✅ dd/MM/yyyy
+        ptransactiondate: fmtTx(item.ptransactiondate),
         particulars: item.particulars || '',
         debitamount: String(item.debitamount || '0'),
         creditamount: String(item.creditamount || '0'),
@@ -2068,7 +1707,7 @@ export class ChequesIssued implements OnInit {
           this._commonService.showSuccessMsg('Saved successfully');
           this.Clear();
         } else if (data?.success === false || data?.message?.includes('SQLSTATE')) {
-          // ✅ Handle backend error returned as success:true but with error message
+          //  Handle backend error returned as success:true but with error message
           this._commonService.showErrorMessage(data?.message || 'Save failed');
         } else {
           this._commonService.showSuccessMsg('Saved successfully');
@@ -2117,21 +1756,21 @@ export class ChequesIssued implements OnInit {
 
     let Totlaamount = 0;
     const headers: string[] = [
-      'Cheque/\nReference No.', 'Amount', 'Payment Id', 'Payment Date',
+      'Cheque/Reference No.', 'Amount', 'Payment Id', 'Payment Date',
       ...(isCRC ? [`${this.pdfstatus} Date`] : []),
       'Transaction Mode', 'Party'
     ];
     const colStyles: Record<number, any> = {
-      0: { cellWidth: 30, halign: 'center' }, 1: { cellWidth: 28, halign: 'right' },
-      2: { cellWidth: 22, halign: 'center' }, 3: { cellWidth: 22, halign: 'center' },
+      0: { cellWidth: 40, halign: 'center' }, 1: { cellWidth: 28, halign: 'right' },
+      2: { cellWidth: 45, halign: 'center' }, 3: { cellWidth: 30, halign: 'center' },
     };
     if (isCRC) {
       colStyles[4] = { cellWidth: 22, halign: 'center' };
       colStyles[5] = { cellWidth: 28, halign: 'center' };
       colStyles[6] = { cellWidth: 50, halign: 'left' };
     } else {
-      colStyles[4] = { cellWidth: 28, halign: 'center' };
-      colStyles[5] = { cellWidth: 55, halign: 'left' };
+      colStyles[4] = { cellWidth: 40, halign: 'center' };
+      colStyles[5] = { cellWidth: 90, halign: 'left' };
     }
 
     const data: any[][] = [];

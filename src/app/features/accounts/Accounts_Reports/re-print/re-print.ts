@@ -314,7 +314,7 @@ export class RePrint implements OnInit {
 
   // ── generate report ────────────────────────────────────────────────────────
   getduplicateReport(): void {
-    debugger
+     
     this.submitted = true;
     this.ReprintRepotForm.markAllAsTouched();
     if (this.ReprintRepotForm.invalid) return;

@@ -128,40 +128,7 @@
         </div>
       </div>
 
-      <!-- BRS Date Filter Row — Cleared tab — AFTER tabs, INSIDE ChequesIssuedForm -->
-      <!-- @if (brsdateshowhidecleared()) {
-      <div class="filter-bar stable-layout">
-        <div class="filter-group">
-          <label class="filter-lbl">BRS From Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="pfrombrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              (ngModelChange)="onClearFromDateChange($event)" [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="ptobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsClear()">
-            Show
-          </button>
-        </div>
-        @if (validatebrsdateclear()) {
-        <div class="filter-group">
-          <small class="text-danger">From Date should not be greater than To Date</small>
-        </div>
-        }
-      </div>
-      } -->
+
 
       @if (brsdateshowhidecleared()) {
       <div class="filter-bar stable-layout">
@@ -198,44 +165,7 @@
       </div>
       }
     </form>
-    <!-- ↑ ChequesIssuedForm closes here -->
 
-    <!-- BRS Date Filter Row — Returned tab -->
-    <!-- @if (brsdateshowhidereturned()) {
-    <form [formGroup]="BrsReturnForm">
-      <div class="filter-bar stable-layout">
-        <div class="filter-group">
-          <label class="filter-lbl">BRS From Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="frombrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              (ngModelChange)="onReturnFromDateChange($event)" [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsReturn()">
-            Show
-          </button>
-        </div>
-        @if (validatebrsdatereturn()) {
-        <div class="filter-group">
-          <small class="text-danger">From Date should not be greater than To Date</small>
-        </div>
-        }
-      </div>
-    </form>
-    } -->
 
     @if (brsdateshowhidereturned()) {
     <form [formGroup]="BrsReturnForm">
@@ -274,42 +204,7 @@
     </form>
     }
 
-    <!-- BRS Date Filter Row — Cancelled tab -->
-    <!-- @if (brsdateshowhidecancelled()) {
-    <form [formGroup]="BrsCancelForm">
-      <div class="filter-bar stable-layout">
-        <div class="filter-group">
-          <label class="filter-lbl">BRS From Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="frombrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              (ngModelChange)="onCancelFromDateChange($event)" [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
-          <div class="erp-input-wrap erp-date-wrap">
-            <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-              [maxDate]="todayDate"></p-datepicker>
-          </div>
-        </div>
-        <div class="filter-group">
-          <label class="filter-lbl">&nbsp;</label>
-          <button type="button" class="erp-btn btn-white" (click)="ShowBrsCancel()">
-            Show
-          </button>
-        </div>
-        @if (validatebrsdatecancel()) {
-        <div class="filter-group">
-          <small class="text-danger">From Date should not be greater than To Date</small>
-        </div>
-        }
-      </div>
-    </form>
-    } -->
+
 
     @if (brsdateshowhidecancelled()) {
     <form [formGroup]="BrsCancelForm">
@@ -486,10 +381,13 @@
               </td>
 
               <td>
+
                 @if (activeTab() === 'cleared') {
                 <div class="td-date">
-                  {{ row.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') : '--' }}
+                  {{ row.pCleardate ? (row.pCleardate | date: 'dd-MMM-yyyy') :
+                  row.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '--' }}
                 </div>
+
                 } @else if (activeTab() === 'returned') {
                 <div class="td-date">
                   {{ row.pdepositeddate ? (row.pdepositeddate | date: 'dd-MMM-yyyy') : '--' }}
@@ -549,23 +447,13 @@
     </div>
 
     <!-- Card Footer -->
-    <!-- <div class="card-footer d-flex justify-end gap-2">
-      <button (click)="Clear()" class="erp-btn btn-secondary">
-        <i class="pi pi-refresh"></i> Clear
-      </button> -->
+
     <div class="card-footer">
       <div class="d-flex gap-2 flex-wrap">
         <button (click)="Clear()" class="erp-btn btn-secondary">
           <i class="pi pi-times"></i> Clear
         </button>
-        <!-- <button (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton()">
-          @if (disablesavebutton()) {
-          <i class="pi pi-spin pi-spinner mr-2"></i>
-          } @else {
-          <i class="pi pi-save"></i>
-          }
-          {{ buttonname() }}
-        </button> -->
+
 
         <button *ngIf="isSaveVisible()" (click)="Save()" class="erp-btn btn-primary" [disabled]="disablesavebutton()">
 
