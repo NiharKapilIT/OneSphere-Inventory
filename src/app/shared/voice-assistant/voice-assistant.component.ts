@@ -46,13 +46,21 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
   private synthResumeTimer: ReturnType<typeof setInterval> | null = null;
 
   // 'cap' / 'cop' / 'cup' are common speech-recognition outputs for spoken "Kap"
-  private readonly wakePhrases = ['kap', 'cap', 'cop', 'cup'];
+  private readonly wakePhrases = ['kap', 'cap', 'cop', 'cup', 'కాప్', 'క్యాప్'];
 
   // Explanation trigger phrases — longest first so specific ones match before short ones
   private readonly explanationTriggers = [
     'what is the purpose of',
     'what is the use of',
     'help me understand',
+    'అంటే ఏమిటి',
+    'ఏమిటి',
+    'వివరించు',
+    'వివరించండి',
+    'ఎలా వాడాలి',
+    'ఎలా ఉపయోగించాలి',
+    'ఎందుకు వాడాలి',
+    'ఎందుకు ఉపయోగించాలి',
     'what should i do next',
     'what should be done next',
     'what is next',
@@ -74,6 +82,11 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
   ];
 
   private readonly dependencyTriggers = [
+    'సంబంధిత స్క్రీన్లు',
+    'సంబంధిత స్క్రీన్',
+    'డిపెండెన్సీ స్క్రీన్లు',
+    'డిపెండెన్సీ స్క్రీన్',
+    'ఆధారపడే స్క్రీన్లు',
     'dependency screens for',
     'dependency screen for',
     'dependent screens for',
@@ -176,6 +189,15 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
     'help desk':
       'Help Desk is the support process behind SOS. It keeps user issues organized, gives each request a ticket number, and helps the support team prioritize urgent business blockers.',
+
+    'ఎస్ ఓ ఎస్':
+      'SOS అనేది ERP support help system. Application లో issue report చేయడానికి, support request పంపడానికి, లేదా screen లో problem ఉంటే support team కి details తో ticket create చేయడానికి దీనిని వాడాలి. ' +
+      'Ticket లో category, priority, subject, description, contact details, page URL, user details, company, branch, screenshots లేదా files capture అవుతాయి. ' +
+      'దీంతో support team issue ను త్వరగా understand చేసి track చేయగలదు.',
+
+    'సపోర్ట్ టికెట్':
+      'Support ticket అనేది help request ను structured గా record చేసే పద్ధతి. SOS ticket లో issue category, priority, subject, concern, user details, page URL, and attachments ఉంటాయి. ' +
+      'దీని వల్ల calls లేదా messages మీద ఆధారపడకుండా support work organized గా track అవుతుంది.',
 
     'payment voucher':
       'Payment Voucher records every outgoing payment made by the company, by cheque, cash, NEFT, or UPI. ' +
@@ -657,7 +679,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   private dispatchCommand(command: string): void {
     // Close
-    if (this.matchesAny(command, ['close voice', 'stop voice', 'close assistant', 'goodbye', 'bye', 'stop'])) {
+    if (this.matchesAny(command, ['close voice', 'stop voice', 'close assistant', 'goodbye', 'bye', 'stop', 'మూసివేయి', 'మూసేయి', 'ఆపు'])) {
       this.close();
       return;
     }
@@ -692,8 +714,8 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   private extractDependencyTopic(command: string): string | null {
     if (
-      command.includes('receipt') &&
-      command.includes('cheque') &&
+      (command.includes('receipt') || command.includes('రసీదు')) &&
+      (command.includes('cheque') || command.includes('చెక్')) &&
       (command.includes('dependency') || command.includes('related') || command.includes('screen') || command.includes('flow'))
     ) {
       return 'receipt cheque';
@@ -736,9 +758,14 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
     for (const key of Object.keys(this.screenDependencies)) {
       const keyNorm = this.normalizeText(key);
+      const teluguAliases = this.teluguAliasesFor(keyNorm);
       const score = Math.max(
         this.scoreAlias(normalizedTopic, keyNorm),
-        this.scoreAlias(keyNorm, normalizedTopic)
+        this.scoreAlias(keyNorm, normalizedTopic),
+        ...teluguAliases.map(alias => Math.max(
+          this.scoreAlias(normalizedTopic, alias),
+          this.scoreAlias(alias, normalizedTopic)
+        ))
       );
 
       if (score > bestScore && score >= 60) {
@@ -754,9 +781,9 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   private extractExplanationTopic(command: string): string | null {
     if (
-      command.includes('receipt') &&
-      command.includes('cheque') &&
-      (command.includes('what next') || command.includes('next') || command.includes('after'))
+      (command.includes('receipt') || command.includes('రసీదు')) &&
+      (command.includes('cheque') || command.includes('చెక్')) &&
+      (command.includes('what next') || command.includes('next') || command.includes('after') || command.includes('తర్వాత') || command.includes('తరువాత'))
     ) {
       return 'receipt cheque';
     }
@@ -796,9 +823,14 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
     for (const key of Object.keys(this.explanations)) {
       const keyNorm = this.normalizeText(key);
+      const teluguAliases = this.teluguAliasesFor(keyNorm);
       const score   = Math.max(
         this.scoreAlias(topic, keyNorm),
-        this.scoreAlias(keyNorm, topic)
+        this.scoreAlias(keyNorm, topic),
+        ...teluguAliases.map(alias => Math.max(
+          this.scoreAlias(topic, alias),
+          this.scoreAlias(alias, topic)
+        ))
       );
       if (score > bestScore && score >= 65) {
         bestScore = score;
@@ -867,7 +899,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       {
         label: 'Contacts',
         route: '/dashboard/contacts',
-        aliases: this.aliasesFor('Contacts', 'contact', 'contacts')
+        aliases: this.aliasesFor('Contacts', 'contact', 'contacts', 'కాంటాక్ట్స్', 'సంప్రదింపులు')
       },
       {
         label: 'SOS Dashboard',
@@ -883,7 +915,12 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
           'help desk',
           'open sos',
           'raise sos',
-          'create sos'
+          'create sos',
+          'ఎస్ ఓ ఎస్',
+          'సపోర్ట్',
+          'సపోర్ట్ టికెట్',
+          'ఎస్ ఓ ఎస్ తెరువు',
+          'సపోర్ట్ తెరువు'
         )
       }
     ];
@@ -945,6 +982,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   private aliasesFor(...values: string[]): string[] {
     const prefixes = ['', 'open ', 'go to ', 'show ', 'navigate to ', 'take me to '];
+    const teluguPrefixes = ['', 'తెరువు ', 'ఓపెన్ ', 'చూపించు ', 'వెళ్ళు ', 'కి వెళ్ళు '];
     const aliases  = new Set<string>();
 
     for (const value of values) {
@@ -964,9 +1002,58 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       for (const prefix of prefixes) {
         aliases.add(this.normalizeText(`${prefix}${normalized}`));
       }
+
+      for (const teluguAlias of this.teluguAliasesFor(normalized)) {
+        aliases.add(teluguAlias);
+        for (const prefix of teluguPrefixes) {
+          aliases.add(this.normalizeText(`${prefix}${teluguAlias}`));
+        }
+      }
     }
 
     return Array.from(aliases).filter(Boolean);
+  }
+
+  private teluguAliasesFor(normalized: string): string[] {
+    const aliasMap: Record<string, string[]> = {
+      'accounts': ['అకౌంట్స్', 'ఖాతాలు'],
+      'config': ['కాన్ఫిగ్', 'సెట్టింగ్స్'],
+      'transactions': ['ట్రాన్సాక్షన్స్', 'లావాదేవీలు'],
+      'reports': ['రిపోర్ట్స్', 'నివేదికలు'],
+      'bank configuration': ['బ్యాంక్ కాన్ఫిగరేషన్', 'బ్యాంక్ సెట్టింగ్'],
+      'cheque management': ['చెక్ మేనేజ్‌మెంట్', 'చెక్కుల నిర్వహణ'],
+      'general receipt': ['జనరల్ రసీదు', 'సాధారణ రసీదు'],
+      'payment voucher': ['పేమెంట్ వౌచర్', 'చెల్లింపు వౌచర్'],
+      'journal voucher': ['జర్నల్ వౌచర్'],
+      'cheques on hand': ['చెక్కులు చేతిలో', 'చెక్ ఆన్ హ్యాండ్', 'చెక్కులు ఆన్ హ్యాండ్'],
+      'cheques in bank': ['బ్యాంకులో చెక్కులు', 'చెక్ ఇన్ బ్యాంక్'],
+      'cheques issued': ['ఇష్యూ చేసిన చెక్కులు', 'జారీ చేసిన చెక్కులు'],
+      'petty cash': ['పెట్టి క్యాష్', 'చిన్న నగదు'],
+      'tds journal voucher': ['టీడీఎస్ జర్నల్ వౌచర్'],
+      'account ledger': ['అకౌంట్ లెడ్జర్', 'ఖాతా లెడ్జర్'],
+      'cash book': ['క్యాష్ బుక్', 'నగదు పుస్తకం'],
+      'bank book': ['బ్యాంక్ బుక్'],
+      'day book': ['డే బుక్', 'రోజు పుస్తకం'],
+      'jv list': ['జేవీ లిస్ట్', 'జర్నల్ వౌచర్ లిస్ట్'],
+      'brs': ['బీఆర్ఎస్', 'బ్యాంక్ రీకన్సిలియేషన్'],
+      'schedule tb': ['షెడ్యూల్ టీబీ'],
+      'brs statements': ['బీఆర్ఎస్ స్టేట్‌మెంట్స్'],
+      'account summary': ['అకౌంట్ సమ్మరీ', 'ఖాతా సారాంశం'],
+      'trial balance': ['ట్రయల్ బ్యాలెన్స్'],
+      'comparison tb': ['కంపారిజన్ టీబీ', 'పోలిక టీబీ'],
+      'cheque cancel': ['చెక్ క్యాన్సల్', 'చెక్ రద్దు'],
+      'cheque return': ['చెక్ రిటర్న్', 'చెక్ తిరిగి వచ్చింది'],
+      'issued cheque': ['ఇష్యూడ్ చెక్', 'జారీ చెక్'],
+      'cheque enquiry': ['చెక్ ఎంక్వైరీ', 'చెక్ విచారణ'],
+      'gst report': ['జీఎస్టీ రిపోర్ట్'],
+      'tds report': ['టీడీఎస్ రిపోర్ట్'],
+      'bank entries': ['బ్యాంక్ ఎంట్రీలు'],
+      'ledger extract': ['లెడ్జర్ ఎక్స్‌ట్రాక్ట్'],
+      'sos dashboard': ['ఎస్ ఓ ఎస్ డాష్‌బోర్డ్', 'సపోర్ట్ డాష్‌బోర్డ్'],
+      'contacts': ['కాంటాక్ట్స్', 'సంప్రదింపులు']
+    };
+
+    return aliasMap[normalized] || [];
   }
 
   private matchesAny(command: string, aliases: string[]): boolean {
@@ -976,6 +1063,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
   private normalizeCommand(value: string): string {
     return this.normalizeText(value)
       .replace(/\b(please|kindly|screen|form|page|menu)\b/g, ' ')
+      .replace(/\b(దయచేసి|స్క్రీన్|ఫారం|పేజీ|మెనూ)\b/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -984,7 +1072,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
     return (value || '')
       .toLowerCase()
       .replace(/&/g, ' and ')
-      .replace(/[^a-z0-9]+/g, ' ')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
       .replace(/\bconfigurations\b/g, 'configuration')
       .replace(/\breceipts\b/g, 'receipt')
       .replace(/\bvouchers\b/g, 'voucher')
@@ -992,6 +1080,8 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       .replace(/\bchecks\b/g, 'cheque')
       .replace(/\bcheck\b/g, 'cheque')
       .replace(/\bchq\b/g, 'cheque')
+      .replace(/\bచెక్కులు\b/g, 'చెక్')
+      .replace(/\bచెక్కు\b/g, 'చెక్')
       .replace(/\s+/g, ' ')
       .trim();
   }

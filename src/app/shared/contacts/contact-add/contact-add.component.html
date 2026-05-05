@@ -35,6 +35,14 @@
           <i class="pi pi-map-marker"></i>
           <span>Address</span>
         </li>
+        <li class="tab-item" [class.active]="activeSection() === 'kyc'" (click)="activeSection.set('kyc')">
+          <i class="pi pi-verified"></i>
+          <span>KYC</span>
+        </li>
+        <li class="tab-item" [class.active]="activeSection() === 'bank'" (click)="activeSection.set('bank')">
+          <i class="pi pi-building-columns"></i>
+          <span>Bank</span>
+        </li>
         <li class="tab-item" [class.active]="activeSection() === 'others'" (click)="activeSection.set('others')">
           <i class="pi pi-cog"></i>
           <span>Others</span>
@@ -654,6 +662,184 @@
         </div>
       }<!-- /section address -->
 
+      @if (activeSection() === 'kyc') {
+
+        <div class="section-title mb-3">
+          <i class="pi pi-verified" style="color:var(--clr-p2);"></i>
+          Contact KYC Details
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>KYC Document Type</label>
+              <ng-select
+                appendTo="body"
+                [items]="kycDocumentTypes"
+                formControlName="kycDocumentType"
+                placeholder="Select document"
+                [searchable]="true"
+                [clearable]="true">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Document Number</label>
+              <input type="text" class="erp-input" formControlName="kycDocumentNo" placeholder="Document number" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>KYC Status</label>
+              <ng-select
+                appendTo="body"
+                [items]="kycStatuses"
+                formControlName="kycStatus"
+                placeholder="Select status"
+                [searchable]="true"
+                [clearable]="false">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Issued Date</label>
+              <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker
+                  formControlName="kycIssuedDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Expiry Date</label>
+              <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker
+                  formControlName="kycExpiryDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Upload KYC Proof</label>
+              <div class="erp-file-upload">
+                <input type="text" class="erp-input erp-file-input" readonly placeholder="No file chosen" />
+                <label class="erp-file-btn" for="kycProofInput">
+                  <i class="pi pi-upload"></i> Choose File
+                </label>
+                <input id="kycProofInput" type="file" accept="image/*,.pdf" style="display:none;" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <div class="erp-form-group">
+              <label>KYC Remarks</label>
+              <textarea class="erp-textarea" formControlName="kycRemarks" placeholder="Verification notes..." style="min-height:90px;"></textarea>
+            </div>
+          </div>
+        </div>
+      }<!-- /section kyc -->
+
+      @if (activeSection() === 'bank') {
+
+        <div class="section-title mb-3">
+          <i class="pi pi-building-columns" style="color:var(--clr-p2);"></i>
+          Bank Details
+        </div>
+
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label>Bank Name</label>
+              <div class="erp-input-wrap">
+                <i class="pi pi-building-columns erp-input-icon"></i>
+                <input type="text" class="erp-input icon-pad" formControlName="bankName" placeholder="Bank name" />
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label>Branch Name</label>
+              <input type="text" class="erp-input" formControlName="bankBranch" placeholder="Branch name" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label>Account Holder Name</label>
+              <input type="text" class="erp-input" formControlName="accountHolderName" placeholder="Account holder name" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label>Account Number</label>
+              <input type="text" class="erp-input" formControlName="accountNo" placeholder="Account number" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Account Type</label>
+              <ng-select
+                appendTo="body"
+                [items]="bankAccountTypes"
+                formControlName="accountType"
+                placeholder="Select account type"
+                [searchable]="true"
+                [clearable]="true">
+              </ng-select>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>IFSC Code</label>
+              <input type="text" class="erp-input" formControlName="ifscCode" placeholder="IFSC code" style="text-transform:uppercase;" maxlength="11" />
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>UPI ID</label>
+              <div class="erp-input-wrap">
+                <i class="pi pi-at erp-input-icon"></i>
+                <input type="text" class="erp-input icon-pad" formControlName="upiId" placeholder="name@bank" />
+              </div>
+            </div>
+          </div>
+        </div>
+      }<!-- /section bank -->
+
       <!-- ══ SECTION 3 : OTHERS ═════════════════════════════════════ -->
       @if (activeSection() === 'others') {
 
@@ -702,8 +888,8 @@
     <div class="contact-modal-footer">
       <!-- Section Nav -->
       <div class="contact-footer-left">
-        @if (activeSection() !== 'personal') {
-          <button type="button" class="erp-btn btn-ghost btn-sm" (click)="activeSection.set(activeSection() === 'address' ? 'personal' : 'address')">
+        @if (!isFirstSection) {
+          <button type="button" class="erp-btn btn-ghost btn-sm" (click)="goPreviousSection()">
             <i class="pi pi-chevron-left"></i> Back
           </button>
         }
@@ -714,9 +900,8 @@
           <i class="pi pi-times-circle"></i> Clear
         </button>
 
-        @if (activeSection() !== 'others') {
-          <button type="button" class="erp-btn btn-secondary btn-sm"
-            (click)="activeSection.set(activeSection() === 'personal' ? 'address' : 'others')">
+        @if (!isLastSection) {
+          <button type="button" class="erp-btn btn-secondary btn-sm" (click)="goNextSection()">
             Next <i class="pi pi-chevron-right"></i>
           </button>
         }
