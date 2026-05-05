@@ -254,8 +254,8 @@ export class GeneralReceiptNew implements OnInit {
       ppartyname: [''],
       ppartyid: [null, Validators.required],
       pistdsapplicable: [false],
-      pTdsSection: [''],
-      pTdsPercentage: [0, percentageValidator],
+      pTdsSection: ['null'],
+      pTdsPercentage: [null, percentageValidator],
       ptdsamount: [0],
       ptdscalculationtype: [''],
       ppartypannumber: [''],
@@ -273,7 +273,7 @@ export class GeneralReceiptNew implements OnInit {
       pbankid: [null],
       pCardNumber: ['', cardNumberValidator],
 
-      pdepositbankid: [''],
+      pdepositbankid: [null],
       pdepositbankid1: [null],
       pdepositbankname: [''],
       pRecordid: [0],
@@ -572,7 +572,7 @@ export class GeneralReceiptNew implements OnInit {
     this.chequeDateValue = new Date();
     this.GeneralReceiptForm.controls['pchequedate'].setValue(new Date());
     this.GeneralReceiptForm.controls['pdepositbankname'].setValue('');
-    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
+    this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('null');
     this.GeneralReceiptForm.controls['pbranchname'].setValue('');
     this.GeneralReceiptForm.controls['pCardNumber'].setValue('');
     this.GeneralReceiptForm.controls['pAccountnumber'].setValue('');
@@ -688,10 +688,17 @@ export class GeneralReceiptNew implements OnInit {
     this.setBalances('BANKBOOK', 0);
     this.setBalances('PASSBOOK', 0);
 
+    // if (type === 'Online') {
+    //   this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
+    //   this.GeneralReceiptForm.get('pChequenumber')?.disable();
+    // } 
+
     if (type === 'Online') {
-      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-      this.GeneralReceiptForm.get('pChequenumber')?.disable();
-    } else {
+  this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
+  this.GeneralReceiptForm.get('pChequenumber')?.disable();
+}
+    
+    else {
       this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
       this.GeneralReceiptForm.get('pChequenumber')?.enable();
     }
@@ -1207,9 +1214,13 @@ export class GeneralReceiptNew implements OnInit {
       this.GeneralReceiptForm.controls['ptdscalculationtype'].setValue('EXCLUDE');
     } else {
       this.showtds.set(false);
+      // ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
+      //   this.GeneralReceiptForm.controls[f].setValue(f === 'pTdsPercentage' ? '' : '')
+      // );
+
       ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
-        this.GeneralReceiptForm.controls[f].setValue(f === 'pTdsPercentage' ? '' : '')
-      );
+  this.GeneralReceiptForm.controls[f].setValue(null)
+);
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     }
     // this.recalculateAll();
@@ -1229,7 +1240,8 @@ export class GeneralReceiptNew implements OnInit {
   tdsSection_Change(event: any): void {
     const section = event?.pTdsSection;
     this.tdspercentagelist.set([]);
-    this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
+    //this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
+    this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
     this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     if (section) {
       this.tdspercentagelist.set(this.tdslist().filter((r: any) => r.pTdsSection == section));
@@ -1504,11 +1516,12 @@ export class GeneralReceiptNew implements OnInit {
     this.showtds.set(false);
     this.GeneralReceiptForm.controls['pistdsapplicable'].setValue(false);
 
-    ['pTdsSection', 'pTdsPercentage', 'ptdsamount'].forEach(f =>
-      this.GeneralReceiptForm.controls[f].setValue(
-        f === 'ptdsamount' ? 0 : f === 'pTdsPercentage' ? 0 : ''
-      )
-    );
+    // ['pTdsSection', 'pTdsPercentage', 'ptdsamount'].forEach(f =>
+    //   this.GeneralReceiptForm.controls[f].setValue(
+    //     f === 'ptdsamount' ? 0 : f === 'pTdsPercentage' ? 0 : ''
+    //   )
+    // );
+    
 
     this.tdsvalidation(false);
     this.showsubledger.set(true);
@@ -2126,9 +2139,9 @@ export class GeneralReceiptNew implements OnInit {
             // pFilename: this.GeneralReceiptForm.value.pFilename || '',
             // pFilepath: this.GeneralReceiptForm.value.pFilepath || '',
             // pFileformat: this.GeneralReceiptForm.value.pFileformat || '',
-             pFilename: this.uploadedFileName() || '',
-pFilepath: this.uploadedFilePath() || '',
-pFileformat: this.uploadedFileFormat() || '',
+            pFilename: this.uploadedFileName() || '',
+            pFilepath: this.uploadedFilePath() || '',
+            pFileformat: this.uploadedFileFormat() || '',
             pDocStorePath: '',
 
             global_schema: this.cs.getschemaname(),
@@ -2288,9 +2301,9 @@ pFileformat: this.uploadedFileFormat() || '',
     this.submitted.set(false);
     //this.imageResponse.set({ name: '' });
     this.imageResponse.set({ name: '' });
-this.uploadedFileName.set('');
-this.uploadedFilePath.set('');
-this.uploadedFileFormat.set('');
+    this.uploadedFileName.set('');
+    this.uploadedFilePath.set('');
+    this.uploadedFileFormat.set('');
     this.GeneralReceiptForm.markAsUntouched();
     this.GeneralReceiptForm.markAsPristine();
   }
@@ -2345,8 +2358,8 @@ this.uploadedFileFormat.set('');
     //   .substring(event.target.value.lastIndexOf('.') + 1)
     //   .toLowerCase();
     const ext = event.target.files[0]?.name
-  .substring(event.target.files[0]?.name.lastIndexOf('.') + 1)
-  .toLowerCase() || '';
+      .substring(event.target.files[0]?.name.lastIndexOf('.') + 1)
+      .toLowerCase() || '';
 
     if (!['jpg', 'png', 'pdf'].includes(ext)) {
       this.cs.showWarningMessage('Upload jpg, png or pdf files');
@@ -2362,9 +2375,9 @@ this.uploadedFileFormat.set('');
     //   this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
 
     reader.onload = () => {
-  this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
-  this.uploadedFileName.set(file.name); // show file name immediately before API responds
-};
+      this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
+      this.uploadedFileName.set(file.name); // show file name immediately before API responds
+    };
 
     const fd = new FormData();
     fd.append(file.name, file);
@@ -2386,8 +2399,8 @@ this.uploadedFileFormat.set('');
         const fileFormat = ext;
 
         this.uploadedFileName.set(fileName);
-       // this.uploadedFilePath.set(filePath);
-       this.uploadedFilePath.set(filePath || fileName);
+        // this.uploadedFilePath.set(filePath);
+        this.uploadedFilePath.set(filePath || fileName);
         this.uploadedFileFormat.set(fileFormat);
 
         this.imageResponse.update(r => ({ ...r, name: fileName }));
