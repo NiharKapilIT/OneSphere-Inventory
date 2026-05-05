@@ -62,7 +62,7 @@
             Bank <span class="required">*</span>
           </label>
           <ng-select appendTo="body" [items]="bankList()" bindLabel="pbankname" bindValue="pbankid"
-            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bank Name"
+            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bankname"
             [closeOnSelect]="true" [clearable]="true" [searchable]="true"
             [class.is-invalid]="ChequesIssuedValidation()['bankname']">
             <ng-template ng-label-tmp let-item="item">
