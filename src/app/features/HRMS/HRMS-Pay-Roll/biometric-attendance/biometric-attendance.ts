@@ -4,6 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { DatePickerModule } from 'primeng/datepicker';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface BiometricRow {
   branch: string;
@@ -15,18 +19,22 @@ interface BiometricRow {
   avaSl: number;
 }
 
+interface ExportColumn<T> {
+  header: string;
+  value: (row: T) => string | number;
+}
+
 @Component({
   selector: 'app-biometric-report',
   standalone: true,
-  imports: [CommonModule, FormsModule, TableModule, ButtonModule, NgSelectModule],
-  templateUrl: './biometric-Attendance.html',
-  styleUrls: ['./biometric-Attendance.css']
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, NgSelectModule, DatePickerModule],
+  templateUrl: './biometric-Attendance.html'
 })
 export class BiometricAttendance implements OnInit {
   submitted = false;
 
-  fromDate = '2026-04-01';
-  toDate = '2026-04-01';
+  fromDate: Date | null = new Date(2026, 3, 1);
+  toDate: Date | null = new Date(2026, 3, 1);
 
   allBiometricList: BiometricRow[] = [
     {
@@ -71,15 +79,18 @@ export class BiometricAttendance implements OnInit {
       return;
     }
 
+    const fromDate = this.toDateKey(this.fromDate);
+    const toDate = this.toDateKey(this.toDate);
+
     this.biometricList = this.allBiometricList.filter(row => {
-      return row.date >= this.fromDate && row.date <= this.toDate;
+      return row.date >= fromDate && row.date <= toDate;
     });
   }
 
   onCancel(): void {
     this.submitted = false;
-    this.fromDate = '2026-04-01';
-    this.toDate = '2026-04-01';
+    this.fromDate = new Date(2026, 3, 1);
+    this.toDate = new Date(2026, 3, 1);
     this.biometricList = [...this.allBiometricList];
   }
 
@@ -87,11 +98,72 @@ export class BiometricAttendance implements OnInit {
     console.log('Save clicked', this.biometricList);
   }
 
-  onExportPdf(): void {
-    console.log('Export PDF clicked');
+  exportBiometricExcel(): void {
+    this.exportExcel('Biometric Details', 'biometric-details.xlsx', this.biometricList, this.biometricColumns);
   }
 
-  onPrint(): void {
-    console.log('Print clicked');
+  exportBiometricPdf(): void {
+    this.exportPdf('Biometric Details', 'biometric-details.pdf', this.biometricList, this.biometricColumns);
+  }
+
+  printBiometric(): void {
+    window.print();
+  }
+
+  private get biometricColumns(): ExportColumn<BiometricRow>[] {
+    return [
+      { header: 'Branch', value: row => row.branch },
+      { header: 'Employee code', value: row => row.employeeCode },
+      { header: 'Date', value: row => row.date },
+      { header: 'Employee Name', value: row => row.employeeName },
+      { header: 'Leave Type', value: row => row.leaveType },
+      { header: 'Ava.CL', value: row => row.avaCl },
+      { header: 'Ava.SL', value: row => row.avaSl }
+    ];
+  }
+
+  private exportExcel<T>(sheetName: string, fileName: string, rows: T[], columns: ExportColumn<T>[]): void {
+    if (!rows.length) {
+      return;
+    }
+
+    const exportData = rows.map(row => columns.reduce((data, column) => ({
+      ...data,
+      [column.header]: column.value(row)
+    }), {}));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook: XLSX.WorkBook = {
+      Sheets: { [sheetName]: worksheet },
+      SheetNames: [sheetName]
+    };
+
+    XLSX.writeFile(workbook, fileName);
+  }
+
+  private exportPdf<T>(title: string, fileName: string, rows: T[], columns: ExportColumn<T>[]): void {
+    if (!rows.length) {
+      return;
+    }
+
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    doc.setFontSize(14);
+    doc.text(title, 14, 15);
+    autoTable(doc, {
+      head: [columns.map(column => column.header)],
+      body: rows.map(row => columns.map(column => column.value(row))),
+      startY: 22,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [43, 80, 236] }
+    });
+    doc.save(fileName);
+  }
+
+  private toDateKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
   }
 }

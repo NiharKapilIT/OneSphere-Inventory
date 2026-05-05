@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -78,7 +78,9 @@
               <label class="erp-label">Date of Confirmation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="confirmationDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -102,7 +104,9 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="confirmationMinutesDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -127,7 +131,9 @@
               <label class="erp-label">Date of Promotion</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="promotionDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -151,7 +157,9 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="promotionMinutesDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -167,7 +175,9 @@
               <label class="erp-label">Date of Transfer</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="transferDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -177,7 +187,9 @@
               <label class="erp-label">Date of Joining</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="joiningDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -187,7 +199,9 @@
               <label class="erp-label">Date of Reporting</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="reportingDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -237,7 +251,9 @@
               <label class="erp-label">Date of Resignation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="resignationDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>

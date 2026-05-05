@@ -1,0 +1,128 @@
+<div class="module-page hrms-transaction-page hrms-report-page">
+  <div class="erp-card hrms-report-card">
+    <div class="card-body p-0">
+      <div class="p-4">
+        <div class="row align-items-end g-3">
+          @for (field of config.fields; track field.key) {
+            <div [class]="field.widthClass || 'col-xl-3 col-lg-4 col-md-6'">
+              <div class="erp-form-group">
+                <label class="erp-label">
+                  {{ field.label }}
+                  @if (field.required) {
+                    <span class="required">*</span>
+                  }
+                </label>
+
+                @if (field.type === 'date') {
+                  <div class="erp-input-wrap erp-date-wrap">
+                    <i class="pi pi-calendar erp-input-icon"></i>
+                    <p-datepicker
+                      [(ngModel)]="values[field.key]"
+                      [ngModelOptions]="{ standalone: true }"
+                      dateFormat="dd-M-yy"
+                      [placeholder]="fieldPlaceholder(field)"
+                      [readonlyInput]="true"
+                      appendTo="body"
+                      styleClass="w-100"
+                      inputStyleClass="erp-input icon-pad w-100">
+                    </p-datepicker>
+                  </div>
+                } @else {
+                  <ng-select
+                    [items]="fieldOptions(field)"
+                    [(ngModel)]="values[field.key]"
+                    [placeholder]="fieldPlaceholder(field)"
+                    [searchable]="field.type === 'employee'"
+                    [clearable]="true"
+                    appendTo="body">
+                  </ng-select>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="col-xl-2 col-lg-3 col-md-4">
+            <div class="erp-form-group">
+              <label class="erp-label">&nbsp;</label>
+              <button type="button" class="erp-btn btn-primary w-100" (click)="onShow()">
+                @if ((config.primaryActionLabel || 'Show') === 'Generate Pay Slip') {
+                  <i class="pi pi-file"></i>
+                } @else {
+                  <i class="pi pi-eye"></i>
+                }
+                {{ config.primaryActionLabel || 'Show' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  @if (showTable) {
+    <div class="erp-card hrms-report-card">
+      <div class="card-body p-0">
+        <div class="p-4">
+          @if (config.showExportActions !== false) {
+            <div class="erp-table-toolbar tbl-toolbar-flush">
+              <span></span>
+              <div class="payroll-grid-actions">
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export PDF" aria-label="Export PDF" (click)="exportPdf()">
+                  <i class="pi pi-file-pdf"></i>
+                </button>
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printReport()">
+                  <i class="pi pi-print"></i>
+                </button>
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Excel" aria-label="Export Excel" (click)="exportExcel()">
+                  <i class="pi pi-file-excel"></i>
+                </button>
+              </div>
+            </div>
+          }
+
+          <p-table
+            [value]="rows"
+            [paginator]="true"
+            [rows]="10"
+            [responsiveLayout]="'scroll'"
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+            <ng-template pTemplate="header">
+              <tr>
+                @for (column of columns; track column.field) {
+                  <th>{{ column.header }}</th>
+                }
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                @for (column of columns; track column.field) {
+                  <td>{{ row[column.field] }}</td>
+                }
+              </tr>
+            </ng-template>
+
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td [attr.colspan]="columns.length || 1">
+                  <div class="grn-table-empty">
+                    <div>No data to display</div>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          @if (config.showSave) {
+            <div class="d-flex justify-end mt-3">
+              <button type="button" class="erp-btn btn-primary" (click)="onSave()">
+                <i class="pi pi-check-circle"></i>
+                Save
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

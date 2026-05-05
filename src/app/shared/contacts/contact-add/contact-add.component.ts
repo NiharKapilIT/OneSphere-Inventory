@@ -72,7 +72,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
   states = ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra'];
   districts = ['Hyderabad', 'Rangareddy', 'Medchal', 'Sangareddy', 'Nalgonda'];
 
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder) { }
 
   ngOnInit() {
     this.buildForm();

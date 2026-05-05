@@ -15,7 +15,8 @@
           <div class="contact-modal-title">
             {{ contact ? 'Edit Contact' : 'Add New Contact' }}
           </div>
-          <span class="contact-modal-subtitle">Fill in the details below to {{ contact ? 'update' : 'create' }} a contact</span>
+          <span class="contact-modal-subtitle">Fill in the details below to {{ contact ? 'update' : 'create' }} a
+            contact</span>
         </div>
       </div>
 
@@ -55,885 +56,796 @@
       <!-- ══ SECTION 1 : PERSONAL / BUSINESS ══════════════════════ -->
       @if (activeSection() === 'personal') {
 
-        <!-- Contact Type Radio -->
-        <div class="erp-radio-button-group mb-4">
-          <label class="erp-radio-button">
-            <input type="radio" name="contactType" value="Individual"
-              [checked]="isIndividual" (change)="setContactType('Individual')" />
-            <span class="button-label"><i class="pi pi-user"></i>&nbsp;Individual</span>
-          </label>
-          <label class="erp-radio-button">
-            <input type="radio" name="contactType" value="Business Entity"
-              [checked]="!isIndividual" (change)="setContactType('Business Entity')" />
-            <span class="button-label"><i class="pi pi-building"></i>&nbsp;Business Entity</span>
-          </label>
+      <!-- Contact Type Radio -->
+      <div class="erp-radio-button-group mb-4">
+        <label class="erp-radio-button">
+          <input type="radio" name="contactType" value="Individual" [checked]="isIndividual"
+            (change)="setContactType('Individual')" />
+          <span class="button-label"><i class="pi pi-user"></i>&nbsp;Individual</span>
+        </label>
+        <label class="erp-radio-button">
+          <input type="radio" name="contactType" value="Business Entity" [checked]="!isIndividual"
+            (change)="setContactType('Business Entity')" />
+          <span class="button-label"><i class="pi pi-building"></i>&nbsp;Business Entity</span>
+        </label>
+      </div>
+
+      <!-- ── INDIVIDUAL ─────────────────────────────────────── -->
+      @if (isIndividual) {
+      <div class="section-title mb-3">
+        <i class="pi pi-user" style="color:var(--clr-p2);"></i>
+        Personal Details
+      </div>
+
+      <div class="row g-3">
+
+        <!-- Name -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Name <span class="required">*</span></label>
+            <div style="display:flex; gap:8px;">
+              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations" formControlName="salutation"
+                placeholder="Select Salutation" [searchable]="true" [clearable]="false">
+              </ng-select>
+              <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
+            </div>
+            @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Name is required</span>
+            }
+          </div>
         </div>
 
-        <!-- ── INDIVIDUAL ─────────────────────────────────────── -->
-        @if (isIndividual) {
-          <div class="section-title mb-3">
-            <i class="pi pi-user" style="color:var(--clr-p2);"></i>
-            Personal Details
+        <!-- Mailing Name -->
+        <div class="col-12 col-md-6" style="grid-row: span 2;">
+          <div class="erp-form-group">
+            <label>Mailing Name (S)</label>
+            <textarea class="erp-textarea" formControlName="mailingName" placeholder="Mailing name..."
+              style="min-height:108px;"></textarea>
           </div>
-
-          <div class="row g-3">
-
-            <!-- Name -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Name <span class="required">*</span></label>
-                <div style="display:flex; gap:8px;">
-                  <ng-select
-                    class="contact-select-sm"
-                    appendTo="body"
-                    [items]="salutations"
-                    formControlName="salutation"
-                    placeholder="Select Salutation"
-                    [searchable]="true"
-                    [clearable]="false">
-                  </ng-select>
-                  <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
-                </div>
-                @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
-                  <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Name is required</span>
-                }
-              </div>
-            </div>
-
-            <!-- Mailing Name -->
-            <div class="col-12 col-md-6" style="grid-row: span 2;">
-              <div class="erp-form-group">
-                <label>Mailing Name (S)</label>
-                <textarea class="erp-textarea" formControlName="mailingName"
-                  placeholder="Mailing name..." style="min-height:108px;"></textarea>
-              </div>
-            </div>
-
-            <!-- Surname -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Sur Name</label>
-                <input type="text" class="erp-input" formControlName="surName" placeholder="Surname" />
-              </div>
-            </div>
-
-            <!-- Gender -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Gender <span class="required">*</span></label>
-                <div class="erp-radio-group">
-                  @for (g of genders; track g) {
-                    <label class="erp-radio">
-                      <input type="radio" formControlName="gender" [value]="g" />
-                      {{ g }}
-                    </label>
-                  }
-                </div>
-              </div>
-            </div>
-
-            <!-- Father Name -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Father Name <span class="required">*</span></label>
-                <div style="display:flex; gap:8px;">
-                  <ng-select
-                    class="contact-select-sm"
-                    appendTo="body"
-                    [items]="salutations"
-                    formControlName="fatherSalutation"
-                    placeholder="Select Salutation"
-                    [searchable]="true"
-                    [clearable]="false">
-                  </ng-select>
-                  <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
-                </div>
-                @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
-                  <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Father name is required</span>
-                }
-              </div>
-            </div>
-
-            <!-- Photo Upload -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Upload Photo</label>
-                <div style="display:flex; gap:16px; align-items:center;">
-                  <div class="erp-file-upload" style="flex:1;">
-                    <input type="text" class="erp-input erp-file-input" readonly
-                      [value]="photoPreview() ? 'Photo selected' : ''" placeholder="No file chosen" />
-                    <label class="erp-file-btn" for="photoInput">
-                      <i class="pi pi-upload"></i> Choose File
-                    </label>
-                    <input id="photoInput" type="file" accept="image/*" style="display:none;"
-                      (change)="onPhotoChange($event)" />
-                  </div>
-                  <div style="width:64px; height:64px; border-radius:50%; overflow:hidden; background:#e2e8f0; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:2px solid var(--panel-border);">
-                    @if (photoPreview()) {
-                      <img [src]="photoPreview()!" alt="preview" style="width:100%; height:100%; object-fit:cover;" />
-                    } @else {
-                      <i class="pi pi-user" style="font-size:24px; color:#94a3b8;"></i>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- DOB -->
-            <div class="col-12 col-md-4">
-              <div class="erp-form-group">
-                <label>Date of Birth</label>
-                <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
-                  <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker
-                    formControlName="dob"
-                    dateFormat="dd-M-yy"
-                    placeholder="DD-MMM-YYYY"
-                    [readonlyInput]="true"
-                    appendTo="body"
-                    [baseZIndex]="12000"
-                    panelStyleClass="contact-date-picker-panel"
-                    styleClass="w-100"
-                    inputStyleClass="erp-input icon-pad w-100"
-                    [maxDate]="pDatepickerMaxDate">
-                  </p-datepicker>
-                </div>
-              </div>
-            </div>
-
-            <!-- Age -->
-            <div class="col-12 col-md-4">
-              <div class="erp-form-group">
-                <label>Age</label>
-                <input type="number" class="erp-input" formControlName="age" placeholder="Age" min="0" max="120" />
-              </div>
-            </div>
-
-            <!-- PAN -->
-            <div class="col-12 col-md-4">
-              <div class="erp-form-group">
-                <label>PAN Card No.</label>
-                <input type="text" class="erp-input" formControlName="panCard" placeholder="ABCDE1234F"
-                  style="text-transform:uppercase;" maxlength="10" />
-              </div>
-            </div>
-
-            <!-- Aadhar -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Aadhar Card No.</label>
-                <input type="text" class="erp-input" formControlName="aadharCard"
-                  placeholder="XXXX XXXX XXXX" maxlength="14" />
-              </div>
-            </div>
-
-            <!-- CNT No -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>CNT No.</label>
-                <div class="erp-input-wrap">
-                  <i class="pi pi-hashtag erp-input-icon"></i>
-                  <input type="text" class="erp-input icon-pad" formControlName="cntNo" placeholder="CNT number" />
-                </div>
-              </div>
-            </div>
-
-          </div><!-- /row -->
-        }
-
-        <!-- ── BUSINESS ENTITY ──────────────────────────────────── -->
-        @if (!isIndividual) {
-          <div class="section-title mb-3">
-            <i class="pi pi-building" style="color:var(--clr-p2);"></i>
-            Business Details
-          </div>
-
-          <div class="row g-3">
-
-            <!-- Contact Number / Name lookup -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Contact Number / Name</label>
-                <div class="erp-input-wrap">
-                  <i class="pi pi-search erp-input-icon"></i>
-                  <input type="text" class="erp-input icon-pad" placeholder="Search by phone, name etc." />
-                </div>
-              </div>
-            </div>
-
-            <div class="col-12 col-md-6"></div>
-
-            <!-- Enterprise Name -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Name of the Enterprise <span class="required">*</span></label>
-                <input type="text" class="erp-input" formControlName="enterpriseName" placeholder="Enterprise name" />
-              </div>
-            </div>
-
-            <!-- Enterprise Email -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Enterprise Email ID</label>
-                <div class="erp-input-wrap">
-                  <i class="pi pi-envelope erp-input-icon"></i>
-                  <input type="email" class="erp-input icon-pad" formControlName="enterpriseEmail" placeholder="enterprise@email.com" />
-                </div>
-              </div>
-            </div>
-
-            <!-- Upload Photo -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Upload Photo</label>
-                <div style="display:flex; gap:16px; align-items:center;">
-                  <div class="erp-file-upload" style="flex:1;">
-                    <input type="text" class="erp-input erp-file-input" readonly
-                      [value]="photoPreview() ? 'Logo selected' : ''" placeholder="No file chosen" />
-                    <label class="erp-file-btn" for="bizPhotoInput">
-                      <i class="pi pi-upload"></i> Choose File
-                    </label>
-                    <input id="bizPhotoInput" type="file" accept="image/*" style="display:none;"
-                      (change)="onPhotoChange($event)" />
-                  </div>
-                  <div style="width:64px;height:64px;border-radius:8px;overflow:hidden;background:#e2e8f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:2px solid var(--panel-border);">
-                    @if (photoPreview()) {
-                      <img [src]="photoPreview()!" alt="logo" style="width:100%;height:100%;object-fit:cover;" />
-                    } @else {
-                      <i class="pi pi-building" style="font-size:24px;color:#94a3b8;"></i>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Enterprise Contact -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Enterprise Contact No. <span class="required">*</span></label>
-                <div class="erp-input-wrap">
-                  <i class="pi pi-phone erp-input-icon"></i>
-                  <input type="tel" class="erp-input icon-pad" formControlName="enterpriseContact" placeholder="10-digit number" />
-                </div>
-              </div>
-            </div>
-
-            <!-- PAN -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>PAN Card No.</label>
-                <input type="text" class="erp-input" formControlName="enterprisePan" placeholder="ABCDE1234F"
-                  style="text-transform:uppercase;" maxlength="10" />
-              </div>
-            </div>
-
-            <!-- Type of Enterprise -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Type of Enterprise</label>
-                <ng-select
-                  appendTo="body"
-                  [items]="enterpriseTypes"
-                  formControlName="enterpriseType"
-                  placeholder="Select Type of Enterprise"
-                  [searchable]="true"
-                  [clearable]="true">
-                </ng-select>
-              </div>
-            </div>
-
-            <!-- Nature of Business -->
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label>Nature of Business</label>
-                <ng-select
-                  appendTo="body"
-                  [items]="businessNatures"
-                  formControlName="businessNature"
-                  placeholder="Select Nature of Business"
-                  [searchable]="true"
-                  [clearable]="true">
-                </ng-select>
-              </div>
-            </div>
-
-          </div><!-- /row -->
-
-          <!-- Contact Persons table -->
-          <div class="section-title mb-3" style="margin-top:20px;">
-            <i class="pi pi-users" style="color:var(--clr-p2);"></i>
-            Contact Information (Persons)
-          </div>
-
-          <div class="row g-3 mb-3">
-            <div class="col-12 col-md-5">
-              <div class="erp-form-group">
-                <label>Contact</label>
-                <div class="erp-input-wrap">
-                  <i class="pi pi-search erp-input-icon"></i>
-                  <input type="text" class="erp-input icon-pad" [(ngModel)]="currentContactPerson.contact"
-                    [ngModelOptions]="{standalone:true}" placeholder="Search by phone, name etc." />
-                </div>
-              </div>
-            </div>
-            <div class="col-12 col-md-5">
-              <div class="erp-form-group">
-                <label>Designation</label>
-                <input type="text" class="erp-input" [(ngModel)]="currentContactPerson.designation"
-                  [ngModelOptions]="{standalone:true}" placeholder="Designation" />
-              </div>
-            </div>
-            <div class="col-12 col-md-2" style="display:flex; align-items:flex-end; padding-bottom:16px;">
-              <button type="button" class="erp-btn btn-primary" style="width:100%;" (click)="addContactPerson()">
-                <i class="pi pi-plus"></i> Add
-              </button>
-            </div>
-          </div>
-
-          <!-- Contact Persons Table -->
-          <div class="erp-table-wrap mb-3">
-            <table class="erp-table">
-              <thead>
-                <tr>
-                  <th>Select Primary Contact</th>
-                  <th>Contact Name</th>
-                  <th>Designation</th>
-                  <th style="width:50px;"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (contactPersons().length === 0) {
-                  <tr>
-                    <td colspan="4" class="grn-table-empty">No contact persons added yet</td>
-                  </tr>
-                }
-                @for (cp of contactPersons(); track $index) {
-                  <tr>
-                    <td class="td-center">
-                      <label class="erp-radio">
-                        <input type="radio" name="primaryContact" [value]="$index" />
-                      </label>
-                    </td>
-                    <td>{{ cp.contact }}</td>
-                    <td>{{ cp.designation }}</td>
-                    <td class="td-actions">
-                      <button class="erp-btn btn-danger-outline btn-sm btn-icon" (click)="removeContactPerson($index)">
-                        <i class="pi pi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-        <!-- ══ CONTACT INFORMATION (Both types) ════════════════════ -->
-        <div class="section-title mb-3" style="margin-top:20px;">
-          <i class="pi pi-phone" style="color:var(--clr-p2);"></i>
-          Contact Information
         </div>
 
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Primary Contact Number <span class="required">*</span></label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-mobile erp-input-icon"></i>
-                <input type="tel" class="erp-input icon-pad" formControlName="primaryContact"
-                  placeholder="10-digit mobile number" maxlength="10" />
-              </div>
-              @if (form.get('primaryContact')?.invalid && form.get('primaryContact')?.touched) {
-                <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Valid 10-digit number required</span>
+        <!-- Surname -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Sur Name</label>
+            <input type="text" class="erp-input" formControlName="surName" placeholder="Surname" />
+          </div>
+        </div>
+
+        <!-- Gender -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Gender <span class="required">*</span></label>
+            <div class="erp-radio-group">
+              @for (g of genders; track g) {
+              <label class="erp-radio">
+                <input type="radio" formControlName="gender" [value]="g" />
+                {{ g }}
+              </label>
               }
             </div>
           </div>
+        </div>
 
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Secondary Contact Number</label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-phone erp-input-icon"></i>
-                <input type="tel" class="erp-input icon-pad" formControlName="secondaryContact"
-                  placeholder="Alternate number" maxlength="10" />
-              </div>
+        <!-- Father Name -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Father Name <span class="required">*</span></label>
+            <div style="display:flex; gap:8px;">
+              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations"
+                formControlName="fatherSalutation" placeholder="Select Salutation" [searchable]="true"
+                [clearable]="false">
+              </ng-select>
+              <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
             </div>
+            @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Father name is required</span>
+            }
           </div>
+        </div>
 
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Primary Email ID</label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-envelope erp-input-icon"></i>
-                <input type="email" class="erp-input icon-pad" formControlName="primaryEmail"
-                  placeholder="example@email.com" />
+        <!-- Photo Upload -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Upload Photo</label>
+            <div style="display:flex; gap:16px; align-items:center;">
+              <div class="erp-file-upload" style="flex:1;">
+                <input type="text" class="erp-input erp-file-input" readonly
+                  [value]="photoPreview() ? 'Photo selected' : ''" placeholder="No file chosen" />
+                <label class="erp-file-btn" for="photoInput">
+                  <i class="pi pi-upload"></i> Choose File
+                </label>
+                <input id="photoInput" type="file" accept="image/*" style="display:none;"
+                  (change)="onPhotoChange($event)" />
               </div>
-              @if (form.get('primaryEmail')?.invalid && form.get('primaryEmail')?.touched) {
-                <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Valid email required</span>
-              }
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Secondary Email ID</label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-envelope erp-input-icon"></i>
-                <input type="email" class="erp-input icon-pad" formControlName="secondaryEmail"
-                  placeholder="Alternate email" />
+              <div
+                style="width:64px; height:64px; border-radius:50%; overflow:hidden; background:#e2e8f0; flex-shrink:0; display:flex; align-items:center; justify-content:center; border:2px solid var(--panel-border);">
+                @if (photoPreview()) {
+                <img [src]="photoPreview()!" alt="preview" style="width:100%; height:100%; object-fit:cover;" />
+                } @else {
+                <i class="pi pi-user" style="font-size:24px; color:#94a3b8;"></i>
+                }
               </div>
             </div>
           </div>
         </div>
+
+        <!-- DOB -->
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Date of Birth</label>
+            <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
+              <i class="pi pi-calendar erp-input-icon"></i>
+              <p-datepicker formControlName="dob" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true"
+                appendTo="body" [baseZIndex]="12000" panelStyleClass="contact-date-picker-panel" styleClass="w-100"
+                inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
+              </p-datepicker>
+            </div>
+          </div>
+        </div>
+
+        <!-- Age -->
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Age</label>
+            <input type="number" class="erp-input" formControlName="age" placeholder="Age" min="0" max="120" />
+          </div>
+        </div>
+
+        <!-- PAN -->
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>PAN Card No.</label>
+            <input type="text" class="erp-input" formControlName="panCard" placeholder="ABCDE1234F"
+              style="text-transform:uppercase;" maxlength="10" />
+          </div>
+        </div>
+
+        <!-- Aadhar -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Aadhar Card No.</label>
+            <input type="text" class="erp-input" formControlName="aadharCard" placeholder="XXXX XXXX XXXX"
+              maxlength="14" />
+          </div>
+        </div>
+
+        <!-- CNT No -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>CNT No.</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-hashtag erp-input-icon"></i>
+              <input type="text" class="erp-input icon-pad" formControlName="cntNo" placeholder="CNT number" />
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+      }
+
+      <!-- ── BUSINESS ENTITY ──────────────────────────────────── -->
+      @if (!isIndividual) {
+      <div class="section-title mb-3">
+        <i class="pi pi-building" style="color:var(--clr-p2);"></i>
+        Business Details
+      </div>
+
+      <div class="row g-3">
+
+        <!-- Contact Number / Name lookup -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Contact Number / Name</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-search erp-input-icon"></i>
+              <input type="text" class="erp-input icon-pad" placeholder="Search by phone, name etc." />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6"></div>
+
+        <!-- Enterprise Name -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Name of the Enterprise <span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="enterpriseName" placeholder="Enterprise name" />
+          </div>
+        </div>
+
+        <!-- Enterprise Email -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Enterprise Email ID</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-envelope erp-input-icon"></i>
+              <input type="email" class="erp-input icon-pad" formControlName="enterpriseEmail"
+                placeholder="enterprise@email.com" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Photo -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Upload Photo</label>
+            <div style="display:flex; gap:16px; align-items:center;">
+              <div class="erp-file-upload" style="flex:1;">
+                <input type="text" class="erp-input erp-file-input" readonly
+                  [value]="photoPreview() ? 'Logo selected' : ''" placeholder="No file chosen" />
+                <label class="erp-file-btn" for="bizPhotoInput">
+                  <i class="pi pi-upload"></i> Choose File
+                </label>
+                <input id="bizPhotoInput" type="file" accept="image/*" style="display:none;"
+                  (change)="onPhotoChange($event)" />
+              </div>
+              <div
+                style="width:64px;height:64px;border-radius:8px;overflow:hidden;background:#e2e8f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:2px solid var(--panel-border);">
+                @if (photoPreview()) {
+                <img [src]="photoPreview()!" alt="logo" style="width:100%;height:100%;object-fit:cover;" />
+                } @else {
+                <i class="pi pi-building" style="font-size:24px;color:#94a3b8;"></i>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enterprise Contact -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Enterprise Contact No. <span class="required">*</span></label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-phone erp-input-icon"></i>
+              <input type="tel" class="erp-input icon-pad" formControlName="enterpriseContact"
+                placeholder="10-digit number" />
+            </div>
+          </div>
+        </div>
+
+        <!-- PAN -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>PAN Card No.</label>
+            <input type="text" class="erp-input" formControlName="enterprisePan" placeholder="ABCDE1234F"
+              style="text-transform:uppercase;" maxlength="10" />
+          </div>
+        </div>
+
+        <!-- Type of Enterprise -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Type of Enterprise</label>
+            <ng-select appendTo="body" [items]="enterpriseTypes" formControlName="enterpriseType"
+              placeholder="Select Type of Enterprise" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <!-- Nature of Business -->
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Nature of Business</label>
+            <ng-select appendTo="body" [items]="businessNatures" formControlName="businessNature"
+              placeholder="Select Nature of Business" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+      </div><!-- /row -->
+
+      <!-- Contact Persons table -->
+      <div class="section-title mb-3" style="margin-top:20px;">
+        <i class="pi pi-users" style="color:var(--clr-p2);"></i>
+        Contact Information (Persons)
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-5">
+          <div class="erp-form-group">
+            <label>Contact</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-search erp-input-icon"></i>
+              <input type="text" class="erp-input icon-pad" [(ngModel)]="currentContactPerson.contact"
+                [ngModelOptions]="{standalone:true}" placeholder="Search by phone, name etc." />
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-5">
+          <div class="erp-form-group">
+            <label>Designation</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentContactPerson.designation"
+              [ngModelOptions]="{standalone:true}" placeholder="Designation" />
+          </div>
+        </div>
+        <div class="col-12 col-md-2" style="display:flex; align-items:flex-end; padding-bottom:16px;">
+          <button type="button" class="erp-btn btn-primary" style="width:100%;" (click)="addContactPerson()">
+            <i class="pi pi-plus"></i> Add
+          </button>
+        </div>
+      </div>
+
+      <!-- Contact Persons Table -->
+      <div class="erp-table-wrap mb-3">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th>Select Primary Contact</th>
+              <th>Contact Name</th>
+              <th>Designation</th>
+              <th style="width:50px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (contactPersons().length === 0) {
+            <tr>
+              <td colspan="4" class="grn-table-empty">No contact persons added yet</td>
+            </tr>
+            }
+            @for (cp of contactPersons(); track $index) {
+            <tr>
+              <td class="td-center">
+                <label class="erp-radio">
+                  <input type="radio" name="primaryContact" [value]="$index" />
+                </label>
+              </td>
+              <td>{{ cp.contact }}</td>
+              <td>{{ cp.designation }}</td>
+              <td class="td-actions">
+                <button class="erp-btn btn-danger-outline btn-sm btn-icon" (click)="removeContactPerson($index)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+
+      <!-- ══ CONTACT INFORMATION (Both types) ════════════════════ -->
+      <div class="section-title mb-3" style="margin-top:20px;">
+        <i class="pi pi-phone" style="color:var(--clr-p2);"></i>
+        Contact Information
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Primary Contact Number <span class="required">*</span></label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-mobile erp-input-icon"></i>
+              <input type="tel" class="erp-input icon-pad" formControlName="primaryContact"
+                placeholder="10-digit mobile number" maxlength="10" />
+            </div>
+            @if (form.get('primaryContact')?.invalid && form.get('primaryContact')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Valid 10-digit number required</span>
+            }
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Secondary Contact Number</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-phone erp-input-icon"></i>
+              <input type="tel" class="erp-input icon-pad" formControlName="secondaryContact"
+                placeholder="Alternate number" maxlength="10" />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Primary Email ID</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-envelope erp-input-icon"></i>
+              <input type="email" class="erp-input icon-pad" formControlName="primaryEmail"
+                placeholder="example@email.com" />
+            </div>
+            @if (form.get('primaryEmail')?.invalid && form.get('primaryEmail')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Valid email required</span>
+            }
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Secondary Email ID</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-envelope erp-input-icon"></i>
+              <input type="email" class="erp-input icon-pad" formControlName="secondaryEmail"
+                placeholder="Alternate email" />
+            </div>
+          </div>
+        </div>
+      </div>
 
       }<!-- /section personal -->
 
       <!-- ══ SECTION 2 : ADDRESS ════════════════════════════════════ -->
       @if (activeSection() === 'address') {
 
-        <div class="section-title mb-3">
-          <i class="pi pi-map" style="color:var(--clr-p2);"></i>
-          Address Details
-        </div>
+      <div class="section-title mb-3">
+        <i class="pi pi-map" style="color:var(--clr-p2);"></i>
+        Address Details
+      </div>
 
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Address Line</label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.addressLine"
-                [ngModelOptions]="{standalone:true}" placeholder="House/Flat no, Street name" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Area / Locality</label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.area"
-                [ngModelOptions]="{standalone:true}" placeholder="Area or locality" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>City / Town</label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.city"
-                [ngModelOptions]="{standalone:true}" placeholder="City" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Address Type</label>
-              <ng-select
-                appendTo="body"
-                [items]="addressTypes"
-                [(ngModel)]="currentAddress.type"
-                [ngModelOptions]="{standalone:true}"
-                placeholder="Select Address Type"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Country <span class="required">*</span></label>
-              <ng-select
-                appendTo="body"
-                [items]="countries"
-                [(ngModel)]="currentAddress.country"
-                [ngModelOptions]="{standalone:true}"
-                placeholder="Select Country"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>State <span class="required">*</span></label>
-              <ng-select
-                appendTo="body"
-                [items]="states"
-                [(ngModel)]="currentAddress.state"
-                [ngModelOptions]="{standalone:true}"
-                placeholder="Select State"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>District <span class="required">*</span></label>
-              <ng-select
-                appendTo="body"
-                [items]="districts"
-                [(ngModel)]="currentAddress.district"
-                [ngModelOptions]="{standalone:true}"
-                placeholder="Select District"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Pincode <span class="required">*</span></label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.pincode"
-                [ngModelOptions]="{standalone:true}" placeholder="6-digit pincode" maxlength="6" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Longitude</label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.longitude"
-                [ngModelOptions]="{standalone:true}" placeholder="e.g. 78.4867" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Latitude</label>
-              <input type="text" class="erp-input" [(ngModel)]="currentAddress.latitude"
-                [ngModelOptions]="{standalone:true}" placeholder="e.g. 17.3850" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4" style="display:flex; align-items:flex-end; padding-bottom:16px;">
-            <button type="button" class="erp-btn btn-primary" style="width:100%;" (click)="addAddress()">
-              <i class="pi pi-plus"></i> Add Address
-            </button>
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Address Line</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.addressLine"
+              [ngModelOptions]="{standalone:true}" placeholder="House/Flat no, Street name" />
           </div>
         </div>
 
-        <!-- Address Table -->
-        <div class="erp-table-wrap" style="margin-top:8px;">
-          <table class="erp-table">
-            <thead>
-              <tr>
-                <th style="width:100px;">Select Primary</th>
-                <th>Address Type</th>
-                <th>Address Details</th>
-                <th style="width:60px;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              @if (addressRows().length === 0) {
-                <tr>
-                  <td colspan="4" class="grn-table-empty">No addresses added yet</td>
-                </tr>
-              }
-              @for (addr of addressRows(); track $index) {
-                <tr>
-                  <td class="td-center">
-                    <label class="erp-radio" style="justify-content:center;">
-                      <input type="radio" name="primaryAddr" [checked]="addr.isPrimary"
-                        (change)="setPrimaryAddress($index)" />
-                    </label>
-                  </td>
-                  <td>
-                    <span class="erp-badge badge-info">{{ addr.type || '—' }}</span>
-                  </td>
-                  <td>
-                    {{ addr.addressLine }}
-                    @if (addr.area) { , {{ addr.area }} }
-                    @if (addr.city) { , {{ addr.city }} }
-                    @if (addr.state) { , {{ addr.state }} }
-                    @if (addr.pincode) { - {{ addr.pincode }} }
-                    @if (addr.isPrimary) {
-                      <span class="erp-badge badge-success" style="margin-left:6px;">Primary</span>
-                    }
-                  </td>
-                  <td class="td-actions">
-                    <button class="erp-btn btn-danger-outline btn-sm btn-icon" (click)="removeAddress($index)">
-                      <i class="pi pi-trash"></i>
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Area / Locality</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.area" [ngModelOptions]="{standalone:true}"
+              placeholder="Area or locality" />
+          </div>
         </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>City / Town</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.city" [ngModelOptions]="{standalone:true}"
+              placeholder="City" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Address Type</label>
+            <ng-select appendTo="body" [items]="addressTypes" [(ngModel)]="currentAddress.type"
+              [ngModelOptions]="{standalone:true}" placeholder="Select Address Type" [searchable]="true"
+              [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Country <span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="countries" [(ngModel)]="currentAddress.country"
+              [ngModelOptions]="{standalone:true}" placeholder="Select Country" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>State <span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="states" [(ngModel)]="currentAddress.state"
+              [ngModelOptions]="{standalone:true}" placeholder="Select State" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>District <span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="districts" [(ngModel)]="currentAddress.district"
+              [ngModelOptions]="{standalone:true}" placeholder="Select District" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Pincode <span class="required">*</span></label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.pincode"
+              [ngModelOptions]="{standalone:true}" placeholder="6-digit pincode" maxlength="6" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Longitude</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.longitude"
+              [ngModelOptions]="{standalone:true}" placeholder="e.g. 78.4867" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Latitude</label>
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.latitude"
+              [ngModelOptions]="{standalone:true}" placeholder="e.g. 17.3850" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4" style="display:flex; align-items:flex-end; padding-bottom:16px;">
+          <button type="button" class="erp-btn btn-primary" style="width:100%;" (click)="addAddress()">
+            <i class="pi pi-plus"></i> Add Address
+          </button>
+        </div>
+      </div>
+
+      <!-- Address Table -->
+      <div class="erp-table-wrap" style="margin-top:8px;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Select Primary</th>
+              <th>Address Type</th>
+              <th>Address Details</th>
+              <th style="width:60px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (addressRows().length === 0) {
+            <tr>
+              <td colspan="4" class="grn-table-empty">No addresses added yet</td>
+            </tr>
+            }
+            @for (addr of addressRows(); track $index) {
+            <tr>
+              <td class="td-center">
+                <label class="erp-radio" style="justify-content:center;">
+                  <input type="radio" name="primaryAddr" [checked]="addr.isPrimary"
+                    (change)="setPrimaryAddress($index)" />
+                </label>
+              </td>
+              <td>
+                <span class="erp-badge badge-info">{{ addr.type || '—' }}</span>
+              </td>
+              <td>
+                {{ addr.addressLine }}
+                @if (addr.area) { , {{ addr.area }} }
+                @if (addr.city) { , {{ addr.city }} }
+                @if (addr.state) { , {{ addr.state }} }
+                @if (addr.pincode) { - {{ addr.pincode }} }
+                @if (addr.isPrimary) {
+                <span class="erp-badge badge-success" style="margin-left:6px;">Primary</span>
+                }
+              </td>
+              <td class="td-actions">
+                <button class="erp-btn btn-danger-outline btn-sm btn-icon" (click)="removeAddress($index)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
       }<!-- /section address -->
 
       @if (activeSection() === 'kyc') {
 
-        <div class="section-title mb-3">
-          <i class="pi pi-verified" style="color:var(--clr-p2);"></i>
-          Contact KYC Details
+      <div class="section-title mb-3">
+        <i class="pi pi-verified" style="color:var(--clr-p2);"></i>
+        Contact KYC Details
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>KYC Document Type</label>
+            <ng-select appendTo="body" [items]="kycDocumentTypes" formControlName="kycDocumentType"
+              placeholder="Select document" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
         </div>
 
-        <div class="row g-3">
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>KYC Document Type</label>
-              <ng-select
-                appendTo="body"
-                [items]="kycDocumentTypes"
-                formControlName="kycDocumentType"
-                placeholder="Select document"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Document Number</label>
+            <input type="text" class="erp-input" formControlName="kycDocumentNo" placeholder="Document number" />
           </div>
+        </div>
 
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Document Number</label>
-              <input type="text" class="erp-input" formControlName="kycDocumentNo" placeholder="Document number" />
-            </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>KYC Status</label>
+            <ng-select appendTo="body" [items]="kycStatuses" formControlName="kycStatus" placeholder="Select status"
+              [searchable]="true" [clearable]="false">
+            </ng-select>
           </div>
+        </div>
 
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>KYC Status</label>
-              <ng-select
-                appendTo="body"
-                [items]="kycStatuses"
-                formControlName="kycStatus"
-                placeholder="Select status"
-                [searchable]="true"
-                [clearable]="false">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Issued Date</label>
-              <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
-                <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  formControlName="kycIssuedDate"
-                  dateFormat="dd-M-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  appendTo="body"
-                  [baseZIndex]="12000"
-                  panelStyleClass="contact-date-picker-panel"
-                  styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100"
-                  [maxDate]="pDatepickerMaxDate">
-                </p-datepicker>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Expiry Date</label>
-              <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
-                <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  formControlName="kycExpiryDate"
-                  dateFormat="dd-M-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  appendTo="body"
-                  [baseZIndex]="12000"
-                  panelStyleClass="contact-date-picker-panel"
-                  styleClass="w-100"
-                  inputStyleClass="erp-input icon-pad w-100">
-                </p-datepicker>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Upload KYC Proof</label>
-              <div class="erp-file-upload">
-                <input type="text" class="erp-input erp-file-input" readonly placeholder="No file chosen" />
-                <label class="erp-file-btn" for="kycProofInput">
-                  <i class="pi pi-upload"></i> Choose File
-                </label>
-                <input id="kycProofInput" type="file" accept="image/*,.pdf" style="display:none;" />
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12">
-            <div class="erp-form-group">
-              <label>KYC Remarks</label>
-              <textarea class="erp-textarea" formControlName="kycRemarks" placeholder="Verification notes..." style="min-height:90px;"></textarea>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Issued Date</label>
+            <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
+              <i class="pi pi-calendar erp-input-icon"></i>
+              <p-datepicker formControlName="kycIssuedDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                [readonlyInput]="true" appendTo="body" [baseZIndex]="12000" panelStyleClass="contact-date-picker-panel"
+                styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
+              </p-datepicker>
             </div>
           </div>
         </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Expiry Date</label>
+            <div class="erp-input-wrap erp-date-wrap contact-date-wrap">
+              <i class="pi pi-calendar erp-input-icon"></i>
+              <p-datepicker formControlName="kycExpiryDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                [readonlyInput]="true" appendTo="body" [baseZIndex]="12000" panelStyleClass="contact-date-picker-panel"
+                styleClass="w-100" inputStyleClass="erp-input icon-pad w-100">
+              </p-datepicker>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Upload KYC Proof</label>
+            <div class="erp-file-upload">
+              <input type="text" class="erp-input erp-file-input" readonly placeholder="No file chosen" />
+              <label class="erp-file-btn" for="kycProofInput">
+                <i class="pi pi-upload"></i> Choose File
+              </label>
+              <input id="kycProofInput" type="file" accept="image/*,.pdf" style="display:none;" />
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="erp-form-group">
+            <label>KYC Remarks</label>
+            <textarea class="erp-textarea" formControlName="kycRemarks" placeholder="Verification notes..."
+              style="min-height:90px;"></textarea>
+          </div>
+        </div>
+      </div>
       }<!-- /section kyc -->
 
       @if (activeSection() === 'bank') {
 
-        <div class="section-title mb-3">
-          <i class="pi pi-building-columns" style="color:var(--clr-p2);"></i>
-          Bank Details
-        </div>
+      <div class="section-title mb-3">
+        <i class="pi pi-building-columns" style="color:var(--clr-p2);"></i>
+        Bank Details
+      </div>
 
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Bank Name</label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-building-columns erp-input-icon"></i>
-                <input type="text" class="erp-input icon-pad" formControlName="bankName" placeholder="Bank name" />
-              </div>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Branch Name</label>
-              <input type="text" class="erp-input" formControlName="bankBranch" placeholder="Branch name" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Account Holder Name</label>
-              <input type="text" class="erp-input" formControlName="accountHolderName" placeholder="Account holder name" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label>Account Number</label>
-              <input type="text" class="erp-input" formControlName="accountNo" placeholder="Account number" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>Account Type</label>
-              <ng-select
-                appendTo="body"
-                [items]="bankAccountTypes"
-                formControlName="accountType"
-                placeholder="Select account type"
-                [searchable]="true"
-                [clearable]="true">
-              </ng-select>
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>IFSC Code</label>
-              <input type="text" class="erp-input" formControlName="ifscCode" placeholder="IFSC code" style="text-transform:uppercase;" maxlength="11" />
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label>UPI ID</label>
-              <div class="erp-input-wrap">
-                <i class="pi pi-at erp-input-icon"></i>
-                <input type="text" class="erp-input icon-pad" formControlName="upiId" placeholder="name@bank" />
-              </div>
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Bank Name</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-building-columns erp-input-icon"></i>
+              <input type="text" class="erp-input icon-pad" formControlName="bankName" placeholder="Bank name" />
             </div>
           </div>
         </div>
+
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Branch Name</label>
+            <input type="text" class="erp-input" formControlName="bankBranch" placeholder="Branch name" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Account Holder Name</label>
+            <input type="text" class="erp-input" formControlName="accountHolderName"
+              placeholder="Account holder name" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Account Number</label>
+            <input type="text" class="erp-input" formControlName="accountNo" placeholder="Account number" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Account Type</label>
+            <ng-select appendTo="body" [items]="bankAccountTypes" formControlName="accountType"
+              placeholder="Select account type" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>IFSC Code</label>
+            <input type="text" class="erp-input" formControlName="ifscCode" placeholder="IFSC code"
+              style="text-transform:uppercase;" maxlength="11" />
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>UPI ID</label>
+            <div class="erp-input-wrap">
+              <i class="pi pi-at erp-input-icon"></i>
+              <input type="text" class="erp-input icon-pad" formControlName="upiId" placeholder="name@bank" />
+            </div>
+          </div>
+        </div>
+      </div>
       }<!-- /section bank -->
 
       <!-- ══ SECTION 3 : OTHERS ═════════════════════════════════════ -->
       @if (activeSection() === 'others') {
 
-        <div class="section-title mb-3">
-          <i class="pi pi-info-circle" style="color:var(--clr-p2);"></i>
-          Other Settings
+      <div class="section-title mb-3">
+        <i class="pi pi-info-circle" style="color:var(--clr-p2);"></i>
+        Other Settings
+      </div>
+
+      <div class="erp-panel mb-3">
+        <div class="panel-header">
+          <span class="panel-title">Contact Flags</span>
         </div>
+        <div class="panel-body">
+          <div class="flag-details-grid">
+            <label class="erp-checkbox flag-check">
+              <input type="checkbox" formControlName="fabricatedContact" />
+              <span><strong>Fabricated Contact</strong></span>
+            </label>
 
-        <div class="erp-panel mb-3">
-          <div class="panel-header">
-            <span class="panel-title">Contact Flags</span>
-          </div>
-          <div class="panel-body">
-            <div class="flag-details-grid">
-              <label class="erp-checkbox flag-check">
-                <input type="checkbox" formControlName="fabricatedContact" />
-                <span><strong>Fabricated Contact</strong></span>
-              </label>
-
-              @if (form.get('fabricatedContact')?.value) {
-                <div class="erp-form-group">
-                  <label>Fabricated Contact Comments<span class="required">*</span></label>
-                  <textarea class="erp-textarea" formControlName="fabricatedContactComments"></textarea>
-                </div>
-
-                <div class="erp-form-group">
-                  <label>Upload Document<span class="required">*</span></label>
-                  <div class="erp-file-upload flag-upload">
-                    <input
-                      type="text"
-                      class="erp-input erp-file-input"
-                      readonly
-                      formControlName="fabricatedContactDocument" />
-                    <label class="flag-upload-btn" for="fabricatedDocumentInput" title="Upload Document">
-                      <i class="pi pi-cloud-upload"></i>
-                    </label>
-                    <input
-                      id="fabricatedDocumentInput"
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      style="display:none;"
-                      (change)="onFlagDocumentChange($event, 'fabricatedContactDocument')" />
-                  </div>
-                </div>
-              } @else {
-                <div></div>
-                <div></div>
-              }
-
-              <label class="erp-checkbox flag-check">
-                <input type="checkbox" formControlName="paidGuarantor" />
-                <span><strong>Paid Guarantor</strong></span>
-              </label>
-
-              @if (form.get('paidGuarantor')?.value) {
-                <div class="erp-form-group">
-                  <label>Paid Guarantor Comments<span class="required">*</span></label>
-                  <textarea class="erp-textarea" formControlName="paidGuarantorComments"></textarea>
-                </div>
-
-                <div class="erp-form-group">
-                  <label>Upload Document<span class="required">*</span></label>
-                  <div class="erp-file-upload flag-upload">
-                    <input
-                      type="text"
-                      class="erp-input erp-file-input"
-                      readonly
-                      formControlName="paidGuarantorDocument" />
-                    <label class="flag-upload-btn" for="paidGuarantorDocumentInput" title="Upload Document">
-                      <i class="pi pi-cloud-upload"></i>
-                    </label>
-                    <input
-                      id="paidGuarantorDocumentInput"
-                      type="file"
-                      accept="image/*,.pdf,.doc,.docx"
-                      style="display:none;"
-                      (change)="onFlagDocumentChange($event, 'paidGuarantorDocument')" />
-                  </div>
-                </div>
-              } @else {
-                <div></div>
-                <div></div>
-              }
+            @if (form.get('fabricatedContact')?.value) {
+            <div class="erp-form-group">
+              <label>Fabricated Contact Comments<span class="required">*</span></label>
+              <textarea class="erp-textarea" formControlName="fabricatedContactComments"></textarea>
             </div>
-          </div>
-        </div>
 
-        <div class="erp-alert alert-info">
-          <i class="pi pi-info-circle alert-icon"></i>
-          <div class="alert-body">
-            <div class="alert-title">Information</div>
-            <div class="alert-msg">Use the flags above to tag special attributes for this contact. These will affect how this contact appears in reports and workflows.</div>
+            <div class="erp-form-group">
+              <label>Upload Document<span class="required">*</span></label>
+              <div class="erp-file-upload flag-upload">
+                <input type="text" class="erp-input erp-file-input" readonly
+                  formControlName="fabricatedContactDocument" />
+                <label class="flag-upload-btn" for="fabricatedDocumentInput" title="Upload Document">
+                  <i class="pi pi-cloud-upload"></i>
+                </label>
+                <input id="fabricatedDocumentInput" type="file" accept="image/*,.pdf,.doc,.docx" style="display:none;"
+                  (change)="onFlagDocumentChange($event, 'fabricatedContactDocument')" />
+              </div>
+            </div>
+            } @else {
+            <div></div>
+            <div></div>
+            }
+
+            <label class="erp-checkbox flag-check">
+              <input type="checkbox" formControlName="paidGuarantor" />
+              <span><strong>Paid Guarantor</strong></span>
+            </label>
+
+            @if (form.get('paidGuarantor')?.value) {
+            <div class="erp-form-group">
+              <label>Paid Guarantor Comments<span class="required">*</span></label>
+              <textarea class="erp-textarea" formControlName="paidGuarantorComments"></textarea>
+            </div>
+
+            <div class="erp-form-group">
+              <label>Upload Document<span class="required">*</span></label>
+              <div class="erp-file-upload flag-upload">
+                <input type="text" class="erp-input erp-file-input" readonly formControlName="paidGuarantorDocument" />
+                <label class="flag-upload-btn" for="paidGuarantorDocumentInput" title="Upload Document">
+                  <i class="pi pi-cloud-upload"></i>
+                </label>
+                <input id="paidGuarantorDocumentInput" type="file" accept="image/*,.pdf,.doc,.docx"
+                  style="display:none;" (change)="onFlagDocumentChange($event, 'paidGuarantorDocument')" />
+              </div>
+            </div>
+            } @else {
+            <div></div>
+            <div></div>
+            }
           </div>
         </div>
+      </div>
+
+      <div class="erp-alert alert-info">
+        <i class="pi pi-info-circle alert-icon"></i>
+        <div class="alert-body">
+          <div class="alert-title">Information</div>
+          <div class="alert-msg">Use the flags above to tag special attributes for this contact. These will affect how
+            this contact appears in reports and workflows.</div>
+        </div>
+      </div>
       }<!-- /section others -->
 
     </div><!-- /form wrapper -->
@@ -943,9 +855,9 @@
       <!-- Section Nav -->
       <div class="contact-footer-left">
         @if (!isFirstSection) {
-          <button type="button" class="erp-btn btn-ghost btn-sm" (click)="goPreviousSection()">
-            <i class="pi pi-chevron-left"></i> Back
-          </button>
+        <button type="button" class="erp-btn btn-ghost btn-sm" (click)="goPreviousSection()">
+          <i class="pi pi-chevron-left"></i> Back
+        </button>
         }
       </div>
 
@@ -955,9 +867,9 @@
         </button>
 
         @if (!isLastSection) {
-          <button type="button" class="erp-btn btn-secondary btn-sm" (click)="goNextSection()">
-            Next <i class="pi pi-chevron-right"></i>
-          </button>
+        <button type="button" class="erp-btn btn-secondary btn-sm" (click)="goNextSection()">
+          Next <i class="pi pi-chevron-right"></i>
+        </button>
         }
 
         <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveContact()">

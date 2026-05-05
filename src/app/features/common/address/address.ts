@@ -2,8 +2,8 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
-import { CommonService } from '../../../../core/services/Common/common.service';
-import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
+import { CommonService } from '../../../core/services/Common/common.service';
+import { AccountsTransactions } from '../../../core/services/accounts/accounts-transactions';
 
 import { NgSelectModule } from '@ng-select/ng-select';
 
@@ -255,7 +255,8 @@ export class Address implements OnInit {
           const labelEl = document.getElementById(key) as HTMLElement | null;
           const labelName = labelEl?.getAttribute('title') ?? key;
 
-          for (const errorKey in control.errors) {
+          const errors = control.errors || {};
+          for (const errorKey of Object.keys(errors)) {
             if (errorKey) {
               const message = this.commonService.getValidationMessage(control, errorKey, labelName, key, '');
               this.addressformErrorMessage.update((msgs) => ({

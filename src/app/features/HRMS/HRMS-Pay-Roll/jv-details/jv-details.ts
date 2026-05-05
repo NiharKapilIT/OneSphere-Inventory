@@ -13,8 +13,7 @@ interface JvTypeOption {
   selector: 'app-jv-details',
   standalone: true,
   imports: [CommonModule, FormsModule, ButtonModule, NgSelectModule],
-  templateUrl: './jv-details.html',
-  styleUrls: ['./jv-details.css']
+  templateUrl: './jv-details.html'
 })
 export class JvDetails {
   submitted = false;
