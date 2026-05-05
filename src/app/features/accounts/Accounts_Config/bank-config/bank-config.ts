@@ -253,7 +253,7 @@ export class BankConfig implements OnInit {
       pValidto:               [null as Date | null],
       // UPI — validators added dynamically when switch is ON
       pUpiid:                 ['',Validators.required],
-      upiname:                ['',Validators.required],
+      upiname:                [null,Validators.required],
       // upiname:                [''],
       popeningjvno:           [''],
       pIsupiapplicable:       [false],
