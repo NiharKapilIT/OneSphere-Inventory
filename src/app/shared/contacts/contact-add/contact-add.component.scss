@@ -109,6 +109,7 @@
 
 .contact-modal .tabs-nav {
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .contact-modal .tab-item {
@@ -255,4 +256,5 @@
   .contact-footer-actions {
     margin-left: 0;
   }
+
 }
