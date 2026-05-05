@@ -130,7 +130,11 @@ export class ContactAddComponent implements OnInit, OnChanges {
       ifscCode: [''],
       upiId: [''],
       fabricatedContact: [false],
+      fabricatedContactComments: [''],
+      fabricatedContactDocument: [''],
       paidGuarantor: [false],
+      paidGuarantorComments: [''],
+      paidGuarantorDocument: [''],
     });
   }
 
@@ -213,6 +217,11 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.photoPreview.set(null);
     this.currentAddress = this.emptyAddress();
     this.activeSection.set('personal');
+  }
+
+  onFlagDocumentChange(event: Event, controlName: 'fabricatedContactDocument' | 'paidGuarantorDocument') {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    this.form.get(controlName)?.setValue(file?.name || '');
   }
 
   saveContact() {

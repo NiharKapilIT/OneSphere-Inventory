@@ -1,0 +1,518 @@
+<form [formGroup]="form">
+  <section class="erp-panel mb-3">
+    <div class="panel-body">
+      <div class="erp-radio-group mb-3">
+        <label class="erp-radio"><input type="radio" name="subscriberGroupType" [checked]="activeGroupType() === 'Chit Group'" (change)="setGroupType('Chit Group')" /> Chit Group</label>
+        <label class="erp-radio"><input type="radio" name="subscriberGroupType" [checked]="activeGroupType() === 'PSO Group'" (change)="setGroupType('PSO Group')" /> PSO Group</label>
+        <label class="erp-radio"><input type="radio" name="subscriberGroupType" [checked]="activeGroupType() === 'Interbranch'" (change)="setGroupType('Interbranch')" /> Interbranch</label>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-12 col-lg-8">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="erp-form-group">
+                <label>Subscriber Type</label>
+                <button type="button" class="erp-btn btn-primary btn-sm">
+                  <i class="pi pi-check-circle"></i> Single Subscriber
+                </button>
+              </div>
+            </div>
+
+            @if (activeGroupType() === 'Chit Group') {
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label>Chit Group<span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="[]" formControlName="chitGroup" placeholder="Select Chit Group" [searchable]="true" [clearable]="true"></ng-select>
+                </div>
+              </div>
+            }
+
+            @if (activeGroupType() === 'PSO Group') {
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label>PSO Group<span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="[]" formControlName="psoGroup" placeholder="Select PSO Group" [searchable]="true" [clearable]="true"></ng-select>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label>Chit Period<span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="[]" formControlName="chitPeriod" placeholder="Select Chit Period" [searchable]="true" [clearable]="true"></ng-select>
+                </div>
+              </div>
+            }
+
+            @if (activeGroupType() === 'Interbranch') {
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label>Branch Name</label>
+                  <ng-select appendTo="body" [items]="[]" formControlName="interbranchName" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+                </div>
+              </div>
+              <div class="col-12 col-md-6">
+                <div class="erp-form-group">
+                  <label>Interbranch Chit Group<span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="[]" formControlName="interbranchChitGroup" placeholder="Select Chit Group" [searchable]="true" [clearable]="true"></ng-select>
+                </div>
+              </div>
+            }
+
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label>Ticket No.</label>
+                <input type="text" class="erp-input" formControlName="ticketNo" />
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label>Subscriber<span class="required">*</span></label>
+                <input type="text" class="erp-input" formControlName="subscriber" />
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label>Subscriber Signed Date</label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker formControlName="subscriberSignedDate" [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY"
+                    [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                    inputStyleClass="erp-input icon-pad w-100" [inputStyle]="{'text-transform':'capitalize'}"
+                    [maxDate]="pDatepickerMaxDate">
+                  </p-datepicker>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label>Introduced by<span class="required">*</span></label>
+                <ng-select appendTo="body" [items]="[]" formControlName="introducedBy" placeholder="Search Employee / Staff" [searchable]="true" [clearable]="true"></ng-select>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label>Area<span class="required">*</span></label>
+                <div class="erp-btn-group w-100">
+                  <ng-select appendTo="body" [items]="[]" formControlName="area" placeholder="Select Area" [searchable]="true" [clearable]="false"></ng-select>
+                  <button type="button" class="erp-btn btn-outline btn-icon"><i class="pi pi-plus"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-md-6 d-flex align-items-center gap-3">
+              <label class="erp-checkbox"><input type="checkbox" formControlName="companyChit" /><span>Company Chit</span></label>
+              <label class="erp-checkbox"><input type="checkbox" formControlName="intimation" /><span>Intimation</span></label>
+            </div>
+            <div class="col-12">
+              <div class="erp-form-group">
+                <label>Address</label>
+                <textarea class="erp-textarea" formControlName="address"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="erp-panel mb-0">
+            <div class="panel-header">
+              <span class="panel-title">Subscriber Info</span>
+              <i class="pi pi-chevron-up"></i>
+            </div>
+            <div class="panel-body text-center">
+              <strong>{{ contact?.name || 'Subscriber' }}</strong><br />
+              <span>{{ contact?.uid || 'CNT' }}</span><br />
+              <span>{{ contact?.phone || '' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="erp-panel">
+    <div class="tabs-section">
+      <ul class="tabs-nav">
+        @for (tab of tabs; track tab) {
+          <li class="tab-item" [class.active]="activeTab() === tab" (click)="setActiveTab(tab)">
+            <span>{{ tab }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="panel-body">
+      @if (activeTab() === 'KYC Details') {
+        <div class="section-title mb-3">KYC Documents</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Document Type<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="documentTypes" formControlName="kycDocType" placeholder="Select Document Type" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Document Name<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="documentNames" formControlName="kycDocName" placeholder="Select Document Name" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Reference Number<span class="required">*</span></label><input type="text" class="erp-input" formControlName="kycRefNo" /></div>
+          </div>
+          <div class="col-12 col-md-2">
+            <div class="erp-form-group">
+              <label>Month</label>
+              <ng-select appendTo="body" [items]="months" formControlName="kycMonth" placeholder="Select Month" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-2">
+            <div class="erp-form-group"><label>Year</label><input type="text" class="erp-input" formControlName="kycYear" /></div>
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Upload Identification Proof</label>
+              <div class="erp-file-upload">
+                <input type="text" class="erp-input erp-file-input" readonly />
+                <label class="erp-file-btn"><i class="pi pi-cloud-upload"></i></label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-3 d-flex align-items-end justify-content-end pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'Income Details') {
+        <div class="erp-radio-group mb-3">
+          <label class="erp-radio"><input type="radio" name="incomeType" checked /> Employed</label>
+          <label class="erp-radio"><input type="radio" name="incomeType" /> Self Employed/Business</label>
+        </div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Name of the organization<span class="required">*</span></label><input type="text" class="erp-input" formControlName="orgName" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Nature of the organization<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="organizationNatures" formControlName="orgNature" placeholder="Select Nature of Organization" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Employment Type<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="employmentTypes" formControlName="employmentType" placeholder="Select Employment Type" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Employment ID</label><input type="text" class="erp-input" formControlName="employmentId" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Office Phone No.</label><input type="text" class="erp-input" formControlName="officePhone" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="designations" formControlName="designation" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Total Work Experience (years)</label><input type="text" class="erp-input" formControlName="workExperience" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Employment in current company</label><input type="text" class="erp-input" formControlName="currentCompanyExp" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Reporting to</label><input type="text" class="erp-input" formControlName="reportingTo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Hire Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="hireDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Basic Salary<span class="required">*</span></label><input type="text" class="erp-input" formControlName="basicSalary" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Allowance Amount</label><input type="text" class="erp-input" formControlName="allowanceAmount" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Gross Amount</label><input type="text" class="erp-input" formControlName="grossAmount" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Deduction Amount</label><input type="text" class="erp-input" formControlName="deductionAmount" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Net Amount</label><input type="text" class="erp-input" formControlName="netAmount" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Retirement Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="retirementDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'Nominee Details') {
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group"><label>Nominee Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="nomineeName" /></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group"><label>Age<span class="required">*</span></label><input type="text" class="erp-input" formControlName="nomineeAge" /></div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label>Relationship<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="relationships" formControlName="nomineeRelationship" placeholder="Select Relationship" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group"><label>Address</label><textarea class="erp-textarea" formControlName="nomineeAddress"></textarea></div>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'Bank Details') {
+        <div class="section-title mb-3">Bank Details</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-3">
+            <div class="erp-form-group">
+              <label>Bank Name<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="banks" formControlName="bankName" placeholder="Select Bank" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="erp-form-group"><label>Account Number<span class="required">*</span></label><input type="text" class="erp-input" formControlName="accountNumber" /></div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="erp-form-group"><label>IFSC Code</label><input type="text" class="erp-input" formControlName="ifscCode" /></div>
+          </div>
+          <div class="col-12 col-md-3">
+            <div class="erp-form-group"><label>Branch</label><input type="text" class="erp-input" formControlName="bankBranch" /></div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="bankList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th><th>Primary Account</th><th>Bank Name</th>
+                <th>Account Number</th><th>IFSC Code</th><th>Branch</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(bankList, rowIndex)"></button>
+                </td>
+                <td>{{ row.isPrimary ? 'Yes' : 'No' }}</td><td>{{row.bankName}}</td>
+                <td>{{row.accountNo}}</td><td>{{row.ifsc}}</td><td>{{row.branch}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="6" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ bankList().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Authorized Signatory') {
+        <div class="row g-3">
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Employee<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="[]" formControlName="signatoryEmployee" placeholder="Search Employee" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="designations" formControlName="signatoryDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-2 d-flex align-items-end pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm w-100"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="signatoryList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr><th class="text-center">Actions</th><th>Employee</th><th>Designation</th></tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(signatoryList, rowIndex)"></button>
+                </td>
+                <td>{{row.employee}}</td><td>{{row.designation}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="3" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ signatoryList().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Related Parties') {
+        <div class="row g-3">
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Related Contact</label>
+              <ng-select appendTo="body" [items]="[]" formControlName="relatedContact" placeholder="Search by phone, name etc." [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group"><label>&nbsp;</label><input type="text" class="erp-input" formControlName="relatedContactInfo" /></div>
+          </div>
+          <div class="col-12 col-md-2 d-flex align-items-end pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm w-100"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="relatedPartiesList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr><th class="text-center">Action</th><th>Related Contact Name</th></tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(relatedPartiesList, rowIndex)"></button>
+                </td>
+                <td>{{row.contactName}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="2" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+            <ng-template pTemplate="footer">
+              <tr><td colspan="2">{{ relatedPartiesList().length }} total</td></tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+
+      @if (activeTab() === 'Incharge Details') {
+        <div class="row g-3">
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Incharge Type<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="inchargeTypes" formControlName="inchargeType" placeholder="Select Incharge Type" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Name<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="[]" formControlName="inchargeName" placeholder="Search by Name" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-2 d-flex align-items-end pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm w-100"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="section-title mt-3 mb-2">Select Groups</div>
+        <div class="mt-2">
+          <p-table [value]="inchargeGroupList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr><th>Ticl</th><th>Incl</th><th>Nar</th></tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr><td>{{row.ticl}}</td><td>{{row.incl}}</td><td>{{row.nar}}</td></tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="3" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+            <ng-template pTemplate="footer">
+              <tr><td colspan="3">{{ inchargeGroupList().length }} total</td></tr>
+            </ng-template>
+          </p-table>
+        </div>
+      }
+
+      @if (activeTab() === 'Business Reference') {
+        <div class="row g-3">
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="designations" formControlName="bizDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-5">
+            <div class="erp-form-group">
+              <label>Employee<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="[]" formControlName="bizEmployee" placeholder="Search Employee" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-2 d-flex align-items-end pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm w-100"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="businessRefList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr><th class="text-center">Action</th><th>Designation</th><th>Employee Name</th></tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(businessRefList, rowIndex)"></button>
+                </td>
+                <td>{{row.designation}}</td><td>{{row.employeeName}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="3" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ businessRefList().length }} total</div>
+        </div>
+        <div class="erp-field-error mt-3">Note: Only one Business Reference Allowed<span class="required">*</span></div>
+      }
+    </div>
+  </section>
+</form>

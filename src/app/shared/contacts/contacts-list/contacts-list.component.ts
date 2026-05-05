@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ContactAddComponent } from '../contact-add/contact-add.component';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { SubscriberDetailsComponent } from '../subscriber-details/subscriber-details.component';
+import { EmployeeDetailsComponent } from '../employee-details/employee-details.component';
+import { ChannelPartnerDetailsComponent } from '../channel-partner-details/channel-partner-details.component';
 
 export type ContactRole = 'Subscriber / Customer' | 'Employee' | 'Supplier / Vendor' | 'Advocate' | 'Channel Partner' | 'Freelancer';
 export type ContactTab = 'Contacts' | ContactRole;
@@ -18,6 +21,7 @@ export interface Contact {
   address: string;
   status: 'Active' | 'Inactive';
   photo?: string;
+  panNo?: string;
   type: ContactTab;
   roles?: ContactRole[];
 }
@@ -25,7 +29,7 @@ export interface Contact {
 @Component({
   selector: 'app-contacts-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, ContactAddComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, ContactAddComponent, SubscriberDetailsComponent, EmployeeDetailsComponent, ChannelPartnerDetailsComponent],
   templateUrl: './contacts-list.component.html',
   styleUrl: './contacts-list.component.scss',
 })
@@ -34,6 +38,7 @@ export class ContactsListComponent implements OnInit {
   tabs: ContactTab[] = ['Contacts', ...this.roleTabs];
   statusOptions: ContactStatusFilter[] = ['Active', 'Inactive'];
   pageSizeOptions = [6, 8, 12, 16];
+  tdsOptions = ['194H', '194C', '194J', '194I', '194M', '194N'];
 
   activeTab = signal<ContactTab>('Contacts');
   searchQuery = signal('');
@@ -53,7 +58,7 @@ export class ContactsListComponent implements OnInit {
 
   allContacts = signal<Contact[]>([
     { id: '1', uid: 'CNT2560669', name: 'Uatuser', relation: '', phone: '8466999824', address: '', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
-    { id: '2', uid: 'CNT2560668', name: 'Test Jag Test', relation: 'S/o - Test', phone: '9290218040', address: 'Test,Boduppal,Boduppal,Hyderabad,Telangana', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
+    { id: '2', uid: 'CNT2560668', name: 'Test Jag Test', relation: 'S/o - Test', phone: '9290218040', address: 'Test,Boduppal,Boduppal,Hyderabad,Telangana', status: 'Active', panNo: 'BDOPK4384D', type: 'Contacts', roles: ['Subscriber / Customer'] },
     { id: '3', uid: 'CNT2560667', name: 'Sdfsdfs', relation: 'S/o - Fsdfs', phone: '1313213213', address: 'Dsfgsd,Gsfd,Sfgdgs,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
     { id: '4', uid: 'CNT2560666', name: 'Abc', relation: 'S/o - Fdgfg', phone: '5465465465', address: 'Fdgd,Fdgdf,Sfgdgd,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
     { id: '5', uid: 'EMP1000001', name: 'Ravi Kumar', relation: 'S/o - Suresh Kumar', phone: '9876543210', address: 'Hyderabad, Telangana', status: 'Active', type: 'Contacts', roles: ['Employee'] },
@@ -239,6 +244,11 @@ export class ContactsListComponent implements OnInit {
       'Freelancer': 'pi-star',
     };
     return icons[role];
+  }
+
+  maskPan(pan: string | undefined): string {
+    if (!pan || pan.length < 4) return pan || 'N/A';
+    return 'X'.repeat(pan.length - 4) + pan.slice(-4);
   }
 
   printList() {

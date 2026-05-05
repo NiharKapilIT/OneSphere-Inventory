@@ -853,22 +853,76 @@
             <span class="panel-title">Contact Flags</span>
           </div>
           <div class="panel-body">
-            <div style="display:flex; flex-direction:column; gap:16px;">
-              <label class="erp-checkbox">
+            <div class="flag-details-grid">
+              <label class="erp-checkbox flag-check">
                 <input type="checkbox" formControlName="fabricatedContact" />
-                <span>
-                  <strong>Fabricated Contact</strong>
-                  <span class="text-muted" style="display:block; font-size:11px;">Mark this contact as fabricated / non-genuine</span>
-                </span>
+                <span><strong>Fabricated Contact</strong></span>
               </label>
 
-              <label class="erp-checkbox">
+              @if (form.get('fabricatedContact')?.value) {
+                <div class="erp-form-group">
+                  <label>Fabricated Contact Comments<span class="required">*</span></label>
+                  <textarea class="erp-textarea" formControlName="fabricatedContactComments"></textarea>
+                </div>
+
+                <div class="erp-form-group">
+                  <label>Upload Document<span class="required">*</span></label>
+                  <div class="erp-file-upload flag-upload">
+                    <input
+                      type="text"
+                      class="erp-input erp-file-input"
+                      readonly
+                      formControlName="fabricatedContactDocument" />
+                    <label class="flag-upload-btn" for="fabricatedDocumentInput" title="Upload Document">
+                      <i class="pi pi-cloud-upload"></i>
+                    </label>
+                    <input
+                      id="fabricatedDocumentInput"
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      style="display:none;"
+                      (change)="onFlagDocumentChange($event, 'fabricatedContactDocument')" />
+                  </div>
+                </div>
+              } @else {
+                <div></div>
+                <div></div>
+              }
+
+              <label class="erp-checkbox flag-check">
                 <input type="checkbox" formControlName="paidGuarantor" />
-                <span>
-                  <strong>Paid Guarantor</strong>
-                  <span class="text-muted" style="display:block; font-size:11px;">This contact acts as a paid guarantor</span>
-                </span>
+                <span><strong>Paid Guarantor</strong></span>
               </label>
+
+              @if (form.get('paidGuarantor')?.value) {
+                <div class="erp-form-group">
+                  <label>Paid Guarantor Comments<span class="required">*</span></label>
+                  <textarea class="erp-textarea" formControlName="paidGuarantorComments"></textarea>
+                </div>
+
+                <div class="erp-form-group">
+                  <label>Upload Document<span class="required">*</span></label>
+                  <div class="erp-file-upload flag-upload">
+                    <input
+                      type="text"
+                      class="erp-input erp-file-input"
+                      readonly
+                      formControlName="paidGuarantorDocument" />
+                    <label class="flag-upload-btn" for="paidGuarantorDocumentInput" title="Upload Document">
+                      <i class="pi pi-cloud-upload"></i>
+                    </label>
+                    <input
+                      id="paidGuarantorDocumentInput"
+                      type="file"
+                      accept="image/*,.pdf,.doc,.docx"
+                      style="display:none;"
+                      (change)="onFlagDocumentChange($event, 'paidGuarantorDocument')" />
+                  </div>
+                </div>
+              } @else {
+                <div></div>
+                <div></div>
+              }
             </div>
           </div>
         </div>
