@@ -114,13 +114,13 @@
               </div>
             </div>
             }
-
+<!-- 
             @if (showTypeofPayment()) {
             <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label" id="ptypeofpayment" title="Type of Payment">
                   Type of Payment
-                  <!-- <span class="required">*</span> -->
+                
                 </label>
                 <select class="erp-input"
                   [class.erp-input--invalid]="paymentVoucherForm.get('ptypeofpayment')?.touched && !paymentVoucherForm.get('ptypeofpayment')?.value"
@@ -136,7 +136,36 @@
                 }
               </div>
             </div>
-            }
+            } -->
+
+            @if (showTypeofPayment()) {
+<div class="col-12 col-md-6">
+  <div class="erp-form-group">
+    <label class="erp-label" id="ptypeofpayment" title="Type of Payment">
+      Type of Payment
+    </label>
+    <ng-select 
+      appendTo="body"
+      [items]="typeOfPaymentList"
+      formControlName="ptypeofpayment"
+      bindLabel="ptypeofpayment"
+      bindValue="ptypeofpayment"
+      placeholder="Select"
+      [searchable]="false"
+      [clearable]="false"
+      (change)="typeofPaymentChange()"
+      (close)="paymentVoucherForm.get('ptypeofpayment')?.markAsTouched()"
+      [ngClass]="{
+        'ng-invalid': paymentVoucherForm.get('ptypeofpayment')?.touched && !paymentVoucherForm.get('ptypeofpayment')?.value,
+        'ng-dirty':   paymentVoucherForm.get('ptypeofpayment')?.touched && !paymentVoucherForm.get('ptypeofpayment')?.value
+      }">
+    </ng-select>
+    @if (formValidationMessages['ptypeofpayment']) {
+    <div class="erp-field-error">{{ formValidationMessages['ptypeofpayment'] }}</div>
+    }
+  </div>
+</div>
+}
 
             @if (showBranch()) {
             <div class="col-12 col-md-6">
@@ -162,7 +191,7 @@
                 <label class="erp-label" id="pbankname" title="Bank / Financial Services">
                   Bank / Financial Services
                 </label>
-                <input class="erp-input erp-input--readonly" type="text" readonly formControlName="pbankname" />
+                <input class="erp-input erp-input--readonly" type="text" readonly formControlName="pbankname" placeholder="Auto-filled on card select" />
               </div>
             </div>
             }

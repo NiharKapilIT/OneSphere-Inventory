@@ -225,11 +225,10 @@
           <div class="col-12 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Type Of Payment <span class="required">*</span></label>
+     
               <ng-select appendTo="body" [items]="typeofpaymentlist()" bindLabel="ptypeofpayment"
-                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select"
-                (change)="typeofPaymentChange($event)"
-                (close)="GeneralReceiptForm.get('ptypeofpayment')?.markAsTouched(); GetValidationByControl(GeneralReceiptForm,'ptypeofpayment',true)"
-                [ngClass]="{'ng-invalid': getValidationMsg('ptypeofpayment')}">
+                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select" [loading]="false"
+                (change)="typeofPaymentChange($event)" ...>
               </ng-select>
               @if (getValidationMsg('ptypeofpayment')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
@@ -856,9 +855,9 @@
                   <div class="erp-file-upload">
                     <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
                       [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
-                     <input type="text" class="erp-input erp-file-input"
-  [value]="uploadedFileName() || imageResponse()?.name || ''" 
-  readonly placeholder="No file selected">
+                    <input type="text" class="erp-input erp-file-input"
+                      [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
+                      placeholder="No file selected">
                     <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                       <i class="pi pi-upload"></i> Upload
                     </button>
