@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-
-import { CommonService } from '../Common/common.service';
-=======
 import { HttpParams } from "@angular/common/http";
 import { inject, Injectable } from "@angular/core";
 import { Observable } from "rxjs";
@@ -12,30 +5,11 @@ import { CommonService } from "../Common/common.service";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatDate } from "@angular/common";
->>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47
 
 @Injectable({
   providedIn: 'root',
 })
 export class HrmsPayroll {
-<<<<<<< HEAD
-
-  constructor(
-    private http: HttpClient,
-    private _CommonService: CommonService
-  ) {}
-
-GetCalendarYear(GlobalSchema: string, CompanyName: string): Observable<any> {
-  const params = new HttpParams()
-    .set('GlobalSchema', GlobalSchema)
-    .set('CompanyName', CompanyName)
-    //.set('BranchSchema', BranchSchema)
-   
-
-   return this._CommonService.getAPI('/HRMSTransaction/GetCalendarYear', params, 'YES' );
-}
-}
-=======
   private _CommonService      = inject(CommonService);
   GetCalendarYear(): Observable<any> {
     const params = new HttpParams().set('GlobalSchema', this._CommonService.getschemaname()).set('CompanyName', this._CommonService.getCompanyCode());
@@ -254,4 +228,3 @@ doc.addImage(rupeeImage, x - data.cell.contentWidth, y + 0.5, 1.5, 1.5);
 
 
 }
->>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47

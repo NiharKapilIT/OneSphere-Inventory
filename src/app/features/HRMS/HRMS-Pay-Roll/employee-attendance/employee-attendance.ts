@@ -4,14 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { NgSelectModule } from '@ng-select/ng-select';
-<<<<<<< HEAD
 import { HrmsPayroll } from '../../../../core/services/hrms/hrms-payroll';
 import { CommonService } from '../../../../core/services/Common/common.service';
-=======
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
->>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47
 
 interface EmployeeOption {
   employeeCode: string;
@@ -30,13 +27,10 @@ interface AttendanceRow {
   month: number;
 }
 
-<<<<<<< HEAD
-=======
 interface ExportColumn<T> {
   header: string;
   value: (row: T) => string | number;
 }
->>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47
 
 @Component({
   selector: 'app-employee-attendance',
@@ -74,8 +68,6 @@ yearOptions: number[] = [];
 
     this._hrmsPayroll
       .GetCalendarYear(
-        this.globalSchema,
-        this.companyName,
        // this.branchSchema
       )
       .subscribe({
