@@ -61,6 +61,7 @@
             </div>
 
             <!-- DataTable -->
+            @if(companyshowgrid()){
             <div class="tbl-wrap">
                 <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize"
                     [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px"
@@ -72,7 +73,7 @@
                     <ng-template pTemplate="header">
                         <tr>
 
-                            @if(companyshowgrid()){
+
                             <th>
                                 <div class="th-cell">Company Name</div>
                             </th>
@@ -88,8 +89,11 @@
                             <th>
                                 <div class="th-cell">Regristration addres</div>
                             </th>
-                            }
+                            <th>
+                                <div class="th-cell">Company logo</div>
+                            </th>
 
+                            <!-- 
                             @if(branchshowgrid()){
                             <th>
                                 <div class="th-cell">Branch Name</div>
@@ -112,7 +116,23 @@
                             <th>
                                 <div class="th-cell">Status</div>
                             </th>
-                            }
+                            } -->
+
+                        </tr>
+                    </ng-template>
+
+                    <ng-template pTemplate="body" let-rowData>
+                        <tr>
+
+
+                            <td>{{ rowData.companyName }}</td>
+                            <td>{{ rowData.companyCode }}</td>
+                            <td>{{ rowData.cinNumber }}</td>
+                            <td>{{ rowData.panNumber }}</td>
+                            <td>{{ rowData.registrationAddress }}</td>
+                            <td>
+                            <img [src]="rowData.companyLogo" [alt]="rowData.companyLogo" class="sos-preview-img" width="50"/>
+                        </td>
 
                         </tr>
                     </ng-template>
@@ -131,6 +151,7 @@
 
                 </p-table>
             </div>
+            }
 
         </div>
 
@@ -227,7 +248,7 @@
                                             <div class="file-upload-container">
                                                 <p-fileupload #fileUpload name="logo[]" [multiple]="false"
                                                     accept="image/jpeg,image/jpg,image/png,image/svg+xml"
-                                                    maxFileSize="2000000" [auto]="true"(onSelect)="onUpload($event)"
+                                                    maxFileSize="2000000" [auto]="true" (onSelect)="onUpload($event)"
                                                     [showUploadButton]="false" [showCancelButton]="false"
                                                     customUpload="true" styleClass="file-upload-custom">
                                                     <ng-template #empty>
@@ -320,3 +341,4 @@
     </div>
 
 </div>
+

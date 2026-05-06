@@ -529,6 +529,7 @@ import {
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { DatePickerModule } from 'primeng/datepicker';
+import { NoLeadingZero } from '../../../../core/directive/no-leading-zero';
 
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -583,7 +584,8 @@ export type SaveType = 'Active' | 'InActive';
     ButtonModule,
     NgSelectModule,
     RouterModule,
-    DatePickerModule
+    DatePickerModule,
+    NoLeadingZero
   ],
   templateUrl: './cheque-managementnew.html',
   styleUrl: './cheque-managementnew.css',

@@ -8,6 +8,7 @@ import {
   computed,
   DestroyRef,
   ChangeDetectorRef,
+  
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { viewChild } from '@angular/core';
@@ -35,6 +36,7 @@ import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
+import { NoLeadingZero } from '../../../../core/directive/no-leading-zero';
 
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
@@ -98,6 +100,7 @@ interface BankMasterFormShape {
     NgSelectModule,
     ButtonModule,
     RouterModule,
+    NoLeadingZero
   ],
   templateUrl: './bank-config.html',
   styleUrls: ['./bank-config.css'],
@@ -431,6 +434,27 @@ export class BankConfig implements OnInit {
     }
   }
 
+onAccountNumberChange(event: any): void {
+  const accountNumber = (event.target as HTMLInputElement).value;
+  const bankName = this.bankname || this.bankmasterform.get('bankName')?.value || '';
+  const accountName = bankName && accountNumber
+    ? `${bankName}@${accountNumber}`
+    : bankName || '';
+  this.bankmasterform.get('account_name')?.setValue(accountName);
+}
+
+  allowNumbersOnly(event: KeyboardEvent): void {
+    const charCode = event.which || event.keyCode;
+    const input    = event.target as HTMLInputElement;
+    const allowed  = [8, 9, 37, 39, 46];
+
+    if ((charCode < 48 || charCode > 57) && !allowed.includes(charCode)) {
+      event.preventDefault();
+    }
+    if (charCode === 46 && input.value.includes('.')) event.preventDefault();
+     if (charCode === 48 && input.value.length === 0) event.preventDefault();
+  }
+
   // ── Calendar helper ──────────────────────────────────────────────────────────
   onOpenCalendar(container: any): void {
     container.monthSelectHandler = (event: any): void => {
@@ -492,16 +516,16 @@ allowNumbersOnly1(event: any) {
 
 
 
-  allowNumbersOnly(event: KeyboardEvent): void {
-    const charCode = event.which || event.keyCode;
-    const input    = event.target as HTMLInputElement;
-    const allowed  = [8, 9, 37, 39, 46];
+  // allowNumbersOnly(event: KeyboardEvent): void {
+  //   const charCode = event.which || event.keyCode;
+  //   const input    = event.target as HTMLInputElement;
+  //   const allowed  = [8, 9, 37, 39, 46];
 
-    if ((charCode < 48 || charCode > 57) && !allowed.includes(charCode)) {
-      event.preventDefault();
-    }
-    if (charCode === 46 && input.value.includes('.')) event.preventDefault();
-  }
+  //   if ((charCode < 48 || charCode > 57) && !allowed.includes(charCode)) {
+  //     event.preventDefault();
+  //   }
+  //   if (charCode === 46 && input.value.includes('.')) event.preventDefault();
+  // }
 
   blockNonNumericPaste(event: ClipboardEvent): void {
     const paste = event.clipboardData?.getData('text') || '';
