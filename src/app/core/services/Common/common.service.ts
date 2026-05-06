@@ -6051,7 +6051,10 @@ CompanyName: string = '';
 
 
 
+  GetDesignations(): Observable<any> {
+    return this.getAPI('/Common/GetDesignations', '', 'NO');
 
+  }
 
 
 
