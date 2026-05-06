@@ -36,8 +36,7 @@ import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
-import { NoLeadingZero } from '../../../../core/directive/no-leading-zero';
-
+import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
   modeOfReceipt: FormControl<string | null>;
