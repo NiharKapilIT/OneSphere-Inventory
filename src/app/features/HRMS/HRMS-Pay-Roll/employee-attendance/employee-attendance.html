@@ -15,15 +15,40 @@
           <div class="col-xl-4 col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Employee Name</label>
-              <ng-select
-                [items]="employeeOptions"
-                [(ngModel)]="selectedEmployee"
-                bindLabel="employeeName"
-                placeholder="Search by employee name"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
-              </ng-select>
+            <ng-select
+  [items]="employeeOptions"
+  [(ngModel)]="selectedEmployee"
+  bindLabel="employeeName"
+  bindValue="employeeCode"
+  placeholder="Search by employee name"
+  [searchable]="true"
+  [clearable]="true"
+  [minTermLength]="3"
+  appendTo="body">
+
+  <ng-template ng-header-tmp>
+    <div style="display:grid; grid-template-columns:1.5fr 2fr 1.5fr 2fr; gap:8px; font-weight:600; font-size:13px; color:#555; border-bottom:1px solid #e0e0e0; padding:6px 8px;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Employee Code</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Name</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Mobile No.</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Email Id</span>
+    </div>
+  </ng-template>
+
+  <ng-template ng-option-tmp let-item="item">
+    <div style="display:grid; grid-template-columns:1.5fr 2fr 1.5fr 2fr; gap:8px; font-size:13px;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.employeeCode }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.employeeName }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.mobileNo }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.emailId }}</span>
+    </div>
+  </ng-template>
+
+  <ng-template ng-label-tmp let-item="item">
+    <span>{{ item.employeeName }}</span>
+  </ng-template>
+
+</ng-select>
             </div>
           </div>
 
@@ -65,19 +90,19 @@
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
               <button type="button" class="erp-btn btn-primary w-100" (click)="runAttendance()">
-                <i class="pi pi-play"></i> Run
+                <i class="pi pi-play"></i> Run Attendance
               </button>
             </div>
           </div>
 
-          <div class="col-xl-2 col-lg-2 col-md-6">
+          <!--<div class="col-xl-2 col-lg-2 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
               <button type="button" class="erp-btn btn-white w-100" (click)="onClear()">
                 <i class="pi pi-times"></i> Clear
               </button>
             </div>
-          </div>
+          </div>-->
 
         </div>
       </div>
@@ -116,6 +141,8 @@
               <th>Total SL</th>
               <th>CL</th>
               <th>Total CL</th>
+              <th>Others</th>
+              <th>LOP</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>
@@ -127,6 +154,8 @@
               <td>{{ row.totalSl }}</td>
               <td>{{ row.cl }}</td>
               <td>{{ row.totalCl }}</td>
+              <td>{{ row.others}}</td>
+              <td>{{ row.lop}}</td>
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
@@ -141,6 +170,15 @@
           </ng-template>
         </p-table>
       </div>
+      <div class="card-footer d-flex justify-end gap-2">
+        <button type="button" class="erp-btn btn-white">
+          <i class="pi pi-times"></i> Cancel
+        </button>
+        <button type="button" class="erp-btn btn-primary">
+          <i class="pi pi-check"></i> Save
+        </button>
+      </div>
+
 
     </div>
   </div>

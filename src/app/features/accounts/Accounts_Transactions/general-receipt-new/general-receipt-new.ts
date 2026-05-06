@@ -254,8 +254,10 @@ export class GeneralReceiptNew implements OnInit {
       ppartyname: [''],
       ppartyid: [null, Validators.required],
       pistdsapplicable: [false],
-      pTdsSection: ['null'],
-      pTdsPercentage: [null, percentageValidator],
+      // pTdsSection: ['null'],
+      // pTdsPercentage: [null, percentageValidator],
+      pTdsSection: [''],
+      pTdsPercentage: ['', percentageValidator],
       ptdsamount: [0],
       ptdscalculationtype: [''],
       ppartypannumber: [''],
@@ -694,10 +696,10 @@ export class GeneralReceiptNew implements OnInit {
     // } 
 
     if (type === 'Online') {
-  this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
-  this.GeneralReceiptForm.get('pChequenumber')?.disable();
-}
-    
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
+      this.GeneralReceiptForm.get('pChequenumber')?.disable();
+    }
+
     else {
       this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
       this.GeneralReceiptForm.get('pChequenumber')?.enable();
@@ -1060,7 +1062,7 @@ export class GeneralReceiptNew implements OnInit {
       this._resetGstFlags();
       ['pgstcalculationtype', 'pgstpercentage', 'pgsttype'].forEach(k =>
         this.GeneralReceiptForm.get(`preceiptslist.${k}`)
-          ?.setValue(k === 'pgstcalculationtype' ? 'INCLUDE' : '')
+          ?.setValue(k === 'pgstcalculationtype' ? 'INCLUDE' : null)
       );
       ['pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount'].forEach(k =>
         this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0)
@@ -1102,7 +1104,7 @@ export class GeneralReceiptNew implements OnInit {
 
   gst_Change($event: any): void {
     if (!$event) {
-      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue('');
+      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
       ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
         'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
         .forEach(k => this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0));
@@ -1191,15 +1193,15 @@ export class GeneralReceiptNew implements OnInit {
     const stateCtrl = this.GeneralReceiptForm.get('preceiptslist.pStateId');
 
     if (on) {
-      if (this.statelist().length !== 1) stateCtrl?.setValidators(Validators.required);
-      else stateCtrl?.clearValidators();
-      pctCtrl?.setValidators([Validators.required, percentageValidator]);
-      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue('');
-    } else {
-      stateCtrl?.clearValidators();
-      pctCtrl?.clearValidators();
-      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue('');
-    }
+  if (this.statelist().length !== 1) stateCtrl?.setValidators(Validators.required);
+  else stateCtrl?.clearValidators();
+  pctCtrl?.setValidators([Validators.required, percentageValidator]);
+  this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
+} else {
+  stateCtrl?.clearValidators();
+  pctCtrl?.clearValidators();
+  this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
+}
     stateCtrl?.updateValueAndValidity();
     pctCtrl?.updateValueAndValidity();
     // this.formValidationMessages = {};
@@ -1210,15 +1212,16 @@ export class GeneralReceiptNew implements OnInit {
   istdsapplicableChange(): void {
     const on = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
     if (on) {
-      this.showtds.set(true);
-      this.GeneralReceiptForm.controls['ptdscalculationtype'].setValue('EXCLUDE');
-    } else {
+  this.showtds.set(true);
+  this.GeneralReceiptForm.controls['ptdscalculationtype'].setValue('EXCLUDE');
+  this.GeneralReceiptForm.controls['pTdsSection'].setValue(null);
+  this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+  this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
+}else {
       this.showtds.set(false);
-      // ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
-      //   this.GeneralReceiptForm.controls[f].setValue(f === 'pTdsPercentage' ? '' : '')
-      // );
 
-      ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
+     
+ ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
   this.GeneralReceiptForm.controls[f].setValue(null)
 );
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
@@ -1241,7 +1244,9 @@ export class GeneralReceiptNew implements OnInit {
     const section = event?.pTdsSection;
     this.tdspercentagelist.set([]);
     //this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
-    this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+   // this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+ //  this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
+ this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
     this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     if (section) {
       this.tdspercentagelist.set(this.tdslist().filter((r: any) => r.pTdsSection == section));
@@ -1521,7 +1526,7 @@ export class GeneralReceiptNew implements OnInit {
     //     f === 'ptdsamount' ? 0 : f === 'pTdsPercentage' ? 0 : ''
     //   )
     // );
-    
+
 
     this.tdsvalidation(false);
     this.showsubledger.set(true);
@@ -1554,12 +1559,18 @@ export class GeneralReceiptNew implements OnInit {
       pgstcalculationtype: 'INCLUDE'
     });
 
+    // this.GeneralReceiptForm.patchValue({
+    //   pistdsapplicable: false,
+    //   pTdsSection: null,
+    //   pTdsPercentage: null,
+    //   ptdsamount: 0
+    // });
     this.GeneralReceiptForm.patchValue({
-      pistdsapplicable: false,
-      pTdsSection: null,
-      pTdsPercentage: null,
-      ptdsamount: 0
-    });
+  pistdsapplicable: false,
+  pTdsSection: '',
+  pTdsPercentage: '',
+  ptdsamount: 0
+});
 
     // clear validators so Save click won't fire on these empty fields
     ctrl.get('pactualpaidamount')?.clearValidators();

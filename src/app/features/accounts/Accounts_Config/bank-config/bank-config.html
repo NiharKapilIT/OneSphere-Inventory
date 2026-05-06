@@ -56,9 +56,9 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Account No. <span class="required">*</span></label>
                   <input class="erp-input" type="text" [attr.disabled]="accountno() ? '' : null"
-                    formControlName="pAccountnumber" (input)="allowNumbersOnly1($event)" maxlength="16"
-                    inputmode="numeric" pattern="[0-9]*"
-                    [class.is-invalid]="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" />
+  formControlName="pAccountnumber" appNoLeadingZero (input)="onAccountNumberChange($event)"
+  maxlength="18" inputmode="numeric"
+  [class.is-invalid]="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" />
                   <!-- <div *ngIf="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" class="erp-field-error">
                     Account No is required
                   </div> -->

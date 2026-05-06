@@ -26,6 +26,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { AccountsReports } from '../../../../core/services/accounts/accounts-reports';
 
+
 export interface StatusOption {
   label: string;
   value: string;
@@ -225,6 +226,9 @@ export class ChequeManagement implements OnInit, OnDestroy {
     this.pageCriteria.totalrows = filtered.length;
     this.pageCriteria.TotalPages = Math.ceil(filtered.length / this.pageSize) || 1;
     this.pageCriteria.currentPageRows = filtered.length;
+
+      this.totalRecords.set(filtered.length);
+
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
