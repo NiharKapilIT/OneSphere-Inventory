@@ -1,0 +1,703 @@
+<form [formGroup]="form">
+  <section class="erp-panel mb-3">
+    <div class="panel-body">
+      <div class="section-title mb-3">Employment & Salary Info</div>
+      <div class="row g-3">
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Designation<span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="designations" formControlName="designation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Role<span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="roles" formControlName="role" placeholder="Select Role" [searchable]="true" [clearable]="true"></ng-select>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Branch Name<span class="required">*</span></label>
+            <ng-select appendTo="body" [items]="branches" formControlName="branch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Basic Salary<span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="basicSalary" />
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Allowance / Variable Pay<span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="allowance" />
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Total Cost to Company (CTC)</label>
+            <strong class="erp-input d-flex align-items-center">₹ 0</strong>
+          </div>
+        </div>
+        <div class="col-12">
+          <label class="erp-checkbox"><input type="checkbox" formControlName="payrollEligible" /><span>Payroll Eligible</span></label>
+        </div>
+      </div>
+
+      <div class="section-title mt-4 mb-3">Personal Details</div>
+      <div class="row g-3">
+        <div class="col-12 col-lg-4">
+          <section class="erp-panel mb-0">
+            <div class="panel-body">
+              <div class="section-title mb-3">Residential Status<span class="required">*</span></div>
+              <div class="erp-radio-group flex-column align-items-start">
+                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Resident" /> Resident</label>
+                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Non-Resident" /> Non-Resident</label>
+                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Foreign National" /> Foreign National</label>
+                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Person of Indian Origin" /> Person of Indian Origin</label>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <section class="erp-panel mb-0">
+            <div class="panel-body">
+              <div class="section-title mb-3">Birth & Nationality</div>
+              <div class="erp-form-group">
+                <label>Place of Birth</label>
+                <input type="text" class="erp-input" formControlName="placeOfBirth" />
+              </div>
+              <div class="erp-form-group">
+                <label>Country of Birth</label>
+                <ng-select appendTo="body" [items]="countries" formControlName="countryOfBirth" placeholder="Select Country" [searchable]="true" [clearable]="false"></ng-select>
+              </div>
+              <div class="erp-form-group">
+                <label>Nationality/Citizen of</label>
+                <input type="text" class="erp-input" formControlName="nationality" />
+              </div>
+              <div class="erp-form-group">
+                <label>Community Details</label>
+                <ng-select appendTo="body" [items]="communities" formControlName="community" placeholder="Select Community" [searchable]="true" [clearable]="false"></ng-select>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <section class="erp-panel mb-0">
+            <div class="panel-body">
+              <div class="section-title mb-3">Marital Status<span class="required">*</span></div>
+              <div class="erp-radio-group flex-column align-items-start">
+                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Married" /> Married</label>
+                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Single" /> Single</label>
+                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Separated" /> Separated</label>
+                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Widowed" /> Widowed</label>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="erp-panel">
+    <div class="tabs-section">
+      <ul class="tabs-nav">
+        @for (tab of tabs; track tab) {
+          <li class="tab-item" [class.active]="activeTab() === tab" (click)="setActiveTab(tab)">
+            <span>{{ tab }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="panel-body">
+      @if (activeTab() === 'General Information') {
+        <div class="section-title mb-3">General Information</div>
+        <div class="row g-3">
+          <div class="col-12 d-flex justify-content-end gap-3">
+            <label class="erp-checkbox"><input type="checkbox" formControlName="esiEligible" /><span>ESI Eligible</span></label>
+            <label class="erp-checkbox"><input type="checkbox" formControlName="pfEligible" /><span>PF Eligible</span></label>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>K.H.C No.</label><input type="text" class="erp-input" formControlName="khcNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Passport No.</label><input type="text" class="erp-input" formControlName="passportNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>PAN Card No.<span class="required">*</span></label><input type="text" class="erp-input" formControlName="panNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Driving License No.</label><input type="text" class="erp-input" formControlName="drivingLicenseNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Department<span class="required">*</span></label><input type="text" class="erp-input" formControlName="department" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Joined As<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="joinedAsOptions" formControlName="joinedAs" placeholder="Select Joined As" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Join Date<span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="joinDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Date Of Reporting<span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="dateOfReporting"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>DOJ In This Branch<span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="dojInThisBranch"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Earned Leaves Claim Branch</label>
+              <ng-select appendTo="body" [items]="branches" formControlName="earnedLeavesBranch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Previous Earned Leaves Claim Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="prevEarnedLeavesClaimDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Blood Group</label>
+              <ng-select appendTo="body" [items]="bloodGroups" formControlName="bloodGroup" placeholder="Select Blood Group" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>UAN Number</label><input type="text" class="erp-input" formControlName="uanNumber" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Health Problems<span class="required">*</span></label><input type="text" class="erp-input" formControlName="healthProblems" /></div>
+          </div>
+          <div class="col-12">
+            <label class="erp-checkbox"><input type="checkbox" formControlName="physicalHandicap" /><span>Physical handicap <span class="erp-field-error">*Only for 40% Disable</span></span></label>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'Family Details') {
+        <div class="section-title mb-3">Family Details</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Relationship<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="relationships" formControlName="familyRelationship" placeholder="Select Relationship" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="familyName" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Date of Birth<span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="familyDob"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Age</label><input type="text" class="erp-input" formControlName="familyAge" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Gender<span class="required">*</span></label>
+              <div class="erp-radio-group">
+                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Male" /> Male</label>
+                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Female" /> Female</label>
+                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Third Gender" /> Third Gender</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Martial Status<span class="required">*</span></label>
+              <div class="erp-radio-group">
+                <label class="erp-radio"><input type="radio" formControlName="familyMartialStatus" value="Married" /> Married</label>
+                <label class="erp-radio"><input type="radio" formControlName="familyMartialStatus" value="Un-married" /> Un-married</label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Education</label>
+              <ng-select appendTo="body" [items]="educationOptions" formControlName="familyEducation" placeholder="Select Education" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Occupation</label><input type="text" class="erp-input" formControlName="familyOccupation" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Phone No.</label><input type="text" class="erp-input" formControlName="familyPhone" /></div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="familyMembers()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th>
+                <th>Relation</th><th>Name</th><th>DOB</th><th>Age</th><th>Gender</th>
+                <th>Martial Status</th><th>Education</th><th>Occupation</th><th>Phone No.</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(familyMembers, rowIndex)"></button>
+                </td>
+                <td>{{row.relation}}</td><td>{{row.name}}</td><td>{{row.dob}}</td><td>{{row.age}}</td>
+                <td>{{row.gender}}</td><td>{{row.martialStatus}}</td><td>{{row.education}}</td>
+                <td>{{row.occupation}}</td><td>{{row.phone}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="10" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ familyMembers().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Education') {
+        <div class="section-title mb-3">Education</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Course<span class="required">*</span></label><input type="text" class="erp-input" formControlName="course" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Group<span class="required">*</span></label><input type="text" class="erp-input" formControlName="educationGroup" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>School / College<span class="required">*</span></label><input type="text" class="erp-input" formControlName="college" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Place<span class="required">*</span></label><input type="text" class="erp-input" formControlName="educationPlace" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Year</label><input type="text" class="erp-input" formControlName="year" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>% Of Marks</label><input type="text" class="erp-input" formControlName="marks" /></div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="educationList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th>
+                <th>Course</th><th>Group</th><th>School / College</th><th>Place</th><th>Year</th><th>% of Marks</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(educationList, rowIndex)"></button>
+                </td>
+                <td>{{row.course}}</td><td>{{row.group}}</td><td>{{row.college}}</td>
+                <td>{{row.place}}</td><td>{{row.year}}</td><td>{{row.marks}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="7" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ educationList().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Previous Experience Details') {
+        <div class="section-title mb-3">Previous Experience Details</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Organization Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="orgName" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="designations" formControlName="expDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>From Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="expFromDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>To Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="expToDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Last Pay</label><input type="text" class="erp-input" formControlName="lastPay" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Reason For Leaving<span class="required">*</span></label><input type="text" class="erp-input" formControlName="reasonForLeaving" /></div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="experienceList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th>
+                <th>Organization Name</th><th>Designation</th><th>From Date</th><th>To Date</th>
+                <th>Last Pay</th><th>Reason For Leaving</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(experienceList, rowIndex)"></button>
+                </td>
+                <td>{{row.orgName}}</td><td>{{row.designation}}</td><td>{{row.fromDate}}</td>
+                <td>{{row.toDate}}</td><td>{{row.lastPay}}</td><td>{{row.reason}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="7" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ experienceList().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Kapil Career') {
+        <div class="section-title mb-3">Kapil Career</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Company / Office<span class="required">*</span></label><input type="text" class="erp-input" formControlName="company" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Designation<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="designations" formControlName="careerDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>From Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="careerFromDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>To Date</label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="careerToDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>SSC Minutes No.</label><input type="text" class="erp-input" formControlName="sscNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Reason For Transfer<span class="required">*</span></label><input type="text" class="erp-input" formControlName="reasonForTransfer" /></div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="careerList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th>
+                <th>Company / Office</th><th>Designation</th><th>From Date</th><th>To Date</th>
+                <th>SSC No.</th><th>Reason For Transfer</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(careerList, rowIndex)"></button>
+                </td>
+                <td>{{row.company}}</td><td>{{row.designation}}</td><td>{{row.fromDate}}</td>
+                <td>{{row.toDate}}</td><td>{{row.sscNo}}</td><td>{{row.reason}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="7" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ careerList().length }} total</div>
+        </div>
+      }
+
+      @if (activeTab() === 'Department Training') {
+        <div class="section-title mb-3">Department Training</div>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Course Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="courseName" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Date<span class="required">*</span></label>
+              <div class="erp-input-wrap erp-date-wrap">
+                <i class="pi pi-calendar erp-input-icon"></i>
+                <p-datepicker formControlName="trainingDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  [baseZIndex]="12000"
+                  panelStyleClass="contact-date-picker-panel"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"
+                  [maxDate]="pDatepickerMaxDate">
+                </p-datepicker>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 d-flex justify-content-end">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="trainingList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Actions</th><th>Name of the Course</th><th>Date</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(trainingList, rowIndex)"></button>
+                </td>
+                <td>{{row.courseName}}</td><td>{{row.date}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="3" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ trainingList().length }} total</div>
+        </div>
+        <div class="row g-3 mt-2">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Disciplinary Actions</label><input type="text" class="erp-input" formControlName="disciplinaryActions" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Extra Curricular Activities</label><input type="text" class="erp-input" formControlName="extraCurricular" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>List Of Copies</label>
+              <div class="erp-file-upload">
+                <input type="text" class="erp-input erp-file-input" readonly />
+                <label class="erp-file-btn"><i class="pi pi-cloud-upload"></i></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (activeTab() === 'Employee Documents') {
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Document Type<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="documentTypes" formControlName="docType" placeholder="Select Document Type" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Document Name<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="documentNames" formControlName="docName" placeholder="Select Document Name" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group"><label>Reference Number</label><input type="text" class="erp-input" formControlName="refNo" /></div>
+          </div>
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <label>Upload Identification Proof</label>
+              <div class="erp-file-upload">
+                <input type="text" class="erp-input erp-file-input" readonly />
+                <label class="erp-file-btn"><i class="pi pi-cloud-upload"></i></label>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md-8 d-flex align-items-end justify-content-center pb-3">
+            <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
+          </div>
+        </div>
+        <div class="mt-3">
+          <p-table [value]="documentsList()" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            responsiveLayout="scroll" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+            <ng-template pTemplate="header">
+              <tr>
+                <th class="text-center">Action</th><th>Document Type</th><th>Document Name</th><th>Reference No</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+              <tr>
+                <td class="text-center">
+                  <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                    (click)="deleteRow(documentsList, rowIndex)"></button>
+                </td>
+                <td>{{row.docType}}</td><td>{{row.docName}}</td><td>{{row.refNo}}</td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr><td colspan="4" class="grn-table-empty">No Data To Display</td></tr>
+            </ng-template>
+          </p-table>
+          <div class="grn-table-count">{{ documentsList().length }} total</div>
+        </div>
+      }
+    </div>
+  </section>
+</form>

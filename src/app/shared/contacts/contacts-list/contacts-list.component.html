@@ -316,7 +316,7 @@
   <div class="modal-overlay" (click)="closeRoleForm()"></div>
 
   <div class="role-modal-wrap">
-    <div class="role-modal" (click)="$event.stopPropagation()">
+    <div class="role-modal" [class.subscriber-role-modal]="roleModalRole() === 'Subscriber / Customer' || roleModalRole() === 'Employee'" (click)="$event.stopPropagation()">
       <div class="role-modal-header">
         <div class="contacts-heading">
           <span class="contacts-heading-icon">
@@ -335,127 +335,73 @@
 
       <div class="role-modal-body">
         @if (roleModalRole() === 'Subscriber / Customer') {
-          <div class="role-form-grid">
-            <div class="erp-form-group">
-              <label>Customer Type</label>
-              <ng-select appendTo="body" [items]="['Subscriber', 'Customer', 'Both']" placeholder="Select customer type" [searchable]="true" [clearable]="true"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label>Group / Scheme</label>
-              <input type="text" class="erp-input" placeholder="Select or enter scheme" />
-            </div>
-            <div class="erp-form-group">
-              <label>Customer Branch</label>
-              <input type="text" class="erp-input" placeholder="Branch" />
-            </div>
-            <div class="erp-form-group">
-              <label>Introducer</label>
-              <input type="text" class="erp-input" placeholder="Introducer contact" />
-            </div>
-          </div>
+          <app-subscriber-details [contact]="roleModalContact()"></app-subscriber-details>
         }
 
         @if (roleModalRole() === 'Employee') {
-          <div class="role-form-grid">
-            <div class="erp-form-group">
-              <label>Employee Code</label>
-              <input type="text" class="erp-input" placeholder="Employee code" />
-            </div>
-            <div class="erp-form-group">
-              <label>Department</label>
-              <input type="text" class="erp-input" placeholder="Department" />
-            </div>
-            <div class="erp-form-group">
-              <label>Designation</label>
-              <input type="text" class="erp-input" placeholder="Designation" />
-            </div>
-            <div class="erp-form-group">
-              <label>Date of Joining</label>
-              <input type="date" class="erp-input" />
-            </div>
-          </div>
+          <app-employee-details [contact]="roleModalContact()"></app-employee-details>
         }
 
         @if (roleModalRole() === 'Supplier / Vendor') {
-          <div class="role-form-grid">
-            <div class="erp-form-group">
-              <label>Vendor Type</label>
-              <ng-select appendTo="body" [items]="['Goods', 'Services', 'Consultant', 'Contractor']" placeholder="Select vendor type" [searchable]="true" [clearable]="true"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label>GST No.</label>
-              <input type="text" class="erp-input" placeholder="GST number" />
-            </div>
-            <div class="erp-form-group">
-              <label>Payment Terms</label>
-              <input type="text" class="erp-input" placeholder="Payment terms" />
-            </div>
-            <div class="erp-form-group">
-              <label>Vendor Category</label>
-              <input type="text" class="erp-input" placeholder="Category" />
+          <div class="role-info-card-wrap">
+            <div class="role-info-card">
+              <div class="contact-avatar">
+                @if (roleModalContact()?.photo) {
+                  <img [src]="roleModalContact()?.photo" alt="avatar" />
+                } @else {
+                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
+                }
+              </div>
+              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
             </div>
           </div>
         }
 
         @if (roleModalRole() === 'Advocate') {
-          <div class="role-form-grid">
-            <div class="erp-form-group">
-              <label>Enrollment No.</label>
-              <input type="text" class="erp-input" placeholder="Bar enrollment no." />
-            </div>
-            <div class="erp-form-group">
-              <label>Practice Area</label>
-              <input type="text" class="erp-input" placeholder="Civil, criminal, recovery..." />
-            </div>
-            <div class="erp-form-group">
-              <label>Court / Jurisdiction</label>
-              <input type="text" class="erp-input" placeholder="Court / jurisdiction" />
-            </div>
-            <div class="erp-form-group">
-              <label>Retainer Fee</label>
-              <input type="number" class="erp-input" placeholder="Amount" />
+          <div class="role-info-card-wrap">
+            <div class="role-info-card">
+              <div class="contact-avatar">
+                @if (roleModalContact()?.photo) {
+                  <img [src]="roleModalContact()?.photo" alt="avatar" />
+                } @else {
+                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
+                }
+              </div>
+              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
             </div>
           </div>
         }
 
         @if (roleModalRole() === 'Channel Partner') {
-          <div class="role-form-grid">
-            <div class="erp-form-group">
-              <label>Partner Code</label>
-              <input type="text" class="erp-input" placeholder="Partner code" />
-            </div>
-            <div class="erp-form-group">
-              <label>Partner Type</label>
-              <ng-select appendTo="body" [items]="['Referral', 'Sales', 'Collection', 'Business Associate']" placeholder="Select partner type" [searchable]="true" [clearable]="true"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label>Commission %</label>
-              <input type="number" class="erp-input" placeholder="Commission" />
-            </div>
-            <div class="erp-form-group">
-              <label>Assigned Territory</label>
-              <input type="text" class="erp-input" placeholder="Territory" />
-            </div>
-          </div>
+          <app-channel-partner-details [contact]="roleModalContact()"></app-channel-partner-details>
         }
 
         @if (roleModalRole() === 'Freelancer') {
-          <div class="role-form-grid">
+          <div class="role-pan-section">
+            <div class="role-pan-row">
+              <span class="role-pan-label">PAN</span>
+              @if (roleModalContact()?.panNo) {
+                <span class="role-pan-available"><i class="pi pi-check-circle"></i> Available</span>
+              } @else {
+                <span class="role-pan-unavailable"><i class="pi pi-times-circle"></i> Not Available</span>
+              }
+            </div>
+            <div class="role-pan-number">{{ maskPan(roleModalContact()?.panNo) }}</div>
+          </div>
+          <div class="role-form-grid mt-3">
             <div class="erp-form-group">
-              <label>Skill / Service</label>
-              <input type="text" class="erp-input" placeholder="Service area" />
+              <label>TDS Section No.<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="tdsOptions" placeholder="Select TDS Section" [searchable]="true" [clearable]="false"></ng-select>
             </div>
             <div class="erp-form-group">
-              <label>Engagement Type</label>
-              <ng-select appendTo="body" [items]="['Hourly', 'Project', 'Retainer']" placeholder="Select engagement" [searchable]="true" [clearable]="true"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label>Rate</label>
-              <input type="number" class="erp-input" placeholder="Rate" />
-            </div>
-            <div class="erp-form-group">
-              <label>Work Location</label>
-              <input type="text" class="erp-input" placeholder="Remote / branch / field" />
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="[]" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
         }

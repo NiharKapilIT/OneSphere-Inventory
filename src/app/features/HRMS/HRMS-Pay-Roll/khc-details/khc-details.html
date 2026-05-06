@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -11,6 +11,21 @@
 
       <!-- Employee Grid -->
       <div class="p-4">
+        <div class="erp-table-toolbar tbl-toolbar-flush">
+          <h5 class="section-title mb-0">Employee List</h5>
+          <div class="payroll-grid-actions">
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printEmployeeList()">
+              <i class="pi pi-print"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Excel" aria-label="Export Excel" (click)="exportEmployeeListExcel()">
+              <i class="pi pi-file-excel"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export PDF" aria-label="Export PDF" (click)="exportEmployeeListPdf()">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+          </div>
+        </div>
+
         <p-table
           [value]="employeeList"
           [paginator]="true"
@@ -85,7 +100,15 @@
               <label class="erp-label">Kapil Group Join Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.kapilGroupJoinDate" />
+                <p-datepicker
+                  [(ngModel)]="formData.kapilGroupJoinDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
               </div>
             </div>
           </div>
@@ -103,7 +126,15 @@
               <label class="erp-label">Employee Policy Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.employeePolicyDate" />
+                <p-datepicker
+                  [(ngModel)]="formData.employeePolicyDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
               </div>
             </div>
           </div>
@@ -113,7 +144,15 @@
               <label class="erp-label">Renewal Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" [(ngModel)]="formData.renewalDate" />
+                <p-datepicker
+                  [(ngModel)]="formData.renewalDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
               </div>
             </div>
           </div>
