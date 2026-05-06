@@ -34,29 +34,20 @@
 
         <label>
           <span>Date Range</span>
-          <ng-select
-            appendTo="body"
-            [items]="dateRanges"
-            [(ngModel)]="dateRange"
-            placeholder="Select"
-            [searchable]="true"
-            [clearable]="true"
-          ></ng-select>
+          <div class="date-range-control">
+            <ng-select
+              appendTo="body"
+              [items]="dateRanges"
+              [(ngModel)]="dateRange"
+              placeholder="Select"
+              [searchable]="true"
+              [clearable]="true"
+            ></ng-select>
+            <button type="button" class="dash-btn icon-only refresh-only" aria-label="Refresh dashboard" title="Refresh">
+              <i class="pi pi-refresh"></i>
+            </button>
+          </div>
         </label>
-
-        <div class="header-actions">
-          <button type="button" class="dash-btn primary">
-            <i class="pi pi-refresh"></i>
-            <span>Refresh</span>
-          </button>
-          <button type="button" class="dash-btn">
-            <i class="pi pi-download"></i>
-            <span>Export</span>
-          </button>
-          <button type="button" class="dash-btn icon-only" aria-label="Settings">
-            <i class="pi pi-cog"></i>
-          </button>
-        </div>
       </div>
     </div>
 
