@@ -37,7 +37,6 @@ import { ValidationMessageComponent } from '../../../common/validation-message/v
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
 import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
-
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
   modeOfReceipt: FormControl<string | null>;
