@@ -3316,7 +3316,7 @@ input[type='date'].erp-input {
     .receipt-no {
       font-weight: 600;
       color: var(--clr-p2, #0891b2);
-      font-family: 'Courier New', monospace;
+    font-family: 'Poppins', sans-serif !important;
     }
 
     .narration-cell {
@@ -5003,13 +5003,13 @@ input[readonly].erp-input {
 .cheque-ref {
   font-weight: 700;
   color: var(--clr-p2, #0891b2);
-  font-family: 'Courier New', monospace;
+font-family: 'Poppins', sans-serif !important;
 }
 
 .receipt-no {
   font-weight: 700;
   color: var(--clr-p1, #0c4a6e);
-  font-family: 'Courier New', monospace;
+  font-family: 'Poppins', sans-serif !important;
 }
 
 .narration-cell {
