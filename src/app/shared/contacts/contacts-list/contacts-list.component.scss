@@ -320,7 +320,7 @@
   }
 
   &.menu-open {
-    z-index: 100;
+    z-index: 30;
   }
 }
 
@@ -472,15 +472,20 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 5000;
+  z-index: 40;
+
+  .icon-action {
+    position: relative;
+    z-index: 2;
+  }
 }
 
 .contact-role-menu {
   width: 238px;
   position: absolute;
-  top: calc(100% + 8px);
+  top: 44px;
   right: 0;
-  z-index: 5001;
+  z-index: 1;
   padding: 8px;
   border: 1px solid rgba(219, 232, 249, 0.95);
   border-radius: 10px;
@@ -558,6 +563,10 @@
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.role-modal.subscriber-role-modal {
+  width: min(1180px, 100%);
 }
 
 .role-modal-header,
@@ -736,4 +745,115 @@
     align-items: stretch;
     padding: 12px;
   }
+}
+
+// Role info card (Supplier / Advocate)
+.role-info-card-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
+}
+
+.role-info-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px 40px 24px;
+  min-width: 260px;
+  text-align: center;
+
+  .contact-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--clr-p1, #0c4a6e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+}
+
+.role-info-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--clr-p1, #0c4a6e);
+}
+
+.role-info-phone {
+  font-size: 13px;
+  color: #475569;
+}
+
+.role-info-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+// PAN section (Channel Partner / Freelancer)
+.role-pan-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+}
+
+.role-pan-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.role-pan-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.role-pan-available {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #16a34a;
+
+  i { font-size: 13px; }
+}
+
+.role-pan-unavailable {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #dc2626;
+
+  i { font-size: 13px; }
+}
+
+.role-pan-number {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
 }
