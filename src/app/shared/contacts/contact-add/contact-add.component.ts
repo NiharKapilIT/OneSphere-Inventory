@@ -10,6 +10,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 
 export type ContactType = 'Individual' | 'Business Entity';
 export type Gender = 'Male' | 'Female' | 'Third Gender';
+type ContactSection = 'personal' | 'address' | 'kyc' | 'bank' | 'others';
 
 interface Address {
   isPrimary: boolean;
@@ -43,7 +44,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
   @Output() onSave = new EventEmitter<Contact>();
 
   contactType = signal<ContactType>('Individual');
-  activeSection = signal<'personal' | 'address' | 'others'>('personal');
+  activeSection = signal<ContactSection>('personal');
 
   form!: FormGroup;
 
@@ -60,6 +61,9 @@ export class ContactAddComponent implements OnInit, OnChanges {
   pDatepickerMaxDate: Date = new Date();
 
   genders: Gender[] = ['Male', 'Female', 'Third Gender'];
+  kycDocumentTypes = ['PAN Card', 'Aadhar Card', 'Passport', 'Voter ID', 'Driving License', 'GST Certificate'];
+  kycStatuses = ['Pending', 'Verified', 'Rejected'];
+  bankAccountTypes = ['Savings', 'Current', 'Cash Credit', 'Overdraft', 'NRE', 'NRO'];
   salutations = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
   addressTypes = ['Home', 'Office', 'Permanent', 'Temporary', 'Other'];
   enterpriseTypes = ['Private Limited', 'Public Limited', 'Partnership', 'LLP', 'Proprietorship', 'Trust', 'Society'];
@@ -68,7 +72,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
   states = ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra'];
   districts = ['Hyderabad', 'Rangareddy', 'Medchal', 'Sangareddy', 'Nalgonda'];
 
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder) { }
 
   ngOnInit() {
     this.buildForm();
@@ -112,8 +116,25 @@ export class ContactAddComponent implements OnInit, OnChanges {
       primaryEmail: ['', Validators.email],
       secondaryEmail: ['', Validators.email],
       // Flags
+      kycDocumentType: [''],
+      kycDocumentNo: [''],
+      kycIssuedDate: [null],
+      kycExpiryDate: [null],
+      kycStatus: ['Pending'],
+      kycRemarks: [''],
+      bankName: [''],
+      bankBranch: [''],
+      accountHolderName: [''],
+      accountNo: [''],
+      accountType: [''],
+      ifscCode: [''],
+      upiId: [''],
       fabricatedContact: [false],
+      fabricatedContactComments: [''],
+      fabricatedContactDocument: [''],
       paidGuarantor: [false],
+      paidGuarantorComments: [''],
+      paidGuarantorDocument: [''],
     });
   }
 
@@ -126,6 +147,14 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   setContactType(type: ContactType) {
     this.contactType.set(type);
+  }
+
+  goNextSection() {
+    this.activeSection.set(this.getAdjacentSection(1));
+  }
+
+  goPreviousSection() {
+    this.activeSection.set(this.getAdjacentSection(-1));
   }
 
   // Address management
@@ -177,10 +206,22 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   clearForm() {
     this.form.reset();
+    this.form.patchValue({
+      salutation: 'Mr.',
+      gender: 'Male',
+      fatherSalutation: 'Mr.',
+      kycStatus: 'Pending',
+    });
     this.addressRows.set([]);
     this.contactPersons.set([]);
     this.photoPreview.set(null);
     this.currentAddress = this.emptyAddress();
+    this.activeSection.set('personal');
+  }
+
+  onFlagDocumentChange(event: Event, controlName: 'fabricatedContactDocument' | 'paidGuarantorDocument') {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    this.form.get(controlName)?.setValue(file?.name || '');
   }
 
   saveContact() {
@@ -201,7 +242,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
         ? `${this.addressRows()[0].addressLine},${this.addressRows()[0].city}` : '',
       status: 'Active',
       photo: this.photoPreview() ?? undefined,
-      type: 'Contacts',
+      type: this.contact?.type ?? 'Contacts',
     };
     this.onSave.emit(saved);
   }
@@ -211,4 +252,15 @@ export class ContactAddComponent implements OnInit, OnChanges {
   }
 
   get isIndividual() { return this.contactType() === 'Individual'; }
+
+  get isFirstSection() { return this.activeSection() === 'personal'; }
+
+  get isLastSection() { return this.activeSection() === 'others'; }
+
+  private getAdjacentSection(direction: 1 | -1): ContactSection {
+    const sections: ContactSection[] = ['personal', 'address', 'kyc', 'bank', 'others'];
+    const currentIndex = sections.indexOf(this.activeSection());
+    const nextIndex = Math.min(Math.max(currentIndex + direction, 0), sections.length - 1);
+    return sections[nextIndex];
+  }
 }

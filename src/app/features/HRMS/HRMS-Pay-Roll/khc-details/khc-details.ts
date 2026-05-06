@@ -51,6 +51,11 @@ import { DatePickerModule } from 'primeng/datepicker';
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface ExportColumn<T> {
+  header: string;
+  value: (row: T) => string | number;
+}
+
 @Component({
 
 

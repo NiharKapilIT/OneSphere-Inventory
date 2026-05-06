@@ -209,7 +209,7 @@ export class NavigationService {
           name: 'HRMS',
           subModules: [
             {
-              id: 'hrms-dashboard',
+              id: 'Dashboard',
               name: 'Dashboard',
               screens: [
                 { id: 'hrms-dashboard', name: 'HRMS Dashboard', route: '/dashboard/hrms/hrms-dashboard/dashboard' }
@@ -217,7 +217,7 @@ export class NavigationService {
             },
             {
               id: 'hrms-payroll',
-              name: 'HRMS Payroll',
+              name: 'Payroll',
               screens: [
                 { id: 'ssc-agenda', name: 'SSC Agenda', route: '/dashboard/hrms/hrms-payroll/ssc-agenda' },
                 { id: 'employee-on-roll', name: 'Employee On Roll', route: '/dashboard/hrms/hrms-payroll/employee-on-roll' },
@@ -227,6 +227,26 @@ export class NavigationService {
                 { id: 'jv-details', name: 'JV Details', route: '/dashboard/hrms/hrms-payroll/jv-details' },
                 { id: 'khc-details', name: 'KHC Details', route: '/dashboard/hrms/hrms-payroll/khc-details' },
                 { id: 'biometric-attendance', name: 'Biometric Attendance', route: '/dashboard/hrms/hrms-payroll/biometric-attendance' }
+              ]
+            },
+            {
+              id: 'hrms-reports',
+              name: 'Report',
+              screens: [
+                { id: 'salary-statement', name: 'Salary Statement', route: '/dashboard/hrms/hrms-reports/salary-statement' },
+                { id: 'esi-statement', name: 'ESI Statement', route: '/dashboard/hrms/hrms-reports/esi-statement' },
+                { id: 'pf-statement', name: 'PF Statement', route: '/dashboard/hrms/hrms-reports/pf-statement' },
+                { id: 'professional-tax', name: 'Professional Tax', route: '/dashboard/hrms/hrms-reports/professional-tax' },
+                { id: 'employee-month-bonus-report', name: 'Employee Month Bonus Report', route: '/dashboard/hrms/hrms-reports/employee-month-bonus-report' },
+                { id: 'earned-leaves', name: 'Earned Leaves', route: '/dashboard/hrms/hrms-reports/earned-leaves' },
+                { id: 'loyalty-statement', name: 'Loyalty Statement', route: '/dashboard/hrms/hrms-reports/loyalty-statement' },
+                { id: 'payslip', name: 'PaySlip', route: '/dashboard/hrms/hrms-reports/payslip' },
+                { id: 'biometric-report', name: 'Biometric Report', route: '/dashboard/hrms/hrms-reports/biometric-report' },
+                { id: 'transferred-employees', name: 'Transferd Employees', route: '/dashboard/hrms/hrms-reports/transferred-employees' },
+                { id: 'khc-renwals', name: 'KHC Renwals', route: '/dashboard/hrms/hrms-reports/khc-renwals' },
+                { id: 'allowance-details', name: 'Allowance Details', route: '/dashboard/hrms/hrms-reports/allowance-details' },
+                { id: 'biometric-summary-report', name: 'Biometric Summary Report', route: '/dashboard/hrms/hrms-reports/biometric-summary-report' },
+                { id: 'biometric-modifications', name: 'Biometric Modifications', route: '/dashboard/hrms/hrms-reports/biometric-modifications' }
               ]
             }
           ]
