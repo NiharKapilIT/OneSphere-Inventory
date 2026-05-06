@@ -52,7 +52,7 @@
       <div class="erp-table-toolbar tbl-toolbar-flush">
         <div class="tb-left">
           <span class="erp-badge badge-primary badge-dot">
-            {{ filteredData().length }} of {{ allData().length }} records
+            {{ filteredData().length }} {{ filteredData().length === 1 ? 'record' : 'records' }}
           </span>
         </div>
         <!-- <div class="tb-right">
@@ -64,8 +64,8 @@
 
       <!-- DataTable -->
       <div class="tbl-wrap">
-        <p-table [value]="filteredData()" [paginator]="true" [rows]="pageSize()" [totalRecords]="filteredData().length"
-          [showCurrentPageReport]="true" [rowsPerPageOptions]="rowsPerPageOptions" (onPage)="onPageChange($event)"
+        <p-table [value]="filteredData()" [paginator]="true" [rows]="pageSize()" [showCurrentPageReport]="true"
+          [rowsPerPageOptions]="rowsPerPageOptions" (onPage)="onPageChange($event)"
           currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries" responsiveLayout="scroll"
           [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
           [resizableColumns]="true">
@@ -102,10 +102,11 @@
                   <p-sortIcon field="totalreceivedamount"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn>
+              <th pResizableColumn pSortableColumn="narration">
                 <div class="th-cell">
                   <i class="pi pi-align-left"></i>
                   Narration
+                  <p-sortIcon field="narration"></p-sortIcon>
                 </div>
               </th>
             </tr>

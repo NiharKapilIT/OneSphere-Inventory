@@ -96,14 +96,25 @@
               [rows]="pageCriteria.pageSize"
               [rowsPerPageOptions]="[10, 20, 50]"
               responsiveLayout="scroll"
+              sortMode="single"
               styleClass="gr-table p-datatable-sm p-datatable-gridlines">
               <ng-template pTemplate="header">
                 <tr>
-                  <th>T/R Receipt No.</th>
-                  <th style="width: 150px;">Receipt Date</th>
-                  <th>Receipt No.</th>
-                  <th>Chit No.</th>
-                  <th class="text-end" style="width: 180px;">Receipt Amount</th>
+                  <th pSortableColumn="general_receipt_number">
+                    <div class="th-cell">T/R Receipt No. <p-sortIcon field="general_receipt_number"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="receipt_date" style="width: 150px;">
+                    <div class="th-cell">Receipt Date <p-sortIcon field="receipt_date"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="receipt_number">
+                    <div class="th-cell">Receipt No. <p-sortIcon field="receipt_number"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="chit_no">
+                    <div class="th-cell">Chit No. <p-sortIcon field="chit_no"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="total_received_amount" class="text-end" style="width: 180px;">
+                    <div class="th-cell justify-content-end">Receipt Amount <p-sortIcon field="total_received_amount"></p-sortIcon></div>
+                  </th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>
@@ -153,15 +164,28 @@
               [rows]="pageCriteria.pageSize"
               [rowsPerPageOptions]="[10, 20, 50]"
               responsiveLayout="scroll"
+              sortMode="single"
               styleClass="gr-table p-datatable-sm p-datatable-gridlines">
               <ng-template pTemplate="header">
                 <tr>
-                  <th>Contact Name</th>
-                  <th>Pan No</th>
-                  <th>UID No.</th>
-                  <th>Tan No</th>
-                  <th>Company Name</th>
-                  <th>Assessment Year</th>
+                  <th pSortableColumn="contactname">
+                    <div class="th-cell">Contact Name <p-sortIcon field="contactname"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="subscriberpanno">
+                    <div class="th-cell">Pan No <p-sortIcon field="subscriberpanno"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="uid">
+                    <div class="th-cell">UID No. <p-sortIcon field="uid"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="tanno">
+                    <div class="th-cell">Tan No <p-sortIcon field="tanno"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="companyname">
+                    <div class="th-cell">Company Name <p-sortIcon field="companyname"></p-sortIcon></div>
+                  </th>
+                  <th pSortableColumn="assessmentyear">
+                    <div class="th-cell">Assessment Year <p-sortIcon field="assessmentyear"></p-sortIcon></div>
+                  </th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>

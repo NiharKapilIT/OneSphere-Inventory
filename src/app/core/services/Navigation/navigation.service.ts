@@ -55,6 +55,13 @@ export class NavigationService {
           name: 'Accounts',
            subModules: [
             {
+              id: 'accounts-dashboard',
+              name: 'Dashboard',
+              screens: [
+                { id: 'accounts-dashboard', name: 'Accounts Dashboard', route: '/dashboard/accounts/accounts-dashboard/dashboard' }
+              ]
+            },
+            {
               id: 'accounts-config',
               name: 'Config.',
                 screens: [
@@ -176,6 +183,13 @@ export class NavigationService {
           name: 'Inventory',
             subModules: [
             {
+              id: 'inventory-dashboard',
+              name: 'Dashboard',
+              screens: [
+                { id: 'inventory-dashboard', name: 'Inventory Dashboard', route: '/dashboard/inventory/inventory-dashboard/dashboard' }
+              ]
+            },
+            {
               id: 'deposits',
               name: 'Deposits',
                 screens: [
@@ -255,6 +269,13 @@ export class NavigationService {
           id: 'settings',
           name: 'Settings',
         subModules: [
+            {
+              id: 'settings-dashboard',
+              name: 'Dashboard',
+              screens: [
+                { id: 'settings-dashboard', name: 'Settings Dashboard', route: '/dashboard/settings/settings-dashboard/dashboard' }
+              ]
+            },
             {
               id: 'user-management',
               name: 'User Management',

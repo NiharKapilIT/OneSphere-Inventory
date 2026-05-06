@@ -76,8 +76,8 @@
                 <p-sortIcon field="amount" />
               </div>
             </th>
-            <th>
-              <div class="th-cell">Narration</div>
+            <th pSortableColumn="narration">
+              <div class="th-cell">Narration <p-sortIcon field="narration" /></div>
             </th>
           </tr>
         </ng-template>
@@ -93,20 +93,20 @@
 
             <td class="td-date">
               <div class="td-cell">
-                <i class="pi pi-calendar"></i>
+                <i class="pi pi-calendar-clock"></i>
                 {{ row.jvDate || '--' }}
               </div>
             </td>
 
             <td class="td-center">
               <div class="td-cell td-center">
-                <span class="voucher-no">{{ row.journalVoucherNo || '--' }}</span>
+                <span class="receipt-no">#{{ row.journalVoucherNo || '--' }}</span>
               </div>
             </td>
 
             <td class="td-right">
               <div class="td-cell td-right amount-cell">
-                {{ row.amount | currency:'INR':'symbol':'1.2-2' }}
+                <span class="amt-num">{{ row.amount | currency:'INR':'symbol':'1.2-2' }}</span>
               </div>
             </td>
 

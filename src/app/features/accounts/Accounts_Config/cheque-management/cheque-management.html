@@ -89,9 +89,10 @@
           <ng-template pTemplate="header">
             <tr>
               @for (col of tableColumns; track col.field) {
-              <th pResizableColumn [class.th-center]="col.align === 'center'">
+              <th pResizableColumn [pSortableColumn]="col.field" [class.th-center]="col.align === 'center'">
                 <div class="th-cell" [class.th-cell-center]="col.align === 'center'">
                   {{ col.header }}
+                  <p-sortIcon [field]="col.field"></p-sortIcon>
                 </div>
               </th>
               }

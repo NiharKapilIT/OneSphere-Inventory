@@ -550,20 +550,38 @@
       <div class="p-4">
         <h3 class="section-title mb-3">Payment Line Items</h3>
         <div class="tbl-wrap">
-          <p-table [value]="paymentsList1" [paginator]="true" [rows]="5" [scrollable]="true" scrollHeight="300px"
+          <p-table [value]="paymentsList1" [paginator]="true" [rows]="5" [scrollable]="true" scrollHeight="300px" sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
             <ng-template pTemplate="header">
               <tr>
                 <th class="th-actions">Actions</th>
-                <th>Party Name</th>
-                <th>Ledger Name</th>
-                <th>Sub Ledger Name</th>
-                <th class="th-right">Total Paid</th>
-                <th class="th-right">Paid Amount</th>
-                <th class="th-center">GST Type</th>
-                <th class="th-center">GST %</th>
-                <th>TDS Section</th>
-                <th class="th-right">TDS Amount</th>
+                <th pSortableColumn="ppartyname">
+                  <div class="th-cell">Party Name <p-sortIcon field="ppartyname"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pledgername">
+                  <div class="th-cell">Ledger Name <p-sortIcon field="pledgername"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="psubledgername">
+                  <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="ptotalamount" class="th-right">
+                  <div class="th-cell">Total Paid <p-sortIcon field="ptotalamount"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pamount" class="th-right">
+                  <div class="th-cell">Paid Amount <p-sortIcon field="pamount"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pgstcalculationtype" class="th-center">
+                  <div class="th-cell">GST Type <p-sortIcon field="pgstcalculationtype"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pgstpercentage" class="th-center">
+                  <div class="th-cell">GST % <p-sortIcon field="pgstpercentage"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pTdsSection">
+                  <div class="th-cell">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="ptdsamount" class="th-right">
+                  <div class="th-cell">TDS Amount <p-sortIcon field="ptdsamount"></p-sortIcon></div>
+                </th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-rowData let-rowIndex="rowIndex">
@@ -621,13 +639,19 @@
           <div class="col-12 col-md-6">
             <h3 class="section-title mb-3">Journal Entry</h3>
             <div class="tbl-wrap">
-              <p-table [value]="partyjournalentrylist" [paginator]="true" [rows]="5" [scrollable]="true"
+              <p-table [value]="partyjournalentrylist" [paginator]="true" [rows]="5" [scrollable]="true" sortMode="single"
                 scrollHeight="300px" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th>Particulars</th>
-                    <th class="th-right">Dr</th>
-                    <th class="th-right">Cr</th>
+                    <th pSortableColumn="accountname">
+                      <div class="th-cell">Particulars <p-sortIcon field="accountname"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="debitamount" class="th-right">
+                      <div class="th-cell">Dr <p-sortIcon field="debitamount"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="creditamount" class="th-right">
+                      <div class="th-cell">Cr <p-sortIcon field="creditamount"></p-sortIcon></div>
+                    </th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-rowData>

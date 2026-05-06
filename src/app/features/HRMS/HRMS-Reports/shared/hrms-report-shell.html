@@ -85,11 +85,17 @@
             [paginator]="true"
             [rows]="10"
             [responsiveLayout]="'scroll'"
+            sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
             <ng-template pTemplate="header">
               <tr>
                 @for (column of columns; track column.field) {
-                  <th>{{ column.header }}</th>
+                  <th [pSortableColumn]="column.field">
+                    <div class="th-cell">
+                      {{ column.header }}
+                      <p-sortIcon [field]="column.field"></p-sortIcon>
+                    </div>
+                  </th>
                 }
               </tr>
             </ng-template>

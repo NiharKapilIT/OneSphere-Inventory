@@ -117,16 +117,31 @@
         [showCurrentPageReport]="true"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} tickets"
         responsiveLayout="scroll"
+        sortMode="single"
         styleClass="gr-table p-datatable-sm p-datatable-gridlines sos-ticket-table">
         <ng-template pTemplate="header">
           <tr>
-            <th>Ticket</th>
-            <th>Date</th>
-            <th>Subject</th>
-            <th>Category</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Contact</th>
+            <th pSortableColumn="id">
+              <div class="th-cell">Ticket <p-sortIcon field="id"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="createdAt">
+              <div class="th-cell">Date <p-sortIcon field="createdAt"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="subject">
+              <div class="th-cell">Subject <p-sortIcon field="subject"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="category">
+              <div class="th-cell">Category <p-sortIcon field="category"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="priority">
+              <div class="th-cell">Priority <p-sortIcon field="priority"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="status">
+              <div class="th-cell">Status <p-sortIcon field="status"></p-sortIcon></div>
+            </th>
+            <th pSortableColumn="contact">
+              <div class="th-cell">Contact <p-sortIcon field="contact"></p-sortIcon></div>
+            </th>
             <th class="text-center">Actions</th>
           </tr>
         </ng-template>

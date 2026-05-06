@@ -727,21 +727,44 @@
         <hr class="erp-section-divider">
         <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
+          sortMode="single"
           styleClass="p-datatable-sm p-datatable-gridlines gr-table">
           <ng-template pTemplate="header">
             <tr>
               <th class="text-center">Actions</th>
-              <th>Ledger Name</th>
-              <th>Sub Ledger Name</th>
-              <th class="text-end">Amount</th>
-              <th class="text-center">GST Calc Type</th>
-              <th class="text-center">GST Type</th>
-              <th class="text-center">GST(%)</th>
-              <th class="text-end">GST Amount</th>
-              <th class="text-center">TDS Section</th>
-              <th class="text-center">TDS(%)</th>
-              <th class="text-end">TDS Amount</th>
-              <th class="text-end">Total Amount</th>
+              <th pSortableColumn="pledgername">
+                <div class="th-cell">Ledger Name <p-sortIcon field="pledgername"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="psubledgername">
+                <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pamount" class="text-end">
+                <div class="th-cell justify-content-end">Amount <p-sortIcon field="pamount"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgstcalculationtype" class="text-center">
+                <div class="th-cell justify-content-center">GST Calc Type <p-sortIcon field="pgstcalculationtype"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgsttype" class="text-center">
+                <div class="th-cell justify-content-center">GST Type <p-sortIcon field="pgsttype"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgstpercentage" class="text-center">
+                <div class="th-cell justify-content-center">GST(%) <p-sortIcon field="pgstpercentage"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgstamount" class="text-end">
+                <div class="th-cell justify-content-end">GST Amount <p-sortIcon field="pgstamount"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pTdsSection" class="text-center">
+                <div class="th-cell justify-content-center">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pTdsPercentage" class="text-center">
+                <div class="th-cell justify-content-center">TDS(%) <p-sortIcon field="pTdsPercentage"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="ptdsamountindividual" class="text-end">
+                <div class="th-cell justify-content-end">TDS Amount <p-sortIcon field="ptdsamountindividual"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="ptotalamount" class="text-end">
+                <div class="th-cell justify-content-end">Total Amount <p-sortIcon field="ptotalamount"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
@@ -803,13 +826,19 @@
           <div class="col-12 col-md-6">
             @if (gridshowhide()) {
             <div class="grn-journal-wrapper">
-              <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll"
+              <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll" sortMode="single"
                 styleClass="p-datatable-sm p-datatable-gridlines gr-table">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th>Particulars</th>
-                    <th class="text-end">Dr</th>
-                    <th class="text-end">Cr</th>
+                    <th pSortableColumn="accountname">
+                      <div class="th-cell">Particulars <p-sortIcon field="accountname"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="debitamount" class="text-end">
+                      <div class="th-cell justify-content-end">Dr <p-sortIcon field="debitamount"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="creditamount" class="text-end">
+                      <div class="th-cell justify-content-end">Cr <p-sortIcon field="creditamount"></p-sortIcon></div>
+                    </th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-row>
