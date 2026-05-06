@@ -131,22 +131,31 @@
 
               <td class="td-date">
                 <div class="td-cell">
-                  <i class="pi pi-calendar"></i>
+                  <i class="pi pi-calendar-clock"></i>
                   {{ row.paymentDate || '--' }}
                 </div>
               </td>
 
               <td class="td-center">
                 <div class="td-cell td-center">
-                  <span class="voucher-no">{{ row.paymentId || '--' }}</span>
+                  <span class="receipt-no">#{{ row.paymentId || '--' }}</span>
                 </div>
               </td>
 
               <td>
-                <div class="td-cell">
-                  <p-tag
+                <div class="td-payment">
+                  <span class="erp-badge" [class.badge-success]="row.modeOfPayment === 'C'"
+                    [class.badge-info]="row.modeOfPayment === 'B'"
+                    [class.badge-neutral]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
+                    <i class="pi" [class.pi-wallet]="row.modeOfPayment === 'C'"
+                      [class.pi-credit-card]="row.modeOfPayment === 'B'"
+                      [class.pi-circle]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
+                    </i>
+                    {{ getPaymentMode(row) }}
+                  </span>
+                  <!-- <p-tag class="erp-badge badge-success"
                     [value]="getPaymentMode(row)"
-                    [severity]="getPaymentModeSeverity(row)" />
+                    [severity]="getPaymentModeSeverity(row)" /> -->
                 </div>
               </td>
 
@@ -156,7 +165,7 @@
 
               <td class="td-right">
                 <div class="td-cell td-right amount-cell">
-                  {{ formatCurrency(row.totalPaidAmount) }}
+                  <span class="amt-num">{{ formatCurrency(row.totalPaidAmount) }}</span>
                 </div>
               </td>
 

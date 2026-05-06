@@ -75,9 +75,9 @@
                       <table class="table table-bordered gr-table-print mb-4">
                         <thead class="bg-light">
                           <tr>
-                            <th style="width: 60px;" class="text-center">S.No</th>
-                            <th>Particulars</th>
-                            <th style="width: 180px;" class="text-end">Amount</th>
+                            <th style="width: 60px;text-transform: none;" class="text-center">S.No</th>
+                            <th style="text-transform: none;">Particulars</th>
+                            <th style="width: 180px;text-transform: none;" class="text-end">Amount</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -94,12 +94,12 @@
                                 <tr class="text-muted x-small">
                                   <td class="text-center">--</td>
                                   <td class="ps-4 italic">P-SGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}</td>
+                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}</td>
                                 </tr>
                                 <tr class="text-muted x-small">
                                   <td class="text-center">--</td>
                                   <td class="ps-4 italic">P-CGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}</td>
+                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}</td>
                                 </tr>
                               }
                             } @else {
@@ -107,13 +107,13 @@
                                 <tr class="text-muted x-small">
                                   <td class="text-center">--</td>
                                   <td class="ps-4 italic">P-IGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.2-2' }}</td>
+                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.0-0' }}</td>
                                 </tr>
                               } @else if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
                                 <tr class="text-muted x-small">
                                   <td class="text-center">--</td>
                                   <td class="ps-4 italic">P-IGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.2-2' }}</td>
+                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.0-0' }}</td>
                                 </tr>
                               }
                             }
@@ -123,7 +123,7 @@
                               <tr class="text-danger x-small">
                                 <td class="text-center">--</td>
                                 <td class="ps-4 italic">TDS (Included)</td>
-                                <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.2-2' }})</td>
+                                <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.0-0' }})</td>
                               </tr>
                             }
                           }
@@ -142,7 +142,7 @@
 
                   <!-- Details Footer -->
                   <div class="p-3 bg-light rounded border border-dashed mt-3">
-                    <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize border-bottom border-secondary ms-1">Rupees {{ paymentData?.totvalue | numberToWords }} Only.</span></p>
+                    <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize ms-1">Rupees {{ paymentData?.totvalue | numberToWords }} Only.</span></p>
                     @if (paymentData?.pnarration) {
                       <p class="mb-0"><strong>Narration:</strong> <span class="ms-1 italic">{{ paymentData?.pnarration }}</span></p>
                     }
