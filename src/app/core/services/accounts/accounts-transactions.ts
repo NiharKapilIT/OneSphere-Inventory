@@ -310,11 +310,11 @@ export class AccountsTransactions {
     return this._CommonService.getAPI('/accountingtransactions/GetChitValueDetails', params, 'YES');
   }
 
-  getPartyDetailsbyid(ppartyid: any, BranchSchema: any, BranchCode: any, CompanyCode: any, GlobalSchema: any, TaxSchema: any): Observable<any> {
+  getPartyDetailsbyid(ppartyid: any, BranchSchema: any, BranchCode: any, CompanyCode: any, GlobalSchema: any,TaxSchema: any): Observable<any> {
      ;
     const params = new HttpParams().set('ppartyid', ppartyid).set('BranchSchema', BranchSchema)
       .set('BranchCode', BranchCode).set('CompanyCode', CompanyCode)
-      .set('GlobalSchema', GlobalSchema).set('TaxSchema', TaxSchema)
+      .set('GlobalSchema', GlobalSchema).set('TaxSchema','taxes')
       ;
     return this._CommonService.getAPI('/Accounts/getPartyDetailsbyid', params, 'YES');
   }

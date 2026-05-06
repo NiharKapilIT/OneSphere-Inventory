@@ -8,7 +8,7 @@
           <p class="card-subtitle">Search and view employee on-roll details</p>
         </div>
 
-       
+
       </div>
 
       <div class="p-4">
@@ -17,75 +17,46 @@
             <label class="erp-label">Search Employee</label>
             <div class="erp-input-wrap">
               <i class="pi pi-search erp-input-icon"></i>
-              <input
-                type="text"
-                class="erp-input icon-pad"
-                placeholder="Search by Emp ID / Employee Name / Designation"
-                [(ngModel)]="searchText"
-                (input)="onSearch()"
-              />
+              <input type="text" class="erp-input icon-pad" placeholder="Search by Emp ID / Employee Name / Designation"
+                [(ngModel)]="searchText" (input)="onSearch()" />
             </div>
           </div>
 
           <div class="col-xl-2 col-lg-3 col-md-4">
-            <button
-              type="button"
-              class="erp-btn btn-primary w-100"
-              (click)="onSearch()"
-            >
+            <button type="button" class="erp-btn btn-primary w-100" (click)="onSearch()">
               <i class="pi pi-search"></i>
               Search
             </button>
           </div>
 
-          <div class="col-xl-2 col-lg-3 col-md-4">
-            <button
-              type="button"
-              class="erp-btn btn-white w-100"
-              (click)="onClear()"
-            >
+          <!-- <div class="col-xl-2 col-lg-3 col-md-4">
+            <button type="button" class="erp-btn btn-white w-100" (click)="onClear()">
               <i class="pi pi-times"></i>
               Clear
             </button>
-          </div>
+          </div> -->
         </div>
       </div>
 
-      <div class="p-4">
+      <div class="tbl-wrap">
         <div class="erp-table-toolbar tbl-toolbar-flush">
           <h5 class="section-title mb-0">Employee List</h5>
-          
+
         </div>
-         <div class="d-flex align-items-center gap-2">
-          <button
-            type="button"
-            class="erp-btn btn-white btn-sm"
-            title="Export Excel"
-            (click)="exportExcel()"
-          >
+        <!-- <div class="d-flex align-items-center gap-2">
+          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="exportExcel()">
             <i class="pi pi-file-excel"></i>
           </button>
 
-          <button
-            type="button"
-            class="erp-btn btn-white btn-sm"
-            title="Export PDF"
-            (click)="exportPdf()"
-          >
+          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="exportPdf()">
             <i class="pi pi-file-pdf"></i>
           </button>
-        </div>
+        </div> -->
 
-        <p-table
-          [value]="employeeList"
-          [paginator]="true"
-          [rows]="10"
-          [rowsPerPageOptions]="[10, 20, 50]"
-          [responsiveLayout]="'scroll'"
-          [showCurrentPageReport]="true"
+        <!-- <p-table [value]="employeeList" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]"
+          [responsiveLayout]="'scroll'" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="gr-table p-datatable-sm p-datatable-gridlines"
-        >
+          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 110px">Actions</th>
@@ -95,17 +66,21 @@
               <th>Basic Salary</th>
               <th>Special Allowances</th>
               <th>Allowances</th>
+              <th>Total</th>
+              <th>PF NO.</th>
+              <th>ESI NO.</th>
+              <th>KHC NO.</th>
+              <th>Blood Group</th>
+              <th>DOJ.</th>
+              <th>SSC Minutes</th>
+              <th>New Charge Date</th>
             </tr>
           </ng-template>
 
           <ng-template pTemplate="body" let-employee>
             <tr>
               <td>
-                <button
-                  type="button"
-                  class="erp-btn btn-white btn-sm btn-icon"
-                  title="View"
-                >
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="View">
                   <i class="pi pi-eye"></i>
                 </button>
               </td>
@@ -115,6 +90,14 @@
               <td>{{ employee.basicSalary | number:'1.0-0' }}</td>
               <td>{{ employee.specialAllowances | number:'1.0-0' }}</td>
               <td>{{ employee.allowances | number:'1.0-0' }}</td>
+              <td>{{ employee.basicSalary + employee.specialAllowances + employee.allowances | number:'1.0-0' }}</td>
+              <td>{{ employee.pfNo }}</td>
+              <td>{{ employee.esiNo }}</td>
+              <td>{{ employee.khcNo }}</td>
+              <td>{{ employee.bloodGroup }}</td>
+              <td>{{ employee.doj | date }}</td>
+              <td>{{ employee.sscMinutes }}</td>
+              <td>{{ employee.newChargeDate | date }}</td>
             </tr>
           </ng-template>
 
@@ -128,6 +111,82 @@
               </td>
             </tr>
           </ng-template>
+        </p-table> -->
+
+        <p-table [value]="employeeList" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10, 20, 50]"
+          [scrollable]="true" scrollHeight="400px" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          class="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true">
+
+          <!-- HEADER -->
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Actions</th>
+              <th>Emp ID</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Basic Salary</th>
+              <th>Special Allowances</th>
+              <th>Allowances</th>
+              <th>Total</th>
+              <th>PF NO.</th>
+              <th>ESI NO.</th>
+              <th>KHC NO.</th>
+              <th>Blood Group</th>
+              <th>DOJ</th>
+              <th>SSC Minutes</th>
+              <th>New Charge Date</th>
+            </tr>
+          </ng-template>
+
+          <!-- BODY -->
+          <ng-template pTemplate="body" let-employee>
+            <tr>
+              <td style="display:flex; gap:6px; align-items:center;">
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="View/Edit"
+                  (click)="viewEmployee(employee)">
+                  <i class="pi pi-eye"></i>
+                </button>
+
+                <button type="button" class="erp-btn btn-white btn-sm btn-icon circle-btn" title="Add More"
+                  (click)="onMoreClick(employee)">
+                  <i class="pi pi-ellipsis-h"></i>
+                </button>
+              </td>
+
+              <td>{{ employee.empId }}</td>
+              <td>{{ employee.employeeName }}</td>
+              <td>{{ employee.designation }}</td>
+
+              <td>{{ employee.basicSalary | number:'1.0-0' }}</td>
+              <td>{{ employee.specialAllowances | number:'1.0-0' }}</td>
+              <td>{{ employee.allowances | number:'1.0-0' }}</td>
+
+              <td>{{ employee.total | number:'1.0-0' }}</td>
+
+              <td>{{ employee.pfNo }}</td>
+              <td>{{ employee.esiNo }}</td>
+              <td>{{ employee.khcNo }}</td>
+              <td>{{ employee.bloodGroup }}</td>
+
+              <td>{{ employee.doj | date:'dd/MM/yyyy' }}</td>
+              <td>{{ employee.sscMinutes }}</td>
+              <td>{{ employee.newChargeDate | date:'dd/MM/yyyy' }}</td>
+            </tr>
+          </ng-template>
+
+          <!-- EMPTY -->
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="15">
+                <div class="grn-table-empty">
+                  <i class="pi pi-inbox"></i>
+                  <div>No data to display</div>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
         </p-table>
       </div>
 

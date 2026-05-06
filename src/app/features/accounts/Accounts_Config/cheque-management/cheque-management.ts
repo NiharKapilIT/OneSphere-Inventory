@@ -86,7 +86,7 @@ export class ChequeManagement implements OnInit, OnDestroy {
   readonly statusList: StatusOption[] = [
     { label: 'All', value: 'All' },
     { label: 'Used', value: 'Used' },
-    { label: 'Un Used', value: 'Un Used' },
+    { label: 'UnUsed', value: 'UnUsed' },
   ];
 
   readonly tableColumns = [
