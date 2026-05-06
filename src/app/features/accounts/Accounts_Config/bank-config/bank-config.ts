@@ -484,8 +484,9 @@ onAccountNumberChange(event: any): void {
   //   }
   // }
 
-allowNumbersOnly1(event: any) {
+/*allowNumbersOnly1(event: any) {
   event.target.value = event.target.value.replace(/[^0-9]/g, '');
+   event.target.value = event.target.value.replace(/^0+/, '');
   const accountNumber = event.target.value;
   this.bankmasterform.get('pAccountnumber')?.setValue(accountNumber);
 
@@ -496,7 +497,7 @@ allowNumbersOnly1(event: any) {
   } else if (bankName) {
     this.bankmasterform.get('account_name')?.setValue(bankName);
   }
-}
+}*/
 //woking
 
 
@@ -514,7 +515,14 @@ allowNumbersOnly1(event: any) {
 //   }
 // }
 
-
+// onAccountNumberChange(event: any): void {
+//   const accountNumber = (event.target as HTMLInputElement).value;
+//   const bankName = this.bankname || this.bankmasterform.get('bankName')?.value || '';
+//   const accountName = bankName && accountNumber
+//     ? `${bankName}@${accountNumber}`
+//     : bankName || '';
+//   this.bankmasterform.get('account_name')?.setValue(accountName);
+// }
 
   // allowNumbersOnly(event: KeyboardEvent): void {
   //   const charCode = event.which || event.keyCode;

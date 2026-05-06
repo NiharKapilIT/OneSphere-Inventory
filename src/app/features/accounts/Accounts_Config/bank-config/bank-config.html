@@ -48,7 +48,7 @@
                   <div class="erp-field-error">
                     A/C Type is required
                   </div>
-                }
+                  }
                 </div>
               </div>
 
@@ -56,8 +56,8 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Account No. <span class="required">*</span></label>
                   <input class="erp-input" type="text" [attr.disabled]="accountno() ? '' : null"
-                    formControlName="pAccountnumber" (input)="allowNumbersOnly1($event)" maxlength="16"
-                    inputmode="numeric" pattern="[0-9]*" appNoLeadingZero
+                    formControlName="pAccountnumber" appNoLeadingZero (input)="onAccountNumberChange($event)"
+                    maxlength="18" inputmode="numeric"
                     [class.is-invalid]="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" />
                   <!-- <div *ngIf="f['pAccountnumber'].touched && f['pAccountnumber'].invalid" class="erp-field-error">
                     Account No is required
@@ -92,10 +92,10 @@
                   </ng-select>
                   <!-- *ngIf="f['bankName'].touched && f['bankName'].invalid" -->
                   @if(f['bankName'].touched && f['bankName'].invalid){
-                  <div  class="erp-field-error">
+                  <div class="erp-field-error">
                     Bank Name is required
                   </div>
-                }
+                  }
                 </div>
               </div>
 
@@ -104,12 +104,12 @@
                   <label class="erp-label">Account Name <span class="required">*</span></label>
                   <input class="erp-input" type="text" formControlName="account_name" maxlength="150" appTitlecaseword
                     appCharactersonly [class.is-invalid]="f['account_name'].touched && f['account_name'].invalid" />
-                    <!-- *ngIf="f['account_name'].touched && f['account_name'].invalid"  -->
-                   @if(f['account_name'].touched && f['account_name'].invalid){
+                  <!-- *ngIf="f['account_name'].touched && f['account_name'].invalid"  -->
+                  @if(f['account_name'].touched && f['account_name'].invalid){
                   <div class="erp-field-error">
                     Account Name is required
                   </div>
-                }
+                  }
                 </div>
               </div>
 

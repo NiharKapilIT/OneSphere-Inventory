@@ -130,19 +130,19 @@
 
             <!-- Voucher Number -->
             <td class="td-center">
-              <span class="voucher-no">#{{ row.paymentId || '--' }}</span>
+              <span class="receipt-no">#{{ row.paymentId || '--' }}</span>
             </td>
 
             <!-- Payment Mode -->
             <td>
               <div class="td-payment">
                 <span class="erp-badge"
-                      [class.badge-success]="row.modeOfPayment === 'CASH'"
-                      [class.badge-info]="row.modeOfPayment === 'BANK'"
-                      [class.badge-neutral]="row.modeOfPayment !== 'CASH' && row.modeOfPayment !== 'BANK'">
+                      [class.badge-success]="row.modeOfPayment === 'C'"
+                      [class.badge-info]="row.modeOfPayment === 'B'"
+                      [class.badge-neutral]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
                   <i class="pi"
-                     [class.pi-wallet]="row.modeOfPayment === 'CASH'"
-                     [class.pi-credit-card]="row.modeOfPayment !== 'CASH'"
+                     [class.pi-wallet]="row.modeOfPayment === 'C'"
+                     [class.pi-credit-card]="row.modeOfPayment !== 'C'"
                   ></i>
                   @if (isCash(row.modeOfPayment)) {
                     CASH
@@ -151,7 +151,7 @@
                   }
                 </span>
                 @if (row.typeOfPayment) {
-                  <span class="erp-badge badge-neutral">{{ row.typeOfPayment }}</span>
+                  <span class="erp-badge badge-success">{{ row.typeOfPayment }}</span>
                 }
                 @if (row.referenceNumber) {
                   <span class="cheque-ref">
