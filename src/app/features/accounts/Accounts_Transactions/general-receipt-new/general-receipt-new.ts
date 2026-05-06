@@ -694,10 +694,10 @@ export class GeneralReceiptNew implements OnInit {
     // } 
 
     if (type === 'Online') {
-  this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
-  this.GeneralReceiptForm.get('pChequenumber')?.disable();
-}
-    
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
+      this.GeneralReceiptForm.get('pChequenumber')?.disable();
+    }
+
     else {
       this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(type);
       this.GeneralReceiptForm.get('pChequenumber')?.enable();
@@ -1219,8 +1219,8 @@ export class GeneralReceiptNew implements OnInit {
       // );
 
       ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
-  this.GeneralReceiptForm.controls[f].setValue(null)
-);
+        this.GeneralReceiptForm.controls[f].setValue(null)
+      );
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     }
     // this.recalculateAll();
@@ -1521,7 +1521,7 @@ export class GeneralReceiptNew implements OnInit {
     //     f === 'ptdsamount' ? 0 : f === 'pTdsPercentage' ? 0 : ''
     //   )
     // );
-    
+
 
     this.tdsvalidation(false);
     this.showsubledger.set(true);

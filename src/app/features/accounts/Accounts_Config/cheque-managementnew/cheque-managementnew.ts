@@ -902,24 +902,33 @@ export class ChequeManagementnew implements OnInit {
     this.chequemanagementform.controls['pChqegeneratestatus'].setValue(isActive);
 
     const form = this.chequemanagementform.value;
-    const grid = this.gridData()[0];
+    const grid = this.gridData();
 
-    const payload: SavePayload = {
-      branchSchema:           form.branchSchema,
-      company_code:           this.commonService.getCompanyCode(),
-      branch_code:            this.commonService.getBranchCode(),
-      branch_id:              1,
-      pBankId:                Number(grid['pBankId']),
-      pNoofcheques:           Number(grid['pNoofcheques']),
-      pChequefrom:            Number(grid['pChequefrom']),
-      pChequeto:              Number(grid['pChequeto']),
-      cheque_book_id:         form['cheque_book_id'] ?? 0,
-      pChqegeneratestatus:    form.pChqegeneratestatus === true,
-      pChequeGenerateDate:    this.today,
-      pCreatedby:             form.pCreatedby,
-      pipaddress:             form.pipaddress,
-      ptypeofoperation:       grid['ptypeofoperation'],
-    };
+    console.log(grid);
+    
+
+
+
+const payload: SavePayload[] = grid.map((row: any) => ({
+  branchSchema:           form.branchSchema,
+  company_code:           this.commonService.getCompanyCode(),
+  branch_code:            this.commonService.getBranchCode(),
+  branch_id:              1,
+  pBankId:                Number(row['pBankId']),
+  pNoofcheques:           Number(row['pNoofcheques']),
+  pChequefrom:            Number(row['pChequefrom']),
+  pChequeto:              Number(row['pChequeto']),
+  cheque_book_id:         form['cheque_book_id'] ?? 0,
+  pChqegeneratestatus:    form.pChqegeneratestatus === true,
+  pChequeGenerateDate:    this.today,
+  pCreatedby:             form.pCreatedby,
+  pipaddress:             form.pipaddress,
+  ptypeofoperation:       row['ptypeofoperation'],
+}));
+
+
+
+
 
     this.accountingMasterService
       .SaveChequeManagement(payload)
