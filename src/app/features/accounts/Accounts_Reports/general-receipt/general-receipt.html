@@ -78,11 +78,11 @@
                 <!-- Particulars Table -->
                 <div class="table-responsive">
                   <table class="table table-bordered gr-table-print mb-4">
-                    <thead class="bg-light">
+                    <thead class="bg-light" >
                       <tr>
-                        <th style="width: 60px;" class="text-center">S.No</th>
-                        <th>Particulars</th>
-                        <th style="width: 180px;" class="text-end">Amount</th>
+                        <th style="width: 60px;text-transform: none;" class="text-center">S.No</th>
+                        <th style="text-transform: none;">Particulars</th>
+                        <th style="width: 180px;text-transform: none;" class="text-end">Amount</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -100,7 +100,7 @@
                       <tr>
                         <td colspan="2" class="text-end">TOTAL</td>
                         <td class="text-end text-primary">
-                          {{ currencySymbol }} {{ getTotalAmount(receiptdata.pGeneralReceiptSubDetailsList) | number:'1.2-2' }}
+                          {{ currencySymbol }} {{ getTotalAmount(receiptdata.pGeneralReceiptSubDetailsList) | number:'1.0-0' }}
                         </td>
                       </tr>
                     </tfoot>
@@ -111,7 +111,7 @@
                 <div class="row g-4">
                   <div class="col-12">
                     <div class="p-3 bg-light rounded border border-dashed">
-                      <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize border-bottom border-secondary ms-1">Rupees {{ getTotalAmount(receiptdata.pGeneralReceiptSubDetailsList) | numberToWords }} Only.</span></p>
+                      <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize ms-1">Rupees {{ getTotalAmount(receiptdata.pGeneralReceiptSubDetailsList) | numberToWords }} Only.</span></p>
                       <p class="mb-2"><strong>Narration:</strong> <span class="ms-1">{{ getNarration(receiptdata.narration) }}</span></p>
                       <p class="mb-0">
                         <strong>Payment Mode:</strong>
@@ -135,12 +135,12 @@
                       <div class="row">
                         @if (receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount) {
                           <div class="col-md-4">
-                            <p class="mb-0 small"><strong>GST (Included):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount | number:'1.2-2' }}</p>
+                            <p class="mb-0 small"><strong>GST (Included):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount | number:'1.0-0' }}</p>
                           </div>
                         }
                         @if (receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount) {
                           <div class="col-md-4">
-                            <p class="mb-0 small"><strong>TDS (Excluded):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount | number:'1.2-2' }}</p>
+                            <p class="mb-0 small"><strong>TDS (Excluded):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount | number:'1.0-0' }}</p>
                           </div>
                         }
                       </div>
