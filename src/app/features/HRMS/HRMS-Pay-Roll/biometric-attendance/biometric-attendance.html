@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -18,7 +18,15 @@
               <label class="erp-label">From Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" [(ngModel)]="fromDate" />
+                <p-datepicker
+                  [(ngModel)]="fromDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
               </div>
               <div class="erp-field-error" *ngIf="submitted && !fromDate">From Date Required</div>
             </div>
@@ -29,7 +37,15 @@
               <label class="erp-label">To Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" [(ngModel)]="toDate" />
+                <p-datepicker
+                  [(ngModel)]="toDate"
+                  dateFormat="dd-M-yy"
+                  placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true"
+                  appendTo="body"
+                  styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100">
+                </p-datepicker>
               </div>
               <div class="erp-field-error" *ngIf="submitted && !toDate">To Date Required</div>
             </div>
@@ -38,7 +54,7 @@
           <div class="col-xl-2 col-lg-3 col-md-4">
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
-              <button type="button" class="erp-btn btn-white w-100" (click)="onShow()">
+              <button type="button" class="erp-btn btn-primary w-100" (click)="onShow()">
                 <i class="pi pi-eye"></i> Show
               </button>
             </div>
@@ -51,12 +67,15 @@
       <div class="p-4">
         <div class="erp-table-toolbar tbl-toolbar-flush">
           <h5 class="section-title mb-0">Biometric Details</h5>
-          <div class="d-flex align-items-center gap-2">
-            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="onExportPdf()">
-              <i class="pi pi-file-pdf"></i>
-            </button>
-            <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="onPrint()">
+          <div class="payroll-grid-actions">
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printBiometric()">
               <i class="pi pi-print"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Excel" aria-label="Export Excel" (click)="exportBiometricExcel()">
+              <i class="pi pi-file-excel"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export PDF" aria-label="Export PDF" (click)="exportBiometricPdf()">
+              <i class="pi pi-file-pdf"></i>
             </button>
           </div>
         </div>

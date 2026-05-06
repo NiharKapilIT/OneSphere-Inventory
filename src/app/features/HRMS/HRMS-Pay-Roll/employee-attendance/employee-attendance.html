@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -110,6 +110,17 @@
       <div class="p-4">
         <div class="erp-table-toolbar tbl-toolbar-flush">
           <h5 class="section-title mb-0">Attendance Summary</h5>
+          <div class="payroll-grid-actions">
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printAttendance()">
+              <i class="pi pi-print"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Excel" aria-label="Export Excel" (click)="exportAttendanceExcel()">
+              <i class="pi pi-file-excel"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export PDF" aria-label="Export PDF" (click)="exportAttendancePdf()">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+          </div>
         </div>
 
         <p-table

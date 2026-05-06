@@ -90,7 +90,7 @@
               <label class="erp-label" for="pChequefrom">
                 From No. <span class="required">*</span>
               </label>
-              <input type="text" class="erp-input" id="pChequefrom" title="From Cheque No" maxlength="8"
+              <input type="text" class="erp-input" id="pChequefrom" title="From Cheque No" maxlength="6"
                 inputmode="numeric" autocomplete="off" formControlName="pChequefrom"
                 [ngClass]="{ 'is-invalid': chequefromCtrl.touched && chequefromCtrl.invalid }"
                 (input)="allowOnlyNumbers($event, 8)" (change)="onFromchequenoChange($event)"

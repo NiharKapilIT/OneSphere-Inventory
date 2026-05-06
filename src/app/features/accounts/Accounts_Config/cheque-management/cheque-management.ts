@@ -75,7 +75,8 @@ export class ChequeManagement implements OnInit, OnDestroy {
 
   // ── State ─────────────────────────────────────────────────────────────────
   private allRows: ChequeRow[] = [];
-  selectedStatus = '';
+  // selectedStatus = 'All';
+  selectedStatus: string | null = null;
   selectedBankId: number | null = null;
   pageSize = 10;
   currentPage = 0;
@@ -190,7 +191,8 @@ export class ChequeManagement implements OnInit, OnDestroy {
   }
 
   onShowClick(): void {
-    this.applyBankAndStatusFilter(this.selectedBankId, this.selectedStatus);
+    this.applyBankAndStatusFilter(this.selectedBankId, this.selectedStatus || 'All');
+    // this.applyBankAndStatusFilter(this.selectedBankId, this.selectedStatus);
   }
 
   onSearchInput(event: Event): void {
@@ -224,6 +226,9 @@ export class ChequeManagement implements OnInit, OnDestroy {
     this.pageCriteria.totalrows = filtered.length;
     this.pageCriteria.TotalPages = Math.ceil(filtered.length / this.pageSize) || 1;
     this.pageCriteria.currentPageRows = filtered.length;
+
+      this.totalRecords.set(filtered.length);
+
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

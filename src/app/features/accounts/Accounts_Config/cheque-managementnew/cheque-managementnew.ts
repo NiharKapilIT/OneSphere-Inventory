@@ -636,6 +636,11 @@ export class ChequeManagementnew implements OnInit {
 
   // ─── Static date ─────────────────────────────────────────────────────────────
   readonly today = new Date();
+  readonly gridEffect = effect(() => {
+  if (this.gridData().length === 0) {
+    this.chequemanagementvalidations = {};
+  }
+});
 
   // ─── ngOnInit ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -644,12 +649,12 @@ export class ChequeManagementnew implements OnInit {
     this.loadBankDetails();
 
     // Angular 21: effect() to react to gridData changes
-    effect(() => {
-      const count = this.gridData().length;
-      if (count === 0) {
-        this.chequemanagementvalidations = {};
-      }
-    }, { allowSignalWrites: true });
+    // effect(() => {
+    //   const count = this.gridData().length;
+    //   if (count === 0) {
+    //     this.chequemanagementvalidations = {};
+    //   }
+    // }, { allowSignalWrites: true });
   }
 
   // ─── Form Initialization ─────────────────────────────────────────────────────
@@ -911,24 +916,33 @@ allowOnlyNumbers(event: Event, maxLength: number): void {
     this.chequemanagementform.controls['pChqegeneratestatus'].setValue(isActive);
 
     const form = this.chequemanagementform.value;
-    const grid = this.gridData()[0];
+    const grid = this.gridData();
 
-    const payload: SavePayload = {
-      branchSchema:           form.branchSchema,
-      company_code:           this.commonService.getCompanyCode(),
-      branch_code:            this.commonService.getBranchCode(),
-      branch_id:              1,
-      pBankId:                Number(grid['pBankId']),
-      pNoofcheques:           Number(grid['pNoofcheques']),
-      pChequefrom:            Number(grid['pChequefrom']),
-      pChequeto:              Number(grid['pChequeto']),
-      cheque_book_id:         form['cheque_book_id'] ?? 0,
-      pChqegeneratestatus:    form.pChqegeneratestatus === true,
-      pChequeGenerateDate:    this.today,
-      pCreatedby:             form.pCreatedby,
-      pipaddress:             form.pipaddress,
-      ptypeofoperation:       grid['ptypeofoperation'],
-    };
+    console.log(grid);
+    
+
+
+
+const payload: SavePayload[] = grid.map((row: any) => ({
+  branchSchema:           form.branchSchema,
+  company_code:           this.commonService.getCompanyCode(),
+  branch_code:            this.commonService.getBranchCode(),
+  branch_id:              1,
+  pBankId:                Number(row['pBankId']),
+  pNoofcheques:           Number(row['pNoofcheques']),
+  pChequefrom:            Number(row['pChequefrom']),
+  pChequeto:              Number(row['pChequeto']),
+  cheque_book_id:         form['cheque_book_id'] ?? 0,
+  pChqegeneratestatus:    form.pChqegeneratestatus === true,
+  pChequeGenerateDate:    this.today,
+  pCreatedby:             form.pCreatedby,
+  pipaddress:             form.pipaddress,
+  ptypeofoperation:       row['ptypeofoperation'],
+}));
+
+
+
+
 
     this.accountingMasterService
       .SaveChequeManagement(payload)

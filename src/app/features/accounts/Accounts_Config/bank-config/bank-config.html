@@ -43,9 +43,12 @@
                     placeholder="Select type" formControlName="pAcctountype" [compareWith]="compareByValue"
                     [clearable]="true" [class.is-invalid]="f['pAcctountype'].touched && f['pAcctountype'].invalid">
                   </ng-select>
-                  <div *ngIf="f['pAcctountype'].touched && f['pAcctountype'].invalid" class="erp-field-error">
+                  <!-- *ngIf="f['pAcctountype'].touched && f['pAcctountype'].invalid"  -->
+                  @if(f['pAcctountype'].touched && f['pAcctountype'].invalid){
+                  <div class="erp-field-error">
                     A/C Type is required
                   </div>
+                }
                 </div>
               </div>
 
@@ -87,9 +90,12 @@
                     [compareWith]="compareByValue" [clearable]="true"
                     [class.is-invalid]="f['bankName'].touched && f['bankName'].invalid">
                   </ng-select>
-                  <div *ngIf="f['bankName'].touched && f['bankName'].invalid" class="erp-field-error">
+                  <!-- *ngIf="f['bankName'].touched && f['bankName'].invalid" -->
+                  @if(f['bankName'].touched && f['bankName'].invalid){
+                  <div  class="erp-field-error">
                     Bank Name is required
                   </div>
+                }
                 </div>
               </div>
 
@@ -98,9 +104,12 @@
                   <label class="erp-label">Account Name <span class="required">*</span></label>
                   <input class="erp-input" type="text" formControlName="account_name" maxlength="150" appTitlecaseword
                     appCharactersonly [class.is-invalid]="f['account_name'].touched && f['account_name'].invalid" />
-                  <div *ngIf="f['account_name'].touched && f['account_name'].invalid" class="erp-field-error">
+                    <!-- *ngIf="f['account_name'].touched && f['account_name'].invalid"  -->
+                   @if(f['account_name'].touched && f['account_name'].invalid){
+                  <div class="erp-field-error">
                     Account Name is required
                   </div>
+                }
                 </div>
               </div>
 
@@ -284,7 +293,7 @@
                         <label class="erp-label">UPI ID <span class="required">*</span></label>
                         <input class="erp-input" type="text" appEmailFormat appEmailpattern maxlength="150"
                           placeholder="xyz@okicici" formControlName="pUpiid"
-                          [class.is-invalid]="(f['pUpiid'].invalid && (f['pUpiid'].dirty || f['pUpiid'].touched))"/>
+                          [class.is-invalid]="(f['pUpiid'].invalid && (f['pUpiid'].dirty || f['pUpiid'].touched))" />
 
                         @if (f['pUpiid'].invalid && (f['pUpiid'].dirty || f['pUpiid'].touched)) {
                         <div class="erp-field-error">UPI ID required.</div>

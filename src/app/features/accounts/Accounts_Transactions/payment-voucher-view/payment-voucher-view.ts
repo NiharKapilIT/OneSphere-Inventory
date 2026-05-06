@@ -206,14 +206,14 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       ptotalpaidamount: [''],
       pnarration: ['', Validators.required],
       pmodofpayment: ['CASH'],
-      pbankname: [''],
+      pbankname: [null],
       pbranchname: [''],
       ptranstype: ['CHEQUE'],
-      pCardNumber: [''],
-      pUpiname: [''],
-      pUpiid: [''],
+      pCardNumber: ['null'],
+      pUpiname: ['null'],
+      pUpiid: ['null'],
       ptypeofpayment: [''],
-      pChequenumber: [''],
+      pChequenumber: ['null'],
       pchequedate: [''],
       pbankid: [''],
       pCreatedby: [this.commonService.getCreatedBy()],
@@ -534,6 +534,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     // Reset all bank-related fields
     ['pbankname', 'pChequenumber', 'pbranchname', 'pCardNumber', 'ptypeofpayment', 'pUpiname', 'pUpiid'].forEach(
       (f) => {
+        this.paymentVoucherForm.get(f)?.setValue(null);
         this.paymentVoucherForm.get(f)?.markAsUntouched();
         this.paymentVoucherForm.get(f)?.markAsPristine();
       }
@@ -721,7 +722,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   // }
 
   getLoadData(): void {
-    debugger;
     this.accountingTxService
       .GetReceiptsandPaymentsLoadingData2(
         'PAYMENT VOUCHER',
@@ -956,9 +956,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     );
   }
 
-  // ─── Party ────────────────────────────────────────────────────────────────
+  // ─── Party  
   // partyName_Change(event: any): void {
-  //   debugger;
+
   //   const group = this.paymentVoucherForm.get('ppaymentsslistcontrols');
   //   const ppartyid = event?.ppartyid;
 
@@ -1399,9 +1399,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     }
   }
 
-  // ─── Add / Remove Row ─────────────────────────────────────────────────────
+  // ─── Add / Remove Row  
   // addPaymentDetails(): void {
-  //   debugger;
+
   //   const round = (n: number) =>
   //     Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -1543,7 +1543,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   // }
 
   validateAddPaymentDetails(currentRow: any): boolean {
-    debugger;
+
     let isValid = true;
     try {
       const { pledgername, psubledgername, psubledgerid, ppartyid } =
@@ -1770,7 +1770,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   }
 
   // private savePaymentRow(row: any, ctrl: FormGroup): void {
-  //   debugger
+
   //   this.paymentsList.push(row);
   //   this.paymentsList1 = [...this.paymentsList1, row];
   //   this.getPartyJournalEntryData();
@@ -1916,14 +1916,62 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     this.formValidationMessages = {};
   }
 
+  // clearTransTypeDetails(): void {
+  //   const fields = ['pbankid', 'pbankname', 'pCardNumber', 'ptypeofpayment', 'pbranchname', 'pUpiname', 'pUpiid', 'pChequenumber'];
+  //   this.chequeNumbersList = [];
+  //   fields.forEach((f) => {
+  //     this.paymentVoucherForm.get(f)?.setValue('null');
+  //     this.paymentVoucherForm.get(f)?.markAsUntouched();
+  //     this.paymentVoucherForm.get(f)?.markAsPristine();
+  //   });
+  //   this.formValidationMessages = {};
+  //   this.setBalances('BANKBOOK', 0);
+  //   this.setBalances('PASSBOOK', 0);
+  // }
+
+
+
+  //   clearTransTypeDetails(): void {
+  //   const ngSelectFields = ['pbankid', 'pbankname', 'pCardNumber', 'pUpiname', 'pUpiid', 'pChequenumber'];
+  //   const nativeFields = ['ptypeofpayment', 'pbranchname'];
+
+  //   this.chequeNumbersList = [];
+
+  //   ngSelectFields.forEach((f) => {
+  //     this.paymentVoucherForm.get(f)?.setValue(null);  // null for ng-select
+  //     this.paymentVoucherForm.get(f)?.markAsUntouched();
+  //     this.paymentVoucherForm.get(f)?.markAsPristine();
+  //   });
+
+  //   nativeFields.forEach((f) => {
+  //     this.paymentVoucherForm.get(f)?.setValue('');    // '' for native select/input
+  //     this.paymentVoucherForm.get(f)?.markAsUntouched();
+  //     this.paymentVoucherForm.get(f)?.markAsPristine();
+  //   });
+
+  //   this.formValidationMessages = {};
+  //   this.setBalances('BANKBOOK', 0);
+  //   this.setBalances('PASSBOOK', 0);
+  // }
+
   clearTransTypeDetails(): void {
-    const fields = ['pbankid', 'pbankname', 'pCardNumber', 'ptypeofpayment', 'pbranchname', 'pUpiname', 'pUpiid', 'pChequenumber'];
+    const ngSelectFields = ['pbankid', 'pbankname', 'pCardNumber', 'pUpiname', 'pUpiid', 'pChequenumber', 'ptypeofpayment'];  // ← moved here
+    const nativeFields = ['pbranchname'];  // ← removed ptypeofpayment
+
     this.chequeNumbersList = [];
-    fields.forEach((f) => {
+
+    ngSelectFields.forEach((f) => {
+      this.paymentVoucherForm.get(f)?.setValue(null);
+      this.paymentVoucherForm.get(f)?.markAsUntouched();
+      this.paymentVoucherForm.get(f)?.markAsPristine();
+    });
+
+    nativeFields.forEach((f) => {
       this.paymentVoucherForm.get(f)?.setValue('');
       this.paymentVoucherForm.get(f)?.markAsUntouched();
       this.paymentVoucherForm.get(f)?.markAsPristine();
     });
+
     this.formValidationMessages = {};
     this.setBalances('BANKBOOK', 0);
     this.setBalances('PASSBOOK', 0);
@@ -1943,13 +1991,13 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         ptranstype: 'CHEQUE',
         ppaymentdate: new Date(),
         ptotalpaidamount: '',
-        pbankname: '',
+        pbankname: 'null',
         pbranchname: '',
-        pChequenumber: '',
-        pCardNumber: '',
-        ptypeofpayment: '',
-        pUpiname: '',
-        pUpiid: '',
+        pChequenumber: 'null',
+        pCardNumber: 'null',
+        ptypeofpayment: [null],
+        pUpiname: 'null',
+        pUpiid: 'null',
         pbankid: '',
         schemaname: this.commonService.getschemaname(),
       });
@@ -2009,7 +2057,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
   // ─── Save ─────────────────────────────────────────────────────────────────
   validatesavePaymentVoucher(): boolean {
-    debugger;;
+
     let isValid = true;
     try {
       isValid = this.checkValidations(this.paymentVoucherForm, isValid);
@@ -2063,7 +2111,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
   //   savePaymentVoucher(): void {
-  //     debugger;
+
   //     this.disableSaveButton.set(true);
   //     this.saveButtonLabel.set('Processing');
 
@@ -2399,7 +2447,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
   private buildSavePayload(formVal: any): any {
-    debugger
+
     const safe = (val: any, def: any = "") => val ?? def;
     const str = (val: any) => (val ?? "").toString();
 

@@ -152,7 +152,7 @@ export class AccountsReports {
   //   );
   // }
   GetCashBookReportbyDates(fromdate: string, todate: string, transType: string, BranchSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-    debugger;
+     ;
     const params = new HttpParams()
       .set('fromdate', fromdate)
       .set('todate', todate)
@@ -1158,7 +1158,7 @@ export class AccountsReports {
     printorpdf: string,
     isNarrationChecked: boolean
   ) {
-    debugger
+     
     const address = this._CommonService.getcompanyaddress();
     console.log('Session at PDF time:', sessionStorage.getItem('CompanyDetails'));
     const Companyreportdetails = this._CommonService._getCompanyDetails();
@@ -2320,7 +2320,7 @@ export class AccountsReports {
   //   branchName: any,
   //   companyCode: any,
   //   branchCode: any): Observable<any> {
-  //     debugger;
+  //      ;
   //   let params = new HttpParams()
   //     .set('BranchSchema', branchSchema)
   //     .set('BranchName', branchName)
@@ -2340,7 +2340,7 @@ export class AccountsReports {
 
 
   GetBankNames(GlobalSchema: any, AccountsSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-    debugger;
+     ;
     const params = new HttpParams()
       .set('GlobalSchema', GlobalSchema)
       .set('AccountsSchema', AccountsSchema)
@@ -2540,7 +2540,7 @@ export class AccountsReports {
     return this._CommonService.getAPI('/ChitTransactions/GetSubscriberJVSubcategory', params, 'YES');
   }
   GetTDSSubcategoryDetails(subcategoryID: any, partyid: any) {
-    debugger;
+     ;
     const params = new HttpParams().set('BranchSchema', this._CommonService.getschemaname())
       .set('subcategoryId', subcategoryID)
       .set('partyId', partyid);
@@ -2775,7 +2775,7 @@ export class AccountsReports {
 
   updatestatuspatm(transactiondate: any): any {
     try {
-      debugger;
+       ;
       const params = new HttpParams().set('transactiondate', transactiondate);
       return this._CommonService.getAPI('/ChitTransactions/updatestatuspatm', params, 'YES');
     }
@@ -2788,7 +2788,7 @@ export class AccountsReports {
 
   updatestatusCashfree(transactiondate: any): any {
     try {
-      debugger;
+       ;
       const params = new HttpParams().set('transactiondate', transactiondate);
       return this._CommonService.getAPI('/ChitTransactions/updatestatuscashfree', params, 'YES');
     }
@@ -2814,7 +2814,7 @@ export class AccountsReports {
 
   getpaytmautoreceipt(fromdate: any, globalschema: any): any {
     try {
-      debugger;
+       ;
       //let params =this._commonService.getschemaname()
       let params = new HttpParams().set('strdate', fromdate).set('BranchSchema', this._CommonService.getschemaname()).set('GLOBAL', globalschema)
       return this._CommonService.getAPI('/ChitTransactions/paytmautoreceipt', params, 'YES')

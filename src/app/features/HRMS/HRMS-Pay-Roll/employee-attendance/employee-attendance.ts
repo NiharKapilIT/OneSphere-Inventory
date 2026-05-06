@@ -4,8 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { NgSelectModule } from '@ng-select/ng-select';
+<<<<<<< HEAD
 import { HrmsPayroll } from '../../../../core/services/hrms/hrms-payroll';
 import { CommonService } from '../../../../core/services/Common/common.service';
+=======
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+>>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47
 
 interface EmployeeOption {
   employeeCode: string;
@@ -24,13 +30,19 @@ interface AttendanceRow {
   month: number;
 }
 
+<<<<<<< HEAD
+=======
+interface ExportColumn<T> {
+  header: string;
+  value: (row: T) => string | number;
+}
+>>>>>>> 30f04ef8a94f6d8e376ad51701162d04af8d0d47
 
 @Component({
   selector: 'app-employee-attendance',
   standalone: true,
   imports: [CommonModule, FormsModule, TableModule, ButtonModule, NgSelectModule],
-  templateUrl: './employee-attendance.html',
-  styleUrls: ['./employee-attendance.css']
+  templateUrl: './employee-attendance.html'
 })
 export class EmployeeAttendance implements OnInit {
   submitted = false;
@@ -178,5 +190,66 @@ yearOptions: number[] = [];
     this.selectedYear = null;
     this.selectedMonth = null;
     this.attendanceList = [...this.allAttendanceList];
+  }
+
+  printAttendance(): void {
+    window.print();
+  }
+
+  exportAttendanceExcel(): void {
+    this.exportExcel('Attendance Summary', 'employee-attendance.xlsx', this.attendanceList, this.attendanceColumns);
+  }
+
+  exportAttendancePdf(): void {
+    this.exportPdf('Attendance Summary', 'employee-attendance.pdf', this.attendanceList, this.attendanceColumns);
+  }
+
+  private get attendanceColumns(): ExportColumn<AttendanceRow>[] {
+    return [
+      { header: 'Employee Code', value: row => row.employeeCode },
+      { header: 'Employee Name', value: row => row.employeeName },
+      { header: 'Designation', value: row => row.designation },
+      { header: 'SL', value: row => row.sl },
+      { header: 'Total SL', value: row => row.totalSl },
+      { header: 'CL', value: row => row.cl },
+      { header: 'Total CL', value: row => row.totalCl }
+    ];
+  }
+
+  private exportExcel<T>(sheetName: string, fileName: string, rows: T[], columns: ExportColumn<T>[]): void {
+    if (!rows.length) {
+      return;
+    }
+
+    const exportData = rows.map(row => columns.reduce((data, column) => ({
+      ...data,
+      [column.header]: column.value(row)
+    }), {}));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook: XLSX.WorkBook = {
+      Sheets: { [sheetName]: worksheet },
+      SheetNames: [sheetName]
+    };
+
+    XLSX.writeFile(workbook, fileName);
+  }
+
+  private exportPdf<T>(title: string, fileName: string, rows: T[], columns: ExportColumn<T>[]): void {
+    if (!rows.length) {
+      return;
+    }
+
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    doc.setFontSize(14);
+    doc.text(title, 14, 15);
+    autoTable(doc, {
+      head: [columns.map(column => column.header)],
+      body: rows.map(row => columns.map(column => column.value(row))),
+      startY: 22,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [43, 80, 236] }
+    });
+    doc.save(fileName);
   }
 }

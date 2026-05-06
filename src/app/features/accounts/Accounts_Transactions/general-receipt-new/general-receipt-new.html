@@ -225,11 +225,10 @@
           <div class="col-12 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Type Of Payment <span class="required">*</span></label>
+
               <ng-select appendTo="body" [items]="typeofpaymentlist()" bindLabel="ptypeofpayment"
-                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select"
-                (change)="typeofPaymentChange($event)"
-                (close)="GeneralReceiptForm.get('ptypeofpayment')?.markAsTouched(); GetValidationByControl(GeneralReceiptForm,'ptypeofpayment',true)"
-                [ngClass]="{'ng-invalid': getValidationMsg('ptypeofpayment')}">
+                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select" [loading]="false"
+                (change)="typeofPaymentChange($event)" ...>
               </ng-select>
               @if (getValidationMsg('ptypeofpayment')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
@@ -571,10 +570,12 @@
           <div class="col-12 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Section <span class="required">*</span></label>
+           
               <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
                 formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true" placeholder="Select"
-                [trackByFn]="trackByFn" [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
+                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
+                placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
+                [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
               </ng-select>
               @if (getValidationMsg('pTdsSection')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
@@ -647,11 +648,12 @@
             <div class="col-12 col-md-6">
               <label class="erp-label">GST (%) <span class="required">*</span></label>
               <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
-                formControlName="pgstpercentage" placeholder="Select %" [searchable]="false"
+                formControlName="pgstpercentage" placeholder="Select GST %" [searchable]="false"
                 (change)="gst_Change($event)"
                 (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
                 [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
               </ng-select>
+           
               @if (getValidationMsg('pgstpercentage')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
                 getValidationMsg('pgstpercentage') }}</div>
@@ -854,8 +856,11 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Upload Attachment</label>
                   <div class="erp-file-upload">
-                    <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse()?.name" readonly placeholder="No file selected">
+                    <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
+                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
+                    <input type="text" class="erp-input erp-file-input"
+                      [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
+                      placeholder="No file selected">
                     <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                       <i class="pi pi-upload"></i> Upload
                     </button>
