@@ -355,18 +355,28 @@
         <h3 class="section-title mb-3">Voucher Entries</h3>
 
         <div class="tbl-wrap">
-          <p-table [value]="paymentslist()" dataKey="ppartyname" [paginator]="false" [rows]="10" [scrollable]="true"
+          <p-table [value]="paymentslist()" dataKey="ppartyname" [paginator]="false" [rows]="10" [scrollable]="true" sortMode="single"
             scrollHeight="400px" [resizableColumns]="true" columnResizeMode="fit" responsiveLayout="scroll"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
             <ng-template pTemplate="header">
               <tr>
                 <th class="th-actions">Actions</th>
-                <th>Party Name</th>
-                <th>Ledger Name</th>
-                <th>Sub Ledger Name</th>
-                <th class="th-right">Debit</th>
-                <th class="th-right">Credit</th>
+                <th pSortableColumn="ppartyname">
+                  <div class="th-cell">Party Name <p-sortIcon field="ppartyname"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pledgername">
+                  <div class="th-cell">Ledger Name <p-sortIcon field="pledgername"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="psubledgername">
+                  <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pdebitamount" class="th-right">
+                  <div class="th-cell">Debit <p-sortIcon field="pdebitamount"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="pcreditamount" class="th-right">
+                  <div class="th-cell">Credit <p-sortIcon field="pcreditamount"></p-sortIcon></div>
+                </th>
               </tr>
             </ng-template>
 
@@ -447,14 +457,20 @@
           <div class="col-12 col-md-6">
             <h3 class="section-title mb-3">Journal Entry Preview</h3>
             <div class="tbl-wrap">
-              <p-table [value]="paymentslist()" dataKey="pledgername" [rows]="10" [paginator]="false"
+              <p-table [value]="paymentslist()" dataKey="pledgername" [rows]="10" [paginator]="false" sortMode="single"
                 [scrollable]="true" scrollHeight="400px" [resizableColumns]="true" columnResizeMode="fit"
                 responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
                 <ng-template pTemplate="header">
                   <tr>
-                    <th>Particulars</th>
-                    <th class="th-right">Dr</th>
-                    <th class="th-right">Cr</th>
+                    <th pSortableColumn="pledgername">
+                      <div class="th-cell">Particulars <p-sortIcon field="pledgername"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="pdebitamount" class="th-right">
+                      <div class="th-cell">Dr <p-sortIcon field="pdebitamount"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="pcreditamount" class="th-right">
+                      <div class="th-cell">Cr <p-sortIcon field="pcreditamount"></p-sortIcon></div>
+                    </th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-row>

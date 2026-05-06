@@ -3317,7 +3317,7 @@ input[type='date'].erp-input {
     .receipt-no {
       font-weight: 600;
       color: var(--clr-p2, #0891b2);
-      font-family: 'Courier New', monospace;
+
     }
 
     .narration-cell {
@@ -4996,21 +4996,19 @@ input[readonly].erp-input {
     color: #64748b;
   }
 
-  .amt-num {
-    font-family: 'Courier New', monospace;
-  }
+
 }
 
 .cheque-ref {
   font-weight: 700;
   color: var(--clr-p2, #0891b2);
-  font-family: 'Courier New', monospace;
+
 }
 
 .receipt-no {
   font-weight: 700;
   color: var(--clr-p1, #0c4a6e);
-  font-family: 'Courier New', monospace;
+
 }
 
 .narration-cell {
@@ -5866,7 +5864,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
   width: fit-content;
   max-width: 100%;
   min-height: 24px;
-  
+
   padding: 5px 9px 5px 8px !important;
   border: 1px solid rgba(239, 68, 68, 0.18);
   border-radius: 8px;
@@ -7590,5 +7588,929 @@ body .p-connected-overlay {
   .payroll-slip-row {
     grid-template-columns: minmax(0, 1fr) 106px;
     padding: 0 10px;
+  }
+}
+/* Accounts + HRMS module dashboards */
+:where(.accounts-dashboard-page, .hrms-dashboard-page) {
+  background: #f8fbfd;
+  --dash-shade-1: var(--clr-p1, #0c4a6e);
+  --dash-shade-2: var(--clr-p2, #0891b2);
+  --dash-shade-3: color-mix(in srgb, var(--clr-p2, #0891b2) 64%, white);
+  --dash-shade-4: color-mix(in srgb, var(--clr-p1, #0c4a6e) 42%, white);
+  --dash-track: color-mix(in srgb, var(--clr-p2, #0891b2) 10%, #eef2f7);
+  --dash-positive: color-mix(in srgb, var(--clr-p2, #0891b2) 72%, white);
+  --dash-positive-strong: color-mix(in srgb, var(--clr-p1, #0c4a6e) 82%, white);
+  --dash-negative: #f2a7a7;
+  --dash-negative-strong: #dc6f6f;
+  --dash-neutral: #cbd5e1;
+  --dash-neutral-strong: #94a3b8;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-shell {
+  padding: 18px;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-card {
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--fp-border, #dbe8f9) 78%, white 22%);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-kicker {
+  color: var(--clr-p2, #0891b2);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header h2 {
+  margin: 2px 0;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header p,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .section-title p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls label {
+  min-width: 148px;
+  margin: 0;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls label span {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls ng-select {
+  display: block;
+  width: 100%;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .header-actions,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .share-actions,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dash-btn,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .share-btn,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions button {
+  border: 1px solid #dbe8f9;
+  background: #fff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: 0.18s ease;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dash-btn {
+  min-height: 31px;
+  padding: 0 10px;
+  border-radius: 9px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dash-btn.primary {
+  background: linear-gradient(135deg, var(--clr-p1, #0c4a6e), var(--clr-p2, #0891b2));
+  border-color: transparent;
+  color: #fff;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dash-btn.icon-only,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .share-btn {
+  width: 32px;
+  padding: 0;
+}
+
+.accounts-dashboard-page .share-btn {
+  height: 32px;
+  border-radius: 10px;
+}
+
+.accounts-dashboard-page .share-btn.mail {
+  color: #075985;
+  border-color: #bae6fd;
+}
+
+.accounts-dashboard-page .share-btn.whatsapp {
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-section {
+  margin-top: 18px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-card {
+  height: 100%;
+  padding: 16px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .section-title,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .card-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .section-title h3,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .card-heading h4 {
+  margin: 0;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .card-heading h4 {
+  color: #1f2937;
+  font-size: 14px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .card-heading span,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-copy span,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-copy small,
+.accounts-dashboard-page .summary-card span,
+.accounts-dashboard-page .summary-card small,
+.accounts-dashboard-page .chart-label,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar span,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .payroll-row span,
+.accounts-dashboard-page .balance-row small,
+.hrms-dashboard-page .activity-item small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-card {
+  position: relative;
+  min-height: 164px;
+  overflow: hidden;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-card::before,
+.accounts-dashboard-page .summary-card::before {
+  content: none;
+  display: none;
+}
+
+.accounts-dashboard-page .summary-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-icon,
+.accounts-dashboard-page .summary-icon,
+.hrms-dashboard-page .activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 12%, white);
+  color: var(--clr-p1, #0c4a6e);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-copy {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-copy strong {
+  color: #111827;
+  font-size: 21px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .kpi-trend {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.accounts-dashboard-page .summary-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.accounts-dashboard-page .summary-card strong {
+  color: #111827;
+  font-size: 20px;
+}
+
+.accounts-dashboard-page .cash-flow-chart,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .horizontal-chart,
+.hrms-dashboard-page .payroll-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.accounts-dashboard-page .cash-flow-chart {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 4px 6px 4px 2px;
+}
+
+.accounts-dashboard-page .cash-flow-row {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  padding: 10px 12px 10px 8px;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  background: #fbfdff;
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+
+.accounts-dashboard-page .cash-flow-row:hover {
+  border-color: color-mix(in srgb, var(--clr-p2, #0891b2) 25%, #dbe8f9);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+}
+
+.accounts-dashboard-page .cash-flow-row .chart-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  font-weight: 800;
+}
+
+.accounts-dashboard-page .multi-bars,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar,
+.hrms-dashboard-page .payroll-row {
+  display: grid;
+  gap: 8px;
+}
+
+.accounts-dashboard-page .bar-line {
+  display: grid;
+  grid-template-columns: 86px 1fr 56px;
+  gap: 8px;
+  align-items: center;
+}
+
+
+.accounts-dashboard-page .bar-line span {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.accounts-dashboard-page .bar-line strong,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar strong,
+.accounts-dashboard-page .balance-row span,
+.hrms-dashboard-page .payroll-row strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .bar-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--dash-track);
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .bar-track i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: var(--clr-p2, #0891b2);
+}
+
+.accounts-dashboard-page .money-in {
+  background: linear-gradient(90deg, var(--dash-positive), var(--dash-positive-strong)) !important;
+}
+
+.accounts-dashboard-page .money-out {
+  background: #f2a7a7 !important;
+}
+
+.accounts-dashboard-page .net-flow {
+  background: linear-gradient(90deg, var(--dash-neutral), var(--dash-neutral-strong)) !important;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar > div:first-child,
+.hrms-dashboard-page .payroll-row > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accounts-dashboard-page .pie-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 12px;
+}
+
+.accounts-dashboard-page .pie-chart {
+  width: 148px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    var(--dash-positive-strong) 0 40%,
+    var(--dash-positive) 40% 70%,
+    var(--dash-neutral-strong) 70% 88%,
+    var(--dash-negative-strong) 88% 100%
+  );
+}
+
+.accounts-dashboard-page .pie-chart > div {
+  width: 86px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+}
+
+.accounts-dashboard-page .pie-chart strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.accounts-dashboard-page .pie-chart span {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.accounts-dashboard-page .pie-legends {
+  display: grid;
+  gap: 7px;
+}
+
+.accounts-dashboard-page .pie-legends div,
+.accounts-dashboard-page .balance-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.accounts-dashboard-page .pie-legends i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.accounts-dashboard-page .pie-legends span {
+  flex: 1;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.accounts-dashboard-page .pie-legends strong {
+  color: #1f2937;
+  font-size: 11px;
+}
+
+.accounts-dashboard-page .bar-line:nth-child(1) .bar-track i,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar:nth-child(4n + 1) .bar-track i,
+.hrms-dashboard-page .payroll-row:nth-child(4n + 1) .bar-track i,
+.accounts-dashboard-page .pie-legends i.shade-1 {
+  background: var(--dash-positive-strong) !important;
+}
+
+.accounts-dashboard-page .bar-line:nth-child(2) .bar-track i,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar:nth-child(4n + 2) .bar-track i,
+.hrms-dashboard-page .payroll-row:nth-child(4n + 2) .bar-track i,
+.accounts-dashboard-page .pie-legends i.shade-2 {
+  background: var(--dash-positive) !important;
+}
+
+.accounts-dashboard-page .bar-line:nth-child(3) .bar-track i,
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar:nth-child(4n + 3) .bar-track i,
+.hrms-dashboard-page .payroll-row:nth-child(4n + 3) .bar-track i,
+.accounts-dashboard-page .pie-legends i.shade-3 {
+  background: var(--dash-neutral-strong) !important;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .metric-bar:nth-child(4n + 4) .bar-track i,
+.hrms-dashboard-page .payroll-row:nth-child(4n + 4) .bar-track i,
+.accounts-dashboard-page .pie-legends i.shade-4 {
+  background: var(--dash-negative-strong) !important;
+}
+
+.accounts-dashboard-page .metric-bar.primary .bar-track i,
+.accounts-dashboard-page .metric-bar.success .bar-track i {
+  background: linear-gradient(90deg, var(--dash-positive), var(--dash-positive-strong)) !important;
+}
+
+.accounts-dashboard-page .metric-bar.warning .bar-track i,
+.accounts-dashboard-page .metric-bar.danger .bar-track i {
+  background: linear-gradient(90deg, var(--dash-negative), var(--dash-negative-strong)) !important;
+}
+
+.accounts-dashboard-page .metric-bar.info .bar-track i {
+  background: linear-gradient(90deg, var(--dash-neutral), var(--dash-neutral-strong)) !important;
+}
+
+.accounts-dashboard-page .pie-chart.receipt-pie {
+  background: conic-gradient(
+    var(--dash-positive-strong) 0 42%,
+    var(--dash-positive) 42% 72%,
+    color-mix(in srgb, var(--dash-positive) 45%, white) 72% 90%,
+    var(--dash-neutral-strong) 90% 100%
+  );
+}
+
+.accounts-dashboard-page .pie-chart.expense-pie {
+  background: conic-gradient(
+    var(--dash-negative-strong) 0 38%,
+    var(--dash-negative) 38% 64%,
+    var(--dash-neutral-strong) 64% 84%,
+    var(--dash-neutral) 84% 100%
+  );
+}
+
+.accounts-dashboard-page .pie-chart.ageing-pie {
+  background: conic-gradient(
+    var(--dash-positive) 0 45%,
+    var(--dash-neutral-strong) 45% 70%,
+    var(--dash-negative) 70% 88%,
+    var(--dash-negative-strong) 88% 100%
+  );
+}
+
+.accounts-dashboard-page .balance-row {
+  padding: 11px 0;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.accounts-dashboard-page .balance-row:last-child {
+  border-bottom: 0;
+}
+
+.accounts-dashboard-page .balance-row div {
+  display: grid;
+  gap: 2px;
+}
+
+.accounts-dashboard-page .balance-row strong {
+  color: #334155;
+  font-size: 12px;
+}
+
+.hrms-dashboard-page .attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hrms-dashboard-page .attendance-pill {
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  background: #f8fafc;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.hrms-dashboard-page .attendance-pill strong {
+  color: #111827;
+  font-size: 22px;
+}
+
+.hrms-dashboard-page .attendance-pill span,
+.hrms-dashboard-page .attendance-pill small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hrms-dashboard-page .activity-card {
+  display: grid;
+  gap: 10px;
+}
+
+.hrms-dashboard-page .activity-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.hrms-dashboard-page .activity-item {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.hrms-dashboard-page .activity-item div {
+  display: grid;
+  gap: 2px;
+}
+
+.hrms-dashboard-page .activity-item strong {
+  color: #1f2937;
+  font-size: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-table {
+  font-size: 12px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-table thead th {
+  border-bottom: 1px solid #dbe8f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-table tbody td {
+  border-color: #edf2f7;
+  color: #334155;
+  white-space: nowrap;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .status-badge {
+  display: inline-flex;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .status-badge.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .status-badge.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .status-badge.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .status-badge.info {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions {
+  justify-content: flex-end;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions button {
+  min-height: 27px;
+  padding: 0 8px;
+  border-radius: 8px;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions .approve {
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions .reject {
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+@media (max-width: 1199.98px) {
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header {
+    display: grid;
+  }
+
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls {
+    justify-content: flex-start;
+  }
+
+  .hrms-dashboard-page .attendance-grid,
+  .hrms-dashboard-page .activity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-shell {
+    padding: 12px;
+  }
+
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls,
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .header-actions,
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .table-actions {
+    width: 100%;
+  }
+
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls label,
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .dash-btn {
+    flex: 1 1 100%;
+  }
+
+  :where(.accounts-dashboard-page, .hrms-dashboard-page) .section-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .accounts-dashboard-page .bar-line {
+    grid-template-columns: 78px 1fr 48px;
+  }
+
+  .hrms-dashboard-page .attendance-grid,
+  .hrms-dashboard-page .activity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Compact KPI cards (accounts dashboard only) ── */
+.accounts-dashboard-page .kpi-card--compact {
+  min-height: unset;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.accounts-dashboard-page .kpi-card--compact:hover {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.13);
+  transform: translateY(-2px);
+}
+
+.accounts-dashboard-page .kpi-card--compact .kpi-copy {
+  flex: 1;
+  margin-top: 0;
+}
+
+.accounts-dashboard-page .kpi-card--compact .kpi-copy strong {
+  font-size: 17px;
+}
+
+.accounts-dashboard-page .kpi-card--compact .kpi-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.accounts-dashboard-page .kpi-card--compact .kpi-trend {
+  margin-top: 0;
+  font-size: 10px;
+}
+
+/* ── Compact summary cards ── */
+.accounts-dashboard-page .summary-card--clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  padding: 11px 14px;
+}
+
+.accounts-dashboard-page .summary-card--clickable:hover {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.13);
+  transform: translateY(-2px);
+}
+
+.accounts-dashboard-page .summary-card strong {
+  font-size: 17px;
+}
+
+/* ── Clickable list/chart cards ── */
+.accounts-dashboard-page .clickable-card {
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.accounts-dashboard-page .clickable-card:hover {
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.13);
+  transform: translateY(-2px);
+}
+
+/* ── Detail hint badge ── */
+.accounts-dashboard-page .kpi-detail-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 10%, white);
+  color: var(--clr-p2, #0891b2);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Dashboard detail modal ── */
+.accounts-dashboard-page .dash-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+
+.accounts-dashboard-page .dash-modal {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
+  width: 100%;
+  max-width: 1150px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.accounts-dashboard-page .dash-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.accounts-dashboard-page .dash-modal-header h3 {
+  margin: 0 0 3px;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.accounts-dashboard-page .dash-modal-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.accounts-dashboard-page .dash-modal-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.15s ease;
+}
+
+.accounts-dashboard-page .dash-modal-close:hover {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.accounts-dashboard-page .dash-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.accounts-dashboard-page .dash-record-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.accounts-dashboard-page .dash-record-count::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--clr-p2, #0891b2);
+  flex-shrink: 0;
+}
+
+.accounts-dashboard-page .dash-modal-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.accounts-dashboard-page .dash-modal-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #dbe8f9;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s ease;
+  white-space: nowrap;
+}
+
+.accounts-dashboard-page .dash-modal-actions button:hover {
+  background: #f1f5f9;
+}
+
+.accounts-dashboard-page .dash-modal-actions button.btn-whatsapp {
+  color: #166534;
+  border-color: #bbf7d0;
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.accounts-dashboard-page .dash-modal-actions button.btn-whatsapp:hover {
+  background: #dcfce7;
+}
+
+.accounts-dashboard-page .dash-modal-body {
+  flex: 1;
+  overflow: auto;
+}
+
+.accounts-dashboard-page .dash-modal-body .tbl-wrap {
+  min-width: 0;
+}
+
+@media (max-width: 767.98px) {
+  .accounts-dashboard-page .dash-modal-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .accounts-dashboard-page .kpi-card--compact .kpi-trend {
+    display: none;
   }
 }

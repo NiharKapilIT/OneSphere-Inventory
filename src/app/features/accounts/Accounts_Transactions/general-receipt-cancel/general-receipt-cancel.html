@@ -89,22 +89,24 @@
           <div class="tbl-wrap">
             <p-table [value]="lstdetails()" [paginator]="true" [rows]="pageCriteria().pageSize"
               [totalRecords]="pageCriteria().totalrows" (onPage)="onPrimePageChange($event)"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines" [scrollable]="true" scrollHeight="400px"
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines" sortMode="single" [scrollable]="true" scrollHeight="400px"
               [resizableColumns]="true">
 
               <ng-template pTemplate="header">
                 <tr>
                   <th pResizableColumn class="th-actions" style="width: 60px;">S.No</th>
-                  <th pResizableColumn class="th-cell">
+                  <th pResizableColumn pSortableColumn="pAccountname" class="th-cell">
                     <div class="th-cell">
                       <i class="pi pi-align-left"></i>
                       Particulars
+                      <p-sortIcon field="pAccountname"></p-sortIcon>
                     </div>
                   </th>
-                  <th pResizableColumn class="th-right" style="width: 150px;">
+                  <th pResizableColumn pSortableColumn="pLedgeramount" class="th-right" style="width: 150px;">
                     <div class="th-cell" style="justify-content:flex-end">
                       <i class="pi pi-indian-rupee"></i>
                       Amount
+                      <p-sortIcon field="pLedgeramount"></p-sortIcon>
                     </div>
                   </th>
                 </tr>

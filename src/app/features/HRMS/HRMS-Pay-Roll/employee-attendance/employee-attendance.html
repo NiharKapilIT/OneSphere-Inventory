@@ -106,16 +106,31 @@
           [responsiveLayout]="'scroll'"
           [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
-              <th>Employee Code</th>
-              <th>Employee Name</th>
-              <th>Designation</th>
-              <th>SL</th>
-              <th>Total SL</th>
-              <th>CL</th>
-              <th>Total CL</th>
+              <th pSortableColumn="employeeCode">
+                <div class="th-cell">Employee Code <p-sortIcon field="employeeCode"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeName">
+                <div class="th-cell">Employee Name <p-sortIcon field="employeeName"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="designation">
+                <div class="th-cell">Designation <p-sortIcon field="designation"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="sl">
+                <div class="th-cell">SL <p-sortIcon field="sl"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="totalSl">
+                <div class="th-cell">Total SL <p-sortIcon field="totalSl"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="cl">
+                <div class="th-cell">CL <p-sortIcon field="cl"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="totalCl">
+                <div class="th-cell">Total CL <p-sortIcon field="totalCl"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>

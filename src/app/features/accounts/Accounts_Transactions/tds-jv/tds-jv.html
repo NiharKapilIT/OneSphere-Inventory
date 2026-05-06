@@ -145,7 +145,7 @@
             <p-table [value]="tdsJvDetailsGrid" [paginator]="true" [rows]="pageCriteria.pageSize"
               [first]="pageCriteria.offset" [responsiveLayout]="'scroll'" [scrollable]="true" scrollHeight="400px"
               selectionMode="multiple" [(selection)]="selected1" (selectionChange)="onSelect($event)"
-              [showCurrentPageReport]="true" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+              [showCurrentPageReport]="true" sortMode="single" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
               <!-- Header -->
               <ng-template pTemplate="header">
@@ -153,22 +153,25 @@
                   <th class="th-actions th-col-checkbox">
                     <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
                   </th>
-                  <th class="th-cell">
+                  <th pSortableColumn="particulars" class="th-cell">
                     <div class="th-cell">
                       <i class="pi pi-align-left"></i>
                       Particulars
+                      <p-sortIcon field="particulars"></p-sortIcon>
                     </div>
                   </th>
-                  <th class="th-right th-col-amount">
+                  <th pSortableColumn="debit_amount" class="th-right th-col-amount">
                     <div class="th-cell th-cell-end">
                       <i class="pi pi-arrow-down"></i>
                       Debit Amount
+                      <p-sortIcon field="debit_amount"></p-sortIcon>
                     </div>
                   </th>
-                  <th class="th-right th-col-amount">
+                  <th pSortableColumn="credit_amount" class="th-right th-col-amount">
                     <div class="th-cell th-cell-end">
                       <i class="pi pi-arrow-up"></i>
                       Credit Amount
+                      <p-sortIcon field="credit_amount"></p-sortIcon>
                     </div>
                   </th>
                 </tr>

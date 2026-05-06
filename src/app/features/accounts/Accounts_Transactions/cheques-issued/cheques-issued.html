@@ -272,6 +272,7 @@
         <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
           [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true"
           columnResizeMode="expand">
 
@@ -286,8 +287,8 @@
               <th pResizableColumn class="th-center th-action-sm">
                 <div class="th-cell th-cell--center">Return</div>
               </th>
-              <th pResizableColumn class="th-ref">
-                <div class="th-cell">Reference No</div>
+              <th pResizableColumn pSortableColumn="preferencetext" class="th-ref">
+                <div class="th-cell">Reference No <p-sortIcon field="preferencetext"></p-sortIcon></div>
               </th>
               @if (status() !== 'autobrs') {
               <th pResizableColumn class="th-center th-action-sm">
@@ -296,35 +297,40 @@
               }
               }
 
-              <th pResizableColumn>
-                <div class="th-cell th-cell--center">Cheque / Reference No.</div>
+              <th pResizableColumn pSortableColumn="pChequenumber">
+                <div class="th-cell th-cell--center">Cheque / Reference No. <p-sortIcon field="pChequenumber"></p-sortIcon></div>
               </th>
-              <th pResizableColumn class="th-right">
+              <th pResizableColumn pSortableColumn="ptotalreceivedamount" class="th-right">
                 <div class="th-cell th-cell--right">
                   <i class="pi pi-indian-rupee"></i> Amount
+                  <p-sortIcon field="ptotalreceivedamount"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn>
+              <th pResizableColumn pSortableColumn="ppartyname">
                 <div class="th-cell">
                   <i class="pi pi-user"></i> Party
+                  <p-sortIcon field="ppartyname"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn>
+              <th pResizableColumn pSortableColumn="preceiptid">
                 <div class="th-cell">
                   <i class="pi pi-file"></i> Payment Id
+                  <p-sortIcon field="preceiptid"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn>
+              <th pResizableColumn pSortableColumn="preceiptdate">
                 <div class="th-cell">
                   <i class="pi pi-calendar"></i> Payment Date
+                  <p-sortIcon field="preceiptdate"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn>
+              <th pResizableColumn [pSortableColumn]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'">
                 <div class="th-cell">
                   <i class="pi pi-credit-card"></i>
                   {{ activeTab() === 'cleared' ? 'Cleared Date' :
                   activeTab() === 'returned' ? 'Returned Date' :
                   activeTab() === 'cancelled' ? 'Cancelled Date' : 'Transaction Mode' }}
+                  <p-sortIcon [field]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'"></p-sortIcon>
                 </div>
               </th>
 

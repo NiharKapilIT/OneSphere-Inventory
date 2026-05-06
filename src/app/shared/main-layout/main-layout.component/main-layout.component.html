@@ -116,6 +116,10 @@
         </div>
       </div>
 
+      <div class="nav-action-group voice-nav-action">
+        <app-voice-assistant (click)="showRecentForms = false; showMegaMenu = false; showAvatarMenu = false"></app-voice-assistant>
+      </div>
+
       <div class="nav-action-group">
         <button
           class="nav-icon-btn"
@@ -270,9 +274,12 @@
         <button
           *ngFor="let sub of selectedModule.subModules"
           class="sb-item"
+          [class.has-flyout]="hasFlyoutItems(sub)"
+          [class.direct-item]="!hasFlyoutItems(sub)"
           [class.active]="selectedSubModule?.id === sub.id"
           (click)="toggleSubModule(sub)"
-          [attr.title]="sub.name">
+          [attr.title]="sub.name"
+          [attr.aria-expanded]="hasFlyoutItems(sub) ? isSubModuleExpanded(sub.id) : null">
           <div class="sb-avatar">
             <i [class]="getSubModuleIcon(sub.name)"></i>
           </div>
@@ -284,8 +291,8 @@
 
     <div
       class="flyout"
-      [class.open]="selectedSubModule && !sidebarCollapsed && isSubModuleExpanded(selectedSubModule.id)"
-      *ngIf="selectedSubModule">
+      [class.open]="selectedSubModule && hasFlyoutItems(selectedSubModule) && !sidebarCollapsed && isSubModuleExpanded(selectedSubModule.id)"
+      *ngIf="selectedSubModule && hasFlyoutItems(selectedSubModule)">
 
       <div class="fp-header">
         <div class="fp-head-left">
@@ -411,5 +418,4 @@
   </div>
 
   <app-sos-help></app-sos-help>
-  <app-voice-assistant></app-voice-assistant>
 </div>

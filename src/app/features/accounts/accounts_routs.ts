@@ -2,6 +2,23 @@ import { Routes } from '@angular/router';
 import { GeneralReceipt } from './Accounts_Reports/general-receipt/general-receipt';
 
 export const accountsRoutes: Routes = [
+  {
+    path: 'accounts-dashboard',
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./accounts-dashboard/accounts-dashboard')
+            .then(m => m.AccountsDashboard)
+      },
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      }
+    ]
+  },
+
   // ✅ ACCOUNTS CONFIG
   {
     path: 'accounts-config',
@@ -265,4 +282,9 @@ export const accountsRoutes: Routes = [
      
     ]
   },
+  {
+    path: '',
+    redirectTo: 'accounts-dashboard/dashboard',
+    pathMatch: 'full'
+  }
 ];

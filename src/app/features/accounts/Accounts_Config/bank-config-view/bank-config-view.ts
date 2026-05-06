@@ -53,7 +53,10 @@ export class BankConfigView implements OnInit {
       this.commonService.getCompanyCode()
     ).subscribe({
       next: (data: any[]) => {
-        this.filteredData = data ?? [];
+        this.filteredData = (data ?? []).map(row => ({
+          ...row,
+          account_type: this.getAccountType(row)
+        }));
         this.gridData.set([...this.filteredData]);
         this.columnsWithSearch = this.filteredData.length > 0
           ? Object.keys(this.filteredData[0])

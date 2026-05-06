@@ -32,13 +32,20 @@
           [rows]="5"
           [rowsPerPageOptions]="[5, 10, 20]"
           [responsiveLayout]="'scroll'"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 110px">Actions</th>
-              <th>Employee ID</th>
-              <th>Employee Name</th>
-              <th>Designation</th>
+              <th pSortableColumn="employeeId">
+                <div class="th-cell">Employee ID <p-sortIcon field="employeeId"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeName">
+                <div class="th-cell">Employee Name <p-sortIcon field="employeeName"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="designation">
+                <div class="th-cell">Designation <p-sortIcon field="designation"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>

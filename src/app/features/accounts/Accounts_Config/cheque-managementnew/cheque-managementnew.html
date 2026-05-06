@@ -144,24 +144,28 @@
 
             <ng-template pTemplate="header">
               <tr>
-                <th style="min-width: 130px;">
+                <th pSortableColumn="pNoofcheques" style="min-width: 130px;">
                   <div class="th-cell">
                     <i class="pi pi-hashtag"></i> No. of Cheques
+                    <p-sortIcon field="pNoofcheques"></p-sortIcon>
                   </div>
                 </th>
-                <th style="min-width: 120px;">
+                <th pSortableColumn="pChequefrom" style="min-width: 120px;">
                   <div class="th-cell">
                     <i class="pi pi-arrow-right"></i> From No.
+                    <p-sortIcon field="pChequefrom"></p-sortIcon>
                   </div>
                 </th>
-                <th style="min-width: 120px;">
+                <th pSortableColumn="pChequeto" style="min-width: 120px;">
                   <div class="th-cell">
                     <i class="pi pi-arrow-right"></i> To No.
+                    <p-sortIcon field="pChequeto"></p-sortIcon>
                   </div>
                 </th>
-                <th class="th-center" style="min-width: 110px;">
+                <th pSortableColumn="pStatusname" class="th-center" style="min-width: 110px;">
                   <div class="th-cell th-cell-center">
                     <i class="pi pi-check-circle"></i> Status
+                    <p-sortIcon field="pStatusname"></p-sortIcon>
                   </div>
                 </th>
                 <th class="th-center" style="min-width: 80px;">

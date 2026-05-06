@@ -95,17 +95,30 @@
           [responsiveLayout]="'scroll'"
           [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines"
         >
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 110px">Actions</th>
-              <th>Emp ID</th>
-              <th>Employee Name</th>
-              <th>Designation</th>
-              <th>Basic Salary</th>
-              <th>Special Allowances</th>
-              <th>Allowances</th>
+              <th pSortableColumn="empId">
+                <div class="th-cell">Emp ID <p-sortIcon field="empId"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeName">
+                <div class="th-cell">Employee Name <p-sortIcon field="employeeName"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="designation">
+                <div class="th-cell">Designation <p-sortIcon field="designation"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="basicSalary">
+                <div class="th-cell">Basic Salary <p-sortIcon field="basicSalary"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="specialAllowances">
+                <div class="th-cell">Special Allowances <p-sortIcon field="specialAllowances"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="allowances">
+                <div class="th-cell">Allowances <p-sortIcon field="allowances"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
 

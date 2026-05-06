@@ -97,16 +97,29 @@
           [responsiveLayout]="'scroll'"
           [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
               <th style="width: 100px;">Actions</th>
-              <th>Emp ID</th>
-              <th>Employee Name</th>
-              <th>Designation</th>
-              <th>Date Of Joining</th>
-              <th>Basic</th>
-              <th>VDA</th>
+              <th pSortableColumn="empId">
+                <div class="th-cell">Emp ID <p-sortIcon field="empId"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeName">
+                <div class="th-cell">Employee Name <p-sortIcon field="employeeName"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="designation">
+                <div class="th-cell">Designation <p-sortIcon field="designation"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="dateOfJoining">
+                <div class="th-cell">Date Of Joining <p-sortIcon field="dateOfJoining"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="basic">
+                <div class="th-cell">Basic <p-sortIcon field="basic"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="vda">
+                <div class="th-cell">VDA <p-sortIcon field="vda"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>
