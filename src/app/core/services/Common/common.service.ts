@@ -25,6 +25,10 @@ import { environment } from '../../../../envir/environment';
   providedIn: 'root',
 })
 export class CommonService {
+  // common.service.ts line ~28
+ConnectionString: string = '';
+BranchSchema: string = '';
+CompanyName: string = '';
   NPSPledgeDetails1(reportname: string, rows: any[], gridheaders: string[], FirstcolWidthHeight: any, arg4: string, arg5: string, fromdate: any, toDate: string, printorpdf: string) {
     throw new Error('Method not implemented.');
   }
