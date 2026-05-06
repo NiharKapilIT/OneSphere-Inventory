@@ -129,7 +129,7 @@ export class GeneralReceipt implements OnInit {
   // ── Helpers ────────────────────────────────────────────────────────────────────
   getTotalAmount(list: any[]): number {
     if (!list?.length) return 0;
-    return list.reduce((total: number, item: any) => total + (Number(item?.pLedgeramount) || 0), 0);
+    return Math.round(list.reduce((total: number, item: any) => total + (Number(item?.pLedgeramount) || 0), 0));
   }
 
   getNarration(narration: any): string {
