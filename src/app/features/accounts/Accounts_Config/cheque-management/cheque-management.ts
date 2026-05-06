@@ -225,6 +225,9 @@ export class ChequeManagement implements OnInit, OnDestroy {
     this.pageCriteria.totalrows = filtered.length;
     this.pageCriteria.TotalPages = Math.ceil(filtered.length / this.pageSize) || 1;
     this.pageCriteria.currentPageRows = filtered.length;
+
+      this.totalRecords.set(filtered.length);
+
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
