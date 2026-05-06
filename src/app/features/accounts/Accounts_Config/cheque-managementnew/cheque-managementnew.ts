@@ -529,6 +529,7 @@ import {
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { DatePickerModule } from 'primeng/datepicker';
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero.directive/no-leading-zero.directive';
 
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -583,7 +584,8 @@ export type SaveType = 'Active' | 'InActive';
     ButtonModule,
     NgSelectModule,
     RouterModule,
-    DatePickerModule
+    DatePickerModule,
+    NoLeadingZeroDirective
   ],
   templateUrl: './cheque-managementnew.html',
   styleUrl: './cheque-managementnew.css',
@@ -776,19 +778,31 @@ export class ChequeManagementnew implements OnInit {
   }
 
   // ─── Allow Numeric Input Only ────────────────────────────────────────────────
-  allowOnlyNumbers(event: Event, maxLength: number): void {
-    const input = event.target as HTMLInputElement;
-    let value = input.value.replace(/[^0-9]/g, '');
-    if (value.length > maxLength) value = value.slice(0, maxLength);
-    input.value = value;
+  // REPLACE the existing allowOnlyNumbers method with this:
+allowOnlyNumbers(event: Event, maxLength: number): void {
+  const input = event.target as HTMLInputElement;
+  
+  // Strip non-digits
+  let value = input.value.replace(/[^0-9]/g, '');
+  
+  // Strip leading zeros (only if followed by another digit e.g. "012" → "12")
+  value = value.replace(/^0+([1-9])/, '$1');
+  
+  // Also block pure "0" or "00" etc.
+  if (/^0+$/.test(value)) value = '';
+  
+  // Enforce max length
+  if (value.length > maxLength) value = value.slice(0, maxLength);
+  
+  input.value = value;
 
-    const controlName = input.getAttribute('formControlName');
-    if (controlName && this.chequemanagementform.get(controlName)) {
-      this.chequemanagementform
-        .get(controlName)
-        ?.setValue(value, { emitEvent: false });
-    }
+  const controlName = input.getAttribute('formControlName');
+  if (controlName && this.chequemanagementform.get(controlName)) {
+    this.chequemanagementform
+      .get(controlName)
+      ?.setValue(value, { emitEvent: false });
   }
+}
 
   // ─── Overlap Range Validation ────────────────────────────────────────────────
   private hasOverlap(fromcheq: number, tocheq: number): boolean {
@@ -902,24 +916,33 @@ export class ChequeManagementnew implements OnInit {
     this.chequemanagementform.controls['pChqegeneratestatus'].setValue(isActive);
 
     const form = this.chequemanagementform.value;
-    const grid = this.gridData()[0];
+    const grid = this.gridData();
 
-    const payload: SavePayload = {
-      branchSchema:           form.branchSchema,
-      company_code:           this.commonService.getCompanyCode(),
-      branch_code:            this.commonService.getBranchCode(),
-      branch_id:              1,
-      pBankId:                Number(grid['pBankId']),
-      pNoofcheques:           Number(grid['pNoofcheques']),
-      pChequefrom:            Number(grid['pChequefrom']),
-      pChequeto:              Number(grid['pChequeto']),
-      cheque_book_id:         form['cheque_book_id'] ?? 0,
-      pChqegeneratestatus:    form.pChqegeneratestatus === true,
-      pChequeGenerateDate:    this.today,
-      pCreatedby:             form.pCreatedby,
-      pipaddress:             form.pipaddress,
-      ptypeofoperation:       grid['ptypeofoperation'],
-    };
+    console.log(grid);
+    
+
+
+
+const payload: SavePayload[] = grid.map((row: any) => ({
+  branchSchema:           form.branchSchema,
+  company_code:           this.commonService.getCompanyCode(),
+  branch_code:            this.commonService.getBranchCode(),
+  branch_id:              1,
+  pBankId:                Number(row['pBankId']),
+  pNoofcheques:           Number(row['pNoofcheques']),
+  pChequefrom:            Number(row['pChequefrom']),
+  pChequeto:              Number(row['pChequeto']),
+  cheque_book_id:         form['cheque_book_id'] ?? 0,
+  pChqegeneratestatus:    form.pChqegeneratestatus === true,
+  pChequeGenerateDate:    this.today,
+  pCreatedby:             form.pCreatedby,
+  pipaddress:             form.pipaddress,
+  ptypeofoperation:       row['ptypeofoperation'],
+}));
+
+
+
+
 
     this.accountingMasterService
       .SaveChequeManagement(payload)

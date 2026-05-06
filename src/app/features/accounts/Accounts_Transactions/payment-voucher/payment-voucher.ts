@@ -88,6 +88,7 @@ export class PaymentVoucher implements OnInit {
   ngOnInit(): void {
     this.loadData();
   }
+  
 
   // ── Data ─────────────────────────────────────────────────────────────────
   loadData(): void {
@@ -146,6 +147,7 @@ export class PaymentVoucher implements OnInit {
     );
     window.open(url, '_blank');
   }
+  
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   getPaymentMode(row: VoucherRow): PaymentMode {

@@ -63,10 +63,11 @@
                 Number Of Cheques <span class="required">*</span>
               </label>
               <input type="text" class="erp-input" id="pNoofcheques" title="Number of Cheques" maxlength="3"
-                inputmode="numeric" autocomplete="off" formControlName="pNoofcheques"
-                [ngClass]="{ 'is-invalid': noofchequesCtrl.touched && noofchequesCtrl.errors }"
-                (input)="allowOnlyNumbers($event, 3)" (change)="onNoofchequesChange($event)"
-                aria-describedby="noofcheques-error" />
+  inputmode="numeric" autocomplete="off" formControlName="pNoofcheques"
+  appNoLeadingZero
+  [ngClass]="{ 'is-invalid': noofchequesCtrl.touched && noofchequesCtrl.errors }"
+  (input)="allowOnlyNumbers($event, 3)" (change)="onNoofchequesChange($event)"
+  aria-describedby="noofcheques-error" />
               @if (noofchequesCtrl.touched && noofchequesCtrl.errors) {
               <div id="noofcheques-error" class="erp-field-error" role="alert">
                 @if (noofchequesCtrl.errors['required']) {
@@ -89,7 +90,7 @@
               <label class="erp-label" for="pChequefrom">
                 From No. <span class="required">*</span>
               </label>
-              <input type="text" class="erp-input" id="pChequefrom" title="From Cheque No" maxlength="8"
+              <input type="text" class="erp-input" id="pChequefrom" title="From Cheque No" maxlength="6"
                 inputmode="numeric" autocomplete="off" formControlName="pChequefrom"
                 [ngClass]="{ 'is-invalid': chequefromCtrl.touched && chequefromCtrl.invalid }"
                 (input)="allowOnlyNumbers($event, 8)" (change)="onFromchequenoChange($event)"

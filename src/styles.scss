@@ -419,8 +419,7 @@ a {
   font-size: 15px;
   font-weight: 720;
   color: var(--clr-p1, #0c4a6e);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+   letter-spacing: 0.5px;
   margin-bottom: 12px;
   padding-bottom: 6px;
   border-bottom: 2px solid var(--clr-accent-lt, #cffafe);
@@ -3317,7 +3316,6 @@ input[type='date'].erp-input {
     .receipt-no {
       font-weight: 600;
       color: var(--clr-p2, #0891b2);
-
     }
 
     .narration-cell {
@@ -5002,13 +5000,11 @@ input[readonly].erp-input {
 .cheque-ref {
   font-weight: 700;
   color: var(--clr-p2, #0891b2);
-
 }
 
 .receipt-no {
   font-weight: 700;
   color: var(--clr-p1, #0c4a6e);
-
 }
 
 .narration-cell {

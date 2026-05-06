@@ -62,7 +62,7 @@
             Bank <span class="required">*</span>
           </label>
           <ng-select appendTo="body" [items]="bankList()" bindLabel="pbankname" bindValue="pbankid"
-            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bank Name"
+            formControlName="bankname" (change)="onBankChange($event)" placeholder="Select Bankname"
             [closeOnSelect]="true" [clearable]="true" [searchable]="true"
             [class.is-invalid]="ChequesIssuedValidation()['bankname']">
             <ng-template ng-label-tmp let-item="item">
@@ -146,8 +146,8 @@
           </div>
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
+        <!-- <div class="erp-form-group">
+          <label class="erp-label">BRS To Date</label>
           <div class="erp-input-wrap erp-date-wrap">
             <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker formControlName="ptobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
@@ -159,6 +159,23 @@
           <small class="text-danger d-flex align-items-center gap-1 mt-1">
             <i class="pi pi-exclamation-circle"></i> BRS To Date should be greater than From Date
           </small>
+          }
+        </div> -->
+
+        <div class="erp-form-group">
+          <label class="erp-label">BRS To Date</label>
+          <div class="erp-input-wrap erp-date-wrap">
+            <i class="pi pi-calendar erp-input-icon"></i>
+            <div class="erp-input-wrap erp-date-wrap">
+              <p-datepicker formControlName="ptobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                [inputStyleClass]="validatebrsdateclear() ? 'erp-input icon-pad w-100 is-invalid' : 'erp-input icon-pad w-100'"
+                [maxDate]="todayDate">
+              </p-datepicker>
+            </div>
+          </div>
+          @if (validatebrsdateclear()) {
+          <div class="erp-field-error">BRS To Date should be greater than From Date</div>
           }
         </div>
 
@@ -186,22 +203,22 @@
           </div>
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
+        <div class="erp-form-group">
+          <label class="erp-label">BRS To Date</label>
           <div class="erp-input-wrap erp-date-wrap">
             <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              [inputStyleClass]="validatebrsdatereturn() ? 'erp-input icon-pad w-100 is-invalid' : 'erp-input icon-pad w-100'"
-              [maxDate]="todayDate"></p-datepicker>
+            <div class="erp-input-wrap erp-date-wrap">
+              <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                [inputStyleClass]="validatebrsdatereturn() ? 'erp-input icon-pad w-100 is-invalid' : 'erp-input icon-pad w-100'"
+                [maxDate]="todayDate">
+              </p-datepicker>
+            </div>
           </div>
           @if (validatebrsdatereturn()) {
-          <small class="text-danger d-flex align-items-center gap-1 mt-1">
-            <i class="pi pi-exclamation-circle"></i> BRS To Date should be greater than From Date
-          </small>
+          <div class="erp-field-error">BRS To Date should be greater than From Date</div>
           }
         </div>
-
 
         <div class="col-12">
           <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsReturn()">
@@ -227,22 +244,22 @@
           </div>
         </div>
 
-        <div class="filter-group">
-          <label class="filter-lbl">BRS To Date</label>
+        <div class="erp-form-group">
+          <label class="erp-label">BRS To Date</label>
           <div class="erp-input-wrap erp-date-wrap">
             <i class="pi pi-calendar erp-input-icon"></i>
-            <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
-              [readonlyInput]="true" appendTo="body" styleClass="w-100"
-              [inputStyleClass]="validatebrsdatecancel() ? 'erp-input icon-pad w-100 is-invalid' : 'erp-input icon-pad w-100'"
-              [maxDate]="todayDate"></p-datepicker>
+            <div class="erp-input-wrap erp-date-wrap">
+              <p-datepicker formControlName="tobrsdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                [inputStyleClass]="validatebrsdatecancel() ? 'erp-input icon-pad w-100 is-invalid' : 'erp-input icon-pad w-100'"
+                [maxDate]="todayDate">
+              </p-datepicker>
+            </div>
           </div>
           @if (validatebrsdatecancel()) {
-          <small class="text-danger d-flex align-items-center gap-1 mt-1">
-            <i class="pi pi-exclamation-circle"></i> BRS To Date should be greater than From Date
-          </small>
+          <div class="erp-field-error">BRS To Date should be greater than From Date</div>
           }
         </div>
-
 
         <div class="col-12">
           <button type="button" class="erp-btn btn-primary btn-sm" (click)="ShowBrsCancel()">

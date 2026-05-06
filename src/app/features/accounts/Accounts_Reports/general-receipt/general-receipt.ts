@@ -129,7 +129,7 @@ export class GeneralReceipt implements OnInit {
   // ── Helpers ────────────────────────────────────────────────────────────────────
   getTotalAmount(list: any[]): number {
     if (!list?.length) return 0;
-    return list.reduce((total: number, item: any) => total + (Number(item?.pLedgeramount) || 0), 0);
+    return Math.round(list.reduce((total: number, item: any) => total + (Number(item?.pLedgeramount) || 0), 0));
   }
 
   getNarration(narration: any): string {
@@ -202,7 +202,7 @@ let Company = this.commonService._getCompanyDetails();
       doc.addImage(kapilLogo, 'JPEG', 10, 5, 20, 20);
 
       doc.setFontSize(15);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('helvetica', 'normal');
       doc.text(companyName, pageWidth / 2, 15, { align: 'center' });
 
       doc.setFontSize(9);

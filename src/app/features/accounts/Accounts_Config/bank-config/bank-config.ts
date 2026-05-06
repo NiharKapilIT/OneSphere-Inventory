@@ -35,7 +35,7 @@ import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
-
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero.directive/no-leading-zero.directive';
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
   modeOfReceipt: FormControl<string | null>;
@@ -98,6 +98,7 @@ interface BankMasterFormShape {
     NgSelectModule,
     ButtonModule,
     RouterModule,
+    NoLeadingZeroDirective,
   ],
   templateUrl: './bank-config.html',
   styleUrls: ['./bank-config.css'],
@@ -460,8 +461,9 @@ export class BankConfig implements OnInit {
   //   }
   // }
 
-allowNumbersOnly1(event: any) {
+/*allowNumbersOnly1(event: any) {
   event.target.value = event.target.value.replace(/[^0-9]/g, '');
+   event.target.value = event.target.value.replace(/^0+/, '');
   const accountNumber = event.target.value;
   this.bankmasterform.get('pAccountnumber')?.setValue(accountNumber);
 
@@ -472,7 +474,7 @@ allowNumbersOnly1(event: any) {
   } else if (bankName) {
     this.bankmasterform.get('account_name')?.setValue(bankName);
   }
-}
+}*/
 //woking
 
 
@@ -490,7 +492,14 @@ allowNumbersOnly1(event: any) {
 //   }
 // }
 
-
+onAccountNumberChange(event: any): void {
+  const accountNumber = (event.target as HTMLInputElement).value;
+  const bankName = this.bankname || this.bankmasterform.get('bankName')?.value || '';
+  const accountName = bankName && accountNumber
+    ? `${bankName}@${accountNumber}`
+    : bankName || '';
+  this.bankmasterform.get('account_name')?.setValue(accountName);
+}
 
   allowNumbersOnly(event: KeyboardEvent): void {
     const charCode = event.which || event.keyCode;
@@ -501,6 +510,7 @@ allowNumbersOnly1(event: any) {
       event.preventDefault();
     }
     if (charCode === 46 && input.value.includes('.')) event.preventDefault();
+     if (charCode === 48 && input.value.length === 0) event.preventDefault();
   }
 
   blockNonNumericPaste(event: ClipboardEvent): void {
