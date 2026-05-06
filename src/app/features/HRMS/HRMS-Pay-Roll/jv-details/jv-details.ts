@@ -18,7 +18,7 @@ interface JvTypeOption {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ButtonModule, NgSelectModule,TableModule,],
   templateUrl: './jv-details.html',
-  styleUrls: ['./jv-details.css']
+  // styleUrls: ['./jv-details.css']
 })
 export class JvDetails implements OnInit {
   private fb                  = inject(FormBuilder);
