@@ -41,6 +41,21 @@ export class HrmsPayroll {
       this._CommonService.showErrorMessage(errormssg);
     }
   }
+
+
+
+
+    getdesignations() {
+
+    try {
+      return this._CommonService.getAPI('/Common/GetDesignations', '', 'NO');
+    }
+    catch (e) {
+      this._CommonService.showErrorMessage(e);
+    }
+  }
+  
+  
   _downloadjvdetailsPdf(
     reportName:     string,
     gridData:       any[][],

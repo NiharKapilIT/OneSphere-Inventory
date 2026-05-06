@@ -6045,7 +6045,10 @@ export class CommonService {
 
 
 
+  GetDesignations(): Observable<any> {
+    return this.getAPI('/Common/GetDesignations', '', 'NO');
 
+  }
 
 
 
