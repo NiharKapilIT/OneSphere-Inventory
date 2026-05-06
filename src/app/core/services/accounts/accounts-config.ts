@@ -40,15 +40,23 @@ export class AccountsConfig {
 
 
   GetBankDetails(GlobalSchema: any, BranchCode: any, CompanyCode: any,): Observable<any> {
-     ;
+    ;
     const params = new HttpParams().set('GlobalSchema', GlobalSchema).set('BranchCode', BranchCode).set('CompanyCode', CompanyCode);
     return this._CommonService.getAPI('/Accounts/GetBankNames', params, 'YES');
   }
 
 
+  GetCompanyBranchHierarchy(startIndex: any, endIndex: any): Observable<any> {
+
+    const params = new HttpParams().set('startIndex', startIndex).set('endIndex', endIndex);
+    return this._CommonService.getAPI('/Accounts/GetCompanyBranchHierarchy', params, 'YES');
+  }
+
+
+
 
   GetBankUPIDetails(GlobalSchema: any, BranchCode: any, CompanyCode: any,): Observable<any> {
-     ;
+    ;
     const params = new HttpParams().set('GlobalSchema', GlobalSchema).set('BranchCode', BranchCode).set('CompanyCode', CompanyCode);
     return this._CommonService.getAPI('/Accounts/GetBankUPIDetails', params, 'YES');
   }
@@ -172,20 +180,20 @@ export class AccountsConfig {
 
 
   GetBankNames(GlobalSchema: any, AccountsSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-     ;
+    ;
     const params = new HttpParams().set('GlobalSchema', GlobalSchema).set('AccountsSchema', AccountsSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
     // return this._CommonService.getAPI('/Accounts/BankNames', params, 'YES');
     return this._CommonService.getAPI('/Accounts/GetBankNames', params, 'YES');
   }
 
   GetBanks(precordid: any, GlobalSchema: any, BranchSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-     ;
+    ;
     const params = new HttpParams().set('precordid', precordid).set('GlobalSchema', GlobalSchema).set('BranchSchema', BranchSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
     // return this._CommonService.getAPI('/Accounts/BankNames', params, 'YES');
     return this._CommonService.getAPI('/Accounts/GetViewBankInformation', params, 'YES');
   }
   GetGlobalBanks(GlobalSchema: any): Observable<any> {
-     ;
+    ;
     const params = new HttpParams().set('GlobalSchema', GlobalSchema);
     // return this._CommonService.getAPI('/Accounts/BankNames', params, 'YES');
     return this._CommonService.getAPI('/Accounts/GetGlobalBanks', params, 'YES');

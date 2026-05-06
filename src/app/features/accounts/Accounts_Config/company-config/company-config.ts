@@ -104,7 +104,17 @@ export class CompanyConfig implements OnInit {
         this.generateBranchCode(name);
 
       });
+    this._accountsConfig.GetCompanyBranchHierarchy(1, 3).subscribe({
+      next: res => {
+        console.log("res", res);
+
+        this.gridData = res.data
+      }
+    })
   }
+
+
+  
   generateCompanyCode(name: string) {
     if (!name) return;
 
@@ -171,7 +181,7 @@ export class CompanyConfig implements OnInit {
       panNumber: [''],
       cinNumber: [''],
       companyCode: [''],
-      companyLogo: ['',Validators.required],
+      companyLogo: [''],
 
     } as any);
     this.BlurEventAllControll(this.companyConfigForm);
@@ -214,6 +224,7 @@ export class CompanyConfig implements OnInit {
 
 
   onSave(): void {
+
     this.submitted = true;
     this.checkValidations(this.companyConfigForm, true);
 
@@ -225,7 +236,8 @@ export class CompanyConfig implements OnInit {
         createdBy: this.companyConfigForm.value.createdBy || '',
         contactId: this.companyConfigForm.value.contactId ? Number(this.companyConfigForm.value.contactId) : null,
         currencyFormat: this.companyConfigForm.value.currencyFormate || '',
-        dateFormat: this.companyConfigForm.value.dateFormat || '',
+        // dateFormat: this.datepipe.transform(this.companyConfigForm.value.dateFormat, 'yyyy-MM-dd') || '',
+        dateFormat: this.datepipe.transform(new Date(), 'yyyy-MM-dd') || '',
         cinNumber: this.companyConfigForm.value.cinNumber || '',
         panNumber: this.companyConfigForm.value.panNumber || '',
         registrationAddress: this.companyConfigForm.value.registrationAddress || '',
@@ -297,6 +309,9 @@ export class CompanyConfig implements OnInit {
       this._commonService.showErrorMessage(e);
     }
   }
+
+
+
   setBlurEvent(fromgroup: FormGroup, key: string): void {
     try {
       const formcontrol = fromgroup.get(key);
@@ -313,6 +328,8 @@ export class CompanyConfig implements OnInit {
       this._commonService.showErrorMessage(e);
     }
   }
+
+
   GetValidationByControl(formGroup: FormGroup, key: string, isValid: boolean): boolean {
     try {
       const formcontrol = formGroup.get(key);
@@ -342,6 +359,7 @@ export class CompanyConfig implements OnInit {
     }
     return isValid;
   }
+
 
   checkValidations(group: FormGroup, isValid: boolean): boolean {
     try {
