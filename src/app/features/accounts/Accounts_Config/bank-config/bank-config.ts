@@ -31,7 +31,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { ButtonModule } from 'primeng/button';
 import { TableModule } from 'primeng/table';
 import { CommonService } from '../../../../core/services/Common/common.service';
-import { Address } from '../../../common/address/address/address';
+import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
@@ -228,7 +228,8 @@ export class BankConfig implements OnInit {
     this.bankmasterform = this.fb.group({
       modeOfReceipt:          [null as string | null],
       bankDetailsType:        [null as string | null],
-      bankType:               ['', Validators.required],
+      bankType:               [null, Validators.required],
+      // bankType:               ['', Validators.required],
       pCreatedby:             [this._commonService.getCreatedBy()],
       pBankdate:              [null as Date | null],
       pAcctountype:           [null, Validators.required],
@@ -252,7 +253,7 @@ export class BankConfig implements OnInit {
       pValidto:               [null as Date | null],
       // UPI — validators added dynamically when switch is ON
       pUpiid:                 ['',Validators.required],
-      upiname:                ['',Validators.required],
+      upiname:                [null,Validators.required],
       // upiname:                [''],
       popeningjvno:           [''],
       pIsupiapplicable:       [false],

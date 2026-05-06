@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -8,6 +8,7 @@
           <p class="card-subtitle">Employee Joining, Promotion, Transfer &amp; Resigning Process here</p>
         </div>
       </div>
+
 
       <div class="p-4">
         <div class="erp-radio-button-group p-0">
@@ -36,13 +37,8 @@
           <div class="col-xl-4 col-lg-5 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Select Employee <span class="required">*</span></label>
-              <ng-select
-                [items]="employeeOptions"
-                [(ngModel)]="selectedEmployee"
-                placeholder="Search by employee name"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="employeeOptions" [(ngModel)]="selectedEmployee" placeholder="Search by employee name"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -71,13 +67,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="designationOptions" [(ngModel)]="selectedDesignation" placeholder="Select designation"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -87,7 +78,9 @@
               <label class="erp-label">Date of Confirmation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="confirmationDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -111,7 +104,9 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="confirmationMinutesDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -125,13 +120,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="promotionDesignationOptions"
-                [(ngModel)]="selectedPromotionDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="promotionDesignationOptions" [(ngModel)]="selectedPromotionDesignation"
+                placeholder="Select designation" [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -141,7 +131,9 @@
               <label class="erp-label">Date of Promotion</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="promotionDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -165,7 +157,9 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="promotionMinutesDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -181,7 +175,9 @@
               <label class="erp-label">Date of Transfer</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="transferDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -191,7 +187,9 @@
               <label class="erp-label">Date of Joining</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="joiningDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -201,7 +199,9 @@
               <label class="erp-label">Date of Reporting</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="reportingDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>
@@ -209,13 +209,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Posted to Branch <span class="required">*</span></label>
-              <ng-select
-                [items]="branchOptions"
-                [(ngModel)]="selectedBranch"
-                placeholder="Select branch"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="branchOptions" [(ngModel)]="selectedBranch" placeholder="Select branch"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -223,13 +218,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedTransferDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="designationOptions" [(ngModel)]="selectedTransferDesignation"
+                placeholder="Select designation" [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -250,13 +240,8 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Resignation Accept Authority <span class="required">*</span></label>
-              <ng-select
-                [items]="authorityOptions"
-                [(ngModel)]="selectedAuthority"
-                placeholder="Select authority"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body">
+              <ng-select [items]="authorityOptions" [(ngModel)]="selectedAuthority" placeholder="Select authority"
+                [searchable]="true" [clearable]="true" appendTo="body">
               </ng-select>
             </div>
           </div>
@@ -266,7 +251,9 @@
               <label class="erp-label">Date of Resignation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <input type="date" class="erp-input icon-pad" />
+                <p-datepicker [(ngModel)]="resignationDate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
               </div>
             </div>
           </div>

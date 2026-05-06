@@ -2237,7 +2237,6 @@ export class PettyCash implements OnInit {
 
 
   // tdsSection_Change(section: any): void {
-  //   debugger;
   //   this.tdspercentagelist = [];
   //   this.pc.get('pTdsPercentage')?.setValue('');
   //   if (section) this.getTdsPercentage(section);
@@ -2256,14 +2255,12 @@ export class PettyCash implements OnInit {
   }
 
   // private getTdsPercentage(section: any): void {
-  //   debugger;
   //   this.tdspercentagelist = this.tdslist.filter((t: any) => t.pTdsSection === section);
   //   this.claculategsttdsamounts();
   // }
 
 
   private getTdsPercentage(section: any): void {
-    debugger
     console.log("chyeolomfnmf");
 
     this.tdspercentagelist = this.tdslist.filter((t: any) => t.pTdsSection === section);
@@ -2515,15 +2512,17 @@ export class PettyCash implements OnInit {
     const keepSubName = ctrl.get('psubledgername')?.value;
 
     ctrl.patchValue({
-      ppartyid: null, ppartyname: '', pactualpaidamount: '',
+// pledgerid: keepLedgerId,psubledgerid: keepSubId,
+     ppartyid: null, ppartyname: '',pledgerid:'',psubledgerid:'',
+       pactualpaidamount: '',
       ptdsamount: 0, pamount: '', ptotalamount: '', pgstamount: 0,
       pigstamount: 0, pcgstamount: 0, psgstamount: 0, putgstamount: 0,
       pisgstapplicable: false, pistdsapplicable: false,
       pStateId: '', pgstpercentage: '', pTdsSection: '', pTdsPercentage: '',
       pgsttype: '', pState: '', pgstno: '',
       pigstpercentage: 0, pcgstpercentage: 0, psgstpercentage: 0, putgstpercentage: 0,
-      pledgerid: keepLedgerId, pledgername: keepLedgerName,
-      psubledgerid: keepSubId, psubledgername: keepSubName,
+       pledgername: keepLedgerName,
+       psubledgername: keepSubName,
     });
 
 
@@ -2707,7 +2706,6 @@ export class PettyCash implements OnInit {
 
 
   validatesavePaymentVoucher(): boolean {
-    debugger
     this.formValidationMessages = {};
 
     if (!this.paymentslist || this.paymentslist.length === 0) {
@@ -2766,8 +2764,6 @@ export class PettyCash implements OnInit {
 
 
   savePaymentVoucher(): void {
-    debugger;
-
     if (!this.validatesavePaymentVoucher()) {
      return;
    }

@@ -209,4 +209,22 @@ doc.addImage(rupeeImage, x - data.cell.contentWidth, y + 0.5, 1.5, 1.5);
     doc.setDrawColor(0, 0, 0);
     doc.line(10, 52, pdfInMM - lMargin - rMargin, 52);
   }
+//  constructor(private http: HttpClient, private _CommonService: CommonService) { }
+
+
+
+  getPolicyEmployeeDetails(GlobalSchema: any, CompanyCode: any, BranchSchema: any, BranchId: any): Observable<any> {
+    const params = new HttpParams().set('GlobalSchema', GlobalSchema) .set('CompanyCode', CompanyCode).set('BranchSchema', BranchSchema)
+     .set('BranchId', BranchId);
+    return this._CommonService.getAPI('/Accounts/getPolicyEmployeeDetails', params, 'YES');
+  }
+    
+
+
+    SavePolicyDetails(data: any) {
+    return this._CommonService.postAPI('/Accounts/SavePolicyDetails', data);
+  }
+
+
+
 }

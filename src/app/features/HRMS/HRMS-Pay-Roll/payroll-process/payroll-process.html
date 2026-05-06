@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -74,6 +74,31 @@
       </div>
 
       <div class="p-4">
+        <div class="erp-table-toolbar tbl-toolbar-flush payroll-grid-toolbar">
+          <div>
+            <h5 class="section-title mb-0">Payroll Process List</h5>
+            @if (mailStatusMessage) {
+              <div class="payroll-mail-status">{{ mailStatusMessage }}</div>
+            }
+          </div>
+
+          <div class="payroll-grid-actions">
+            <span class="payroll-selection-summary">{{ selectedPayrollRows.length }} selected</span>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printPayrollGrid()">
+              <i class="pi pi-print"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Excel" aria-label="Export Excel" (click)="exportPayrollExcel()">
+              <i class="pi pi-file-excel"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export PDF" aria-label="Export PDF" (click)="exportPayrollPdf()">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+            <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Send Mail" aria-label="Send Mail" (click)="sendPayrollMail()">
+              <i class="pi pi-send"></i>
+            </button>
+          </div>
+        </div>
+
         <p-table
           [value]="payrollList"
           [paginator]="true"
@@ -85,9 +110,21 @@
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
-              <th style="width: 100px;">Actions</th>
+              <th style="width: 130px;">
+                <div class="employee-actions">
+                  <label class="row-check" title="Select All">
+                    <input
+                      type="checkbox"
+                      [checked]="allPayrollRowsSelected()"
+                      (change)="toggleAllPayrollSelection($any($event.target).checked)"
+                    />
+                  </label>
+                  <span>Actions</span>
+                </div>
+              </th>
               <th>Emp ID</th>
               <th>Employee Name</th>
+              <th>Email</th>
               <th>Designation</th>
               <th>Date Of Joining</th>
               <th>Basic</th>
@@ -97,12 +134,22 @@
           <ng-template pTemplate="body" let-row>
             <tr>
               <td>
-                <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="View">
-                  <i class="pi pi-eye"></i>
-                </button>
+                <div class="employee-actions">
+                  <label class="row-check" title="Select Employee">
+                    <input
+                      type="checkbox"
+                      [checked]="isPayrollSelected(row)"
+                      (change)="togglePayrollSelection(row, $any($event.target).checked)"
+                    />
+                  </label>
+                  <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="View" (click)="openPayrollDetail(row)">
+                    <i class="pi pi-eye"></i>
+                  </button>
+                </div>
               </td>
               <td>{{ row.empId }}</td>
               <td>{{ row.employeeName }}</td>
+              <td>{{ row.email }}</td>
               <td>{{ row.designation }}</td>
               <td>{{ row.dateOfJoining }}</td>
               <td>{{ row.basic | number:'1.0-0' }}</td>
@@ -111,7 +158,7 @@
           </ng-template>
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="7">
+              <td colspan="8">
                 <div class="grn-table-empty">
                   <i class="pi pi-inbox"></i>
                   <div>No data to display</div>
@@ -134,3 +181,94 @@
     </div>
   </div>
 </div>
+
+@if (selectedPayrollDetail) {
+  <div class="payroll-slip-overlay" (click)="closePayrollDetail()"></div>
+
+  <div class="payroll-slip-wrap">
+    <section class="payroll-slip-modal" (click)="$event.stopPropagation()">
+      <button type="button" class="payroll-slip-close" title="Close" aria-label="Close" (click)="closePayrollDetail()">
+        <i class="pi pi-times"></i>
+      </button>
+
+      <div class="payroll-slip-card">
+        <div class="payroll-slip-tools">
+          <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print Payslip" aria-label="Print Payslip" (click)="printPayslip()">
+            <i class="pi pi-print"></i>
+          </button>
+          <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Payslip Excel" aria-label="Export Payslip Excel" (click)="exportPayslipExcel()">
+            <i class="pi pi-file-excel"></i>
+          </button>
+          <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Export Payslip PDF" aria-label="Export Payslip PDF" (click)="exportPayslipPdf()">
+            <i class="pi pi-file-pdf"></i>
+          </button>
+        </div>
+
+        <header class="payroll-slip-header">
+          <div>
+            <div class="payroll-slip-label">Payroll Details Of</div>
+            <h3 class="payroll-slip-name">{{ selectedPayrollDetail.employeeName }}</h3>
+            <div class="payroll-slip-meta">EMP ID - {{ selectedPayrollDetail.empId }}</div>
+          </div>
+
+          <div class="payroll-slip-meta text-end">
+            <div>For The Month Of - <strong>{{ selectedPayrollMonthLabel }}</strong></div>
+            <div>PAN NO. ETXPS1218C</div>
+            <div>PF NO. AP/KKP/62191/1735</div>
+          </div>
+        </header>
+
+        <div class="payroll-slip-grid">
+          <section class="payroll-slip-section">
+            <h4>Earnings</h4>
+            <div class="payroll-slip-table">
+              <div class="payroll-slip-table-head">
+                <span>Particulars</span>
+                <span>Amount</span>
+              </div>
+
+              @for (item of earningsBreakup; track item.particular) {
+                <div class="payroll-slip-row">
+                  <span>{{ item.particular }}</span>
+                  <span>{{ item.amount | currency:'INR':'symbol':'1.2-2' }}</span>
+                </div>
+              }
+
+              <div class="payroll-slip-row total">
+                <span>Gross Salary</span>
+                <span>{{ grossSalary | currency:'INR':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="payroll-slip-section">
+            <h4>Deductions</h4>
+            <div class="payroll-slip-table">
+              <div class="payroll-slip-table-head">
+                <span>Particulars</span>
+                <span>Amount</span>
+              </div>
+
+              @for (item of deductionsBreakup; track item.particular) {
+                <div class="payroll-slip-row">
+                  <span>{{ item.particular }}</span>
+                  <span>{{ item.amount | currency:'INR':'symbol':'1.2-2' }}</span>
+                </div>
+              }
+
+              <div class="payroll-slip-row total deductions-total">
+                <span>Deductions</span>
+                <span>{{ totalDeductions | currency:'INR':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <footer class="payroll-slip-footer">
+          <span>Net Salary</span>
+          <strong>{{ netSalary | currency:'INR':'symbol':'1.2-2' }}</strong>
+        </footer>
+      </div>
+    </section>
+  </div>
+}

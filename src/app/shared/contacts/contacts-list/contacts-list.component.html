@@ -8,7 +8,7 @@
 
         <div>
           <h2>Contacts</h2>
-          <p>Manage contacts, employees, referrals, suppliers, advocates and freelancers.</p>
+          <p>Manage subscribers, customers, employees, vendors, advocates, channel partners and freelancers.</p>
         </div>
       </div>
 
@@ -48,11 +48,12 @@
             [class.active]="activeTab() === tab"
             (click)="switchTab(tab)">
             <i class="pi" [ngClass]="{
-              'pi-users':       tab === 'Contacts',
-              'pi-id-card':     tab === 'Employees',
-              'pi-share-alt':   tab === 'Referrals',
-              'pi-truck':       tab === 'Suppliers',
-              'pi-briefcase':   tab === 'Advocates',
+              'pi-address-book': tab === 'Contacts',
+              'pi-users':       tab === 'Subscriber / Customer',
+              'pi-id-card':     tab === 'Employee',
+              'pi-truck':       tab === 'Supplier / Vendor',
+              'pi-briefcase':   tab === 'Advocate',
+              'pi-share-alt':   tab === 'Channel Partner',
               'pi-star':        tab === 'Freelancer'
             }"></i>
             <span class="tab-label">{{ tab }}</span>
@@ -191,7 +192,28 @@
 
       <div class="contacts-grid">
         @for (contact of pagedContacts(); track contact.id) {
-          <article class="contact-card">
+          <article class="contact-card" [class.menu-open]="openMenuContactId() === contact.id">
+            <div class="contact-menu-wrap">
+              <button type="button" class="icon-action subtle" title="More actions" (click)="toggleCardMenu(contact.id)">
+                <i class="pi pi-ellipsis-v"></i>
+              </button>
+
+              @if (openMenuContactId() === contact.id) {
+                <div class="contact-role-menu">
+                  <div class="role-menu-title">Convert / assign as</div>
+                  @for (role of roleTabs; track role) {
+                    <button type="button" class="role-menu-item" (click)="openRoleForm(contact, role)">
+                      <i class="pi" [ngClass]="getRoleIcon(role)"></i>
+                      <span>{{ role }}</span>
+                      @if (hasRole(contact, role)) {
+                        <i class="pi pi-check role-menu-check"></i>
+                      }
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+
             <div class="contact-avatar">
               @if (contact.photo) {
                 <img [src]="contact.photo" alt="avatar" />
@@ -228,16 +250,24 @@
                 <i class="pi pi-map-marker"></i>
                 <span>{{ contact.address || 'Address not available' }}</span>
               </div>
+
+              <div class="contact-role-list">
+                @if ((contact.roles || []).length === 0) {
+                  <span class="role-chip muted">No role assigned</span>
+                }
+                @for (role of contact.roles || []; track role) {
+                  <span class="role-chip">
+                    <i class="pi" [ngClass]="getRoleIcon(role)"></i>
+                    {{ role }}
+                  </span>
+                }
+              </div>
             </div>
 
             <div class="contact-card-actions">
               <button type="button" class="erp-btn btn-outline btn-sm" (click)="openEditForm(contact)">
                 <i class="pi pi-pencil"></i>
                 Edit
-              </button>
-
-              <button type="button" class="icon-action subtle" title="Open contact">
-                <i class="pi pi-arrow-right"></i>
               </button>
             </div>
           </article>
@@ -280,4 +310,111 @@
     (onClose)="onFormClose()"
     (onSave)="onFormSave($event)"
   ></app-contact-add>
+}
+
+@if (roleModalContact() && roleModalRole()) {
+  <div class="modal-overlay" (click)="closeRoleForm()"></div>
+
+  <div class="role-modal-wrap">
+    <div class="role-modal" [class.subscriber-role-modal]="roleModalRole() === 'Subscriber / Customer' || roleModalRole() === 'Employee'" (click)="$event.stopPropagation()">
+      <div class="role-modal-header">
+        <div class="contacts-heading">
+          <span class="contacts-heading-icon">
+            <i class="pi" [ngClass]="getRoleIcon(roleModalRole()!)"></i>
+          </span>
+          <div>
+            <h2>{{ roleModalRole() }} Details</h2>
+            <p>{{ roleModalContact()?.name }} - {{ roleModalContact()?.uid }}</p>
+          </div>
+        </div>
+
+        <button type="button" class="contact-modal-close" (click)="closeRoleForm()" title="Close">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="role-modal-body">
+        @if (roleModalRole() === 'Subscriber / Customer') {
+          <app-subscriber-details [contact]="roleModalContact()"></app-subscriber-details>
+        }
+
+        @if (roleModalRole() === 'Employee') {
+          <app-employee-details [contact]="roleModalContact()"></app-employee-details>
+        }
+
+        @if (roleModalRole() === 'Supplier / Vendor') {
+          <div class="role-info-card-wrap">
+            <div class="role-info-card">
+              <div class="contact-avatar">
+                @if (roleModalContact()?.photo) {
+                  <img [src]="roleModalContact()?.photo" alt="avatar" />
+                } @else {
+                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
+                }
+              </div>
+              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (roleModalRole() === 'Advocate') {
+          <div class="role-info-card-wrap">
+            <div class="role-info-card">
+              <div class="contact-avatar">
+                @if (roleModalContact()?.photo) {
+                  <img [src]="roleModalContact()?.photo" alt="avatar" />
+                } @else {
+                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
+                }
+              </div>
+              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
+            </div>
+          </div>
+        }
+
+        @if (roleModalRole() === 'Channel Partner') {
+          <app-channel-partner-details [contact]="roleModalContact()"></app-channel-partner-details>
+        }
+
+        @if (roleModalRole() === 'Freelancer') {
+          <div class="role-pan-section">
+            <div class="role-pan-row">
+              <span class="role-pan-label">PAN</span>
+              @if (roleModalContact()?.panNo) {
+                <span class="role-pan-available"><i class="pi pi-check-circle"></i> Available</span>
+              } @else {
+                <span class="role-pan-unavailable"><i class="pi pi-times-circle"></i> Not Available</span>
+              }
+            </div>
+            <div class="role-pan-number">{{ maskPan(roleModalContact()?.panNo) }}</div>
+          </div>
+          <div class="role-form-grid mt-3">
+            <div class="erp-form-group">
+              <label>TDS Section No.<span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="tdsOptions" placeholder="Select TDS Section" [searchable]="true" [clearable]="false"></ng-select>
+            </div>
+            <div class="erp-form-group">
+              <label>Designation</label>
+              <ng-select appendTo="body" [items]="[]" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="role-modal-footer">
+        <button type="button" class="erp-btn btn-ghost btn-sm" (click)="closeRoleForm()">
+          <i class="pi pi-times-circle"></i> Cancel
+        </button>
+        <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveRoleForm()">
+          <i class="pi pi-check"></i> Save {{ roleModalRole() }}
+        </button>
+      </div>
+    </div>
+  </div>
 }

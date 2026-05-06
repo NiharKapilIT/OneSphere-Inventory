@@ -4,8 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ContactAddComponent } from '../contact-add/contact-add.component';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { SubscriberDetailsComponent } from '../subscriber-details/subscriber-details.component';
+import { EmployeeDetailsComponent } from '../employee-details/employee-details.component';
+import { ChannelPartnerDetailsComponent } from '../channel-partner-details/channel-partner-details.component';
 
-export type ContactTab = 'Contacts' | 'Employees' | 'Referrals' | 'Suppliers' | 'Advocates' | 'Freelancer';
+export type ContactRole = 'Subscriber / Customer' | 'Employee' | 'Supplier / Vendor' | 'Advocate' | 'Channel Partner' | 'Freelancer';
+export type ContactTab = 'Contacts' | ContactRole;
 type ContactStatusFilter = 'Active' | 'Inactive';
 
 export interface Contact {
@@ -17,20 +21,24 @@ export interface Contact {
   address: string;
   status: 'Active' | 'Inactive';
   photo?: string;
+  panNo?: string;
   type: ContactTab;
+  roles?: ContactRole[];
 }
 
 @Component({
   selector: 'app-contacts-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, ContactAddComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, ContactAddComponent, SubscriberDetailsComponent, EmployeeDetailsComponent, ChannelPartnerDetailsComponent],
   templateUrl: './contacts-list.component.html',
   styleUrl: './contacts-list.component.scss',
 })
 export class ContactsListComponent implements OnInit {
-  tabs: ContactTab[] = ['Contacts', 'Employees', 'Referrals', 'Suppliers', 'Advocates', 'Freelancer'];
+  roleTabs: ContactRole[] = ['Subscriber / Customer', 'Employee', 'Supplier / Vendor', 'Advocate', 'Channel Partner', 'Freelancer'];
+  tabs: ContactTab[] = ['Contacts', ...this.roleTabs];
   statusOptions: ContactStatusFilter[] = ['Active', 'Inactive'];
   pageSizeOptions = [6, 8, 12, 16];
+  tdsOptions = ['194H', '194C', '194J', '194I', '194M', '194N'];
 
   activeTab = signal<ContactTab>('Contacts');
   searchQuery = signal('');
@@ -44,17 +52,20 @@ export class ContactsListComponent implements OnInit {
   statusFilter = signal<ContactStatusFilter | null>(null);
   showAddForm = signal(false);
   editingContact = signal<Contact | null>(null);
+  openMenuContactId = signal<string | null>(null);
+  roleModalContact = signal<Contact | null>(null);
+  roleModalRole = signal<ContactRole | null>(null);
 
   allContacts = signal<Contact[]>([
-    { id: '1', uid: 'CNT2560669', name: 'Uatuser', relation: '', phone: '8466999824', address: '', status: 'Active', type: 'Contacts' },
-    { id: '2', uid: 'CNT2560668', name: 'Test Jag Test', relation: 'S/o - Test', phone: '9290218040', address: 'Test,Boduppal,Boduppal,Hyderabad,Telangana', status: 'Active', type: 'Contacts' },
-    { id: '3', uid: 'CNT2560667', name: 'Sdfsdfs', relation: 'S/o - Fsdfs', phone: '1313213213', address: 'Dsfgsd,Gsfd,Sfgdgs,Ambedkar Konaseema', status: 'Active', type: 'Contacts' },
-    { id: '4', uid: 'CNT2560666', name: 'Abc', relation: 'S/o - Fdgfg', phone: '5465465465', address: 'Fdgd,Fdgdf,Sfgdgd,Ambedkar Konaseema', status: 'Active', type: 'Contacts' },
-    { id: '5', uid: 'EMP1000001', name: 'Ravi Kumar', relation: 'S/o - Suresh Kumar', phone: '9876543210', address: 'Hyderabad, Telangana', status: 'Active', type: 'Employees' },
-    { id: '6', uid: 'SUP2000001', name: 'Lakshmi Enterprises', relation: '', phone: '8800112233', address: 'Vijayawada, Andhra Pradesh', status: 'Active', type: 'Suppliers' },
-    { id: '7', uid: 'REF3000001', name: 'Prasad Rao', relation: 'S/o - Rao', phone: '9911223344', address: 'Warangal, Telangana', status: 'Active', type: 'Referrals' },
-    { id: '8', uid: 'ADV4000001', name: 'Mohan Gandavarapu', relation: '', phone: '8885220886', address: 'Pallipalem,Sangam,Duvvur,Nellore,AP', status: 'Active', type: 'Advocates' },
-    { id: '9', uid: 'FRL5000001', name: 'Priya Sharma', relation: 'D/o - Sharma', phone: '7788996655', address: 'Secunderabad, Telangana', status: 'Active', type: 'Freelancer' },
+    { id: '1', uid: 'CNT2560669', name: 'Uatuser', relation: '', phone: '8466999824', address: '', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
+    { id: '2', uid: 'CNT2560668', name: 'Test Jag Test', relation: 'S/o - Test', phone: '9290218040', address: 'Test,Boduppal,Boduppal,Hyderabad,Telangana', status: 'Active', panNo: 'BDOPK4384D', type: 'Contacts', roles: ['Subscriber / Customer'] },
+    { id: '3', uid: 'CNT2560667', name: 'Sdfsdfs', relation: 'S/o - Fsdfs', phone: '1313213213', address: 'Dsfgsd,Gsfd,Sfgdgs,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
+    { id: '4', uid: 'CNT2560666', name: 'Abc', relation: 'S/o - Fdgfg', phone: '5465465465', address: 'Fdgd,Fdgdf,Sfgdgd,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
+    { id: '5', uid: 'EMP1000001', name: 'Ravi Kumar', relation: 'S/o - Suresh Kumar', phone: '9876543210', address: 'Hyderabad, Telangana', status: 'Active', type: 'Contacts', roles: ['Employee'] },
+    { id: '6', uid: 'SUP2000001', name: 'Lakshmi Enterprises', relation: '', phone: '8800112233', address: 'Vijayawada, Andhra Pradesh', status: 'Active', type: 'Contacts', roles: ['Supplier / Vendor'] },
+    { id: '7', uid: 'CHP3000001', name: 'Prasad Rao', relation: 'S/o - Rao', phone: '9911223344', address: 'Warangal, Telangana', status: 'Active', type: 'Contacts', roles: ['Channel Partner'] },
+    { id: '8', uid: 'ADV4000001', name: 'Mohan Gandavarapu', relation: '', phone: '8885220886', address: 'Pallipalem,Sangam,Duvvur,Nellore,AP', status: 'Active', type: 'Contacts', roles: ['Advocate'] },
+    { id: '9', uid: 'FRL5000001', name: 'Priya Sharma', relation: 'D/o - Sharma', phone: '7788996655', address: 'Secunderabad, Telangana', status: 'Active', type: 'Contacts', roles: ['Freelancer'] },
   ]);
 
   filteredContacts = computed(() => {
@@ -66,7 +77,7 @@ export class ContactsListComponent implements OnInit {
     const status = this.statusFilter();
 
     return this.allContacts().filter(c =>
-      c.type === this.activeTab() &&
+      this.isInActiveBucket(c) &&
       (!status || c.status === status) &&
       (!q || this.matchesAny(c, q)) &&
       (!uid || this.normalize(c.uid).includes(uid)) &&
@@ -137,7 +148,8 @@ export class ContactsListComponent implements OnInit {
   }
 
   getTabCount(tab: ContactTab) {
-    return this.allContacts().filter(contact => contact.type === tab).length;
+    if (tab === 'Contacts') return this.allContacts().length;
+    return this.allContacts().filter(contact => this.hasRole(contact, tab)).length;
   }
 
   getContactInitials(contact: Contact) {
@@ -163,6 +175,7 @@ export class ContactsListComponent implements OnInit {
   }
 
   openEditForm(contact: Contact) {
+    this.openMenuContactId.set(null);
     this.editingContact.set(contact);
     this.showAddForm.set(true);
   }
@@ -178,11 +191,64 @@ export class ContactsListComponent implements OnInit {
         list.map(c => c.id === contact.id ? contact : c)
       );
     } else {
-      const newContact = { ...contact, id: Date.now().toString(), uid: `CNT${Date.now()}`.slice(0, 13), type: this.activeTab() };
+      const currentTab = this.activeTab();
+      const roles = currentTab === 'Contacts' ? [] : [currentTab];
+      const newContact = { ...contact, id: Date.now().toString(), uid: `CNT${Date.now()}`.slice(0, 13), type: 'Contacts' as ContactTab, roles };
       this.allContacts.update(list => [newContact, ...list]);
     }
     this.showAddForm.set(false);
     this.editingContact.set(null);
+  }
+
+  toggleCardMenu(contactId: string) {
+    this.openMenuContactId.update(current => current === contactId ? null : contactId);
+  }
+
+  openRoleForm(contact: Contact, role: ContactRole) {
+    this.openMenuContactId.set(null);
+    this.roleModalContact.set(contact);
+    this.roleModalRole.set(role);
+  }
+
+  closeRoleForm() {
+    this.roleModalContact.set(null);
+    this.roleModalRole.set(null);
+  }
+
+  saveRoleForm() {
+    const contact = this.roleModalContact();
+    const role = this.roleModalRole();
+    if (!contact || !role) return;
+
+    this.allContacts.update(list =>
+      list.map(item =>
+        item.id === contact.id
+          ? { ...item, roles: Array.from(new Set([...(item.roles || []), role])) }
+          : item
+      )
+    );
+    this.closeRoleForm();
+  }
+
+  hasRole(contact: Contact, role: ContactRole) {
+    return (contact.roles || []).includes(role);
+  }
+
+  getRoleIcon(role: ContactRole) {
+    const icons: Record<ContactRole, string> = {
+      'Subscriber / Customer': 'pi-users',
+      'Employee': 'pi-id-card',
+      'Supplier / Vendor': 'pi-truck',
+      'Advocate': 'pi-briefcase',
+      'Channel Partner': 'pi-share-alt',
+      'Freelancer': 'pi-star',
+    };
+    return icons[role];
+  }
+
+  maskPan(pan: string | undefined): string {
+    if (!pan || pan.length < 4) return pan || 'N/A';
+    return 'X'.repeat(pan.length - 4) + pan.slice(-4);
   }
 
   printList() {
@@ -200,7 +266,13 @@ export class ContactsListComponent implements OnInit {
       contact.phone,
       contact.relation,
       contact.address,
-      contact.status
+      contact.status,
+      ...(contact.roles || [])
     ].some(value => this.normalize(value).includes(query));
+  }
+
+  private isInActiveBucket(contact: Contact): boolean {
+    const tab = this.activeTab();
+    return tab === 'Contacts' || this.hasRole(contact, tab);
   }
 }

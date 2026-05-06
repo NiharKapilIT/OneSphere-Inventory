@@ -1,4 +1,4 @@
- <div class="module-page">
+<div class="module-page">
 
   <!-- ── Cash Warning Alert ── -->
   @if (showCashWarning()) {
@@ -85,9 +85,9 @@
                 <label class="erp-label">Transaction Date <span class="required">*</span></label>
                 <div class="erp-input-wrap erp-date-wrap">
                   <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"   formControlName="chequeDateValue"
-                    styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
-                    ></p-datepicker>
+                  <p-datepicker dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
+                    formControlName="chequeDateValue" styleClass="w-100"
+                    inputStyleClass="erp-input icon-pad w-100"></p-datepicker>
                 </div>
               </div>
             </div>
@@ -187,10 +187,10 @@
                 <i class="pi pi-calendar erp-input-icon"></i>
                 <!-- [(ngModel)]="chequeDateValue "  [ngModelOptions]="{standalone: true}" -->
 
-                <p-datepicker   formControlName="chequeDateValue" [maxDate]="chequeDateValue"
-                  [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
-                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" 
-                  [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
+                <p-datepicker formControlName="chequeDateValue" [maxDate]="chequeDateValue" [dateFormat]="'dd-M-yy'"
+                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" [inputStyle]="{'text-transform':'capitalize'}"
+                  (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
               @if (getValidationMsg('pchequedate')) {
@@ -225,11 +225,10 @@
           <div class="col-12 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Type Of Payment <span class="required">*</span></label>
+     
               <ng-select appendTo="body" [items]="typeofpaymentlist()" bindLabel="ptypeofpayment"
-                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select"
-                (change)="typeofPaymentChange($event)"
-                (close)="GeneralReceiptForm.get('ptypeofpayment')?.markAsTouched(); GetValidationByControl(GeneralReceiptForm,'ptypeofpayment',true)"
-                [ngClass]="{'ng-invalid': getValidationMsg('ptypeofpayment')}">
+                bindValue="ptypeofpayment" formControlName="ptypeofpayment" placeholder="Select" [loading]="false"
+                (change)="typeofPaymentChange($event)" ...>
               </ng-select>
               @if (getValidationMsg('ptypeofpayment')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
@@ -269,11 +268,11 @@
               <label class="erp-label">Transaction Date <span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-               
-                <p-datepicker formControlName="chequeDateValue" [maxDate]="chequeDateValue"  
-                  [dateFormat]="'dd-M-yy'" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body"
-                  styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"  
-                  [inputStyle]="{'text-transform':'capitalize'}" (ngModelChange)="onChequeDateChange($event)">
+
+                <p-datepicker formControlName="chequeDateValue" [maxDate]="chequeDateValue" [dateFormat]="'dd-M-yy'"
+                  placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100"
+                  inputStyleClass="erp-input icon-pad w-100" [inputStyle]="{'text-transform':'capitalize'}"
+                  (ngModelChange)="onChequeDateChange($event)">
                 </p-datepicker>
               </div>
               @if (getValidationMsg('pchequedate')) {
@@ -854,8 +853,11 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Upload Attachment</label>
                   <div class="erp-file-upload">
-                    <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse()?.name" readonly placeholder="No file selected">
+                    <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
+                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
+                    <input type="text" class="erp-input erp-file-input"
+                      [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
+                      placeholder="No file selected">
                     <button type="button" class="erp-file-btn" (click)="fileInput.click()">
                       <i class="pi pi-upload"></i> Upload
                     </button>

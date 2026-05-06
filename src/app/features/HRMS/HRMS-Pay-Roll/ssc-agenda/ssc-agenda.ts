@@ -4,7 +4,6 @@
 // //   selector: 'app-ssc-agenda',
 // //   imports: [],
 // //   templateUrl: './ssc-agenda.html',
-// //   styleUrl: './ssc-agenda.css',
 // // })
 // // export class SscAgenda {
 // // action() {
@@ -34,7 +33,6 @@
 //   standalone: true,
 //   imports: [CommonModule, ReactiveFormsModule],
 //   templateUrl: './ssc-agenda.html',
-//   styleUrl: './ssc-agenda.css'
 // })
 // export class SscAgenda {
 //   action = signal<ActionType>('confirmation');
@@ -130,13 +128,13 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { DatePickerModule } from 'primeng/datepicker';
 
 @Component({
   selector: 'app-ssc-agenda',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule],
-  templateUrl: './ssc-agenda.html',
-  styleUrls: ['./ssc-agenda.css']
+  imports: [CommonModule, FormsModule, NgSelectModule, DatePickerModule],
+  templateUrl: './ssc-agenda.html'
 })
 export class SscAgenda {
   selectedTab: string = 'Confirmation';
@@ -147,6 +145,14 @@ export class SscAgenda {
   selectedBranch: string | null = null;
   selectedTransferDesignation: string | null = null;
   selectedAuthority: string | null = null;
+  confirmationDate: Date | null = new Date(2026, 2, 31);
+  confirmationMinutesDate: Date | null = new Date(2026, 2, 31);
+  promotionDate: Date | null = new Date(2026, 2, 31);
+  promotionMinutesDate: Date | null = new Date(2026, 2, 31);
+  transferDate: Date | null = new Date(2026, 2, 31);
+  joiningDate: Date | null = new Date(2026, 2, 31);
+  reportingDate: Date | null = new Date(2026, 2, 31);
+  resignationDate: Date | null = new Date(2026, 2, 31);
 
   employeeOptions: string[] = ['Employee 1', 'Employee 2', 'Employee 3'];
   designationOptions: string[] = ['HR Executive', 'Accounts Officer', 'Software Engineer'];
