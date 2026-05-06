@@ -7,7 +7,7 @@ import autoTable from "jspdf-autotable";
 import { formatDate } from "@angular/common";
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class HrmsPayroll {
   private _CommonService      = inject(CommonService);

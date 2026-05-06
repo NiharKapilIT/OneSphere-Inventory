@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { HrmsPayroll } from '../../../../core/services/hrms/hrms-payroll';
+import { CommonService } from '../../../../core/services/Common/common.service';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -42,6 +44,14 @@ export class EmployeeAttendance implements OnInit {
   selectedEmployee: EmployeeOption | null = null;
   selectedYear: number | null = null;
   selectedMonth: number | null = null;
+ connectionString: string = '';
+globalSchema: string = '';
+companyName: string = '';
+  branchSchema!: string;
+  constructor(
+  private _hrmsPayroll: HrmsPayroll,
+      private _commonService: CommonService 
+) {}
 
   employeeOptions: EmployeeOption[] = [
     { employeeCode: 'EMP001', employeeName: 'Ravi Kumar' },
@@ -50,8 +60,29 @@ export class EmployeeAttendance implements OnInit {
     { employeeCode: 'EMP004', employeeName: 'Mahesh Babu' }
   ];
 
-  yearOptions = [2024, 2025, 2026, 2027];
+yearOptions: number[] = [];
 
+  getCalendarYears(): void {
+
+    debugger;
+
+    this._hrmsPayroll
+      .GetCalendarYear(
+       // this.branchSchema
+      )
+      .subscribe({
+        next: (res: any[]) => {
+
+          this.yearOptions = res.map(
+            (x: any) => x.calendar_year
+          );
+
+        },
+        error: (err: any) => {
+          console.error(err);
+        }
+      });
+  }
   monthOptions = [
     { label: 'January', value: 1 },
     { label: 'February', value: 2 },
@@ -116,8 +147,15 @@ export class EmployeeAttendance implements OnInit {
 
   attendanceList: AttendanceRow[] = [];
 
-  ngOnInit(): void {
+ ngOnInit(): void {
+    // Load session/connection values first
+    this.connectionString = this._commonService.ConnectionString;  // adjust property names
+    this.globalSchema     = this._commonService.globalschema;      // to match your CommonService
+    this.branchSchema     = this._commonService.BranchSchema;
+    this.companyName      = this._commonService.CompanyName;
+
     this.attendanceList = [...this.allAttendanceList];
+    this.getCalendarYears(); // ← now has values
   }
 
   runAttendance(): void {

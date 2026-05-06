@@ -480,16 +480,29 @@
           <hr class="erp-section-divider">
           <p-table [value]="paymentslist1()" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
+            sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines"  [resizableColumns]="true" columnResizeMode="expand">
             <ng-template pTemplate="header">
               <tr>
                 <th pResizableColumn class="text-center">Actions</th>
-                <th pResizableColumn>Party</th>
-                <th pResizableColumn>Ledger</th>
-                <th pResizableColumn class="text-end">Amount</th>
-                <th pResizableColumn class="text-end">GST</th>
-                <th pResizableColumn class="text-end">TDS</th>
-                <th class="text-end">Total</th>
+                <th pResizableColumn pSortableColumn="ppartyname">
+                  <div class="th-cell">Party <p-sortIcon field="ppartyname"></p-sortIcon></div>
+                </th>
+                <th pResizableColumn pSortableColumn="pledgername">
+                  <div class="th-cell">Ledger <p-sortIcon field="pledgername"></p-sortIcon></div>
+                </th>
+                <th pResizableColumn pSortableColumn="pamount" class="text-end">
+                  <div class="th-cell justify-content-end">Amount <p-sortIcon field="pamount"></p-sortIcon></div>
+                </th>
+                <th pResizableColumn pSortableColumn="pgstamount" class="text-end">
+                  <div class="th-cell justify-content-end">GST <p-sortIcon field="pgstamount"></p-sortIcon></div>
+                </th>
+                <th pResizableColumn pSortableColumn="ptdsamount" class="text-end">
+                  <div class="th-cell justify-content-end">TDS <p-sortIcon field="ptdsamount"></p-sortIcon></div>
+                </th>
+                <th pSortableColumn="ptotalamount" class="text-end">
+                  <div class="th-cell justify-content-end">Total <p-sortIcon field="ptotalamount"></p-sortIcon></div>
+                </th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
@@ -529,13 +542,19 @@
             <div class="col-12 col-md-6">
               @if (partyjournalentrylist().length > 0) {
               <div class="grn-journal-wrapper">
-                <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll"
+                <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll" sortMode="single"
                   styleClass="p-datatable-sm p-datatable-gridlines gr-table">
                   <ng-template pTemplate="header">
                     <tr>
-                      <th>Particulars</th>
-                      <th class="text-end">Dr</th>
-                      <th class="text-end">Cr</th>
+                      <th pSortableColumn="accountname">
+                        <div class="th-cell">Particulars <p-sortIcon field="accountname"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="debitamount" class="text-end">
+                        <div class="th-cell justify-content-end">Dr <p-sortIcon field="debitamount"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="creditamount" class="text-end">
+                        <div class="th-cell justify-content-end">Cr <p-sortIcon field="creditamount"></p-sortIcon></div>
+                      </th>
                     </tr>
                   </ng-template>
                   <ng-template pTemplate="body" let-row>

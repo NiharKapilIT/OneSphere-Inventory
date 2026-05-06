@@ -88,16 +88,31 @@
           [responsiveLayout]="'scroll'"
           [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines">
           <ng-template pTemplate="header">
             <tr>
-              <th>Branch</th>
-              <th>Employee code</th>
-              <th>Date</th>
-              <th>Employee Name</th>
-              <th>Leave Type</th>
-              <th>Ava.CL</th>
-              <th>Ava.SL</th>
+              <th pSortableColumn="branch">
+                <div class="th-cell">Branch <p-sortIcon field="branch"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeCode">
+                <div class="th-cell">Employee code <p-sortIcon field="employeeCode"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="date">
+                <div class="th-cell">Date <p-sortIcon field="date"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="employeeName">
+                <div class="th-cell">Employee Name <p-sortIcon field="employeeName"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="leaveType">
+                <div class="th-cell">Leave Type <p-sortIcon field="leaveType"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="avaCl">
+                <div class="th-cell">Ava.CL <p-sortIcon field="avaCl"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="avaSl">
+                <div class="th-cell">Ava.SL <p-sortIcon field="avaSl"></p-sortIcon></div>
+              </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row>

@@ -202,7 +202,7 @@ let Company = this.commonService._getCompanyDetails();
       doc.addImage(kapilLogo, 'JPEG', 10, 5, 20, 20);
 
       doc.setFontSize(15);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('helvetica', 'normal');
       doc.text(companyName, pageWidth / 2, 15, { align: 'center' });
 
       doc.setFontSize(9);

@@ -245,7 +245,7 @@
           [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
           [rowsPerPageOptions]="[5, 10, 20, 50]" sortField="preceiptdate" [sortOrder]="1"
           [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" [resizableColumns]="true">
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single" [resizableColumns]="true">
 
           <ng-template pTemplate="header">
             <tr>
@@ -253,25 +253,25 @@
               <th pResizableColumn>Deposit</th>
               <th pResizableColumn>Cancel</th>
               }
-              <th pResizableColumn>Cheque/Reference No.</th>
-              <th pResizableColumn>Branch Name</th>
-              <th pResizableColumn>Amount</th>
-              <th pResizableColumn>Party</th>
-              <th pResizableColumn>Receipt Date</th>
-              <th pResizableColumn>Cheque Date</th>
+              <th pResizableColumn pSortableColumn="pChequenumber">Cheque/Reference No. <p-sortIcon field="pChequenumber"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="pbranchname">Branch Name <p-sortIcon field="pbranchname"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="ptotalreceivedamount">Amount <p-sortIcon field="ptotalreceivedamount"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="ppartyname">Party <p-sortIcon field="ppartyname"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="preceiptdate">Receipt Date <p-sortIcon field="preceiptdate"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="pchequedate">Cheque Date <p-sortIcon field="pchequedate"></p-sortIcon></th>
               @if (status() === 'deposited') {
-              <th pResizableColumn>Deposited Date</th>
+              <th pResizableColumn pSortableColumn="pdepositeddate">Deposited Date <p-sortIcon field="pdepositeddate"></p-sortIcon></th>
               }
               @if (status() === 'cancelled') {
-              <th pResizableColumn>Cancelled Date</th>
+              <th pResizableColumn pSortableColumn="pdepositeddate">Cancelled Date <p-sortIcon field="pdepositeddate"></p-sortIcon></th>
               }
-              <th pResizableColumn>Receipt No</th>
-              <th pResizableColumn>Transaction Mode</th>
-              <th pResizableColumn>Cheque Bank Name</th>
+              <th pResizableColumn pSortableColumn="receiptnumbers">Receipt No <p-sortIcon field="receiptnumbers"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="ptypeofpayment">Transaction Mode <p-sortIcon field="ptypeofpayment"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="cheque_bank">Cheque Bank Name <p-sortIcon field="cheque_bank"></p-sortIcon></th>
               @if (status() !== 'deposited' && status() !== 'cancelled') {
-              <th pResizableColumn>Self Cheque</th>
-              <th pResizableColumn>Chit Status</th>
-              <th pResizableColumn>Deposited Bank</th>
+              <th pResizableColumn pSortableColumn="selfchequestatus">Self Cheque <p-sortIcon field="selfchequestatus"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="chitstatus">Chit Status <p-sortIcon field="chitstatus"></p-sortIcon></th>
+              <th pResizableColumn pSortableColumn="pdepositedBankName">Deposited Bank <p-sortIcon field="pdepositedBankName"></p-sortIcon></th>
               }
             </tr>
           </ng-template>

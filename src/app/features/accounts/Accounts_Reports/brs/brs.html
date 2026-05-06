@@ -145,6 +145,7 @@
                   [paginator]="true"
                   [rows]="pageCriteria.pageSize"
                   [rowsPerPageOptions]="[10, 20, 50]"
+                  sortMode="single"
                   styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
                   <ng-template pTemplate="groupheader" let-rowData>
@@ -158,10 +159,18 @@
 
                   <ng-template pTemplate="header">
                     <tr>
-                      <th style="width: 150px;" class="text-center">Trans. Date</th>
-                      <th style="width: 150px;">Cheque No.</th>
-                      <th>Particulars</th>
-                      <th style="width: 180px;" class="text-end">Amount</th>
+                      <th pSortableColumn="ptransactiondate" style="width: 150px;" class="text-center">
+                        <div class="th-cell justify-content-center">Trans. Date <p-sortIcon field="ptransactiondate"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="pChequeNumber" style="width: 150px;">
+                        <div class="th-cell">Cheque No. <p-sortIcon field="pChequeNumber"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="pparticulars">
+                        <div class="th-cell">Particulars <p-sortIcon field="pparticulars"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="ptotalreceivedamount" style="width: 180px;" class="text-end">
+                        <div class="th-cell justify-content-end">Amount <p-sortIcon field="ptotalreceivedamount"></p-sortIcon></div>
+                      </th>
                     </tr>
                   </ng-template>
 

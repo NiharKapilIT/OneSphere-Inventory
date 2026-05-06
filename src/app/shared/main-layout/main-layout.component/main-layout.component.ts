@@ -190,21 +190,44 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   selectModule(module: Module, event?: Event): void {
     this.scrollModuleTabIntoView(event);
 
-    if (this.selectedModule?.id === module.id) {
-      this.toggleSidebar();
-      return;
-    }
-
-    this.selectedSubModule = null;
-    this.expandedSubModules.clear();
     this.closeFlyoutSearch();
 
-    this.navigationService.selectModule(module);
+    if (this.selectedModule?.id !== module.id) {
+      this.navigationService.selectModule(module);
+    }
+
+    this.openFirstPageOfModule(module);
     this.sidebarCollapsed = false;
     this.saveSidebarState();
   }
 
+  private openFirstPageOfModule(module: Module): void {
+    this.expandedSubModules.clear();
+
+    const firstSubModule = module.subModules[0];
+    if (!firstSubModule) {
+      this.selectedSubModule = null;
+      return;
+    }
+
+    if (this.hasFlyoutItems(firstSubModule)) {
+      this.expandedSubModules.add(firstSubModule.id);
+    }
+
+    this.navigationService.selectSubModule(firstSubModule);
+
+    const firstScreen = firstSubModule.screens[0];
+    if (firstScreen) {
+      this.selectScreen(firstScreen);
+    }
+  }
+
   toggleSubModule(subModule: SubModule): void {
+    if (!this.hasFlyoutItems(subModule)) {
+      this.openSingleScreenSubModule(subModule);
+      return;
+    }
+
     if (this.sidebarCollapsed) {
       this.sidebarCollapsed = false;
       this.saveSidebarState();
@@ -212,10 +235,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
     if (this.expandedSubModules.has(subModule.id)) {
       this.expandedSubModules.delete(subModule.id);
-
-      if (this.selectedSubModule?.id === subModule.id) {
-        this.selectedSubModule = null;
-      }
 
       this.closeFlyoutSearch();
       return;
@@ -225,6 +244,26 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.expandedSubModules.add(subModule.id);
     this.navigationService.selectSubModule(subModule);
     this.closeFlyoutSearch();
+  }
+
+  hasFlyoutItems(subModule?: SubModule | null): boolean {
+    return (subModule?.screens?.length ?? 0) > 1;
+  }
+
+  private openSingleScreenSubModule(subModule: SubModule): void {
+    if (this.sidebarCollapsed) {
+      this.sidebarCollapsed = false;
+      this.saveSidebarState();
+    }
+
+    this.expandedSubModules.clear();
+    this.navigationService.selectSubModule(subModule);
+    this.closeFlyoutSearch();
+
+    const firstScreen = subModule.screens[0];
+    if (firstScreen) {
+      this.selectScreen(firstScreen);
+    }
   }
 
   isSubModuleExpanded(subModuleId: string): boolean {
@@ -284,7 +323,10 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     }
 
     this.expandedSubModules.clear();
-    this.expandedSubModules.add(path.subModule.id);
+
+    if (this.hasFlyoutItems(path.subModule)) {
+      this.expandedSubModules.add(path.subModule.id);
+    }
 
     if (this.selectedSubModule?.id !== path.subModule.id) {
       this.navigationService.selectSubModule(path.subModule);
@@ -376,7 +418,10 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.saveSidebarState();
 
     if (subModule) {
-      this.expandedSubModules.add(subModule.id);
+      if (this.hasFlyoutItems(subModule)) {
+        this.expandedSubModules.add(subModule.id);
+      }
+
       this.navigationService.selectSubModule(subModule);
     }
   }
@@ -426,7 +471,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   closeFlyout(): void {
     this.expandedSubModules.clear();
-    this.selectedSubModule = null;
     this.closeFlyoutSearch();
   }
 
@@ -473,8 +517,12 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     if (item.subModule) {
       this.navigationService.selectSubModule(item.subModule);
       this.expandedSubModules.clear();
-      this.expandedSubModules.add(item.subModule.id);
+
+      if (this.hasFlyoutItems(item.subModule)) {
+        this.expandedSubModules.add(item.subModule.id);
+      }
     }
+
     this.selectScreen(item);
   }
 
@@ -513,7 +561,11 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.sidebarCollapsed = false;
     this.saveSidebarState();
     this.expandedSubModules.clear();
-    this.expandedSubModules.add(sub.id);
+
+    if (this.hasFlyoutItems(sub)) {
+      this.expandedSubModules.add(sub.id);
+    }
+
     this.navigationService.selectSubModule(sub);
     this.selectScreen(screen);
     this.showMegaMenu = false;
@@ -559,7 +611,11 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
       if (subModule) {
         this.expandedSubModules.clear();
-        this.expandedSubModules.add(subModule.id);
+
+        if (this.hasFlyoutItems(subModule)) {
+          this.expandedSubModules.add(subModule.id);
+        }
+
         this.navigationService.selectSubModule(subModule);
 
         const screen =
@@ -629,7 +685,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   getSubModuleIcon(name?: string): string {
     const value = (name || '').toLowerCase();
 
-    if (value.includes('Configurations')) return 'pi pi-wrench';
+    if (value.includes('dashboard')) return 'pi pi-chart-bar';
+    if (value.includes('config')) return 'pi pi-wrench';
     if (value.includes('transactions')) return 'pi pi-indian-rupee';
     if (value.includes('withdraw')) return 'pi pi-folder-open';
     if (value.includes('transfer')) return 'pi pi-arrow-right-arrow-left';
@@ -648,6 +705,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   getScreenIcon(name?: string): string {
     const value = (name || '').toLowerCase();
 
+    if (value.includes('dashboard')) return 'pi pi-chart-bar';
     if (value.includes('salary')) return 'pi pi-wallet';
     if (value.includes('esi')) return 'pi pi-shield';
     if (value.includes('pf')) return 'pi pi-building-columns';

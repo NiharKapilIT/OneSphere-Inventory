@@ -276,6 +276,7 @@
           <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
             [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+            sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
             <!-- Header -->
@@ -299,47 +300,47 @@
                 }
 
                 @if (!showhidegridcolumns) {
-                <th>
-                  <div class="th-cell">Reference No</div>
+                <th pSortableColumn="preferencetext">
+                  <div class="th-cell">Reference No <p-sortIcon field="preferencetext"></p-sortIcon></div>
                 </th>
                 }
 
-                <th>
-                  <div class="th-cell">Cheque/Reference No.</div>
+                <th pSortableColumn="pChequenumber">
+                  <div class="th-cell">Cheque/Reference No. <p-sortIcon field="pChequenumber"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Branch Name</div>
+                <th pSortableColumn="pbranchname">
+                  <div class="th-cell">Branch Name <p-sortIcon field="pbranchname"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Amount</div>
+                <th pSortableColumn="ptotalreceivedamount">
+                  <div class="th-cell">Amount <p-sortIcon field="ptotalreceivedamount"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Party</div>
+                <th pSortableColumn="ppartyname">
+                  <div class="th-cell">Party <p-sortIcon field="ppartyname"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Receipt Date</div>
+                <th pSortableColumn="preceiptdate">
+                  <div class="th-cell">Receipt Date <p-sortIcon field="preceiptdate"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Deposited Date</div>
+                <th pSortableColumn="pdepositeddate">
+                  <div class="th-cell">Deposited Date <p-sortIcon field="pdepositeddate"></p-sortIcon></div>
                 </th>
 
                 @if (!hiddendate) {
-                <th>
-                  <div class="th-cell">{{ datetitle }}</div>
+                <th [pSortableColumn]="status === 'cleared' ? 'pCleardate' : 'returneddate'">
+                  <div class="th-cell">{{ datetitle }} <p-sortIcon [field]="status === 'cleared' ? 'pCleardate' : 'returneddate'"></p-sortIcon></div>
                 </th>
                 }
 
-                <th>
-                  <div class="th-cell">Receipt Id</div>
+                <th pSortableColumn="preceiptid">
+                  <div class="th-cell">Receipt Id <p-sortIcon field="preceiptid"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Transaction Mode</div>
+                <th pSortableColumn="ptypeofpayment">
+                  <div class="th-cell">Transaction Mode <p-sortIcon field="ptypeofpayment"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Cheque Bank Name</div>
+                <th pSortableColumn="cheque_bank">
+                  <div class="th-cell">Cheque Bank Name <p-sortIcon field="cheque_bank"></p-sortIcon></div>
                 </th>
-                <th>
-                  <div class="th-cell">Cheque Branch Name</div>
+                <th pSortableColumn="receipt_branch_name">
+                  <div class="th-cell">Cheque Branch Name <p-sortIcon field="receipt_branch_name"></p-sortIcon></div>
                 </th>
               </tr>
             </ng-template>

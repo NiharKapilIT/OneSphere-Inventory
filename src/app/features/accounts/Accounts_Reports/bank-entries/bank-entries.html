@@ -108,6 +108,7 @@
                 [lazy]="false"
                 [loading]="loading()"
                 responsiveLayout="scroll"
+                sortMode="single"
                 styleClass="gr-table p-datatable-sm p-datatable-gridlines">
                 
                 <ng-template pTemplate="header">
@@ -115,16 +116,30 @@
                     @if (!summeryChecked()) {
                       <th style="width: 80px;" class="text-center">Sl No.</th>
                     }
-                    <th style="width: 140px;" class="text-center">Trans. Date</th>
+                    <th pSortableColumn="transactionDate" style="width: 140px;" class="text-center">
+                      <div class="th-cell justify-content-center">Trans. Date <p-sortIcon field="transactionDate"></p-sortIcon></div>
+                    </th>
                     @if (!summeryChecked()) {
-                      <th style="width: 150px;">Trans. No.</th>
+                      <th pSortableColumn="transactionNo" style="width: 150px;">
+                        <div class="th-cell">Trans. No. <p-sortIcon field="transactionNo"></p-sortIcon></div>
+                      </th>
                     }
-                    <th>Particulars</th>
-                    <th style="width: 140px;" class="text-end">Debit Amt</th>
-                    <th style="width: 140px;" class="text-end">Credit Amt</th>
+                    <th pSortableColumn="particulars">
+                      <div class="th-cell">Particulars <p-sortIcon field="particulars"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="debitamount" style="width: 140px;" class="text-end">
+                      <div class="th-cell justify-content-end">Debit Amt <p-sortIcon field="debitamount"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="creditamount" style="width: 140px;" class="text-end">
+                      <div class="th-cell justify-content-end">Credit Amt <p-sortIcon field="creditamount"></p-sortIcon></div>
+                    </th>
                     @if (!summeryChecked()) {
-                      <th style="width: 140px;" class="text-end">Balance</th>
-                      <th style="width: 100px;" class="text-center">Type</th>
+                      <th pSortableColumn="balance" style="width: 140px;" class="text-end">
+                        <div class="th-cell justify-content-end">Balance <p-sortIcon field="balance"></p-sortIcon></div>
+                      </th>
+                      <th pSortableColumn="balancetype" style="width: 100px;" class="text-center">
+                        <div class="th-cell justify-content-center">Type <p-sortIcon field="balancetype"></p-sortIcon></div>
+                      </th>
                     }
                   </tr>
                 </ng-template>
