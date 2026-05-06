@@ -83,7 +83,9 @@ CompanyName: string = '';
 
   }
 
-
+ showInfo(message:any) {
+    this.messageService.add({ severity: 'info', summary: 'Info', detail:message, life: this.messageShowTimeOut });
+  }
 
   showSuccessMessage() {
     this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Saved successfully', life: this.messageShowTimeOut });
