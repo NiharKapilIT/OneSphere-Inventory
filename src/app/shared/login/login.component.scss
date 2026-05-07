@@ -611,12 +611,12 @@
 
 :host ::ng-deep input[pInputText],
 :host ::ng-deep .p-inputtext {
-  min-height: 44px !important;
+  min-height: 38px !important;
   background: #f8fafc !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 11px !important;
   padding: 11px 14px !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   color: #1e293b !important;
   font-family: 'Poppins', sans-serif !important;
   transition: border-color 0.22s, box-shadow 0.22s, background 0.22s !important;
@@ -643,12 +643,12 @@
 }
 
 :host ::ng-deep .p-password .p-inputtext {
-  min-height: 44px !important;
+  min-height: 38px !important;
   background: #f8fafc !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 11px !important;
   padding: 11px 14px !important;
-  font-size: 13.5px !important;
+  font-size: 13px !important;
   color: #1e293b !important;
   font-family: 'Poppins', sans-serif !important;
   width: 100% !important;

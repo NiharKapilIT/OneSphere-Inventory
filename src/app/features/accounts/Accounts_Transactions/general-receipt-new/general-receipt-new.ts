@@ -1193,15 +1193,15 @@ export class GeneralReceiptNew implements OnInit {
     const stateCtrl = this.GeneralReceiptForm.get('preceiptslist.pStateId');
 
     if (on) {
-  if (this.statelist().length !== 1) stateCtrl?.setValidators(Validators.required);
-  else stateCtrl?.clearValidators();
-  pctCtrl?.setValidators([Validators.required, percentageValidator]);
-  this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
-} else {
-  stateCtrl?.clearValidators();
-  pctCtrl?.clearValidators();
-  this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
-}
+      if (this.statelist().length !== 1) stateCtrl?.setValidators(Validators.required);
+      else stateCtrl?.clearValidators();
+      pctCtrl?.setValidators([Validators.required, percentageValidator]);
+      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
+    } else {
+      stateCtrl?.clearValidators();
+      pctCtrl?.clearValidators();
+      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
+    }
     stateCtrl?.updateValueAndValidity();
     pctCtrl?.updateValueAndValidity();
     // this.formValidationMessages = {};
@@ -1212,18 +1212,18 @@ export class GeneralReceiptNew implements OnInit {
   istdsapplicableChange(): void {
     const on = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
     if (on) {
-  this.showtds.set(true);
-  this.GeneralReceiptForm.controls['ptdscalculationtype'].setValue('EXCLUDE');
-  this.GeneralReceiptForm.controls['pTdsSection'].setValue(null);
-  this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
-  this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
-}else {
+      this.showtds.set(true);
+      this.GeneralReceiptForm.controls['ptdscalculationtype'].setValue('EXCLUDE');
+      this.GeneralReceiptForm.controls['pTdsSection'].setValue(null);
+      this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+      this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
+    } else {
       this.showtds.set(false);
 
-     
- ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
-  this.GeneralReceiptForm.controls[f].setValue(null)
-);
+
+      ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
+        this.GeneralReceiptForm.controls[f].setValue(null)
+      );
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     }
     // this.recalculateAll();
@@ -1244,9 +1244,9 @@ export class GeneralReceiptNew implements OnInit {
     const section = event?.pTdsSection;
     this.tdspercentagelist.set([]);
     //this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
-   // this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
- //  this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
- this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+    // this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
+    //  this.GeneralReceiptForm.controls['pTdsPercentage'].setValue('');
+    this.GeneralReceiptForm.controls['pTdsPercentage'].setValue(null);
     this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     if (section) {
       this.tdspercentagelist.set(this.tdslist().filter((r: any) => r.pTdsSection == section));
@@ -1566,11 +1566,11 @@ export class GeneralReceiptNew implements OnInit {
     //   ptdsamount: 0
     // });
     this.GeneralReceiptForm.patchValue({
-  pistdsapplicable: false,
-  pTdsSection: '',
-  pTdsPercentage: '',
-  ptdsamount: 0
-});
+      pistdsapplicable: false,
+      pTdsSection: '',
+      pTdsPercentage: '',
+      ptdsamount: 0
+    });
 
     // clear validators so Save click won't fire on these empty fields
     ctrl.get('pactualpaidamount')?.clearValidators();

@@ -7,7 +7,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './address.component.html',
-  styleUrls: ['./address.component.scss']
 })
 export class AddressComponent {
   // TODO: Implement address form fields and logic

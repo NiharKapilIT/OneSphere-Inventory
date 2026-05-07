@@ -363,10 +363,10 @@ body {
 
 a {
   color: var(--clr-p2, #0891b2);
-  text-decoration: none;
+  text-decoration: none !important;
 
   &:hover {
-    text-decoration: underline;
+    text-decoration: none !important;
   }
 }
 
@@ -397,8 +397,8 @@ a {
 
 /* Typography */
 .page-title {
-  font-size: 22px;
-  font-weight: 720;
+  font-size: 18px;
+  font-weight: 700;
   color: var(--clr-p1, #0c4a6e);
   margin-bottom: 4px;
   display: flex;
@@ -408,16 +408,16 @@ a {
 }
 
 .page-subtitle {
-  font-size: 14px;
-  font-weight: 410;
+  font-size: 13px;
+  font-weight: 400;
   color: #64748b;
-  margin-bottom: 20px;
+  margin-bottom: 0px;
   font-family: 'Poppins', sans-serif;
 }
 
 .section-title {
-  font-size: 15px;
-  font-weight: 720;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--clr-p1, #0c4a6e);
    letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -452,7 +452,7 @@ a {
   margin: 10px 0px;
 
   .card-header {
-    padding: 16px 20px;
+    padding: 08px 20px;
     background: rgba(248, 250, 252, 0.96);
     border-bottom: 1px solid rgba(219, 232, 249, 0.6);
     color: #374151;
@@ -463,8 +463,8 @@ a {
     border-radius: 14px 14px 0 0;
 
     .card-title {
-      font-size: 15px;
-      font-weight: 720;
+      font-size: 14px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -499,7 +499,7 @@ a {
           width: 280px !important;
           transition: all 0.2s ease !important;
           font-family: 'Poppins', sans-serif !important;
-          font-weight: 410 !important;
+          font-weight: 400 !important;
 
           &::placeholder {
             color: #94a3b8 !important;
@@ -579,18 +579,18 @@ a {
     .erp-input-wrap,
     .erp-input,
     ng-select {
-      min-height: 42px !important;
+      min-height: 38px !important;
     }
 
     ng-select .ng-select-container {
-      min-height: 42px !important;
-      height: 42px !important;
+      min-height: 38px !important;
+      height: 38px !important;
     }
   }
 }
 
 .ng-select.ng-select-single .ng-select-container {
-  height: 42px !important;
+  height: 38px !important;
 
 }
 
@@ -980,7 +980,7 @@ a {
 /* Form elements */
 .erp-form-group {
   position: relative;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 
   label {
     display: block;
@@ -1004,12 +1004,12 @@ a {
 .erp-select,
 .erp-textarea {
   width: 100%;
-  min-height: 42px;
+  min-height: 38px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.98) 100%);
   border: 1.5px solid var(--fp-border, #dbe8f9);
   border-radius: 14px;
   padding: 9px 12px;
-  font-size: 14px;
+  font-size: 13px;
   color: #1e293b;
   font-family: 'Poppins', sans-serif;
   font-weight: 410;
@@ -1704,7 +1704,7 @@ select.erp-input {
     }
 
     &.erp-badge-danger {
-      background: #ef4444;
+      background: #ef5f5f;
       color: #fff;
       opacity: 0;
       transform: scale(0);
@@ -2137,8 +2137,8 @@ ng-select.ng-disabled {
   gap: 6px;
   padding: 9px 18px;
   border-radius: 12px;
-  font-size: 14px;
-  font-weight: 620;
+  font-size: 11px;
+  font-weight: 500;
   font-family: 'Poppins', sans-serif;
   cursor: pointer;
   border: none;
@@ -2155,11 +2155,12 @@ ng-select.ng-disabled {
   }
 
   &.btn-lg {
-    padding: 12px 24px;
-    font-size: 15px;
-    font-weight: 630;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 500;
     border-radius: 14px;
     margin: -50px 0px !important;
+    text-decoration: none !important;
   }
 
   &.btn-icon {
@@ -2342,7 +2343,7 @@ ng-select.ng-disabled {
   p-datepicker .p-inputtext,
   ng-select,
   ng-select .ng-select-container {
-    height: 42px !important;
+    height: 38px !important;
     width: 100% !important;
     transition: none !important;
   }
@@ -2380,7 +2381,7 @@ ng-select.ng-disabled {
   }
 
   .erp-btn {
-    height: 42px !important;
+    height: 38px !important;
     width: auto !important;
     /* Button should not be 100% */
     border-top-right-radius: 12px !important;
@@ -2613,9 +2614,9 @@ ng-select.ng-disabled {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 9px;
+  padding: 2px 10px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.2px;
   white-space: nowrap;
@@ -2626,12 +2627,12 @@ ng-select.ng-disabled {
   }
 
   &.badge-success {
-     background: #6ee399;
+     background: #45de9e;
     color: #47bf54;
   }
 
   &.badge-warning {
-    background: #fef9c3;
+    background: #fef3c7;
     color: #854d0e;
   }
 
@@ -2727,9 +2728,9 @@ input[type='datetime-local'].erp-input {
   .p-datepicker-input,
   .p-inputtext,
   input.p-calendar-input {
-    min-height: 42px !important;
+    min-height: 38px !important;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.98) 100%) !important;
-    border: 1.5px solid var(--fp-border, #dbe8f9) !important;
+    // border: 1.5px solid var(--fp-border, #dbe8f9) !important;
     border-radius: 14px !important;
     padding: 8px 12px 8px 34px !important;
     font-size: 13px !important;
@@ -3230,7 +3231,7 @@ input[type='date'].erp-input {
 ════════════════════════════════════════════════════════════════════════ */
 
 .gr-table {
-  font-size: 13px;
+  font-size: 12px;
 
   thead {
     background: #f8fafc;
@@ -3239,8 +3240,8 @@ input[type='date'].erp-input {
   }
 
   th {
-    padding: 12px 14px;
-    font-weight: 700;
+    padding: 6px 14px;
+    font-weight: 500;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
     background: #f8fafc;
@@ -3250,8 +3251,8 @@ input[type='date'].erp-input {
       align-items: center;
       gap: 6px;
       cursor: pointer;
-      color: #374151;
-      font-weight: 700;
+      color: #5e636b;
+      font-weight: 500;
       text-transform: none;
       letter-spacing: normal;
     }
@@ -3314,7 +3315,7 @@ input[type='date'].erp-input {
     }
 
     .receipt-no {
-      font-weight: 600;
+      font-weight: 500;
       color: var(--clr-p2, #0891b2);
     }
 
@@ -3363,10 +3364,9 @@ input[type='date'].erp-input {
   gap: 4px;
   padding: 4px 10px;
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+   letter-spacing: 0.3px;
 
   &.badge-primary {
     background: rgba(8, 145, 178, 0.12);
@@ -3374,7 +3374,7 @@ input[type='date'].erp-input {
   }
 
   &.badge-success {
-    background: rgba(34, 197, 94, 0.12);
+    background: #45de9e;
     color: #22c55e;
   }
 
@@ -3409,13 +3409,13 @@ input[type='date'].erp-input {
 .p-datatable {
   .p-datatable-thead>tr>th {
     background: #f8fafc !important;
-    color: #374151 !important;
-    font-weight: 700 !important;
+    color: #687283 !important;
+    font-weight: 500 !important;
     border: 1px solid #e2e8f0 !important;
-    padding: 12px 14px !important;
+    padding: 10px 14px !important;
 
     .p-sortable-column-icon {
-      color: #94a3b8 !important;
+      color: #687283 !important;
       margin-left: 6px;
     }
 
@@ -3430,7 +3430,7 @@ input[type='date'].erp-input {
     }
 
     >td {
-      padding: 14px !important;
+      padding: 6px !important;
       color: #374151;
       border-bottom: 1px solid #e2e8f0 !important;
     }
@@ -4290,8 +4290,8 @@ select.erp-select-sm {
 .erp-label,
 label.erp-label {
   display: block;
-  font-size: 13px;
-  font-weight: 620;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--clr-p1, #0c4a6e);
   margin-bottom: 6px;
   letter-spacing: 0.2px;
@@ -4490,7 +4490,7 @@ input[readonly].erp-input {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 8px;
+  padding: 04px 8px;
   border: 1.5px solid rgba(219, 232, 249, 0.6);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.9);
@@ -4671,7 +4671,7 @@ input[readonly].erp-input {
   padding: 0 6px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
 
   &.badge-warning {
@@ -4690,7 +4690,7 @@ input[readonly].erp-input {
   }
 
   &.badge-success {
-    background: #22c55e;
+    background: #45de9e;
     color: #fff;
   }
 
@@ -4864,8 +4864,8 @@ input[readonly].erp-input {
   height: 24px;
   padding: 0 6px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 500;
   line-height: 1;
 
   &.badge-warning {
@@ -4884,7 +4884,7 @@ input[readonly].erp-input {
   }
 
   &.badge-success {
-    background: #22c55e;
+    background: #45de9e;
     color: #fff;
   }
 
@@ -5716,7 +5716,7 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
 }
 
 .erp-card form .erp-btn.w-100 {
-  min-height: 42px;
+  min-height: 38px;
 }
 
 .erp-radio,
@@ -6248,6 +6248,7 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
     border-top: 1px solid #dbe8f9 !important;
     color: #111827 !important;
     font-weight: 700 !important;
+    border-style: none !important;
   }
 }
 
@@ -7635,8 +7636,8 @@ body .p-connected-overlay {
 :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header h2 {
   margin: 2px 0;
   color: var(--clr-p1, #0c4a6e);
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-header p,
@@ -7670,6 +7671,13 @@ body .p-connected-overlay {
 :where(.accounts-dashboard-page, .hrms-dashboard-page) .dashboard-controls ng-select {
   display: block;
   width: 100%;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .date-range-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
 }
 
 :where(.accounts-dashboard-page, .hrms-dashboard-page) .header-actions,
@@ -7710,6 +7718,13 @@ body .p-connected-overlay {
 :where(.accounts-dashboard-page, .hrms-dashboard-page) .share-btn {
   width: 32px;
   padding: 0;
+}
+
+:where(.accounts-dashboard-page, .hrms-dashboard-page) .refresh-only {
+  height: 31px;
+  color: var(--clr-p1, #0c4a6e);
+  border-color: color-mix(in srgb, var(--clr-p2, #0891b2) 24%, #dbe8f9);
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 8%, white);
 }
 
 .accounts-dashboard-page .share-btn {
@@ -8048,6 +8063,10 @@ body .p-connected-overlay {
 
 .accounts-dashboard-page .metric-bar.info .bar-track i {
   background: linear-gradient(90deg, var(--dash-neutral), var(--dash-neutral-strong)) !important;
+}
+
+.accounts-dashboard-page .cash-flow-chart .bar-line .bar-track i.money-out {
+  background: var(--dash-negative) !important;
 }
 
 .accounts-dashboard-page .pie-chart.receipt-pie {
