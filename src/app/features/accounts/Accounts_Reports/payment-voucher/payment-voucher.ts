@@ -13,7 +13,6 @@ import { CompanyDetailsService } from '../../../../core/services/Common/company-
   standalone: true,
   imports: [CommonModule, DatePipe, NumberToWordsPipe, TitleCasePipe, DecimalPipe],
   templateUrl: "./payment-voucher.html",
-  styleUrl: "./payment-voucher.css",
   providers: [NumberToWordsPipe, DatePipe]
 
 })

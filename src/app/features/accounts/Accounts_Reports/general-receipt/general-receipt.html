@@ -5,12 +5,14 @@
     @if (!cancelled()) {
       <div class="card-header d-print-none">
         <h2 class="card-title"><i class="pi pi-file"></i>General  Receipt </h2>
-        <div class="ms-auto d-flex gap-2">
+        <div class="ms-auto d-flex gap-2 grid-export-actions">
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
           <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-            <i class="pi pi-file-pdf"></i> PDF
+            <i class="pi pi-file-pdf"></i>
           </button>
           <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-            <i class="pi pi-print"></i> Print
+            <i class="pi pi-print"></i>
           </button>
         </div>
       </div>

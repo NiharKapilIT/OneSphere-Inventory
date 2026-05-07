@@ -67,8 +67,8 @@
       <!-- @if (gridData().length > 0) { -->
         <div class="p-4 bg-light-subtle border-bottom">
           <div class="section-title d-flex align-items-center mb-4">
-            <span class="bg-warning text-white p-2 rounded-circle me-3 shadow-sm"><i class="pi pi-info-circle small"></i></span>
-            <h6 class="mb-0 font-bold text-primary text-uppercase letter-spacing-1">Unused Cheques Register</h6>
+            <span class="bg-warning text-white py-1 px-2  rounded-circle shadow-sm"><i class="pi pi-info-circle small"></i></span>
+            <h6 class="card-title"> &nbsp; &nbsp; Unused Cheques Register</h6>
             <div class="flex-grow-1 ms-3 border-top"></div>
             <button class="erp-btn btn-primary btn-sm ms-3 shadow-sm" type="button" (click)="UnusedChequeCancel()">
               <i class="pi pi-times-circle me-1"></i> {{ savebutton() }}
@@ -134,14 +134,16 @@
           <div class="erp-table-toolbar mb-4 d-print-none">
             <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Issued Cheque Ledger</h6></div>
             <div class="tb-right">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
               <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
+                <i class="pi pi-file-pdf"></i>
               </button>
               <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
+                <i class="pi pi-print"></i>
               </button>
               <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
-                <i class="pi pi-download"></i> Excel
+                <i class="pi pi-file-excel"></i>
               </button>
             </div>
           </div>
