@@ -5064,6 +5064,13 @@ input[readonly].erp-input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.narration-report {
+  display: block;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .grid-cell-total {
   background: rgba(8, 145, 178, 0.08);
