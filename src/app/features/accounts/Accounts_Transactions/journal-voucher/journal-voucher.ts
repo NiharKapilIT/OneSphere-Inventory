@@ -13,6 +13,7 @@ import { TableModule } from 'primeng/table';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
+import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
 
 @Component({
   selector: 'app-journal-voucher',
@@ -26,6 +27,7 @@ import { DatePickerModule } from 'primeng/datepicker';
     TableModule,
     CurrencyPipe,
     RouterModule,
+    NoLeadingZero
   ],
   templateUrl: './journal-voucher.html',
   providers: [CurrencyPipe],

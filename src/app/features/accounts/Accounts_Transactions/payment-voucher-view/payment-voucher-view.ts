@@ -1381,6 +1381,10 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       const net = Math.round(taxable + gstAmt - tds);
       const total = Math.round(taxable + gstAmt);
 
+      console.log('PV → gstRate:', gstPct, '| gstType:', gstType,
+            '| taxable:', taxable, '| gstAmt:', gstAmt,
+            '| cgst:', cgst, '| sgst:', sgst);
+
       group?.patchValue({
         ptaxableamount: taxable,
         pgstamount: gstAmt,
