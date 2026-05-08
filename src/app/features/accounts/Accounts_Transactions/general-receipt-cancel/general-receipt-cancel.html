@@ -176,7 +176,7 @@
                 </label>
                 <div class="pb-3">
                   <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
-                    placeholder="Select Cancelled By" bindValue="subintroducedid" [clearable]="true"
+                    placeholder="Search & Select Cancelled By" bindValue="subintroducedid" [clearable]="true"
                     formControlName="autorizedcontactid" [typeahead]="contactSearchevent" [class.ng-invalid]=" 
               GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&
               GeneralReceiptCancelForm.get('autorizedcontactid')?.touched
