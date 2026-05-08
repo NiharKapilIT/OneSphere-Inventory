@@ -127,11 +127,18 @@ this.FrmChequeCancel.get('fromdate')?.valueChanges.subscribe((val: unknown) => {
     return this.FrmChequeCancel.controls;
   }
 
+  // private updateDates(): void {
+  //   this.StartDate = this.f.fromdate.value;
+  //   this.EndDate = this.f.todate.value;
+  //   this.validation = this.StartDate > this.EndDate;
+  // }
   private updateDates(): void {
-    this.StartDate = this.f.fromdate.value;
-    this.EndDate = this.f.todate.value;
-    this.validation = this.StartDate > this.EndDate;
-  }
+  this.StartDate = this.f.fromdate.value;
+  this.EndDate = this.f.todate.value;
+  this.validation = this.StartDate && this.EndDate
+    ? this.StartDate > this.EndDate
+    : false;
+}
 
   onFromDateChange(event: Date): void {
     this.dpConfig1 = { ...this.dpConfig1, minDate: event };
@@ -153,50 +160,116 @@ this.FrmChequeCancel.get('fromdate')?.valueChanges.subscribe((val: unknown) => {
     this.pageCriteria.CurrentPage = event.page;
   }
 
+  // GetChequeCancelDetails(): void {
+  //   this.submitted = true;
+  //   if (this.FrmChequeCancel.invalid) return;
+  //   if (this.FrmChequeCancel.errors?.['dateRangeInvalid']) {
+  //     alert('From Date should not be greater than To Date');
+  //     return;
+  //   }
+  //   if (this.validation) return;
+  //   this.updateDates();
+
+  //   const startdate = this.commonService.getFormatDateNormal(this.f.fromdate.value);
+  //   const enddate = this.commonService.getFormatDateNormal(this.f.todate.value);
+
+  //   this.loading.set(true);
+  //   this.isLoading.set(true);
+  //   this.savebutton.set('Processing');
+  //   this.disablesavebutton = true;
+
+  //   this.reportService.GetChequeCancelDetails(
+  //     startdate,
+  //     enddate,
+  //     this.commonService.getbranchname(),
+  //     this.commonService.getschemaname(),
+  //     this.commonService.getCompanyCode(),
+  //     this.commonService.getBranchCode()
+  //   ).subscribe({
+  //     next: (res: any[]) => {
+  //       const data = res || [];
+  //       this.gridData.set(data);
+  //       this.rawData = [...data];
+  //       this.showicons.set(data.length > 0);
+  //       this.pageCriteria.totalrows = data.length;
+  //       this.pageCriteria.currentPageRows = Math.min(this.pageCriteria.pageSize, data.length);
+  //       this.showHide.set(false);
+  //     },
+  //     error: (err) => this.commonService.showErrorMessage(err),
+  //     complete: () => {
+  //       this.loading.set(false);
+  //       this.isLoading.set(false);
+  //       this.savebutton.set('Generate Report');
+  //       this.disablesavebutton = false;
+  //     }
+  //   });
+  // }
   GetChequeCancelDetails(): void {
-    this.submitted = true;
-    if (this.FrmChequeCancel.invalid) return;
-    if (this.FrmChequeCancel.errors?.['dateRangeInvalid']) {
-      alert('From Date should not be greater than To Date');
-      return;
+  this.submitted = true;
+  if (this.FrmChequeCancel.invalid) return;
+  if (this.validation) return;
+  this.updateDates();
+
+  // FIX: Format Date object to MM/DD/YYYY string directly
+  const fromVal = this.f.fromdate.value as Date;
+  const toVal = this.f.todate.value as Date;
+
+  // const formatDate = (date: Date): string => {
+  //   const mm = String(date.getMonth() + 1).padStart(2, '0');
+  //   const dd = String(date.getDate()).padStart(2, '0');
+  //   const yyyy = date.getFullYear();
+  //   return `${mm}/${dd}/${yyyy}`;
+  // };
+ const formatDate = (date: Date): string => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`; // 2026-05-08 ✅
+};
+
+  const startdate = formatDate(fromVal);
+  const enddate = formatDate(toVal);
+    console.log('API Params:', {
+    startdate,
+    enddate,
+    branch: this.commonService.getbranchname(),
+    schema: this.commonService.getschemaname(),
+    companyCode: this.commonService.getCompanyCode(),
+    branchCode: this.commonService.getBranchCode()
+  });
+
+  this.loading.set(true);
+  this.isLoading.set(true);
+  this.savebutton.set('Processing');
+  this.disablesavebutton = true;
+
+  this.reportService.GetChequeCancelDetails(
+    startdate,
+    enddate,
+    this.commonService.getbranchname(),
+    this.commonService.getschemaname(),
+    this.commonService.getCompanyCode(),
+    this.commonService.getBranchCode()
+  ).subscribe({
+    next: (res: any[]) => {
+      const data = res || [];
+      this.gridData.set(data);
+      this.rawData = [...data];
+      this.showicons.set(data.length > 0);
+      this.pageCriteria.totalrows = data.length;
+      this.pageCriteria.currentPageRows = Math.min(this.pageCriteria.pageSize, data.length);
+      this.showHide.set(false);
+    },
+    error: (err) => this.commonService.showErrorMessage(err),
+    complete: () => {
+      this.loading.set(false);
+      this.isLoading.set(false);
+      this.savebutton.set('Generate Report');
+      this.disablesavebutton = false;
     }
-    if (this.validation) return;
-    this.updateDates();
+  });
+}
 
-    const startdate = this.commonService.getFormatDateNormal(this.f.fromdate.value);
-    const enddate = this.commonService.getFormatDateNormal(this.f.todate.value);
-
-    this.loading.set(true);
-    this.isLoading.set(true);
-    this.savebutton.set('Processing');
-    this.disablesavebutton = true;
-
-    this.reportService.GetChequeCancelDetails(
-      startdate,
-      enddate,
-      this.commonService.getbranchname(),
-      this.commonService.getschemaname(),
-      this.commonService.getCompanyCode(),
-      this.commonService.getBranchCode()
-    ).subscribe({
-      next: (res: any[]) => {
-        const data = res || [];
-        this.gridData.set(data);
-        this.rawData = [...data];
-        this.showicons.set(data.length > 0);
-        this.pageCriteria.totalrows = data.length;
-        this.pageCriteria.currentPageRows = Math.min(this.pageCriteria.pageSize, data.length);
-        this.showHide.set(false);
-      },
-      error: (err) => this.commonService.showErrorMessage(err),
-      complete: () => {
-        this.loading.set(false);
-        this.isLoading.set(false);
-        this.savebutton.set('Generate Report');
-        this.disablesavebutton = false;
-      }
-    });
-  }
 
   export(): void {
     const rows = this.gridData().map(element => ({

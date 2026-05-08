@@ -518,18 +518,43 @@ export class AccountsReports {
 
   //   return this._CommonService.getAPI('/Accounting/AccountingReports/GetJvListDetails', params, 'YES');
   // }
-  GetJvListReport(fromdate: any, todate: any, pmodeoftransaction: string, BranchSchema: any, CompanyCode: any, BranchCode: any, GlobalSchema: any): Observable<any> {
-    const params = new HttpParams()
-      .set('fromdate', fromdate)
-      .set('todate', todate)
-      .set('pmodeoftransaction', pmodeoftransaction)
-      .set('BranchSchema', BranchSchema)
-      .set('CompanyCode', CompanyCode)
-      .set('BranchCode', BranchCode)
-      .set('GlobalSchema', GlobalSchema);
 
-    return this._CommonService.getAPI('/Accounts/GetJvListDetails', params, 'YES');
-  }
+
+  // GetJvListReport(fromdate: any, todate: any, pmodeoftransaction: string, BranchSchema: any, CompanyCode: any, BranchCode: any, GlobalSchema: any): Observable<any> {
+  //   const params = new HttpParams()
+  //     .set('fromdate', fromdate)
+  //     .set('todate', todate)
+  //     .set('pmodeoftransaction', pmodeoftransaction)
+  //     .set('BranchSchema', BranchSchema)
+  //     .set('CompanyCode', CompanyCode)
+  //     .set('BranchCode', BranchCode)
+  //     .set('GlobalSchema', GlobalSchema);
+
+  //   return this._CommonService.getAPI('/Accounts/GetJvListDetails', params, 'YES');
+  // }
+
+  GetJvListReport(
+  fromdate: any,
+  todate: any,
+  pmodeoftransaction: string,
+  BranchSchema: any,
+  CompanyCode: any,
+  BranchCode: any,
+  GlobalSchema: any,
+  formName: string        // 👈 added
+): Observable<any> {
+  const params = new HttpParams()
+    .set('fromdate', fromdate)
+    .set('todate', todate)
+    .set('pmodeoftransaction', pmodeoftransaction)
+    .set('BranchSchema', BranchSchema)
+    .set('CompanyCode', CompanyCode)
+    .set('BranchCode', BranchCode)
+    .set('GlobalSchema', GlobalSchema)
+    .set('tablename', formName);   // 👈 added
+
+  return this._CommonService.getAPI('/Accounts/GetJvListDetails', params, 'YES');
+}
   GetJvListReportGroup(fromdate: any, todate: any, pmodeoftransaction: string, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
     const params = new HttpParams()
       .set('fromdate', fromdate)
