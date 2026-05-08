@@ -13,6 +13,8 @@
       </div>
 
       <div class="contacts-header-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
         <button
           type="button"
           class="icon-action"
@@ -225,8 +227,8 @@
             <div class="contact-card-body">
               <div class="contact-title-row">
                 <div class="contact-title">
-                  <span class="contact-name">{{ contact.name }}</span>
-                  <span class="contact-uid">{{ contact.uid }}</span>
+                  <span class="contact-name" [attr.title]="contact.name">{{ contact.name }}</span>
+                  <span class="contact-uid" [attr.title]="contact.uid">{{ contact.uid }}</span>
                 </div>
 
                 <span class="contact-status" [class.inactive]="contact.status === 'Inactive'">
@@ -237,26 +239,26 @@
               @if (contact.relation) {
                 <div class="contact-line muted">
                   <i class="pi pi-user"></i>
-                  <span>{{ contact.relation }}</span>
+                  <span [attr.title]="contact.relation">{{ contact.relation }}</span>
                 </div>
               }
 
               <div class="contact-line">
                 <i class="pi pi-phone"></i>
-                <span>{{ contact.phone }}</span>
+                <span [attr.title]="contact.phone">{{ contact.phone }}</span>
               </div>
 
               <div class="contact-line address">
                 <i class="pi pi-map-marker"></i>
-                <span>{{ contact.address || 'Address not available' }}</span>
+                <span [attr.title]="contact.address || 'Address not available'">{{ contact.address || 'Address not available' }}</span>
               </div>
 
               <div class="contact-role-list">
                 @if ((contact.roles || []).length === 0) {
-                  <span class="role-chip muted">No role assigned</span>
+                  <span class="role-chip muted" title="No role assigned">No role assigned</span>
                 }
                 @for (role of contact.roles || []; track role) {
-                  <span class="role-chip">
+                  <span class="role-chip" [attr.title]="role">
                     <i class="pi" [ngClass]="getRoleIcon(role)"></i>
                     {{ role }}
                   </span>
@@ -324,7 +326,7 @@
           </span>
           <div>
             <h2>{{ roleModalRole() }} Details</h2>
-            <p>{{ roleModalContact()?.name }} - {{ roleModalContact()?.uid }}</p>
+            <p [attr.title]="(roleModalContact()?.name || '') + ' - ' + (roleModalContact()?.uid || '')">{{ roleModalContact()?.name }} - {{ roleModalContact()?.uid }}</p>
           </div>
         </div>
 
@@ -352,10 +354,10 @@
                   <span>{{ getContactInitials(roleModalContact()!) }}</span>
                 }
               </div>
-              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
-              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
-              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
-              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
+              <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
             </div>
           </div>
         }
@@ -370,10 +372,10 @@
                   <span>{{ getContactInitials(roleModalContact()!) }}</span>
                 }
               </div>
-              <strong class="role-info-name">{{ roleModalContact()?.name }}</strong>
-              <span class="role-info-phone">{{ roleModalContact()?.phone }}</span>
-              <span class="role-info-meta">Unique ID - {{ roleModalContact()?.uid }}</span>
-              <span class="role-info-meta">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
+              <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
+              <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
+              <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{ roleModalContact()?.uid }}</span>
+              <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
             </div>
           </div>
         }

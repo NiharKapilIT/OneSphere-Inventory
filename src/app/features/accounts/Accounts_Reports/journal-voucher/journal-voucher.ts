@@ -156,38 +156,42 @@ let Company = this.commonService._getCompanyDetails();
   }
 
   // ── PDF / Print ────────────────────────────────────────────────────────────────
-  pdfOrprint(action: 'Pdf' | 'Print'): void {
-    const rows: any[] = this.journalVoucherData().map(x => [
-      x.pParticulars,
-      this.commonService.currencyFormat(x.pDebitamount),
-      this.commonService.currencyFormat(x.pCreditAmount)
-    ]);
+pdfOrprint(action: 'Pdf' | 'Print'): void {
 
-    rows.push([
-      'Total',
-      this.commonService.currencyFormat(this.pDebitAmount()),
-      this.commonService.currencyFormat(this.pCreditAmount())
-    ]);
+  const rows: any[] = this.journalVoucherData().map((x, index) => [
+    index + 1, // S.No
+    x.pParticulars,
+    this.commonService.currencyFormat(x.pDebitamount),
+    this.commonService.currencyFormat(x.pCreditAmount)
+  ]);
 
-    this.commonService._downloadGridPdf1(
-      this.receiptName(),
-      rows,
-      ['Particulars', 'Debit Amount', 'Credit Amount'],
-      {
-        0: { halign: 'left',  cellWidth: 120 },
-        1: { halign: 'right', cellWidth: 35  },
-        2: { halign: 'right', cellWidth: 35  }
-      },
-      'a4',
-      action,
-      this.pNarration(),
-      this.pJvnumber(),
-      this.pJvDate(),
-      this.todayDate,
-      this.username,
-      '',
-      ''
-    );
-  }
+  rows.push([
+    '',
+    'Total',
+    this.commonService.currencyFormat(this.pDebitAmount()),
+    this.commonService.currencyFormat(this.pCreditAmount())
+  ]);
+
+  this.commonService._downloadGridPdf1(
+    this.receiptName(),
+    rows,
+    ['S.No', 'Particulars', 'Debit Amount', 'Credit Amount'],
+    {
+      0: { halign: 'center', cellWidth: 20 },
+      1: { halign: 'left', cellWidth: 100 },
+      2: { halign: 'right', cellWidth: 35 },
+      3: { halign: 'right', cellWidth: 35 }
+    },
+    'a4',
+    action,
+    this.pNarration(),
+    this.pJvnumber(),
+    this.pJvDate(),
+    this.todayDate,
+    this.username,
+    '',
+    ''
+  );
+}
 }
 

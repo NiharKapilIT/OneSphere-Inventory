@@ -1420,7 +1420,7 @@ import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
-import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero';
 
 @Component({
   selector: 'app-petty-cash',
@@ -1436,7 +1436,7 @@ import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
     InputTextModule,
     NgSelectModule,
     PaginatorModule,
-    NoLeadingZero
+    NoLeadingZeroDirective
     // ValidationMessageComponent,
   ],
   templateUrl: './petty-cash.html',

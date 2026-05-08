@@ -23,7 +23,7 @@
           <div class="row g-2">
 
             <!-- Receipt No -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="receiptid">Receipt No. <span class="required">*</span></label>
                 <ng-select id="receiptid" [items]="receiptdata()" bindLabel="receiptnumber" bindValue="receiptid"
@@ -40,7 +40,7 @@
             </div>
 
             <!-- Date -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-input-btn-group">
                 <div class="flex-grow-1">
                   <div class="erp-form-group">
@@ -55,9 +55,11 @@
                     </div>
                   </div>
                 </div>
+  <div class="col-12 col-md-2 d-flex align-items-center">
                 <button type="button" (click)="Show()" class="erp-btn btn-primary btn-md">
                   <i class="pi pi-search"></i> Show
                 </button>
+                </div>
               </div>
             </div>
 

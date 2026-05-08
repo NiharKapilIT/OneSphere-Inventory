@@ -66,6 +66,8 @@ export class ChequesOnhand implements OnInit {
   chequenumber = signal<any>(null);
   ChequesOnHandValidation = signal<any>({});
 
+  currentSortField = signal<string>('preceiptdate');
+currentSortOrder = signal<number>(1);
 
   ChequesOnHandData: any[] = [];
   ChequesClearReturnData: any[] = [];
@@ -387,17 +389,40 @@ export class ChequesOnhand implements OnInit {
     this.pageCriteria.offset = 0;
     this.pageCriteria.pageSize = this._commonService.pageSize;
   }
+  private applySortToGrid() {
+  const field = this.currentSortField();
+  const order = this.currentSortOrder();
+  if (!field) return;
+  this.gridData.update(data =>
+    [...data].sort((a, b) => {
+      const v1 = a[field], v2 = b[field];
+      if (v1 == null && v2 == null) return 0;
+      if (v1 == null) return 1;
+      if (v2 == null) return -1;
+      if (typeof v1 === 'string') return v1.localeCompare(v2) * order;
+      return (v1 < v2 ? -1 : v1 > v2 ? 1 : 0) * order;
+    })
+  );
+  this.gridDatatemp.set(this.gridData());
+}
 
   setPage(event: any) {
-    this.preferdrows = false;
-    this.page.update(p => ({
-      ...p,
-      offset: event.first / event.rows,
-      pageNumber: event.first / event.rows + 1,
-      size: event.rows
-    }));
-    this.startindex = event.first;
-    this.endindex = event.first + event.rows;
+     this.preferdrows = false;
+
+  if (event.sortField) {
+    this.currentSortField.set(event.sortField);
+    this.currentSortOrder.set(event.sortOrder ?? 1);
+  }
+
+  this.page.update(p => ({
+    ...p,
+    offset: event.first / event.rows,
+    pageNumber: event.first / event.rows + 1,
+    size: event.rows
+  }));
+  this.startindex = event.first;
+  this.endindex = event.first + event.rows;
+
 
     if (
       this.fromdate && this.fromdate !== '' &&
@@ -460,6 +485,7 @@ export class ChequesOnhand implements OnInit {
         else if (s === 'onlinereceipts') this.OnlineReceipts1();
         else if (s === 'deposited') this.Deposited1();
         else if (s === 'cancelled') this.Cancelled1();
+        this.applySortToGrid();
       },
       error: (error: any) => {
         this.gridLoading = false;
@@ -497,6 +523,7 @@ export class ChequesOnhand implements OnInit {
           else if (s === 'onlinereceipts') this.OnlineReceipts1();
           else if (s === 'deposited') this.Deposited1();
           else if (s === 'cancelled') this.Cancelled1();
+          this.applySortToGrid();
         },
         error: (error: any) => {
           this.gridLoading = false;
@@ -1923,6 +1950,7 @@ export class ChequesOnhand implements OnInit {
         this.amounttotal.set(
           parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0).toFixed(2))
         );
+        this.applySortToGrid();
       },
       error: (error: any) => this._commonService.showErrorMessage(error)
     });
@@ -1965,6 +1993,7 @@ export class ChequesOnhand implements OnInit {
           this.amounttotal.set(
             parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0).toFixed(2))
           );
+          this.applySortToGrid();
         },
         error: (error: any) => this._commonService.showErrorMessage(error)
       });

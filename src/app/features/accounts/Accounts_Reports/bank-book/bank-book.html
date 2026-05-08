@@ -84,14 +84,16 @@
           <div class="erp-table-toolbar mb-4 d-print-none">
             <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Bank Book Report</h6></div>
             <div class="tb-right">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
               <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i> PDF
+                <i class="pi pi-file-pdf"></i>
               </button>
               <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
-                <i class="pi pi-print"></i> Print
+                <i class="pi pi-print"></i>
               </button>
               <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
-                <i class="pi pi-download"></i> Excel
+                <i class="pi pi-file-excel"></i>
               </button>
             </div>
           </div>
@@ -124,16 +126,19 @@
                 [loading]="loading()"
                 styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
-                <ng-template pTemplate="groupheader" let-row>
+                <ng-template pTemplate="groupheader" let-row let-expanded="expanded">
                   <tr>
                     <td colspan="6" class="bg-light font-bold">
+                      <button type="button" pRipple [pRowToggler]="row" class="erp-btn btn-link p-0 me-2 border-0 shadow-none">
+                          <i class="pi" [ngClass]="expanded ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
+                        </button>
                       <i class="pi pi-calendar me-2 text-primary small"></i>
                       <span class="text-primary text-uppercase small letter-spacing-1">{{ row.ptransactiondate | date:'dd-MMM-yyyy' }}</span>
                     </td>
                   </tr>
                 </ng-template>
 
-                <ng-template pTemplate="header">
+                <ng-template pTemplate="header" let-row let-expanded="expanded">
                   <tr>
                     <th (click)="sortBy('ptransactionno')" style="cursor: pointer; width: 150px;">
                       <div class="th-cell">Trans. No. <span class="sort-icon" [innerHTML]="getSortIcon('ptransactionno')"></span></div>
@@ -160,9 +165,6 @@
                   <tr>
                     <td>
                       @if (row.ptransactionno) {
-                        <button type="button" pRipple [pRowToggler]="row" class="erp-btn btn-link p-0 me-2 border-0 shadow-none">
-                          <i class="pi" [ngClass]="expanded ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
-                        </button>
                         <span class="font-bold text-primary">{{ row.ptransactionno }}</span>
                       } @else {
                         <span class="text-muted small ps-4">--NA--</span>

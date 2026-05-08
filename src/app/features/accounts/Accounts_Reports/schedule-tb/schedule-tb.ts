@@ -36,7 +36,6 @@ interface TBResponse {
   standalone:true,
   imports: [CommonModule, FormsModule, HttpClientModule, DatePickerModule],
   templateUrl: "./schedule-tb.html",
-  styleUrl: "./schedule-tb.css",
 })
 
 export class ScheduleTb implements OnInit {
