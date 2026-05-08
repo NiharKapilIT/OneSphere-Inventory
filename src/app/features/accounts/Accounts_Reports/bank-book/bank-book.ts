@@ -71,6 +71,19 @@ export class BankBook implements OnInit {
   expandedRows: Record<string, boolean> = {};
 toDateMinDate: Date | null = null;
   private rawData: any[] = [];
+  expandedGroups = new Set<string>();
+
+toggleGroup(date: string) {
+  if (this.expandedGroups.has(date)) {
+    this.expandedGroups.delete(date);
+  } else {
+    this.expandedGroups.add(date);
+  }
+}
+
+isGroupExpanded(date: string): boolean {
+  return this.expandedGroups.has(date);
+}
 
   pageCriteria = new PageCriteria();
   today = new Date(new Date().setHours(0, 0, 0, 0));
@@ -203,6 +216,7 @@ toDateMinDate: Date | null = null;
         next: res => {
           this.rawData = [...res];
           this.gridView.set(res);
+          this.expandedGroups = new Set(res.map((r: any) => r.ptransactiondate));
           this.showReport.set(true);
           this.loading.set(false);
           this.saveButton = 'Generate Report';
