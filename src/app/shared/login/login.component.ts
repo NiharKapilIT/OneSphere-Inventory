@@ -22,6 +22,63 @@ import { AuthService } from '../../core/services/auth.service';
 import { CompanyDetailsService } from '../../core/services/Common/company-details-service';
 import { NgSelectModule } from '@ng-select/ng-select';
 
+type AuthMode = 'login' | 'otp' | 'register';
+type RegisterStep = 1 | 2 | 3 | 4 | 5;
+
+interface RegistrationBranch {
+  branchName: string;
+  branchCode: string;
+  city: string;
+  state: string;
+  contactNo: string;
+}
+
+interface CompanySetupDraft {
+  companyName: string;
+  legalName: string;
+  companyCode: string;
+  gstin: string;
+  pan: string;
+  cin: string;
+  email: string;
+  contactNo: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  pincode: string;
+  financialYear: string;
+}
+
+interface AdminUserDraft {
+  fullName: string;
+  email: string;
+  contactNo: string;
+  role: string;
+  accessScope: string;
+}
+
+interface DemoPermission {
+  module: string;
+  access: string;
+  rights: string;
+}
+
+interface DemoUserAccess {
+  name: string;
+  role: string;
+  company: string;
+  branch: string;
+  access: string;
+}
+
+interface DemoLoginCompany {
+  name: string;
+  code: string;
+  role: string;
+  branches: string[];
+}
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -44,6 +101,11 @@ export class LoginComponent implements OnInit {
 
   // ── Signals ──────────────────────────────────────────────────────
   step = signal<1 | 2>(1);
+  authMode = signal<AuthMode>('login');
+  registerStep = signal<RegisterStep>(1);
+  saasDemoModalOpen = signal(false);
+  saasDemoStep = signal<RegisterStep>(1);
+  otpLoginStep = signal<1 | 2>(1);
   loading = signal(false);
   errorMessage = signal('');
 
@@ -57,6 +119,64 @@ export class LoginComponent implements OnInit {
   username = signal('');
   password = signal('');
 
+  loginOtpIdentifier = signal('');
+  loginOtp = signal('');
+  loginOtpSent = signal(false);
+
+  registrationIdentity = signal('admin@demoenterprise.com');
+  registrationOtp = signal('123456');
+  registrationOtpSent = signal(false);
+  registrationOtpVerified = signal(false);
+
+  companySetup = signal<CompanySetupDraft>({
+    companyName: 'Demo Enterprise Pvt Ltd',
+    legalName: 'Demo Enterprise Private Limited',
+    companyCode: 'DEMO01',
+    gstin: '36ABCDE1234F1Z5',
+    pan: 'ABCDE1234F',
+    cin: 'U72900TG2026PTC000001',
+    email: 'accounts@demoenterprise.com',
+    contactNo: '9876543210',
+    address: '5th Floor, Business Towers, Financial District',
+    city: 'Hyderabad',
+    state: 'Telangana',
+    country: 'India',
+    pincode: '500032',
+    financialYear: '2025-2026',
+  });
+
+  registrationBranches = signal<RegistrationBranch[]>([
+    { branchName: 'Head Office', branchCode: 'HO', city: 'Hyderabad', state: 'Telangana', contactNo: '9876543210' },
+    { branchName: 'Bengaluru Branch', branchCode: 'BLR', city: 'Bengaluru', state: 'Karnataka', contactNo: '9876501234' },
+  ]);
+
+  adminUser = signal<AdminUserDraft>({
+    fullName: 'Demo Admin',
+    email: 'admin@demoenterprise.com',
+    contactNo: '9876543210',
+    role: 'Default Admin',
+    accessScope: 'All Branches',
+  });
+
+  demoPermissions = signal<DemoPermission[]>([
+    { module: 'Accounts', access: 'Admin', rights: 'Create, View, Update, Delete, Approve' },
+    { module: 'HRMS', access: 'Manager', rights: 'Create, View, Update, Approve' },
+    { module: 'Reports', access: 'View Only', rights: 'View, Export' },
+    { module: 'Settings', access: 'Admin Only', rights: 'Create Roles, Assign Users, Configure Company' },
+  ]);
+
+  demoUserAccess = signal<DemoUserAccess[]>([
+    { name: 'Demo Admin', role: 'Default Admin', company: 'Demo Enterprise', branch: 'All Branches', access: 'Full CRUD + Approvals' },
+    { name: 'Accounts Manager', role: 'Accounts Admin', company: 'Demo Enterprise', branch: 'Head Office', access: 'CRUD + Approvals' },
+    { name: 'HR Executive', role: 'HR User', company: 'Demo Enterprise', branch: 'Bengaluru Branch', access: 'Create, View, Update' },
+    { name: 'Management Viewer', role: 'Viewer', company: 'All Allocated Companies', branch: 'All Allocated Branches', access: 'View Only' },
+  ]);
+
+  demoLoginCompanies = signal<DemoLoginCompany[]>([
+    { name: 'Demo Enterprise Pvt Ltd', code: 'DEMO01', role: 'Default Admin', branches: ['Head Office', 'Bengaluru Branch'] },
+    { name: 'Kapil Demo Services', code: 'KDS01', role: 'Management Viewer', branches: ['Corporate Office', 'Vizag Branch'] },
+  ]);
+
 
 
   // ── Computed ─────────────────────────────────────────────────────
@@ -65,6 +185,27 @@ export class LoginComponent implements OnInit {
     this.branchOptions().length === 0 &&
     !this.loading()
   );
+
+  registerProgress = computed(() => {
+    const step = this.registerStep();
+    return [
+      { no: 1, label: 'Verify', active: step === 1, done: step > 1 },
+      { no: 2, label: 'Company', active: step === 2, done: step > 2 },
+      { no: 3, label: 'Branches', active: step === 3, done: step > 3 },
+      { no: 4, label: 'Admin User', active: step === 4, done: false },
+    ];
+  });
+
+  saasDemoProgress = computed(() => {
+    const step = this.saasDemoStep();
+    return [
+      { no: 1, label: 'Verify', active: step === 1, done: step > 1 },
+      { no: 2, label: 'Company', active: step === 2, done: step > 2 },
+      { no: 3, label: 'Branches', active: step === 3, done: step > 3 },
+      { no: 4, label: 'Users & Access', active: step === 4, done: step > 4 },
+      { no: 5, label: 'Login Flow', active: step === 5, done: false },
+    ];
+  });
 
 
   // ── ngOnInit: set API URL then load companies ────────
@@ -158,6 +299,169 @@ export class LoginComponent implements OnInit {
     (this.selectedCompanyCode as any).set(null);
     (this.selectedCompanyId as any).set(null);
     this.step.set(1);
+  }
+
+  setAuthMode(mode: AuthMode): void {
+    this.authMode.set(mode);
+    this.errorMessage.set('');
+    if (mode === 'login') {
+      this.step.set(1);
+    }
+    if (mode === 'otp') {
+      this.otpLoginStep.set(1);
+    }
+    if (mode === 'register') {
+      this.registerStep.set(1);
+    }
+  }
+
+  openSaasRegistrationDemo(): void {
+    this.errorMessage.set('');
+    this.saasDemoStep.set(1);
+    this.saasDemoModalOpen.set(true);
+  }
+
+  closeSaasRegistrationDemo(): void {
+    this.saasDemoModalOpen.set(false);
+    this.errorMessage.set('');
+  }
+
+  setSaasDemoStep(step: number): void {
+    this.saasDemoStep.set(step as RegisterStep);
+    this.errorMessage.set('');
+  }
+
+  nextSaasDemoStep(): void {
+    const step = this.saasDemoStep();
+    if (step < 5) {
+      this.saasDemoStep.set((step + 1) as RegisterStep);
+    }
+  }
+
+  previousSaasDemoStep(): void {
+    const step = this.saasDemoStep();
+    if (step > 1) {
+      this.saasDemoStep.set((step - 1) as RegisterStep);
+    }
+  }
+
+  sendLoginOtp(): void {
+    this.errorMessage.set('');
+    if (!this.loginOtpIdentifier().trim()) {
+      this.errorMessage.set('Please enter mobile number or mail ID.');
+      return;
+    }
+    this.loginOtpSent.set(true);
+    this.showToast('success', 'OTP sent', 'A verification code has been sent.');
+  }
+
+  verifyLoginOtp(): void {
+    this.errorMessage.set('');
+    if (!this.loginOtpSent()) {
+      this.errorMessage.set('Please send OTP first.');
+      return;
+    }
+    if (this.loginOtp().trim().length < 4) {
+      this.errorMessage.set('Please enter a valid OTP.');
+      return;
+    }
+    this.otpLoginStep.set(2);
+    this.showToast('success', 'OTP verified', 'Choose company and branch to continue.');
+  }
+
+  completeOtpLogin(): void {
+    this.errorMessage.set('');
+    if (!this.selectedCompanyId() || !this.selectedBranchCode()) {
+      this.errorMessage.set('Please select company and branch.');
+      return;
+    }
+    this.showToast('success', 'OTP login ready', 'Backend login integration can be connected later.');
+  }
+
+  sendRegistrationOtp(): void {
+    this.errorMessage.set('');
+    if (!this.registrationIdentity().trim()) {
+      this.errorMessage.set('Please enter mobile number or mail ID.');
+      return;
+    }
+    this.registrationOtpSent.set(true);
+    this.showToast('success', 'OTP sent', 'Registration OTP has been sent.');
+  }
+
+  confirmRegistrationOtp(): void {
+    this.errorMessage.set('');
+    if (!this.registrationOtpSent()) {
+      this.errorMessage.set('Please send OTP first.');
+      return;
+    }
+    if (this.registrationOtp().trim().length < 4) {
+      this.errorMessage.set('Please enter a valid OTP.');
+      return;
+    }
+    this.registrationOtpVerified.set(true);
+    this.registerStep.set(2);
+  }
+
+  updateCompanySetup(field: keyof CompanySetupDraft, value: string): void {
+    this.companySetup.update(current => ({ ...current, [field]: value }));
+  }
+
+  goToCompanyBranchSetup(): void {
+    const company = this.companySetup();
+    this.errorMessage.set('');
+    if (!company.companyName.trim() || !company.companyCode.trim() || !company.email.trim() || !company.contactNo.trim()) {
+      this.errorMessage.set('Please fill company name, code, mail ID and contact number.');
+      return;
+    }
+    this.registerStep.set(3);
+  }
+
+  addRegistrationBranch(): void {
+    this.registrationBranches.update(branches => [
+      ...branches,
+      { branchName: '', branchCode: '', city: '', state: '', contactNo: '' },
+    ]);
+  }
+
+  removeRegistrationBranch(index: number): void {
+    this.registrationBranches.update(branches =>
+      branches.length === 1 ? branches : branches.filter((_, branchIndex) => branchIndex !== index)
+    );
+  }
+
+  updateRegistrationBranch(index: number, field: keyof RegistrationBranch, value: string): void {
+    this.registrationBranches.update(branches =>
+      branches.map((branch, branchIndex) =>
+        branchIndex === index ? { ...branch, [field]: value } : branch
+      )
+    );
+  }
+
+  goToAdminUserSetup(): void {
+    this.errorMessage.set('');
+    const hasBranch = this.registrationBranches().some(branch =>
+      branch.branchName.trim() && branch.branchCode.trim()
+    );
+    if (!hasBranch) {
+      this.errorMessage.set('Please add at least one branch name and branch code.');
+      return;
+    }
+    this.registerStep.set(4);
+  }
+
+  updateAdminUser(field: keyof AdminUserDraft, value: string): void {
+    this.adminUser.update(current => ({ ...current, [field]: value }));
+  }
+
+  finishRegistrationSetup(): void {
+    const admin = this.adminUser();
+    this.errorMessage.set('');
+    if (!admin.fullName.trim() || !admin.email.trim() || !admin.contactNo.trim()) {
+      this.errorMessage.set('Please fill admin user name, mail ID and contact number.');
+      return;
+    }
+    this.showToast('success', 'Registration UI complete', 'Company, branch and admin user setup is ready for backend integration.');
+    this.setAuthMode('login');
   }
 
   // ── Login POST ───────────────────────────────────────────────────

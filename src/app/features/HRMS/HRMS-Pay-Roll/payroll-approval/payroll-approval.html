@@ -64,7 +64,7 @@
           <div class="col-xl-3 col-lg-3 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
-              <button type="button" class="erp-btn btn-primary w-100" (click)="runPayrollProcess()">
+              <button type="button" class="erp-btn btn-primary" (click)="runPayrollProcess()">
                 <i class="pi pi-play"></i> Run Payroll Process
               </button>
             </div>
@@ -77,6 +77,8 @@
         <div class="erp-table-toolbar tbl-toolbar-flush">
           <h5 class="section-title mb-0">Payroll Approval List</h5>
           <div class="payroll-grid-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
             <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printPayrollApproval()">
               <i class="pi pi-print"></i>
             </button>

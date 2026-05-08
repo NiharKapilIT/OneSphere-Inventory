@@ -36,7 +36,8 @@ import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
-import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero';
+import { NumbersOnlyDirective } from '../../../../core/Directive/numbers-only';
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
   modeOfReceipt: FormControl<string | null>;
@@ -99,7 +100,8 @@ interface BankMasterFormShape {
     NgSelectModule,
     ButtonModule,
     RouterModule,
-    NoLeadingZero
+    NoLeadingZeroDirective,
+    NumbersOnlyDirective
   ],
   templateUrl: './bank-config.html',
   styleUrls: ['./bank-config.css'],

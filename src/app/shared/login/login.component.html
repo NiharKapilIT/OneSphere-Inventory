@@ -197,6 +197,14 @@
         <h2 class="card-title">Welcome Back</h2>
         <p class="card-subtitle">Sign in to continue to your workspace</p>
 
+        <div class="login-demo-actions">
+          <button type="button" class="erp-btn btn-secondary" (click)="openSaasRegistrationDemo()">
+            <i class="pi pi-building"></i> Register / OTP Demo
+          </button>
+        </div>
+
+        @if (authMode() === 'login') {
+
         <!-- Step indicator -->
         <div class="steps">
           <div class="step-wrap">
@@ -243,7 +251,7 @@
         }
 
         <p-button label="Continue" icon="pi pi-arrow-right" iconPos="right" [loading]="loading()"
-          styleClass="w-100 mt-2" (onClick)="onStep1Next()" />
+          styleClass="login-full-action" (onClick)="onStep1Next()" />
         }
 
         <!-- ── Step 2: Credentials ── -->
@@ -284,6 +292,162 @@
           <p-button label="Sign In" icon="pi pi-sign-in" iconPos="right" [loading]="loading()" (onClick)="onLogin()" />
         </div>
         }
+        }
+
+        @if (authMode() === 'otp') {
+        @if (otpLoginStep() === 1) {
+        <div class="erp-form-group">
+          <label>Mobile No / Mail ID</label>
+          <input pInputText type="text" [ngModel]="loginOtpIdentifier()" (ngModelChange)="loginOtpIdentifier.set($event)"
+            placeholder="Enter mobile number or mail ID" class="w-100" />
+        </div>
+        <div class="login-inline-action">
+          <div class="erp-form-group">
+            <label>OTP</label>
+            <input pInputText type="text" [ngModel]="loginOtp()" (ngModelChange)="loginOtp.set($event)"
+              placeholder="Enter OTP" class="w-100" />
+          </div>
+          <button type="button" class="erp-btn btn-secondary" (click)="sendLoginOtp()">
+            <i class="pi pi-send"></i> Send OTP
+          </button>
+        </div>
+        @if (errorMessage()) {
+        <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small>
+        }
+        <button type="button" class="erp-btn btn-primary login-full-action" (click)="verifyLoginOtp()">
+          <i class="pi pi-shield"></i> Verify OTP
+        </button>
+        }
+        @if (otpLoginStep() === 2) {
+        <div class="erp-form-group">
+          <label>Company</label>
+          <ng-select class="erp-ng-select login-combo" [items]="companyOptions()" bindLabel="label" bindValue="value"
+            [ngModel]="selectedCompanyId()" (ngModelChange)="selectedCompanyId.set($event); onCompanyChange()"
+            [placeholder]="'Select Company'" appendTo="body" [searchable]="true" [clearable]="true">
+          </ng-select>
+        </div>
+        <div class="erp-form-group">
+          <label>Branch</label>
+          <ng-select class="erp-ng-select login-combo" [items]="branchOptions()" bindLabel="label" bindValue="value"
+            [ngModel]="selectedBranchCode()" (ngModelChange)="selectedBranchCode.set($event)"
+            [placeholder]="'Select Branch'" appendTo="body" [searchable]="true" [clearable]="true">
+          </ng-select>
+        </div>
+        @if (errorMessage()) {
+        <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small>
+        }
+        <div class="d-flex justify-between align-center mt-2">
+          <a href="javascript:void(0)" (click)="otpLoginStep.set(1)" class="btn-back">
+            <i class="pi pi-arrow-left"></i> Back
+          </a>
+          <button type="button" class="erp-btn btn-primary" (click)="completeOtpLogin()">
+            <i class="pi pi-sign-in"></i> Continue
+          </button>
+        </div>
+        }
+        }
+
+        @if (authMode() === 'register') {
+        <div class="register-progress">
+          @for (item of registerProgress(); track item.no) {
+          <div class="register-step" [class.active]="item.active" [class.done]="item.done">
+            <span>@if (item.done) { <i class="pi pi-check"></i> } @else { {{ item.no }} }</span>
+            <small [attr.title]="item.label">{{ item.label }}</small>
+          </div>
+          }
+        </div>
+
+        @if (registerStep() === 1) {
+        <div class="erp-form-group">
+          <label>Mobile No / Mail ID</label>
+          <input pInputText type="text" [ngModel]="registrationIdentity()" (ngModelChange)="registrationIdentity.set($event)"
+            placeholder="Enter mobile number or mail ID" class="w-100" />
+        </div>
+        <div class="login-inline-action">
+          <div class="erp-form-group">
+            <label>OTP</label>
+            <input pInputText type="text" [ngModel]="registrationOtp()" (ngModelChange)="registrationOtp.set($event)"
+              placeholder="Enter OTP" class="w-100" />
+          </div>
+          <button type="button" class="erp-btn btn-secondary" (click)="sendRegistrationOtp()">
+            <i class="pi pi-send"></i> Send OTP
+          </button>
+        </div>
+        @if (errorMessage()) {
+        <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small>
+        }
+        <button type="button" class="erp-btn btn-primary login-full-action" (click)="confirmRegistrationOtp()">
+          <i class="pi pi-verified"></i> Confirm OTP
+        </button>
+        }
+
+        @if (registerStep() === 2) {
+        <div class="register-scroll">
+          <div class="login-form-grid">
+            <div class="erp-form-group"><label>Company Name</label><input pInputText type="text" [ngModel]="companySetup().companyName" (ngModelChange)="updateCompanySetup('companyName', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Company Code</label><input pInputText type="text" [ngModel]="companySetup().companyCode" (ngModelChange)="updateCompanySetup('companyCode', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Legal Name</label><input pInputText type="text" [ngModel]="companySetup().legalName" (ngModelChange)="updateCompanySetup('legalName', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>GSTIN</label><input pInputText type="text" [ngModel]="companySetup().gstin" (ngModelChange)="updateCompanySetup('gstin', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>PAN</label><input pInputText type="text" [ngModel]="companySetup().pan" (ngModelChange)="updateCompanySetup('pan', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>CIN</label><input pInputText type="text" [ngModel]="companySetup().cin" (ngModelChange)="updateCompanySetup('cin', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Mail ID</label><input pInputText type="email" [ngModel]="companySetup().email" (ngModelChange)="updateCompanySetup('email', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Contact No</label><input pInputText type="text" [ngModel]="companySetup().contactNo" (ngModelChange)="updateCompanySetup('contactNo', $event)" class="w-100" /></div>
+            <div class="erp-form-group span-2"><label>Registered Address</label><input pInputText type="text" [ngModel]="companySetup().address" (ngModelChange)="updateCompanySetup('address', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>City</label><input pInputText type="text" [ngModel]="companySetup().city" (ngModelChange)="updateCompanySetup('city', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>State</label><input pInputText type="text" [ngModel]="companySetup().state" (ngModelChange)="updateCompanySetup('state', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Country</label><input pInputText type="text" [ngModel]="companySetup().country" (ngModelChange)="updateCompanySetup('country', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Pin Code</label><input pInputText type="text" [ngModel]="companySetup().pincode" (ngModelChange)="updateCompanySetup('pincode', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Financial Year</label><input pInputText type="text" [ngModel]="companySetup().financialYear" (ngModelChange)="updateCompanySetup('financialYear', $event)" class="w-100" /></div>
+          </div>
+        </div>
+        @if (errorMessage()) { <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small> }
+        <button type="button" class="erp-btn btn-primary login-full-action" (click)="goToCompanyBranchSetup()">
+          <i class="pi pi-arrow-right"></i> Continue to Branches
+        </button>
+        }
+
+        @if (registerStep() === 3) {
+        <div class="register-scroll">
+          @for (branch of registrationBranches(); track $index) {
+          <div class="branch-setup-row">
+            <div class="branch-row-title">
+              <strong>Branch {{ $index + 1 }}</strong>
+              <button type="button" class="erp-btn btn-white btn-icon" (click)="removeRegistrationBranch($index)" [disabled]="registrationBranches().length === 1">
+                <i class="pi pi-trash"></i>
+              </button>
+            </div>
+            <div class="login-form-grid">
+              <div class="erp-form-group"><label>Branch Name</label><input pInputText type="text" [ngModel]="branch.branchName" (ngModelChange)="updateRegistrationBranch($index, 'branchName', $event)" class="w-100" /></div>
+              <div class="erp-form-group"><label>Branch Code</label><input pInputText type="text" [ngModel]="branch.branchCode" (ngModelChange)="updateRegistrationBranch($index, 'branchCode', $event)" class="w-100" /></div>
+              <div class="erp-form-group"><label>City</label><input pInputText type="text" [ngModel]="branch.city" (ngModelChange)="updateRegistrationBranch($index, 'city', $event)" class="w-100" /></div>
+              <div class="erp-form-group"><label>State</label><input pInputText type="text" [ngModel]="branch.state" (ngModelChange)="updateRegistrationBranch($index, 'state', $event)" class="w-100" /></div>
+              <div class="erp-form-group span-2"><label>Contact No</label><input pInputText type="text" [ngModel]="branch.contactNo" (ngModelChange)="updateRegistrationBranch($index, 'contactNo', $event)" class="w-100" /></div>
+            </div>
+          </div>
+          }
+        </div>
+        <div class="d-flex justify-between align-center login-action-row">
+          <button type="button" class="erp-btn btn-white" (click)="addRegistrationBranch()"><i class="pi pi-plus"></i> Add Branch</button>
+          <button type="button" class="erp-btn btn-primary" (click)="goToAdminUserSetup()"><i class="pi pi-arrow-right"></i> Continue</button>
+        </div>
+        @if (errorMessage()) { <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small> }
+        }
+
+        @if (registerStep() === 4) {
+        <div class="login-form-grid">
+          <div class="erp-form-group"><label>Admin User Name</label><input pInputText type="text" [ngModel]="adminUser().fullName" (ngModelChange)="updateAdminUser('fullName', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Mail ID</label><input pInputText type="email" [ngModel]="adminUser().email" (ngModelChange)="updateAdminUser('email', $event)" class="w-100" /><small class="erp-field-hint">Same mail ID can be mapped to multiple companies or branches.</small></div>
+          <div class="erp-form-group"><label>Contact No</label><input pInputText type="text" [ngModel]="adminUser().contactNo" (ngModelChange)="updateAdminUser('contactNo', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Role</label><input pInputText type="text" [ngModel]="adminUser().role" (ngModelChange)="updateAdminUser('role', $event)" class="w-100" /></div>
+          <div class="erp-form-group span-2"><label>Company / Branch Access</label><input pInputText type="text" [ngModel]="adminUser().accessScope" (ngModelChange)="updateAdminUser('accessScope', $event)" class="w-100" /></div>
+        </div>
+        <div class="login-note">After login, users can choose the company and branch they are authorized for, then access that schema.</div>
+        @if (errorMessage()) { <small class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ errorMessage() }}</small> }
+        <button type="button" class="erp-btn btn-primary login-full-action" (click)="finishRegistrationSetup()">
+          <i class="pi pi-check-circle"></i> Complete Setup
+        </button>
+        }
+        }
 
         <!-- Powered by -->
         <div class="rp-footer">
@@ -295,6 +459,227 @@
     </div><!-- /right-panel -->
 
   </div><!-- /login-container -->
+
+  @if (saasDemoModalOpen()) {
+  <div class="login-demo-modal-backdrop">
+    <div class="login-demo-modal">
+      <div class="login-demo-modal-header">
+        <div>
+          <h3>SaaS Registration Demo</h3>
+          <p>Static onboarding screens for OTP, company, branch, and admin user setup.</p>
+        </div>
+        <button type="button" class="erp-btn btn-white btn-icon" (click)="closeSaasRegistrationDemo()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="register-progress">
+        @for (item of saasDemoProgress(); track item.no) {
+        <button type="button" class="register-step" [class.active]="item.active" [class.done]="item.done"
+          (click)="setSaasDemoStep(item.no)">
+          <span>@if (item.done) { <i class="pi pi-check"></i> } @else { {{ item.no }} }</span>
+          <small [attr.title]="item.label">{{ item.label }}</small>
+        </button>
+        }
+      </div>
+
+      <div class="login-demo-modal-body">
+        @if (saasDemoStep() === 1) {
+        <div class="login-form-grid">
+          <div class="erp-form-group">
+            <label>Mobile No / Mail ID</label>
+            <input pInputText type="text" [ngModel]="registrationIdentity()"
+              (ngModelChange)="registrationIdentity.set($event)" placeholder="Enter mobile number or mail ID"
+              class="w-100" />
+          </div>
+          <div class="erp-form-group">
+            <label>OTP</label>
+            <input pInputText type="text" [ngModel]="registrationOtp()" (ngModelChange)="registrationOtp.set($event)"
+              placeholder="Demo OTP" class="w-100" />
+          </div>
+          <div class="erp-form-group span-2">
+            <label>Verification Status</label>
+            <input pInputText type="text" value="Static demo only - OTP integration pending" class="w-100" readonly />
+          </div>
+        </div>
+        }
+
+        @if (saasDemoStep() === 2) {
+        <div class="login-form-grid">
+          <div class="erp-form-group"><label>Company Name</label><input pInputText type="text" [ngModel]="companySetup().companyName" (ngModelChange)="updateCompanySetup('companyName', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Company Code</label><input pInputText type="text" [ngModel]="companySetup().companyCode" (ngModelChange)="updateCompanySetup('companyCode', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Legal Name</label><input pInputText type="text" [ngModel]="companySetup().legalName" (ngModelChange)="updateCompanySetup('legalName', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>GSTIN</label><input pInputText type="text" [ngModel]="companySetup().gstin" (ngModelChange)="updateCompanySetup('gstin', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>PAN</label><input pInputText type="text" [ngModel]="companySetup().pan" (ngModelChange)="updateCompanySetup('pan', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>CIN</label><input pInputText type="text" [ngModel]="companySetup().cin" (ngModelChange)="updateCompanySetup('cin', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Mail ID</label><input pInputText type="email" [ngModel]="companySetup().email" (ngModelChange)="updateCompanySetup('email', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Contact No</label><input pInputText type="text" [ngModel]="companySetup().contactNo" (ngModelChange)="updateCompanySetup('contactNo', $event)" class="w-100" /></div>
+          <div class="erp-form-group span-2"><label>Registered Address</label><input pInputText type="text" [ngModel]="companySetup().address" (ngModelChange)="updateCompanySetup('address', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>City</label><input pInputText type="text" [ngModel]="companySetup().city" (ngModelChange)="updateCompanySetup('city', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>State</label><input pInputText type="text" [ngModel]="companySetup().state" (ngModelChange)="updateCompanySetup('state', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Country</label><input pInputText type="text" [ngModel]="companySetup().country" (ngModelChange)="updateCompanySetup('country', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Pin Code</label><input pInputText type="text" [ngModel]="companySetup().pincode" (ngModelChange)="updateCompanySetup('pincode', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Financial Year</label><input pInputText type="text" [ngModel]="companySetup().financialYear" (ngModelChange)="updateCompanySetup('financialYear', $event)" class="w-100" /></div>
+        </div>
+        }
+
+        @if (saasDemoStep() === 3) {
+        @for (branch of registrationBranches(); track $index) {
+        <div class="branch-setup-row">
+          <div class="branch-row-title">
+            <strong>Branch {{ $index + 1 }}</strong>
+            <button type="button" class="erp-btn btn-white btn-icon" (click)="removeRegistrationBranch($index)"
+              [disabled]="registrationBranches().length === 1">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+          <div class="login-form-grid">
+            <div class="erp-form-group"><label>Branch Name</label><input pInputText type="text" [ngModel]="branch.branchName" (ngModelChange)="updateRegistrationBranch($index, 'branchName', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>Branch Code</label><input pInputText type="text" [ngModel]="branch.branchCode" (ngModelChange)="updateRegistrationBranch($index, 'branchCode', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>City</label><input pInputText type="text" [ngModel]="branch.city" (ngModelChange)="updateRegistrationBranch($index, 'city', $event)" class="w-100" /></div>
+            <div class="erp-form-group"><label>State</label><input pInputText type="text" [ngModel]="branch.state" (ngModelChange)="updateRegistrationBranch($index, 'state', $event)" class="w-100" /></div>
+            <div class="erp-form-group span-2"><label>Contact No</label><input pInputText type="text" [ngModel]="branch.contactNo" (ngModelChange)="updateRegistrationBranch($index, 'contactNo', $event)" class="w-100" /></div>
+          </div>
+        </div>
+        }
+        <button type="button" class="erp-btn btn-white" (click)="addRegistrationBranch()">
+          <i class="pi pi-plus"></i> Add Branch
+        </button>
+        }
+
+        @if (saasDemoStep() === 4) {
+        <div class="login-note">The first registered user becomes the default admin. From here, that admin can create multiple users, assign roles, and control page-level permissions.</div>
+        <div class="login-form-grid">
+          <div class="erp-form-group"><label>Admin User Name</label><input pInputText type="text" [ngModel]="adminUser().fullName" (ngModelChange)="updateAdminUser('fullName', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Mail ID</label><input pInputText type="email" [ngModel]="adminUser().email" (ngModelChange)="updateAdminUser('email', $event)" class="w-100" /><small class="erp-field-hint">Same mail ID can be mapped to multiple companies or branches.</small></div>
+          <div class="erp-form-group"><label>Contact No</label><input pInputText type="text" [ngModel]="adminUser().contactNo" (ngModelChange)="updateAdminUser('contactNo', $event)" class="w-100" /></div>
+          <div class="erp-form-group"><label>Role</label><input pInputText type="text" [ngModel]="adminUser().role" (ngModelChange)="updateAdminUser('role', $event)" class="w-100" /></div>
+          <div class="erp-form-group span-2"><label>Company / Branch Access</label><input pInputText type="text" [ngModel]="adminUser().accessScope" (ngModelChange)="updateAdminUser('accessScope', $event)" class="w-100" /></div>
+        </div>
+
+        <div class="demo-access-section">
+          <div class="demo-section-title">
+            <h4>User Roles</h4>
+            <button type="button" class="erp-btn btn-white"><i class="pi pi-plus"></i> Add User</button>
+          </div>
+          <div class="demo-user-grid">
+            @for (user of demoUserAccess(); track user.name) {
+            <div class="demo-user-card">
+              <strong>{{ user.name }}</strong>
+              <span>{{ user.role }}</span>
+              <small>{{ user.company }} - {{ user.branch }}</small>
+              <em>{{ user.access }}</em>
+            </div>
+            }
+          </div>
+        </div>
+
+        <div class="demo-access-section">
+          <div class="demo-section-title">
+            <h4>Page Access Rights</h4>
+            <span class="erp-badge badge-info">Sample CRUD Matrix</span>
+          </div>
+          <div class="tbl-wrap">
+            <table class="erp-table compact">
+              <thead>
+                <tr>
+                  <th>Module</th>
+                  <th>Access Type</th>
+                  <th>Rights</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (permission of demoPermissions(); track permission.module) {
+                <tr>
+                  <td>{{ permission.module }}</td>
+                  <td>{{ permission.access }}</td>
+                  <td>{{ permission.rights }}</td>
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+        }
+
+        @if (saasDemoStep() === 5) {
+        <div class="demo-login-flow">
+          <div class="demo-login-panel">
+            <div class="demo-section-title">
+              <h4>Sample Login With OTP</h4>
+              <span class="erp-badge badge-success">Static Demo</span>
+            </div>
+            <div class="login-form-grid">
+              <div class="erp-form-group">
+                <label>Mobile No / Mail ID</label>
+                <input pInputText type="text" value="admin@demoenterprise.com" class="w-100" readonly />
+              </div>
+              <div class="erp-form-group">
+                <label>OTP</label>
+                <input pInputText type="text" value="123456" class="w-100" readonly />
+              </div>
+            </div>
+            <div class="login-note">After OTP verification, user sees only allocated companies. One mail ID/mobile number can be mapped with multiple companies and branches.</div>
+          </div>
+
+          <div class="demo-access-section">
+            <div class="demo-section-title">
+              <h4>Select Company</h4>
+              <span class="erp-badge badge-info">Allocated Companies</span>
+            </div>
+            <div class="demo-company-grid">
+              @for (company of demoLoginCompanies(); track company.code) {
+              <div class="demo-company-card">
+                <div class="demo-card-icon"><i class="pi pi-building"></i></div>
+                <div>
+                  <strong>{{ company.name }}</strong>
+                  <span>{{ company.code }} - {{ company.role }}</span>
+                </div>
+              </div>
+              }
+            </div>
+          </div>
+
+          <div class="demo-access-section">
+            <div class="demo-section-title">
+              <h4>Select Branch</h4>
+              <span class="erp-badge badge-success">Based on Company</span>
+            </div>
+            <div class="demo-branch-grid">
+              @for (company of demoLoginCompanies(); track company.code) {
+              @for (branch of company.branches; track branch) {
+              <div class="demo-branch-card">
+                <i class="pi pi-map-marker"></i>
+                <strong>{{ branch }}</strong>
+                <small>{{ company.code }}</small>
+              </div>
+              }
+              }
+            </div>
+          </div>
+
+          <div class="login-note">Once company and branch are selected, the application loads the respective schema and opens only the pages allowed by that user's role.</div>
+        </div>
+        }
+      </div>
+
+      <div class="login-demo-modal-footer">
+        <button type="button" class="erp-btn btn-white" (click)="previousSaasDemoStep()" [disabled]="saasDemoStep() === 1">
+          <i class="pi pi-arrow-left"></i> Back
+        </button>
+        @if (saasDemoStep() < 5) {
+        <button type="button" class="erp-btn btn-primary" (click)="nextSaasDemoStep()">
+          Next <i class="pi pi-arrow-right"></i>
+        </button>
+        } @else {
+        <button type="button" class="erp-btn btn-primary" (click)="closeSaasRegistrationDemo()">
+          <i class="pi pi-check-circle"></i> Finish Demo
+        </button>
+        }
+      </div>
+    </div>
+  </div>
+  }
 </div><!-- /login-page -->
 
 <p-toast position="bottom-right" />

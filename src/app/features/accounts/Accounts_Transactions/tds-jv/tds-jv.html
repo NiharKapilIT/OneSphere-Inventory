@@ -22,7 +22,7 @@
           <div class="row g-2">
 
             <!-- Debit Ledger -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="DebitLedger">Debit Ledger <span class="required">*</span></label>
                 <ng-select id="DebitLedger" [items]="tdsledgeraccountslist" bindLabel="pledgername"
@@ -37,7 +37,7 @@
             </div>
 
             <!-- Credit Ledger -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="CreditLedger">Credit Ledger <span class="required">*</span></label>
                 <ng-select id="CreditLedger" [items]="ledgeraccountslist" bindLabel="pledgername"
@@ -52,7 +52,7 @@
             </div>
 
             <!-- Date -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="preceiptdate">Date <span class="required">*</span></label>
                 <div class="erp-input-wrap erp-date-wrap">
@@ -74,7 +74,7 @@
           <div class="row g-2">
 
             <!-- Year -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label" for="pPeriodType">Year <span class="required">*</span></label>
                 <ng-select id="pPeriodType" [items]="calendarYearData" bindLabel="periodType"
@@ -89,7 +89,7 @@
             </div>
 
             <!-- Month + Show Button -->
-            <div class="col-12 col-md-5">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label" for="pCalendarMonth">
                   Month <span class="required">*</span>
@@ -108,8 +108,8 @@
             </div>
 
             <!-- Button -->
-            <div class="col-12 col-md-1 d-flex align-items-center">
-              <button type="button" class="erp-btn btn-primary btn-md w-100 mt-md-4" (click)="gettdsjvdetails()"
+            <div class="col-12 col-md-2 d-flex align-items-center mt-3">
+              <button type="button" class="erp-btn btn-primary btn-lg  mt-4" (click)="gettdsjvdetails()"
                 [disabled]="disablesavebutton1">
 
                 @if (disablesavebutton1) {
@@ -252,7 +252,7 @@
         {{ savebutton }}
       </button>
       <button type="button" class="erp-btn btn-secondary btn-sm" (click)="export()">
-        <i class="pi pi-download"></i> Export
+        <i class="pi pi-file-excel"></i>
       </button>
     </div>
     }
