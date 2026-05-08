@@ -9,10 +9,10 @@
           <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
           <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
           <button class="erp-btn btn-white btn-sm shadow-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-            <i class="pi pi-file-pdf text-danger"></i>
+            <i class="pi pi-file-pdf"></i>
           </button>
           <button class="erp-btn btn-white btn-sm shadow-sm" (click)="pdfOrprint('Print')" title="Print">
-            <i class="pi pi-print text-primary"></i>
+            <i class="pi pi-print"></i>
           </button>
         </div>
       </div>
@@ -89,12 +89,12 @@
                       <td class="py-3 font-bold text-dark">{{ jvData.pParticulars }}</td>
                       <td class="text-end py-3 font-black text-primary">
                         @if (jvData.pDebitamount !== 0) {
-                          {{ jvData.pDebitamount | number:'1.2-2' }}
+                          {{ jvData.pDebitamount  }}
                         } @else { <span class="text-muted smaller">--</span> }
                       </td>
                       <td class="text-end py-3 font-black text-success">
                         @if (jvData.pCreditAmount !== 0) {
-                          {{ jvData.pCreditAmount | number:'1.2-2' }}
+                          {{ jvData.pCreditAmount }}
                         } @else { <span class="text-muted smaller">--</span> }
                       </td>
                     </tr>
@@ -104,10 +104,10 @@
                   <tr class="font-black">
                     <td colspan="2" class="text-end py-3 text-uppercase letter-spacing-1 h6 mb-0">Grand Total</td>
                     <td class="text-end py-3 text-primary h6 mb-0 border-top-double">
-                      {{ pDebitAmount() | number:'1.2-2' }}
+                      {{ pDebitAmount()  }}
                     </td>
                     <td class="text-end py-3 text-success h6 mb-0 border-top-double">
-                      {{ pCreditAmount() | number:'1.2-2' }}
+                      {{ pCreditAmount()  }}
                     </td>
                   </tr>
                 </tfoot>

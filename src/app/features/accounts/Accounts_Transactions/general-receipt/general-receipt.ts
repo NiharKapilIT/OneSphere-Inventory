@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -25,8 +25,9 @@ export interface Receipt {
 @Component({
   selector: 'app-general-receipt',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, TableModule, TooltipModule, DecimalPipe, DatePickerModule, FormsModule],
+  imports: [CommonModule, RouterModule, ButtonModule, TableModule, TooltipModule, DatePickerModule, FormsModule],
   templateUrl: './general-receipt.html',
+  providers: [CurrencyPipe, DecimalPipe],
 })
 
 export class GeneralReceipt implements OnInit {
@@ -34,6 +35,8 @@ export class GeneralReceipt implements OnInit {
   private cs = inject(CommonService);
   private service = inject(AccountsTransactions);
   private router = inject(Router);
+  private readonly currencyPipe = inject(CurrencyPipe);
+
 
   // ── State ────────────────────────────────────────────────────────────────
   allData = signal<Receipt[]>([]);
@@ -42,6 +45,8 @@ export class GeneralReceipt implements OnInit {
   pageSize = signal<number>(10);
   fromDate = signal<Date | null>(null);
   toDate = signal<Date | null>(null);
+  readonly currencyCode = 'INR';
+
 
   readonly currencySymbol = this.cs.currencysymbol || '₹';
 
@@ -62,7 +67,13 @@ export class GeneralReceipt implements OnInit {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
   ngOnInit(): void {
+
     this.loadData();
+  }
+
+
+  formatCurrency(amount: number): string {
+    return this.currencyPipe.transform(amount, 'INR', 'symbol', '1.2-2') ?? '₹0.00';
   }
 
   // ── Data ─────────────────────────────────────────────────────────────────

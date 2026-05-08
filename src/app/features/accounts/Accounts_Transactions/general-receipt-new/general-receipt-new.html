@@ -540,7 +540,7 @@
           <div class="d-flex gap-4 align-items-center">
 
             <!-- TDS Toggle -->
-        
+
 
             <!-- GST Toggle -->
             <div class="d-flex align-items-center gap-2" formGroupName="preceiptslist">
@@ -553,7 +553,7 @@
               </div>
             </div>
 
-                <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2">
               <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">TDS</span>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
                 <input id="tds-switch" name="tds-switch" formControlName="pistdsapplicable" type="checkbox"
@@ -569,7 +569,7 @@
 
 
 
-         <!-- ── GST DETAILS ── -->
+        <!-- ── GST DETAILS ── -->
         @if (showgst()) {
         <div formGroupName="preceiptslist">
           <div class="row g-2 mb-2">
@@ -612,7 +612,7 @@
                 (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
                 [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
               </ng-select>
-           
+
               @if (getValidationMsg('pgstpercentage')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
                 getValidationMsg('pgstpercentage') }}</div>
@@ -680,7 +680,7 @@
           <div class="col-12 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Section <span class="required">*</span></label>
-           
+
               <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
                 formControlName="pTdsSection" (change)="tdsSection_Change($event)"
                 (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
@@ -720,12 +720,13 @@
         </div>
         }
 
-       
+
 
         <!-- Add / Clear -->
         <div class="d-flex gap-2 mt-2">
           <!-- <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button> -->
-           <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails(); clearParty()">Clear</button>
+          <button class="erp-btn btn-secondary" type="button"
+            (click)="clearPaymentDetails(); clearParty()">Clear</button>
           <button class="erp-btn btn-primary" type="button" (click)="addPaymentDetails()">+ Add</button>
         </div>
 
@@ -734,8 +735,7 @@
         <hr class="erp-section-divider">
         <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
-          sortMode="single"
-          styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+          sortMode="single" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
           <ng-template pTemplate="header">
             <tr>
               <th class="text-center">Actions</th>
@@ -749,41 +749,57 @@
                 <div class="th-cell justify-content-end">Amount <p-sortIcon field="pamount"></p-sortIcon></div>
               </th>
               <th pSortableColumn="pgstcalculationtype" class="text-center">
-                <div class="th-cell justify-content-center">GST Calc Type <p-sortIcon field="pgstcalculationtype"></p-sortIcon></div>
+                <div class="th-cell justify-content-center">GST Calc Type <p-sortIcon
+                    field="pgstcalculationtype"></p-sortIcon></div>
               </th>
               <th pSortableColumn="pgsttype" class="text-center">
                 <div class="th-cell justify-content-center">GST Type <p-sortIcon field="pgsttype"></p-sortIcon></div>
               </th>
               <th pSortableColumn="pgstpercentage" class="text-center">
-                <div class="th-cell justify-content-center">GST(%) <p-sortIcon field="pgstpercentage"></p-sortIcon></div>
+                <div class="th-cell justify-content-center">GST(%) <p-sortIcon field="pgstpercentage"></p-sortIcon>
+                </div>
               </th>
               <th pSortableColumn="pgstamount" class="text-end">
                 <div class="th-cell justify-content-end">GST Amount <p-sortIcon field="pgstamount"></p-sortIcon></div>
               </th>
               <th pSortableColumn="pTdsSection" class="text-center">
-                <div class="th-cell justify-content-center">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon></div>
+                <div class="th-cell justify-content-center">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon>
+                </div>
               </th>
               <th pSortableColumn="pTdsPercentage" class="text-center">
-                <div class="th-cell justify-content-center">TDS(%) <p-sortIcon field="pTdsPercentage"></p-sortIcon></div>
+                <div class="th-cell justify-content-center">TDS(%) <p-sortIcon field="pTdsPercentage"></p-sortIcon>
+                </div>
               </th>
               <th pSortableColumn="ptdsamountindividual" class="text-end">
-                <div class="th-cell justify-content-end">TDS Amount <p-sortIcon field="ptdsamountindividual"></p-sortIcon></div>
+                <div class="th-cell justify-content-end">TDS Amount <p-sortIcon
+                    field="ptdsamountindividual"></p-sortIcon></div>
               </th>
               <th pSortableColumn="ptotalamount" class="text-end">
-                <div class="th-cell justify-content-end">Total Amount <p-sortIcon field="ptotalamount"></p-sortIcon></div>
+                <div class="th-cell justify-content-end">Total Amount <p-sortIcon field="ptotalamount"></p-sortIcon>
+                </div>
               </th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
             <tr>
               <td class="text-center">
-                <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+                <!-- <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
                   (click)="deleteRow(rowIndex)">
+                </button> -->
+                <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
+                  (click)="deleteRow(rowIndex)">
+                  <i class="pi pi-trash"></i>
                 </button>
               </td>
               <td>{{ row.pledgername }}</td>
               <td>{{ row.psubledgername }}</td>
-              <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td>
+              <!-- <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td> -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                  <span class="amt-num">{{ row.pamount | number:'1.2-2' }}</span>
+                </div>
+              </td>
               <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
               <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
               <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
@@ -810,8 +826,14 @@
                 <span class="grn-na">-- NA --</span>
                 }
               </td>
-              <td class="grn-td grn-td--right grn-td--bold">
+              <!-- <td class="grn-td grn-td--right grn-td--bold">
                 {{ currencySymbol }} {{ (row.ptotalamount || 0) | number:'1.0-0' }}
+              </td> -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                  <span class="amt-num">{{ row.ptotalamount | number:'1.2-2' }}</span>
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -851,8 +873,20 @@
                 <ng-template pTemplate="body" let-row>
                   <tr>
                     <td>{{ row.accountname || '' }}</td>
-                    <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
-                    <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td>
+                    <!-- <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
+                    <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td> -->
+                    <td class="td-right">
+                      <div class="amount-cell">
+                        <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                        <span class="amt-num">{{ row.debitamount | number:'1.2-2' }}</span>
+                      </div>
+                    </td>
+                    <td class="td-right">
+                      <div class="amount-cell">
+                        <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                        <span class="amt-num">{{ row.creditamount | number:'1.2-2' }}</span>
+                      </div>
+                    </td>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="emptymessage">
