@@ -17,6 +17,7 @@ import { NumberToWordsPipe } from '../../../../shared/pipes/number-to-words-pipe
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { PageCriteria } from '../../../../core/models/pagecriteria';
+import { NumbersOnlyDirective } from '../../../../core/Directive/numbers-only';
 
 declare var $: any;
 type AOA = any[][];
@@ -37,6 +38,7 @@ type AOA = any[][];
     CheckboxModule,
     ButtonModule,
     InputTextModule,
+    NumbersOnlyDirective
   ],
   templateUrl: './cheques-inbank.html',
   providers: [DatePipe, NumberToWordsPipe, CurrencyPipe],

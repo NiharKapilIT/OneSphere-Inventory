@@ -514,7 +514,8 @@
           <div class="erp-input-wrap" style="max-width: 100%; box-sizing: border-box;">
             <i class="pi pi-indian-rupee erp-input-icon"></i>
             <input type="text" class="erp-input icon-pad w-100" name="cancelcharges" maxlength="6" id="cancelcharges"
-              #cancelRef (input)="returnCharges_Change($event)" />
+              #cancelRef [(ngModel)]="returnChargesInputValue" [ngModelOptions]="{standalone: true}" numbersOnly
+              (input)="returnCharges_Change($event)" />
           </div>
 
           <!-- @if (returnChargesError) {
