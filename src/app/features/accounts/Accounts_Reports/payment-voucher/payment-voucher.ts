@@ -327,6 +327,7 @@ export class PaymentVoucher implements OnInit {
   // ── PDF / Print ───────────────────────────────────────────────────────────
 
   pdfOrPrint(action: 'Pdf' | 'Print'): void {
+    debugger;
 
     const rows = this.buildRows();
 
