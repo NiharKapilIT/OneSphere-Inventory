@@ -824,10 +824,20 @@ export class AccountsTransactions {
   //   const params = new HttpParams().set('fromdate', strFromDate).set('todate', strToDate).set('BranchSchema', this._CommonService.getschemaname());
   //   return this._CommonService.getAPI('/Accounting/AccountingReports/GetChequeCancelDetails', params, 'YES');
   // }
+  // GetChequeCancelDetails(strFromDate: any, strToDate: any, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any) {
+  //   const params = new HttpParams().set('fromdate', strFromDate).set('todate', strToDate).set('BranchSchema', BranchSchema).set('GlobalSchema', GlobalSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
+  //   return this._CommonService.getAPI('/Accounts/GetChequeCancelDetails', params, 'YES');
+  // }
   GetChequeCancelDetails(strFromDate: any, strToDate: any, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any) {
-    const params = new HttpParams().set('fromdate', strFromDate).set('todate', strToDate).set('BranchSchema', BranchSchema).set('GlobalSchema', GlobalSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
-    return this._CommonService.getAPI('/Accounts/GetChequeCancelDetails', params, 'YES');
-  }
+  const params = new HttpParams()
+    .set('fromDate', strFromDate)   // capital D ✅
+    .set('toDate', strToDate)       // capital D ✅
+    .set('BranchSchema', BranchSchema)
+    .set('GlobalSchema', GlobalSchema)
+    .set('CompanyCode', CompanyCode)
+    .set('BranchCode', BranchCode);
+  return this._CommonService.getAPI('/Accounts/GetChequeCancelDetails', params, 'YES');
+}
 
   GetInitialPVDetails(fromdate: any, todate: any, transtype: any) {
     const params = new HttpParams().set('fromdate', fromdate).set('todate', todate).set('transtype', transtype).set('localSchema', this._CommonService.getschemaname());

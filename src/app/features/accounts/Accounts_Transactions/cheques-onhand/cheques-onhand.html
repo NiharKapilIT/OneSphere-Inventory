@@ -294,13 +294,13 @@
               <td>{{ row.pbranchname || '--NA--' }}</td>
               <td>{{ row.ptotalreceivedamount | currency:currencySymbol() }}</td>
               <td>{{ row.ppartyname || '--NA--' }}</td>
-              <td>{{ row.preceiptdate ? (row.preceiptdate | date) : '--NA--' }}</td>
-              <td>{{ row.pchequedate ? (row.pchequedate | date) : '--NA--' }}</td>
+              <td>{{ row.preceiptdate ? (row.preceiptdate | date:'dd-MMM-yyyy') : '--NA--' }}</td>
+              <td>{{ row.pchequedate ? (row.pchequedate | date:'dd-MMM-yyyy') : '--NA--' }}</td>
               @if (status() === 'deposited') {
-              <td>{{ row.pdepositeddate ? (row.pdepositeddate | date) : '--NA--' }}</td>
+              <td>{{ row.pdepositeddate ? (row.pdepositeddate | date:'dd-MMM-yyyy') : '--NA--' }}</td>
               }
               @if (status() === 'cancelled') {
-              <td>{{ row.pdepositeddate ? (row.pdepositeddate | date) : '--NA--' }}</td>
+              <td>{{ row.pdepositeddate ? (row.pdepositeddate | date:'dd-MMM-yyyy') : '--NA--' }}</td>
               }
               <td>{{ row.receiptnumbers || '--NA--' }}</td>
               <td>{{ row.ptypeofpayment || '--NA--' }}</td>

@@ -16,31 +16,31 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 @Component({
   selector: 'app-re-print',
   standalone: true,
-  imports: [ ReactiveFormsModule, CommonModule, NgSelectModule, TableModule],
+  imports: [ReactiveFormsModule, CommonModule, NgSelectModule, TableModule],
   templateUrl: './re-print.html',
   providers: [NumberToWordsPipe]
 })
 export class RePrint implements OnInit {
 
   // ── injected services ──────────────────────────────────────────────────────
-  private readonly numbertowords                 = inject(NumberToWordsPipe);
-  private readonly router                        = inject(Router);
-  private readonly formbuilder                   = inject(FormBuilder);
-  private readonly _commonService                = inject(CommonService);
-  private readonly _AccountingReportsService     = inject(AccountsReports);
-  private readonly _ChitTransactionsService      = inject(AccountsReports);
-  private readonly _subscriberJVService          = inject(AccountsReports);
+  private readonly numbertowords = inject(NumberToWordsPipe);
+  private readonly router = inject(Router);
+  private readonly formbuilder = inject(FormBuilder);
+  private readonly _commonService = inject(CommonService);
+  private readonly _AccountingReportsService = inject(AccountsReports);
+  private readonly _ChitTransactionsService = inject(AccountsReports);
+  private readonly _subscriberJVService = inject(AccountsReports);
   private readonly _AccountingTransactionsService = inject(AccountsTransactions);
-  private readonly _AccountService               = inject(AccountsReports);
-  private readonly destroyRef                    = inject(DestroyRef);
+  private readonly _AccountService = inject(AccountsReports);
+  private readonly destroyRef = inject(DestroyRef);
 
   // ── signals ────────────────────────────────────────────────────────────────
   readonly userbranchtxtboxshowhide = signal(true);
-  readonly form15UID                = signal(false);
-  readonly showhide                 = signal(false);
-  readonly showForm15HGrid          = signal(false);
-  readonly griddata                 = signal<any[]>([]);
-  readonly form15HGridData          = signal<any[]>([]);
+  readonly form15UID = signal(false);
+  readonly showhide = signal(false);
+  readonly showForm15HGrid = signal(false);
+  readonly griddata = signal<any[]>([]);
+  readonly form15HGridData = signal<any[]>([]);
 
   // ── plain properties ───────────────────────────────────────────────────────
   ReprintRepotForm!: FormGroup;
@@ -55,21 +55,21 @@ export class RePrint implements OnInit {
   pageCriteria!: PageCriteria;
   commencementgridPage = new PageCriteria();
 
-  userBranchType: string | null     = null;
-  userbranchngselectshowhide        = false;
-  loginBranchschema                 = '';
-  currencysymbol                    = '';
-  branchName: string | null         = null;
+  userBranchType: string | null = null;
+  userbranchngselectshowhide = false;
+  loginBranchschema = '';
+  currencysymbol = '';
+  branchName: string | null = null;
   legalChitReceipt: any;
-  ReceiptColunmForLegal             = false;
-  gstvoucherprintdata: any[]        = [];
-  gsthideshow                       = true;
-  otherstate                        = true;
-  UIDNoList: any[]                  = [];
+  ReceiptColunmForLegal = false;
+  gstvoucherprintdata: any[] = [];
+  gsthideshow = true;
+  otherstate = true;
+  UIDNoList: any[] = [];
   UIDdata: any;
   uid: any;
-  enteredPAN                        = '';
-  caolist: any[]                    = [];
+  enteredPAN = '';
+  caolist: any[] = [];
   reporttype: any;
   branchcode: any;
 
@@ -80,31 +80,31 @@ export class RePrint implements OnInit {
     this.currencysymbol = this._commonService.currencysymbol ?? '₹';
 
     this.lstreporttype = [
-      { reporttype: 'General Receipt',    reporttypeid: 'General Receipt' },
-      { reporttype: 'Payment Voucher',    reporttypeid: 'Payment Voucher' },
-      { reporttype: 'Journal Voucher',    reporttypeid: 'Journal Voucher' },
-      { reporttype: 'Petty Cash',         reporttypeid: 'Petty Cash' },
-      { reporttype: 'Chit Payment',       reporttypeid: 'Chit Payment' },
-      { reporttype: 'GST BILL',           reporttypeid: 'GST BILL' }
+      { reporttype: 'General Receipt', reporttypeid: 'General Receipt' },
+      { reporttype: 'Payment Voucher', reporttypeid: 'Payment Voucher' },
+      { reporttype: 'Journal Voucher', reporttypeid: 'Journal Voucher' },
+      { reporttype: 'Petty Cash', reporttypeid: 'Petty Cash' },
+      { reporttype: 'Chit Payment', reporttypeid: 'Chit Payment' },
+      { reporttype: 'GST BILL', reporttypeid: 'GST BILL' }
     ];
 
     this.ReprintRepotForm = this.formbuilder.group({
-      schemaid:       [this._commonService.getschemaname()],
-      schemaname:     ['schemaname'],
+      schemaid: [this._commonService.getschemaname()],
+      schemaname: ['schemaname'],
       samebranchcode: [this._commonService.getschemaname()],
-      TransType:      [null, Validators.required],
-      Transno:        [null, Validators.required],
-      branch_name:    [null],
-      panno:          [null]
+      TransType: [null, Validators.required],
+      Transno: [null, Validators.required],
+      branch_name: [null],
+      panno: [null]
     });
 
     this.setPageModel();
-    this.userBranchType    = sessionStorage.getItem('userBranchType');
+    this.userBranchType = sessionStorage.getItem('userBranchType');
     this.loginBranchschema = sessionStorage.getItem('loginBranchSchemaname') ?? '';
 
-    const companyDetails   = this._commonService._getCompanyDetails();
-    this.branchName        = sessionStorage.getItem('branchname');
-    this.legalChitReceipt  = companyDetails?.plegalcell_name;
+    const companyDetails = this._commonService._getCompanyDetails();
+    this.branchName = sessionStorage.getItem('branchname');
+    this.legalChitReceipt = companyDetails?.plegalcell_name;
 
     if (this.legalChitReceipt === this.branchName) {
       this.ReceiptColunmForLegal = true;
@@ -116,15 +116,15 @@ export class RePrint implements OnInit {
 
   // ── pagination ─────────────────────────────────────────────────────────────
   private setPageModel(): void {
-    this.pageCriteria                  = new PageCriteria();
-    this.pageCriteria.pageSize         = this._commonService.pageSize;
-    this.pageCriteria.offset           = 0;
-    this.pageCriteria.pageNumber       = 1;
+    this.pageCriteria = new PageCriteria();
+    this.pageCriteria.pageSize = this._commonService.pageSize;
+    this.pageCriteria.offset = 0;
+    this.pageCriteria.pageNumber = 1;
     this.pageCriteria.footerPageHeight = 50;
   }
 
   onFooterPageChange(event: any): void {
-    this.pageCriteria.offset      = event.page - 1;
+    this.pageCriteria.offset = event.page - 1;
     this.pageCriteria.CurrentPage = event.page;
     this.pageCriteria.currentPageRows =
       this.pageCriteria.totalrows < event.page * this.pageCriteria.pageSize
@@ -133,9 +133,9 @@ export class RePrint implements OnInit {
   }
 
   private updatePagination(data: any[]): void {
-    this.pageCriteria.totalrows       = data.length;
-    this.pageCriteria.TotalPages      = data.length > 10 ? Math.ceil(data.length / 10) : 1;
-    this.pageCriteria.CurrentPage     = 1;
+    this.pageCriteria.totalrows = data.length;
+    this.pageCriteria.TotalPages = data.length > 10 ? Math.ceil(data.length / 10) : 1;
+    this.pageCriteria.CurrentPage = 1;
     this.pageCriteria.currentPageRows =
       data.length < this.pageCriteria.pageSize ? data.length : this.pageCriteria.pageSize;
   }
@@ -146,10 +146,10 @@ export class RePrint implements OnInit {
 
     const filtered = searchText
       ? this.list.filter(
-          a =>
-            a?.chit_no?.toString().toLowerCase().includes(searchText) ||
-            a?.receipt_number?.toString().toLowerCase().includes(searchText)
-        )
+        a =>
+          a?.chit_no?.toString().toLowerCase().includes(searchText) ||
+          a?.receipt_number?.toString().toLowerCase().includes(searchText)
+      )
       : [...this.list];
 
     this.griddata.set(filtered);
@@ -268,13 +268,13 @@ export class RePrint implements OnInit {
     const serviceCall =
       this.reporttype === 'Verification Charges'
         ? this._AccountingReportsService.GetVerificationChargesReceiptslist(
-            this.loginBranchschema,
-            this.branchcode
-          )
+          this.loginBranchschema,
+          this.branchcode
+        )
         : this._AccountingReportsService.GetChitReceiptslist(
-            this.loginBranchschema,
-            this.branchcode
-          );
+          this.loginBranchschema,
+          this.branchcode
+        );
 
     serviceCall.subscribe(res => {
       const data = res ?? [];
@@ -293,9 +293,9 @@ export class RePrint implements OnInit {
   // ── row click handlers ─────────────────────────────────────────────────────
   clickForLegalReceipt(row: any): void {
     if (this.legalChitReceipt !== this.branchName) return;
-    const recieptno      = btoa(row?.general_receipt_number);
+    const recieptno = btoa(row?.general_receipt_number);
     const commonreceiptno = btoa(row?.commanReceiptNumber);
-    const caoschema      = btoa(this.branchcode);
+    const caoschema = btoa(this.branchcode);
     const incidentalcharges = btoa('true');
     window.open(
       `/#/LegalChitReceiptPrint?recieptno=${recieptno}&commonreceiptno=${commonreceiptno}&caoschema=${caoschema}&INCcharges=${incidentalcharges}`,
@@ -315,7 +315,7 @@ export class RePrint implements OnInit {
 
   // ── generate report ────────────────────────────────────────────────────────
   getduplicateReport(): void {
-     
+
     this.submitted = true;
     this.ReprintRepotForm.markAllAsTouched();
     if (this.ReprintRepotForm.invalid) return;
@@ -354,7 +354,9 @@ this.loading.set(true);
     window.open(url, '_blank');
   this.loading.set(false);
 
-                } else alert('Transaction No. Does Not Exit !');
+
+                } 
+                else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
               });
           } else {
             this._AccountingReportsService
@@ -382,7 +384,7 @@ this.loading.set(true);
               this.form15HGridData.set(res);
               this.showForm15HGrid.set(true);
               this.showhide.set(false);
-              this.pageCriteria.totalrows  = res.length;
+              this.pageCriteria.totalrows = res.length;
               this.pageCriteria.TotalPages = Math.ceil(res.length / this.pageCriteria.pageSize);
               this.pageCriteria.CurrentPage = 1;
                 this.loading.set(false);
@@ -431,11 +433,11 @@ this.loading.set(true);
           if (res?.length > 0) {
 
 
-            
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/journal-voucher', receipt])
-    );
-    window.open(url, '_blank');
+
+            const url = this.router.serializeUrl(
+              this.router.createUrlTree(['/journal-voucher', receipt])
+            );
+            window.open(url, '_blank');
 
   this.loading.set(false);
           } else alert('Transaction No. Does Not Exit !');
@@ -453,7 +455,7 @@ this.loading.set(true);
         )
         .subscribe(res => {
           if (res?.length > 0) {
-            const receipt      = btoa(`${transNo},Payment Voucher,Reprint`);
+            const receipt = btoa(`${transNo},Payment Voucher,Reprint`);
 
            
     const url = this.router.serializeUrl(
@@ -462,21 +464,22 @@ this.loading.set(true);
     window.open(url, '_blank');
   this.loading.set(false);
 
-          } else alert('Transaction No. Does Not Exit !');
+
+          } else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
         });
     }
 
     if (transType === 'Subscriber JV') {
       this._subscriberJVService.getSubscriberJVReport(transNo).subscribe((res: any[]) => {
         if (res?.[0]?.sjvDetails?.length > 0) {
-          const debit  = res[0].sjvDetails.reduce((s: number, v: any) => s + v.debit,  0);
+          const debit = res[0].sjvDetails.reduce((s: number, v: any) => s + v.debit, 0);
           const credit = res[0].sjvDetails.reduce((s: number, v: any) => s + v.credit, 0);
           if (debit === credit) {
             const receipt = btoa(`${transNo},Subscriber JV,Reprint`);
             window.open(`/#/JournalVoucherPrint?id=${receipt}`, '_blank');
               this.loading.set(false);
           } else this._commonService.showWarningMessage('Credit and Debit Not Matched!!');
-        } else alert('Transaction No. Does Not Exit !');
+        } else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
       });
     }
 
@@ -536,28 +539,28 @@ this.loading.set(true);
 
   // ── GST print ──────────────────────────────────────────────────────────────
   print(): void {
-    let totaligstamt       = 0;
-    let totalamtBeforeTax  = 0;
-    let totalCGSTAmt       = 0;
-    let totalSGSTAmt       = 0;
-    let totalTaxAmt        = 0;
-    let totalamtAfterTax   = 0;
-    let totaldiscountAmt   = 0;
-    let proundoff_amount   = 0;
-    let tdsamount          = 0;
-    const gridrows: any[]  = [];
+    let totaligstamt = 0;
+    let totalamtBeforeTax = 0;
+    let totalCGSTAmt = 0;
+    let totalSGSTAmt = 0;
+    let totalTaxAmt = 0;
+    let totalamtAfterTax = 0;
+    let totaldiscountAmt = 0;
+    let proundoff_amount = 0;
+    let tdsamount = 0;
+    const gridrows: any[] = [];
 
     this.gstvoucherprintdata.forEach((e: any) => {
-      proundoff_amount  = parseFloat(e.proundoff_amount) || 0;
-      tdsamount         = parseFloat(e.invoice_tds_amount) || 0;
+      proundoff_amount = parseFloat(e.proundoff_amount) || 0;
+      tdsamount = parseFloat(e.invoice_tds_amount) || 0;
       totalamtBeforeTax += e.invoice_amount;
-      totaldiscountAmt  += e.product_discount;
-      totalamtAfterTax  += e.invoice_total_amount;
+      totaldiscountAmt += e.product_discount;
+      totalamtAfterTax += e.invoice_total_amount;
 
       if (this.gsthideshow) {
         totalCGSTAmt += e.cgst_amount;
         totalSGSTAmt += e.sgst_amount;
-        totalTaxAmt   = totalCGSTAmt + totalSGSTAmt;
+        totalTaxAmt = totalCGSTAmt + totalSGSTAmt;
         gridrows.push([
           e.product_name, e.hsN_code, e.product_qty, e.product_cost,
           e.invoice_amount, e.product_discount,
@@ -568,7 +571,7 @@ this.loading.set(true);
         ]);
       } else {
         totaligstamt += e.igst_amount;
-        totalTaxAmt   = totaligstamt;
+        totalTaxAmt = totaligstamt;
         gridrows.push([
           e.product_name, e.hsN_code, e.product_qty, e.product_cost,
           e.invoice_amount, e.product_discount,
@@ -580,8 +583,8 @@ this.loading.set(true);
     });
 
     totalamtAfterTax -= tdsamount;
-    const finalAmount  = totalamtAfterTax + proundoff_amount;
-    const amountWords  = this.titleCase(this.numbertowords.transform(finalAmount)) + ' Rupees Only.';
+    const finalAmount = totalamtAfterTax + proundoff_amount;
+    const amountWords = this.titleCase(this.numbertowords.transform(finalAmount)) + ' Rupees Only.';
     const totalamount_after_tax = this.gstvoucherprintdata.reduce(
       (s: number, c: any) => s + parseFloat(c.invoice_total_amount), 0
     );

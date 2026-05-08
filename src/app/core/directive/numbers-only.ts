@@ -6,7 +6,7 @@ import { NgControl } from '@angular/forms';
 })
 export class NumbersOnlyDirective {
 
-  constructor(private ngControl: NgControl) {}
+  constructor(private ngControl: NgControl) { }
 
   @HostListener('input', ['$event'])
   onInput(event: any): void {

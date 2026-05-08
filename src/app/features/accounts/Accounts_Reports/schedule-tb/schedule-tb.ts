@@ -33,7 +33,7 @@ interface TBResponse {
 
 @Component({
   selector: "app-schedule-tb",
-  standalone:true,
+  standalone: true,
   imports: [CommonModule, FormsModule, HttpClientModule, DatePickerModule],
   templateUrl: "./schedule-tb.html",
 })

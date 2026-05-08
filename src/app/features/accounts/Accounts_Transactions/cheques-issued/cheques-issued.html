@@ -288,10 +288,10 @@
       <!-- DataTable -->
       <div class="tbl-wrap">
 
-        <p-table [value]="gridData()" [paginator]="true" [rows]="pageCriteria().pageSize"
-          [rowsPerPageOptions]="[10, 20, 50]" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
-          [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          sortMode="single"
+        <p-table [value]="gridData()" [paginator]="gridData().length > pageCriteria().pageSize"
+          [rows]="pageCriteria().pageSize" [rowsPerPageOptions]="rowsPerPageOptions()" [scrollable]="true"
+          scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true"
           columnResizeMode="expand">
 
@@ -317,7 +317,8 @@
               }
 
               <th pResizableColumn pSortableColumn="pChequenumber">
-                <div class="th-cell th-cell--center">Cheque / Reference No. <p-sortIcon field="pChequenumber"></p-sortIcon></div>
+                <div class="th-cell th-cell--center">Cheque / Reference No. <p-sortIcon
+                    field="pChequenumber"></p-sortIcon></div>
               </th>
               <th pResizableColumn pSortableColumn="ptotalreceivedamount" class="th-right">
                 <div class="th-cell th-cell--right">
@@ -343,13 +344,15 @@
                   <p-sortIcon field="preceiptdate"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn [pSortableColumn]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'">
+              <th pResizableColumn
+                [pSortableColumn]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'">
                 <div class="th-cell">
                   <i class="pi pi-credit-card"></i>
                   {{ activeTab() === 'cleared' ? 'Cleared Date' :
                   activeTab() === 'returned' ? 'Returned Date' :
                   activeTab() === 'cancelled' ? 'Cancelled Date' : 'Transaction Mode' }}
-                  <p-sortIcon [field]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'"></p-sortIcon>
+                  <p-sortIcon
+                    [field]="activeTab() === 'cleared' ? 'pCleardate' : activeTab() === 'returned' || activeTab() === 'cancelled' ? 'pdepositeddate' : 'ptypeofpayment'"></p-sortIcon>
                 </div>
               </th>
 
