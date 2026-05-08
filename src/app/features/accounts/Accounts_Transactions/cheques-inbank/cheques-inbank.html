@@ -275,10 +275,10 @@
         </div>
 
         <div class="tbl-wrap">
-          <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
-            [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
-            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-            sortMode="single"
+          <p-table #dt [value]="gridData || []" [paginator]="gridData.length > pageCriteria.pageSize"
+            [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true"
+            scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
             <!-- Header -->
@@ -328,7 +328,8 @@
 
                 @if (!hiddendate) {
                 <th [pSortableColumn]="status === 'cleared' ? 'pCleardate' : 'returneddate'">
-                  <div class="th-cell">{{ datetitle }} <p-sortIcon [field]="status === 'cleared' ? 'pCleardate' : 'returneddate'"></p-sortIcon></div>
+                  <div class="th-cell">{{ datetitle }} <p-sortIcon
+                      [field]="status === 'cleared' ? 'pCleardate' : 'returneddate'"></p-sortIcon></div>
                 </th>
                 }
 
