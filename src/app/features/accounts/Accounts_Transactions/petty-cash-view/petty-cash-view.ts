@@ -19,7 +19,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
     RouterModule,
     TableModule,
     PaginatorModule,
-    DecimalPipe,
+    
   ],
   providers: [CurrencyPipe],
   templateUrl: './petty-cash-view.html',

@@ -1,4 +1,4 @@
-import { Component, ElementRef, OnInit, ViewChild, inject, signal, DestroyRef } from '@angular/core';
+ import { Component, ElementRef, OnInit, ViewChild, inject, signal, DestroyRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TreeTableModule } from 'primeng/treetable';
@@ -303,6 +303,7 @@ export class JvList implements OnInit {
       if (isNaN(d.getTime())) return '';
       return `${String(d.getDate()).padStart(2, '0')}-${d.toLocaleString('en-US', { month: 'short' })}-${d.getFullYear()}`;
     };
+    
 
     const fromDate = fmt(this.JvlistReportForm.value.fromDate);
     const toDate   = fmt(this.JvlistReportForm.value.toDate);
@@ -315,6 +316,7 @@ export class JvList implements OnInit {
       }
       return content;
     };
+    
 
     const rows: any[]  = [];
     let currentTransNo = '';
@@ -349,6 +351,7 @@ export class JvList implements OnInit {
     );
     
   }
+  
   
 }
 
