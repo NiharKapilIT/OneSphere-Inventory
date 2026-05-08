@@ -83,6 +83,7 @@
               <div class="th-cell" style="justify-content:flex-end">
                 <i class="pi pi-indian-rupee"></i>
                 Paid Amount
+
                 <p-sortIcon field="totalPaidAmount"></p-sortIcon>
               </div>
             </th>
@@ -145,11 +146,17 @@
             </td>
 
             <!-- Paid Amount -->
-            <td class="td-right">
+            <!-- <td class="td-right">
               <span class="amount-cell">
                 {{ currencySymbol }} {{ row.totalPaidAmount | number:'1.2-2' }}
               </span>
-            </td>
+            </td> -->
+
+            <td class="td-right">
+                <div class="td-cell td-right amount-cell">
+                  <span class="amt-num">{{ formatCurrency(row.totalPaidAmount) }}</span>
+                </div>
+              </td>
 
             <!-- Bank Name -->
             <!-- <td>

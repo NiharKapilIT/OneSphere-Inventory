@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TableModule } from 'primeng/table';
@@ -21,6 +21,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
     PaginatorModule,
     DecimalPipe,
   ],
+  providers: [CurrencyPipe],
   templateUrl: './petty-cash-view.html',
 })
 export class PettyCashView implements OnInit, OnDestroy {
@@ -35,12 +36,15 @@ export class PettyCashView implements OnInit, OnDestroy {
   readonly gridView = signal<any[]>([]);
   readonly loading = signal<boolean>(false);
   readonly totalRows = signal<number>(0);
+    private readonly currencyPipe = inject(CurrencyPipe);
+
 
   readonly hasData = computed(() => this.gridView().length > 0);
   rowsPerPageOptions: number[] = [10, 20, 50];
 
   // ── State ──────────────────────────────────────────────────────────────────
-  currencySymbol = '₹';
+    currencySymbol = '₹';
+  readonly currencyCode = 'INR';
   first = 0;
   pageSize = 10;
 
@@ -53,7 +57,7 @@ export class PettyCashView implements OnInit, OnDestroy {
 
   // ══════════════════════════════════════════════════════════════════════════
   ngOnInit(): void {
-    this.currencySymbol = this.commonService.currencysymbol || '₹';
+    this.currencySymbol = this.commonService.currencysymbol;
     // this.setPageModel();
     this.getLoadData();
   }
@@ -61,6 +65,10 @@ export class PettyCashView implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+   formatCurrency(amount: number): string {
+    return this.currencyPipe.transform(amount, 'INR', 'symbol', '1.2-2') ?? '₹0.00';
   }
 
   // ── Page model ─────────────────────────────────────────────────────────────
