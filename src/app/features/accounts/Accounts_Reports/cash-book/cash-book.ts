@@ -196,7 +196,7 @@ export class CashBook implements OnInit {
       receiptName = 'General Receipt';
     } else if (transNo.startsWith('MV_')) {
       route = '/payment-voucher';
-      receiptName = 'Bank Payment';
+      receiptName = 'Payment Voucher';
     } else if (transNo.startsWith('JV_')) {
       route = '/journal-voucher';
       receiptName = 'Journal Voucher';

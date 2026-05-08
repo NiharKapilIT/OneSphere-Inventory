@@ -429,7 +429,7 @@ export class GstReport implements OnInit {
           element.state, element.guarantoraddress, transactionDate, element.receiptnumber,
           taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       } else {
-        rows.push(['', '', '', '', '', '', '', '', 'Total', taxableAmount, igstAmount, cgstAmount, sgstAmount]);
+        rows.push([element.groupcode,  gstNumber, element.accountname, element.area, element.city, element.state, element.guarantoraddress, transactionDate, element.receiptnumber, taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       }
     });
 

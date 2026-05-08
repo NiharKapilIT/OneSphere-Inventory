@@ -89,13 +89,13 @@
             <div class="tb-right">
               @if (showIcons()) {
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF" tooltipPosition="bottom">
-                  <i class="pi pi-file-pdf"></i>
+                  <i class="pi pi-file-pdf"></i> PDF
                 </button>
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" pTooltip="Print" tooltipPosition="bottom">
-                  <i class="pi pi-print"></i>
+                  <i class="pi pi-print"></i> Print
                 </button>
                 <button class="erp-btn btn-white btn-sm" (click)="export()" pTooltip="Export Excel" tooltipPosition="bottom">
-                  <i class="pi pi-download"></i>
+                  <i class="pi pi-download"></i> Excel
                 </button>
               }
             </div>
@@ -142,21 +142,21 @@
                       <div class="th-cell">
                         Trans. No. 
                         <p-sortIcon field="ptransactionno"></p-sortIcon>
-                        <p-columnFilter type="text" field="ptransactionno" display="menu" class="ms-auto"></p-columnFilter>
+                        <!-- <p-columnFilter type="text" field="ptransactionno" display="menu" class="ms-auto"></p-columnFilter> -->
                       </div>
                     </th>
                     <th pSortableColumn="pparticulars">
                       <div class="th-cell">
                         Particulars 
                         <p-sortIcon field="pparticulars"></p-sortIcon>
-                        <p-columnFilter type="text" field="pparticulars" display="menu" class="ms-auto"></p-columnFilter>
+                        <!-- <p-columnFilter type="text" field="pparticulars" display="menu" class="ms-auto"></p-columnFilter> -->
                       </div>
                     </th>
                     <th pSortableColumn="pdescription">
                       <div class="th-cell">
                         Narration
                         <p-sortIcon field="pdescription"></p-sortIcon>
-                        <p-columnFilter type="text" field="pdescription" display="menu" class="ms-auto"></p-columnFilter>
+                        <!-- <p-columnFilter type="text" field="pdescription" display="menu" class="ms-auto"></p-columnFilter> -->
                       </div>
                     </th>
                     <th pSortableColumn="pdebitamount" style="width: 130px;">
