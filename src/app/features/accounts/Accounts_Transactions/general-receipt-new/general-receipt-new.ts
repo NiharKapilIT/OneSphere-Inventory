@@ -190,6 +190,7 @@ export class GeneralReceiptNew implements OnInit {
   private _selectedPartyStateName = '';
   disabletransactiondate = false;
   private _depositBankId: any = null;
+   currencyCode = '₹';
 
   readonly Bankbuttondata = [
     { type: 'Cheque', chequeshowhide: true, onlineshowhide: false, debitShowhide: false, creditShowhide: false },
