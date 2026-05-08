@@ -34,7 +34,6 @@ import { DatePickerModule } from 'primeng/datepicker';
     NgSelectModule
   ],
   templateUrl: './brs.html',
-  styleUrl: './brs.css',
   providers: [DatePipe]
 })
 export class Brs implements OnInit {

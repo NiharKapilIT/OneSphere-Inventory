@@ -1296,7 +1296,7 @@ select.erp-input {
       padding: 10px 20px;
       border-radius: 28px;
       border: 1.5px solid #d1d5db;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 550;
       color: #374151;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1773,16 +1773,16 @@ select.erp-input {
 ng-select {
   display: block !important;
   width: 100% !important;
-  min-height: 42px;
+  min-height: 38px;
 
   .ng-select-container {
     display: flex !important;
     align-items: center;
     width: 100% !important;
-    min-height: 42px;
+    min-height: 38px;
     padding: 0 !important;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.98) 100%) !important;
-    border: 1.5px solid var(--fp-border, #dbe8f9) !important;
+    // border: 1.5px solid var(--fp-border, #dbe8f9) !important;
     border-radius: 14px !important;
     transition: border-color 0.18s, box-shadow 0.18s, background 0.18s, transform 0.18s !important;
     box-shadow: none !important;
@@ -1834,7 +1834,7 @@ ng-select {
   .ng-value-container {
     display: flex;
     align-items: center;
-    min-height: 40px;
+    min-height: 38px;
     padding: 0 12px !important;
   }
 
@@ -2768,7 +2768,7 @@ input[type='datetime-local'].erp-input {
 .p-datepicker:not(.p-datepicker-inline) {
   min-width: 0 !important;
   background: rgba(255, 255, 255, 0.99) !important;
-  border: 1.5px solid var(--fp-border, #dbe8f9) !important;
+  // border: 1.5px solid var(--fp-border, #dbe8f9) !important;
   // border: 1px solid var(--fp-border, #e2e8f0) !important;
   // border-radius: 18px !important;
   box-shadow: none !important;
@@ -2914,12 +2914,18 @@ input[type='datetime-local'].erp-input {
 }
 
 .p-inputtext,
+p-datepicker .p-inputtext,
+.p-datepicker-input {
+  font-size: 13px !important;
+}
+
+.p-inputtext,
 .p-select,
 .p-dropdown,
 .p-multiselect,
 .p-password input {
   border-radius: 14px !important;
-  border: 1.5px solid #ddd !important;
+  // border: 1.5px solid #ddd !important;
   box-shadow: none !important;
 }
 
@@ -3169,7 +3175,7 @@ input[type='datetime-local'].erp-input {
   }
 
   &.stable-layout {
-    grid-template-columns: 1fr 1.2fr 1.2fr;
+    grid-template-columns: 1fr 1fr 1fr;
     align-items: flex-start;
     min-height: 110px;
     width: 100%;
@@ -3577,6 +3583,50 @@ input[type='date'].erp-input {
   .tb-right {
     margin-left: auto;
   }
+}
+
+.erp-table-toolbar .tb-right,
+.payroll-grid-actions,
+.contacts-header-actions,
+.card-actions,
+.grid-export-actions {
+  .grid-icon-action,
+  .erp-btn:has(.pi-print),
+  .erp-btn:has(.pi-file-pdf),
+  .erp-btn:has(.pi-file-excel),
+  .erp-btn:has(.pi-download),
+  .erp-btn:has(.pi-envelope),
+  .erp-btn:has(.pi-whatsapp),
+  .icon-action:has(.pi-print),
+  .icon-action:has(.pi-file-pdf),
+  .icon-action:has(.pi-file-excel),
+  .icon-action:has(.pi-envelope),
+  .icon-action:has(.pi-whatsapp) {
+    width: 34px;
+    min-width: 34px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    line-height: 1;
+    text-decoration: none;
+  }
+
+  .grid-icon-action i,
+  .erp-btn i,
+  .icon-action i {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  :has(.pi-print) { order: 1; }
+  :has(.pi-file-pdf) { order: 2; }
+  :has(.pi-file-excel),
+  :has(.pi-download) { order: 3; }
+  :has(.pi-envelope) { order: 4; }
+  :has(.pi-whatsapp) { order: 5; }
 }
 
 /* Table wrapper */
@@ -5014,6 +5064,13 @@ input[readonly].erp-input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.narration-report {
+  display: block;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .grid-cell-total {
   background: rgba(8, 145, 178, 0.08);
@@ -5701,6 +5758,30 @@ select.erp-select:has(option:not([value=""]):checked) option[value=""] {
   align-items: end;
 }
 
+.erp-card form .row.align-items-end .erp-btn:not(.btn-icon),
+.erp-card form .row.align-end .erp-btn:not(.btn-icon),
+.screen-container form .row.align-items-end .erp-btn:not(.btn-icon),
+.report-view-container form .row.align-items-end .erp-btn:not(.btn-icon) {
+  width: auto !important;
+  min-width: 112px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 16px;
+  margin-top: 0 !important;
+  border-radius: 14px;
+  line-height: 1;
+}
+
+.erp-card form .row.align-items-end .erp-btn.btn-sm:not(.btn-icon),
+.erp-card form .row.align-end .erp-btn.btn-sm:not(.btn-icon),
+.screen-container form .row.align-items-end .erp-btn.btn-sm:not(.btn-icon),
+.report-view-container form .row.align-items-end .erp-btn.btn-sm:not(.btn-icon) {
+  min-width: 92px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
 .erp-card form .erp-form-group {
   min-width: 0;
   height: 100%;
@@ -6247,8 +6328,9 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
     background: #f8fafc !important;
     border-top: 1px solid #dbe8f9 !important;
     color: #111827 !important;
-    font-weight: 700 !important;
+    font-weight: 500 !important;
     border-style: none !important;
+    font-style: 14px;
   }
 }
 
@@ -6755,7 +6837,7 @@ body .p-connected-overlay {
   .erp-input,
   .erp-select,
   ng-select .ng-select-container {
-    min-height: 42px;
+    min-height: 38px;
   }
 
   .section-title {
@@ -8528,5 +8610,387 @@ body .p-connected-overlay {
 
   .accounts-dashboard-page .kpi-card--compact .kpi-trend {
     display: none;
+  }
+}
+
+/* Login registration and OTP onboarding */
+.login-page .auth-mode-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 14px 0 12px;
+  padding: 4px;
+  border: 1px solid var(--fp-border, #dbe8f9);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.login-page .auth-mode-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-page .auth-mode-tabs button.active {
+  background: linear-gradient(135deg, var(--clr-p1, #0c4a6e), var(--clr-p2, #0891b2));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(8, 145, 178, 0.2);
+}
+
+.login-page .login-demo-actions {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 12px;
+}
+
+.login-page .login-demo-actions .erp-btn {
+  min-height: 34px;
+}
+
+.login-page .login-full-action,
+.login-page .login-full-action .p-button {
+  width: 100%;
+}
+
+.login-page .login-full-action {
+  margin-top: 10px;
+}
+
+.login-page .login-inline-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.login-page .login-inline-action .erp-btn {
+  height: 38px;
+  min-width: 112px;
+  margin-bottom: 14px;
+}
+
+.login-page .register-progress {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.login-page .register-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  color: #64748b;
+  text-align: left;
+}
+
+.login-page .register-step span {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.login-page .register-step small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.login-page .register-step.active {
+  border-color: color-mix(in srgb, var(--clr-p2, #0891b2) 35%, #dbe8f9);
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 8%, white);
+  color: var(--clr-p1, #0c4a6e);
+}
+
+.login-page .register-step.active span,
+.login-page .register-step.done span {
+  background: var(--clr-p2, #0891b2);
+  color: #fff;
+}
+
+.login-page .register-scroll {
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.login-page .login-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.login-page .login-form-grid .erp-form-group {
+  margin-bottom: 0;
+}
+
+.login-page .login-form-grid .span-2 {
+  grid-column: 1 / -1;
+}
+
+.login-page .branch-setup-row {
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  margin-bottom: 10px;
+}
+
+.login-page .branch-row-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 13px;
+}
+
+.login-page .login-action-row {
+  margin-top: 10px;
+}
+
+.login-page .login-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #dbe8f9;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.login-page .login-demo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.login-page .login-demo-modal {
+  width: min(940px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #dbe8f9;
+  border-radius: 16px;
+  background: #f8fafc;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+}
+
+.login-page .login-demo-modal-header,
+.login-page .login-demo-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.login-page .login-demo-modal-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.login-page .login-demo-modal-header h3 {
+  margin: 0;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.login-page .login-demo-modal-header p {
+  margin: 3px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.login-page .login-demo-modal > .register-progress {
+  margin: 0;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.login-page .login-demo-modal > .register-progress .register-step {
+  cursor: pointer;
+}
+
+.login-page .login-demo-modal-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.login-page .login-demo-modal-footer {
+  border-top: 1px solid #e2e8f0;
+}
+
+.login-page .demo-access-section,
+.login-page .demo-login-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.login-page .demo-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.login-page .demo-section-title h4 {
+  margin: 0;
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.login-page .demo-user-grid,
+.login-page .demo-company-grid,
+.login-page .demo-branch-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.login-page .demo-user-card,
+.login-page .demo-company-card,
+.login-page .demo-branch-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dbe8f9;
+  border-radius: 12px;
+  background: #f8fafc;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+}
+
+.login-page .demo-user-card {
+  display: grid;
+  gap: 4px;
+}
+
+.login-page .demo-user-card strong,
+.login-page .demo-company-card strong,
+.login-page .demo-branch-card strong {
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.login-page .demo-user-card span,
+.login-page .demo-company-card span,
+.login-page .demo-branch-card small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.login-page .demo-user-card small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.login-page .demo-user-card em {
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.login-page .demo-company-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-page .demo-company-card > div:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.login-page .demo-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  background: linear-gradient(135deg, var(--clr-p1, #0c4a6e), var(--clr-p2, #0891b2));
+}
+
+.login-page .demo-branch-card {
+  display: grid;
+  gap: 4px;
+}
+
+.login-page .demo-branch-card i {
+  color: var(--clr-p2, #0891b2);
+  font-size: 16px;
+}
+
+.login-page .demo-login-flow .login-note {
+  margin-top: 12px;
+}
+
+@media (max-width: 767.98px) {
+  .login-page .auth-mode-tabs,
+  .login-page .register-progress,
+  .login-page .login-form-grid,
+  .login-page .login-inline-action {
+    grid-template-columns: 1fr;
+  }
+
+  .login-page .register-scroll {
+    max-height: none;
+  }
+
+  .login-page .login-demo-modal-backdrop {
+    padding: 12px;
+  }
+
+  .login-page .login-demo-modal-header,
+  .login-page .login-demo-modal-footer {
+    align-items: flex-start;
+  }
+
+  .login-page .login-demo-modal-footer {
+    flex-direction: column-reverse;
   }
 }

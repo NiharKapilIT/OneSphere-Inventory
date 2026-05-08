@@ -148,13 +148,13 @@
 
         <ng-template pTemplate="body" let-ticket>
           <tr>
-            <td class="ticket-id">{{ ticket.id }}</td>
+            <td class="ticket-id" [attr.title]="ticket.id">{{ ticket.id }}</td>
             <td>{{ ticket.createdAt | date:'dd-MMM-yyyy hh:mm a' }}</td>
             <td>
-              <strong>{{ ticket.subject }}</strong>
-              <small>{{ ticket.message }}</small>
+              <strong [attr.title]="ticket.subject">{{ ticket.subject }}</strong>
+              <small [attr.title]="ticket.message">{{ ticket.message }}</small>
             </td>
-            <td>{{ ticket.category }}</td>
+            <td [attr.title]="ticket.category">{{ ticket.category }}</td>
             <td>
               <span class="status-pill priority" [class.high]="ticket.priority === 'High'">{{ ticket.priority }}</span>
             </td>
@@ -163,7 +163,7 @@
                 {{ ticket.status }}
               </span>
             </td>
-            <td>{{ ticket.contact || '--' }}</td>
+            <td [attr.title]="ticket.contact || '--'">{{ ticket.contact || '--' }}</td>
             <td>
               <div class="row-actions">
                 <button type="button" title="Retry backend post" (click)="retry(ticket)" [disabled]="submitting() || ticket.status === 'Solved'">

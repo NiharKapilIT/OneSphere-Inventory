@@ -64,7 +64,7 @@
           <div class="col-xl-2 col-lg-2 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
-              <button type="button" class="erp-btn btn-primary w-100" (click)="runPayroll()">
+              <button type="button" class="erp-btn btn-primary" (click)="runPayroll()">
                 <i class="pi pi-play"></i> Run Payroll
               </button>
             </div>
@@ -83,6 +83,7 @@
           </div>
 
           <div class="payroll-grid-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
             <span class="payroll-selection-summary">{{ selectedPayrollRows.length }} selected</span>
             <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printPayrollGrid()">
               <i class="pi pi-print"></i>
@@ -94,7 +95,7 @@
               <i class="pi pi-file-pdf"></i>
             </button>
             <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Send Mail" aria-label="Send Mail" (click)="sendPayrollMail()">
-              <i class="pi pi-send"></i>
+              <i class="pi pi-envelope"></i>
             </button>
           </div>
         </div>
