@@ -133,22 +133,23 @@
       <div class="p-4">
 
         <!-- Export Toolbar -->
+
         <div class="erp-table-toolbar mb-4 d-print-none">
-          <div class="tb-left">
-            <h6 class="mb-0 font-bold text-primary">Issued Cheque Ledger</h6>
-          </div>
-          <div class="tb-right">
-            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-              <i class="pi pi-file-pdf"></i> PDF
-            </button>
-            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-              <i class="pi pi-print"></i> Print
-            </button>
-            <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
-              <i class="pi pi-download"></i> Excel
-            </button>
-          </div>
-        </div>
+              <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Issued Cheque Ledger</h6></div>
+              <div class="tb-right">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+                <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
+                  <i class="pi pi-file-pdf"></i>
+                </button>
+                <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
+                  <i class="pi pi-print"></i>
+                </button>
+                 <button class="erp-btn btn-white btn-sm" (click)="export()" title="Excel">
+                    <i class="pi pi-file-excel"></i>
+                  </button>
+              </div>
+            </div>
 
         <div class="report-view-container">
           <app-companydetails [printedDateShowhide]="printedDate()" />
