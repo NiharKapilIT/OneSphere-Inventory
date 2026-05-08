@@ -351,6 +351,19 @@ export class JvList implements OnInit {
     );
     
   }
+  // ── Excel Export ──────────────────────────────────────────────────────────────
+  exportExcel(): void {
+    const rows = this.jvlistData.map(item => ({
+      'Transaction Date': item.ptransactiondate,
+      'Transaction No.':  item.ptransactionno,
+      'Particulars':      item.pparticulars,
+      'Description':      item.pdescription,
+      'Debit Amount':     item.pdebitamount,
+      'Credit Amount':    item.pcreditamount
+    }));
+
+    this.commonService.exportAsExcelFile(rows, 'JournalEntryRegister');
+  }
   
   
 }
