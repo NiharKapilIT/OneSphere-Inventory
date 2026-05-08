@@ -347,5 +347,9 @@ export class JvList implements OnInit {
     this.commonService._JvListdownloadReportsPdf(
       'JV List', rows, gridheaders, {}, 'landscape', 'Between', fromDate, toDate, printorpdf
     );
+    
   }
+  
 }
+
+// 111
