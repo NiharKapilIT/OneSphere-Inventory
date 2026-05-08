@@ -28,19 +28,19 @@
 
   <ng-template ng-header-tmp>
     <div style="display:grid; grid-template-columns:1.5fr 2fr 1.5fr 2fr; gap:8px; font-weight:600; font-size:13px; color:#555; border-bottom:1px solid #e0e0e0; padding:6px 8px;">
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Employee Code</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Name</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Mobile No.</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Email Id</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Employee Code">Employee Code</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Name">Name</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Mobile No.">Mobile No.</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="Email Id">Email Id</span>
     </div>
   </ng-template>
 
   <ng-template ng-option-tmp let-item="item">
     <div style="display:grid; grid-template-columns:1.5fr 2fr 1.5fr 2fr; gap:8px; font-size:13px;">
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.employeeCode }}</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.employeeName }}</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.mobileNo }}</span>
-      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.emailId }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" [attr.title]="item.employeeCode">{{ item.employeeCode }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" [attr.title]="item.employeeName">{{ item.employeeName }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" [attr.title]="item.mobileNo">{{ item.mobileNo }}</span>
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" [attr.title]="item.emailId">{{ item.emailId }}</span>
     </div>
   </ng-template>
 
@@ -89,7 +89,7 @@
           <div class="col-xl-2 col-lg-2 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">&nbsp;</label>
-              <button type="button" class="erp-btn btn-primary w-100" (click)="runAttendance()">
+              <button type="button" class="erp-btn btn-primary" (click)="runAttendance()">
                 <i class="pi pi-play"></i> Run Attendance
               </button>
             </div>
@@ -111,6 +111,8 @@
         <div class="erp-table-toolbar tbl-toolbar-flush">
           <h5 class="section-title mb-0">Attendance Summary</h5>
           <div class="payroll-grid-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
             <button type="button" class="erp-btn btn-white btn-sm btn-icon" title="Print" aria-label="Print" (click)="printAttendance()">
               <i class="pi pi-print"></i>
             </button>

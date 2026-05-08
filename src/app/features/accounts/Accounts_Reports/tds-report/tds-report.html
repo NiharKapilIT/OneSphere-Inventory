@@ -14,7 +14,7 @@
           <div class="row g-2 align-items-end">
 
             <!-- Section Selector -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label required">Section <span class="required">*</span></label>
                 <ng-select
@@ -38,7 +38,7 @@
             </div>
 
             <!-- Section Name -->
-            <div class="col-12 col-md-5">
+            <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label">Section Name</label>
                 <input type="text" class="erp-input bg-light" formControlName="sectionname" readonly />
@@ -46,17 +46,17 @@
             </div>
 
             <!-- Toggles -->
-            <div class="col-12 col-md-3">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label">&nbsp;</label>
-                <div class="d-flex gap-4">
+                <div class="d-flex ">
                   <label class="erp-checkbox m-0">
                     <input type="checkbox" (change)="onAsOnToggle($event)" />
-                    <span>As On</span>
+                    <span> &nbsp; As On</span>
                   </label>
                   <label class="erp-checkbox m-0">
                     <input type="checkbox" formControlName="reportType" (change)="onSummaryToggle($event)" />
-                    <span>Summary</span>
+                    <span> &nbsp; Summary</span>
                   </label>
                 </div>
               </div>
@@ -114,6 +114,8 @@
                 <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
               </div>
               <div class="tb-right">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
                 <button class="erp-btn-icon btn-filter" (click)="dt.reset()" pTooltip="Clear Filters" tooltipPosition="bottom">
                   <i class="pi pi-filter-slash"></i>
                 </button>

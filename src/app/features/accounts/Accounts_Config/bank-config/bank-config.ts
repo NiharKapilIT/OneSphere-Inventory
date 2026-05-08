@@ -36,7 +36,8 @@ import { Address } from '../../../common/address/address';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { AccountsConfig } from '../../../../core/services/accounts/accounts-config';
 import { from } from 'rxjs';
-import { NoLeadingZero } from '../../../../core/Directive/no-leading-zero';
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero';
+import { NumbersOnlyDirective } from '../../../../core/Directive/numbers-only';
 // ── Typed form shape ──────────────────────────────────────────────────────────
 interface BankMasterFormShape {
   modeOfReceipt: FormControl<string | null>;
@@ -99,7 +100,8 @@ interface BankMasterFormShape {
     NgSelectModule,
     ButtonModule,
     RouterModule,
-    NoLeadingZero
+    NoLeadingZeroDirective,
+    NumbersOnlyDirective
   ],
   templateUrl: './bank-config.html',
   styleUrls: ['./bank-config.css'],
@@ -601,15 +603,15 @@ onAccountNumberChange(event: any): void {
     this.onSimpleInput(event, controlName);
   }
 
-  onIfscInput(): void {
-    const control = this.bankmasterform.get('pIfsccode');
-    if (control?.value) {
-      const clean = (control.value as string)
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .toUpperCase();
-      control.setValue(clean, { emitEvent: false });
-    }
-  }
+  onIfscInput(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  const pos = input.selectionStart ?? input.value.length;
+  const clean = input.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+  const control = this.bankmasterform.get('pIfsccode');
+  control?.setValue(clean, { emitEvent: false });
+  input.value = clean;
+  input.setSelectionRange(pos, pos);
+}
 
   // ── Bank name change ─────────────────────────────────────────────────────────
   // onChange(event: any): void {
@@ -980,7 +982,10 @@ this.bankmasterform.get('upiname')?.markAsUntouched();
 
     const currentDate = this.date;
     this.bankmasterform.reset();
+    this.bankmasterform.markAsUntouched();
+this.bankmasterform.markAsPristine();
     this.bankmasterform.controls['pBankdate'].setValue(currentDate as any);
+    this.bankmasterform.controls['pOpeningBalanceType'].setValue('D');
 
     this.debitCardDetails.set(false);
     this.bankUpiDetails.set(false);

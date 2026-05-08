@@ -6,8 +6,8 @@
     <!-- Card Header -->
     <div class="card-header">
       <div class="d-flex flex-column">
-        <h2 class="card-title"><i class="pi pi-times-circle"></i> Cancel General Receipt</h2>
-        <p class="card-subtitle">Void or cancel general receipt transactions and reverse entries</p>
+        <h2 class="card-title"><i class="pi pi-times-circle"></i> General Receipt Cancel</h2>
+        <p class="card-subtitle">Void or General Receipt Cancel transactions and reverse entries</p>
       </div>
       <span class="erp-spacer"></span>
 
@@ -23,7 +23,7 @@
           <div class="row g-2">
 
             <!-- Receipt No -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="receiptid">Receipt No. <span class="required">*</span></label>
                 <ng-select id="receiptid" [items]="receiptdata()" bindLabel="receiptnumber" bindValue="receiptid"
@@ -40,7 +40,7 @@
             </div>
 
             <!-- Date -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-input-btn-group">
                 <div class="flex-grow-1">
                   <div class="erp-form-group">
@@ -48,16 +48,18 @@
 
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
-                      <p-datepicker [(ngModel)]="testDate" [ngModelOptions]="{standalone: true}" id="ppaymentdate"
+                      <p-datepicker [(ngModel)]="testDate"  id="ppaymentdate" formControlName="ppaymentdate"
                         dateFormat="dd-M-yy" [readonlyInput]="true" [disabled]="true" appendTo="body" styleClass="w-100"
                         inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate">
                       </p-datepicker>
                     </div>
                   </div>
                 </div>
+  <div class="col-12 col-md-2 d-flex align-items-center">
                 <button type="button" (click)="Show()" class="erp-btn btn-primary btn-md">
                   <i class="pi pi-search"></i> Show
                 </button>
+                </div>
               </div>
             </div>
 
@@ -89,8 +91,8 @@
           <div class="tbl-wrap">
             <p-table [value]="lstdetails()" [paginator]="true" [rows]="pageCriteria().pageSize"
               [totalRecords]="pageCriteria().totalrows" (onPage)="onPrimePageChange($event)"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines" sortMode="single" [scrollable]="true" scrollHeight="400px"
-              [resizableColumns]="true">
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines" sortMode="single" [scrollable]="true"
+              scrollHeight="400px" [resizableColumns]="true">
 
               <ng-template pTemplate="header">
                 <tr>
@@ -174,8 +176,8 @@
                 </label>
                 <div class="pb-3">
                   <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
-                    bindValue="subintroducedid" formControlName="autorizedcontactid" [typeahead]="contactSearchevent"
-                    placeholder="Select" [class.ng-invalid]="
+                    placeholder="Select Cancelled By" bindValue="subintroducedid" [clearable]="true"
+                    formControlName="autorizedcontactid" [typeahead]="contactSearchevent" [class.ng-invalid]=" 
               GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&
               GeneralReceiptCancelForm.get('autorizedcontactid')?.touched
             ">

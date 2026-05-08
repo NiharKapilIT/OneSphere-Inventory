@@ -13,7 +13,6 @@ import { CompanyDetailsService } from '../../../../core/services/Common/company-
   standalone: true,
   imports: [CommonModule, DatePipe, NumberToWordsPipe, TitleCasePipe, DecimalPipe],
   templateUrl: "./payment-voucher.html",
-  styleUrl: "./payment-voucher.css",
   providers: [NumberToWordsPipe, DatePipe]
 
 })
@@ -132,8 +131,11 @@ export class PaymentVoucher implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
+          console.log('RAW API response ppaymentslist[0]:', res[0]?.ppaymentslist?.[0]);
           const unique = this.deduplicateById(res, 'ppaymentid');
           this.tempPaymentData.set(this.computeTotals(unique));
+          console.log('ppaymentslist[0]:', this.tempPaymentData()[0]?.ppaymentslist?.[0]);
+  console.log('Gstinn:', this.Gstinn());
         },
         error: err => this.commonService.showErrorMessage(err)
       });
@@ -208,9 +210,9 @@ export class PaymentVoucher implements OnInit {
     );
   }
   getKapilGroupLogo() {
-let img:string='';
-let Company = this.commonService._getCompanyDetails();
-  img = Company.companyLogo;
+    let img: string = '';
+    let Company = this.commonService._getCompanyDetails();
+    img = Company.companyLogo;
     return img;
   }
 
@@ -232,31 +234,75 @@ let Company = this.commonService._getCompanyDetails();
     return result.length ? result : [{}];
   }
 
+
   private buildRows(): any[] {
+
     const rows: any[] = [];
     let sno = 1;
+  
 
     for (const payment of this.tempPaymentData()) {
-      for (const item of payment.ppaymentslist) {
-        rows.push([sno++, item.pAccountname, this.commonService.currencyFormat(item.pLedgeramount)]);
 
-        const isIntra = item.state_code?.toString() === this.Gstinn();
+      for (const item of payment.ppaymentslist) {
+
+        rows.push([
+          sno++,
+          item.pAccountname,
+
+          Number(item.pLedgeramount || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        ]);
+
+        const isIntra =
+          item.state_code?.toString() === this.Gstinn();
 
         if (isIntra) {
+
           if (item.pcgstamount) {
-            rows.push([sno++, 'P-SGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount / 2)]);
-            rows.push([sno++, 'P-CGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount / 2)]);
+
+            rows.push([
+              sno++,
+              'P-SGST (Exclude)',
+              item.pcgstamount / 2
+            ]);
+
+            rows.push([
+              sno++,
+              'P-CGST (Exclude)',
+              item.pcgstamount / 2
+            ]);
           }
+
         } else {
+
+
           if (item.pigstamount) {
-            rows.push([sno++, 'P-IGST (Exclude)', this.commonService.currencyFormat(item.pigstamount)]);
+
+            rows.push([
+              sno++,
+              'P-IGST (Exclude)',
+              item.pigstamount
+            ]);
+
           } else if (item.pcgstamount) {
-            rows.push([sno++, 'P-IGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount)]);
+
+            rows.push([
+              sno++,
+              'P-IGST (Exclude)',
+              item.pcgstamount
+            ]);
           }
         }
 
         if (item.ptdsamount) {
-          rows.push([sno++, 'TDS (Include)', `-(${this.commonService.currencyFormat(item.ptdsamount)})`]);
+
+          rows.push([
+            sno++,
+            'TDS (Include)',
+            `-(${item.ptdsamount})`
+          ]);
         }
       }
     }
@@ -283,21 +329,41 @@ let Company = this.commonService._getCompanyDetails();
   }
 
   // ── PDF / Print ───────────────────────────────────────────────────────────
-  pdfOrPrint(action: 'Pdf' | 'Print'): void {
-    const rows = this.buildRows();
-    const grandTotal = this.computeGrandTotal();
 
-    rows.push(['', 'Total', this.commonService.currencyFormat(grandTotal)]);
+  pdfOrPrint(action: 'Pdf' | 'Print'): void {
+
+    const rows = this.buildRows();
+
+    const grandTotal = Number(this.computeGrandTotal());
+
+    rows.push([
+      '',
+      'Total',
+      grandTotal.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    ]);
 
     const first = this.tempPaymentData()[0];
-    const paidTo = first?.pcontactname ?? first?.pAccountname ?? '';
-    const amountInWords = `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
+
+    const paidTo =
+      first?.pcontactname ??
+      first?.pAccountname ??
+      '';
+
+    const amountInWords =
+      `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
 
     this.commonService._downloadGridPdf1(
       this.receiptName(),
       rows,
       ['S.No.', 'Particulars', 'Amount'],
-      { 0: { halign: 'center', cellWidth: 20 }, 1: { halign: 'left' }, 2: { halign: 'right' } },
+      {
+        0: { halign: 'center', cellWidth: 20 },
+        1: { halign: 'left' },
+        2: { halign: 'right' }
+      },
       'a4',
       action,
       first?.pnarration,

@@ -34,11 +34,13 @@
       </div>
 
       <!-- <div class="card-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
         <button class="erp-btn btn-white btn-sm" title="Refresh list">
           <i class="pi pi-refresh"></i> Refresh
         </button>
         <button class="erp-btn btn-secondary btn-sm" title="Export data">
-          <i class="pi pi-download"></i> Export
+          <i class="pi pi-file-excel"></i>
         </button>
       </div> -->
     </div>
@@ -129,7 +131,7 @@
                 }
               </td>
               <!-- <td>{{ getAccountType(row) }}</td> -->
-              <td>{{ row.account_type }}</td>
+              <td>{{ row.account_type | titlecase }}</td>
             </tr>
           </ng-template>
 

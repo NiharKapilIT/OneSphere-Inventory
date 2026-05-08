@@ -45,7 +45,7 @@
               </div>
             </div>
 </div>
-              <div class="row g-2">
+              <div class="row g-2 align-items-end">
             <!-- Conditional Date Filters -->
             @if (chequesInfo()) {
               <div class="col-12 col-md-3">
@@ -88,10 +88,11 @@
             }
 
             <!-- Generate Button -->
-            <div class="col-12 col-md-4 offset-6 align-center mt-5">
-              <div class="erp-form-group">
-                <button type="submit" class="erp-btn btn-primary">
-                  <i class="pi pi-search"></i> {{ savebutton() }}
+            <div class="col-12 col-md-auto">
+              <div class="erp-form-group mb-3">
+                <button type="submit" class="erp-btn btn-primary" [disabled]="savebutton() === 'Processing...'">
+                  <i class="pi" [ngClass]="savebutton() === 'Processing...' ? 'pi-spin pi-spinner' : 'pi-search'"></i>
+                  {{ savebutton() === 'Processing...' ? 'Generating' : 'Generate' }}
                 </button>
               </div>
             </div>
@@ -109,11 +110,13 @@
             <div class="erp-table-toolbar mb-4 d-print-none">
               <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Bank Reconciliation Details</h6></div>
               <div class="tb-right">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-                  <i class="pi pi-file-pdf"></i> PDF
+                  <i class="pi pi-file-pdf"></i>
                 </button>
                 <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-                  <i class="pi pi-print"></i> Print
+                  <i class="pi pi-print"></i>
                 </button>
               </div>
             </div>

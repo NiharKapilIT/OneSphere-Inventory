@@ -6,8 +6,8 @@
     <!-- Card Header -->
     <div class="card-header">
       <div class="d-flex flex-column">
-        <h2 class="card-title"><i class="pi pi-times-circle"></i> Cancel Petty Cash Receipt</h2>
-        <p class="card-subtitle">Void or cancel petty cash receipt transactions and reverse entries</p>
+        <h2 class="card-title"><i class="pi pi-times-circle"></i> Petty Cash Receipt Cancel</h2>
+        <p class="card-subtitle">Void or Petty Cash Receipt Cancel transactions and reverse entries</p>
       </div>
       <span class="erp-spacer"></span>
 
@@ -23,7 +23,7 @@
           <div class="row g-2">
 
             <!-- Receipt No -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label" for="receiptid">Receipt No. <span class="required">*</span></label>
                 <ng-select appendTo="body" id="receiptid" [items]="receiptdata()" bindLabel="payment_number"
@@ -37,7 +37,7 @@
 
                 @if (
                 PettyCashCancel.get('receiptid')?.errors?.['required']
-                 && showClicked()
+                && showClicked()
 
                 ) {
                 <span class="erp-field-error">Receipt No. is required</span>
@@ -46,7 +46,7 @@
             </div>
 
             <!-- Date -->
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-input-btn-group">
                 <div class="flex-grow-1">
                   <div class="erp-form-group">
@@ -60,9 +60,11 @@
                     </div>
                   </div>
                 </div>
+                 <div class="col-12 col-md-2 d-flex align-items-center">
                 <button type="button" (click)="showdata()" class="erp-btn btn-primary btn-md">
                   <i class="pi pi-search"></i> Show
                 </button>
+                </div>
               </div>
             </div>
 
@@ -76,26 +78,28 @@
 
           <!-- Receipt Meta Information -->
           <div class="row g-2 mb-4">
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-info-group">
                 <label class="erp-label-info">Credit To:</label>
                 <span class="erp-value-info">{{ creditto() || '--' }}</span>
               </div>
             </div>
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-info-group">
                 <label class="erp-label-info">Received From:</label>
                 <span class="erp-value-info">{{ receivedfrom() || '--' }}</span>
               </div>
             </div>
-            <div class="col-12 col-md-6">
+            <div class="col-12 col-md-4">
               <div class="erp-info-group">
                 <label class="erp-label-info">Receipt Date:</label>
                 <span class="erp-value-info">{{ (receiptdate() | date:'dd-MMM-yyyy') || '--' }}</span>
               </div>
             </div>
           </div>
-          <div class="col-md-4">
+
+
+          <!-- <div class="col-md-4">
             <div class="erp-info-group">
               <label class="erp-label-info">Received From:</label>
               <span class="erp-value-info">{{ receivedfrom() || '--' }}</span>
@@ -106,15 +110,15 @@
               <label class="erp-label-info">Receipt Date:</label>
               <span class="erp-value-info">{{ (receiptdate() | date:'dd-MMM-yyyy') || '--' }}</span>
             </div>
-          </div>
+          </div> -->
         </div>
 
         <!-- Details Table -->
         <div class="tbl-wrap">
           <p-table [value]="lstdetails()" [paginator]="true" [rows]="pageCriteria().pageSize"
             [totalRecords]="pageCriteria().totalrows" (onPage)="onPrimePageChange($event)"
-            styleClass="gr-table p-datatable-sm p-datatable-gridlines" sortMode="single" [scrollable]="true" scrollHeight="400px"
-            [resizableColumns]="true">
+            styleClass="gr-table p-datatable-sm p-datatable-gridlines" sortMode="single" [scrollable]="true"
+            scrollHeight="400px" [resizableColumns]="true">
 
             <ng-template pTemplate="header">
               <tr>
@@ -194,8 +198,8 @@
                 </label>
                 <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
                   bindValue="subintroducedid" formControlName="autorizedcontactid" [typeahead]="contactSearchevent"
-                  [multiple]="false" [searchable]="true" [clearable]="true"
-                  (change)="subIntroducedGridRowSelect($event)" placeholder="Select" [class.ng-invalid]="
+                  [multiple]="false" [searchable]="true" [clearable]="true" aria-placeholder="Select Authorised By"
+                  (change)="subIntroducedGridRowSelect($event)"  [class.ng-invalid]="
             PettyCashCancel.get('autorizedcontactid')?.invalid &&
             PettyCashCancel.get('autorizedcontactid')?.touched
           ">

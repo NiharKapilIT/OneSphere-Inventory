@@ -124,7 +124,7 @@ export class PettycashReceiptCancel implements OnInit {
       narration: [''],
       cancellationreason: ['', Validators.required],
       schemaid: [this._commonService.getschemaname()],
-      autorizedcontactid: ['', Validators.required],
+      autorizedcontactid: [null, Validators.required],
       subintroducedname: [''],
       pCreatedby: [this._commonService.getCreatedBy()]
     }) as any;

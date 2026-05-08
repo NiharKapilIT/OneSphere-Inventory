@@ -55,7 +55,7 @@ export class BankConfigView implements OnInit {
       next: (data: any[]) => {
         this.filteredData = (data ?? []).map(row => ({
           ...row,
-          account_type: this.getAccountType(row)
+          // account_type: this.getAccountType(row)
         }));
         this.gridData.set([...this.filteredData]);
         this.columnsWithSearch = this.filteredData.length > 0

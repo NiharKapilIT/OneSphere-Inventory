@@ -41,15 +41,17 @@
         </div>
 
         <div class="card-actions">
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
           @if (gridData && gridData.length > 0) {
           <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="PDF">
-            <i class="pi pi-file-pdf"></i> PDF
+            <i class="pi pi-file-pdf"></i>
           </button>
           <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-            <i class="pi pi-print"></i> Print
+            <i class="pi pi-print"></i>
           </button>
           <button class="erp-btn btn-white btn-sm" (click)="export()" title="Excel">
-            <i class="pi pi-download"></i> Excel
+            <i class="pi pi-file-excel"></i>
           </button>
           }
         </div>
@@ -273,10 +275,10 @@
         </div>
 
         <div class="tbl-wrap">
-          <p-table #dt [value]="gridData || []" [paginator]="true" [rows]="pageSize" [rowsPerPageOptions]="[10, 20, 50]"
-            [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
-            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-            sortMode="single"
+          <p-table #dt [value]="gridData || []" [paginator]="gridData.length > pageCriteria.pageSize"
+            [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true"
+            scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
             <!-- Header -->
@@ -326,7 +328,8 @@
 
                 @if (!hiddendate) {
                 <th [pSortableColumn]="status === 'cleared' ? 'pCleardate' : 'returneddate'">
-                  <div class="th-cell">{{ datetitle }} <p-sortIcon [field]="status === 'cleared' ? 'pCleardate' : 'returneddate'"></p-sortIcon></div>
+                  <div class="th-cell">{{ datetitle }} <p-sortIcon
+                      [field]="status === 'cleared' ? 'pCleardate' : 'returneddate'"></p-sortIcon></div>
                 </th>
                 }
 
@@ -512,7 +515,8 @@
           <div class="erp-input-wrap" style="max-width: 100%; box-sizing: border-box;">
             <i class="pi pi-indian-rupee erp-input-icon"></i>
             <input type="text" class="erp-input icon-pad w-100" name="cancelcharges" maxlength="6" id="cancelcharges"
-              #cancelRef (input)="returnCharges_Change($event)" />
+              #cancelRef [(ngModel)]="returnChargesInputValue" [ngModelOptions]="{standalone: true}" numbersOnly
+              (input)="returnCharges_Change($event)" />
           </div>
 
           <!-- @if (returnChargesError) {

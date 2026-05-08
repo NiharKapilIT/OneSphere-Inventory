@@ -887,7 +887,86 @@ export class GeneralReceiptNew implements OnInit {
     this.recalculateAll();
   }
 
-  pamount_change(event: any): void {
+ 
+
+
+  // // ── Recalculate  
+  // recalculateAll(): void {
+  //   try {
+  //     const rg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
+  //     const rawAmount = rg.get('pactualpaidamount')?.value;
+  //     const amountReceived = Number(
+  //       typeof rawAmount === 'string' ? rawAmount.replace(/,/g, '') : rawAmount
+  //     ) || 0;
+
+  //     const isgst = rg.get('pisgstapplicable')?.value;
+  //     const gsttype = rg.get('pgsttype')?.value;
+  //     const calcType = rg.get('pgstcalculationtype')?.value || 'INCLUDE';
+  //     const igstpct = Number(rg.get('pigstpercentage')?.value) || 0;
+  //     const cgstpct = Number(rg.get('pcgstpercentage')?.value) || 0;
+  //     const sgstpct = Number(rg.get('psgstpercentage')?.value) || 0;
+  //     const utgstpct = Number(rg.get('putgstpercentage')?.value) || 0;
+  //     const isTds = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
+  //     const tdsRate = this._getTdsPercentageValue();
+
+  //     let gstRate = 0;
+  //     if (isgst && gsttype) {
+  //       if (gsttype === 'IGST') gstRate = igstpct;
+  //       else if (gsttype === 'CGST,SGST') gstRate = cgstpct + sgstpct;
+  //       else if (gsttype === 'CGST,UTGST') gstRate = cgstpct + utgstpct;
+  //     }
+
+  //     this.showgstamount.set(!!(isgst && gsttype));
+  //     this.showigst.set(gsttype === 'IGST');
+  //     this.showcgst.set(gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST');
+  //     this.showsgst.set(gsttype === 'CGST,SGST');
+  //     this.showutgst.set(gsttype === 'CGST,UTGST');
+
+  //     const floor2 = (v: number) => Math.floor(v * 100) / 100;
+  //     const ceil2 = (v: number) => Math.ceil(v * 100) / 100;
+
+  //     let taxableAmount = amountReceived;
+  //     let igstamt = 0, cgstamt = 0, sgstamt = 0, utgstamt = 0,
+  //       totalGstAmt = 0, tdsAmount = 0;
+
+  //     if (amountReceived > 0) {
+  //       if (isgst && gstRate > 0) {
+  //         if (calcType === 'INCLUDE') {
+  //           taxableAmount = floor2((amountReceived * 100) / (100 + gstRate));
+  //           totalGstAmt = parseFloat((amountReceived - taxableAmount).toFixed(2));
+  //         } else {
+  //           taxableAmount = amountReceived;
+  //           totalGstAmt = ceil2((taxableAmount * gstRate) / 100);
+  //         }
+  //         if (gsttype === 'IGST') { igstamt = totalGstAmt; }
+  //         else if (gsttype === 'CGST,SGST') { cgstamt = floor2(totalGstAmt / 2); sgstamt = parseFloat((totalGstAmt - cgstamt).toFixed(2)); }
+  //         else if (gsttype === 'CGST,UTGST') { cgstamt = floor2(totalGstAmt / 2); utgstamt = parseFloat((totalGstAmt - cgstamt).toFixed(2)); }
+  //       }
+  //       if (isTds && tdsRate > 0) tdsAmount = floor2((taxableAmount * tdsRate) / 100);
+  //     }
+
+  //     const totalAmount = isgst && gstRate > 0 && calcType === 'INCLUDE'
+  //       ? parseFloat((amountReceived - tdsAmount).toFixed(2))
+  //       : parseFloat((taxableAmount + totalGstAmt - tdsAmount).toFixed(2));
+
+  //     rg.patchValue({
+  //       pamount: taxableAmount || 0,
+  //       pgstamount: totalGstAmt,
+  //       pigstamount: igstamt,
+  //       pcgstamount: cgstamt,
+  //       psgstamount: sgstamt,
+  //       putgstamount: utgstamt,
+  //       ptotalamount: totalAmount
+  //     }, { emitEvent: false });
+
+  //     this.GeneralReceiptForm.get('ptdsamount')?.setValue(tdsAmount, { emitEvent: false });
+  //   } catch (e) {
+  //     this.cs.showErrorMessage(e);
+  //   }
+  // }
+
+ pamount_change(event: any): void {
+  debugger
     const input = event?.target as HTMLInputElement;
     if (input) {
       const raw = this.GeneralReceiptForm.get('preceiptslist.pactualpaidamount')?.value;
@@ -899,82 +978,107 @@ export class GeneralReceiptNew implements OnInit {
     this.recalculateAll();
   }
 
+recalculateAll(): void {
+  try {
+    const rg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
 
-  // ── Recalculate  
-  recalculateAll(): void {
-    try {
-      const rg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
-      const rawAmount = rg.get('pactualpaidamount')?.value;
-      const amountReceived = Number(
-        typeof rawAmount === 'string' ? rawAmount.replace(/,/g, '') : rawAmount
-      ) || 0;
+    // ── Amount ──
+    const rawAmount = rg.get('pactualpaidamount')?.value;
+    const amountReceived = parseFloat(
+      (typeof rawAmount === 'string'
+        ? rawAmount.replace(/,/g, '')
+        : rawAmount?.toString() || '0')
+    ) || 0;
 
-      const isgst = rg.get('pisgstapplicable')?.value;
-      const gsttype = rg.get('pgsttype')?.value;
-      const calcType = rg.get('pgstcalculationtype')?.value || 'INCLUDE';
-      const igstpct = Number(rg.get('pigstpercentage')?.value) || 0;
-      const cgstpct = Number(rg.get('pcgstpercentage')?.value) || 0;
-      const sgstpct = Number(rg.get('psgstpercentage')?.value) || 0;
-      const utgstpct = Number(rg.get('putgstpercentage')?.value) || 0;
-      const isTds = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
-      const tdsRate = this._getTdsPercentageValue();
+    // ── GST ──
+    const isgst    = rg.get('pisgstapplicable')?.value;
+    const gsttype  = rg.get('pgsttype')?.value;
+    const cgstpct  = parseFloat(rg.get('pcgstpercentage')?.value  || '0') || 0;
+    const sgstpct  = parseFloat(rg.get('psgstpercentage')?.value  || '0') || 0;
+    const utgstpct = parseFloat(rg.get('putgstpercentage')?.value || '0') || 0;
+    // ✅ Read igstpct from pgstpercentage (the total), not pigstpercentage
+    // pigstpercentage is always set to full % regardless of type — use pgstpercentage for IGST
+    const pgstPct  = parseFloat(rg.get('pgstpercentage')?.value   || '0') || 0;
 
-      let gstRate = 0;
-      if (isgst && gsttype) {
-        if (gsttype === 'IGST') gstRate = igstpct;
-        else if (gsttype === 'CGST,SGST') gstRate = cgstpct + sgstpct;
-        else if (gsttype === 'CGST,UTGST') gstRate = cgstpct + utgstpct;
-      }
+    // ── TDS ──
+    const isTds   = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
+    const tdsRate = this._getTdsPercentageValue();
 
-      this.showgstamount.set(!!(isgst && gsttype));
-      this.showigst.set(gsttype === 'IGST');
-      this.showcgst.set(gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST');
-      this.showsgst.set(gsttype === 'CGST,SGST');
-      this.showutgst.set(gsttype === 'CGST,UTGST');
-
-      const floor2 = (v: number) => Math.floor(v * 100) / 100;
-      const ceil2 = (v: number) => Math.ceil(v * 100) / 100;
-
-      let taxableAmount = amountReceived;
-      let igstamt = 0, cgstamt = 0, sgstamt = 0, utgstamt = 0,
-        totalGstAmt = 0, tdsAmount = 0;
-
-      if (amountReceived > 0) {
-        if (isgst && gstRate > 0) {
-          if (calcType === 'INCLUDE') {
-            taxableAmount = floor2((amountReceived * 100) / (100 + gstRate));
-            totalGstAmt = parseFloat((amountReceived - taxableAmount).toFixed(2));
-          } else {
-            taxableAmount = amountReceived;
-            totalGstAmt = ceil2((taxableAmount * gstRate) / 100);
-          }
-          if (gsttype === 'IGST') { igstamt = totalGstAmt; }
-          else if (gsttype === 'CGST,SGST') { cgstamt = floor2(totalGstAmt / 2); sgstamt = parseFloat((totalGstAmt - cgstamt).toFixed(2)); }
-          else if (gsttype === 'CGST,UTGST') { cgstamt = floor2(totalGstAmt / 2); utgstamt = parseFloat((totalGstAmt - cgstamt).toFixed(2)); }
-        }
-        if (isTds && tdsRate > 0) tdsAmount = floor2((taxableAmount * tdsRate) / 100);
-      }
-
-      const totalAmount = isgst && gstRate > 0 && calcType === 'INCLUDE'
-        ? parseFloat((amountReceived - tdsAmount).toFixed(2))
-        : parseFloat((taxableAmount + totalGstAmt - tdsAmount).toFixed(2));
-
-      rg.patchValue({
-        pamount: taxableAmount || 0,
-        pgstamount: totalGstAmt,
-        pigstamount: igstamt,
-        pcgstamount: cgstamt,
-        psgstamount: sgstamt,
-        putgstamount: utgstamt,
-        ptotalamount: totalAmount
-      }, { emitEvent: false });
-
-      this.GeneralReceiptForm.get('ptdsamount')?.setValue(tdsAmount, { emitEvent: false });
-    } catch (e) {
-      this.cs.showErrorMessage(e);
+    // ── Resolve effective GST rate by type ──
+    // ✅ For IGST: use pgstpercentage (total %)
+    // ✅ For CGST,SGST / CGST,UTGST: use sum of components
+    let gstRate = 0;
+    if (isgst && gsttype) {
+      if      (gsttype === 'IGST')       gstRate = pgstPct;              // e.g. 18
+      else if (gsttype === 'CGST,SGST')  gstRate = cgstpct + sgstpct;   // e.g. 9+9=18
+      else if (gsttype === 'CGST,UTGST') gstRate = cgstpct + utgstpct;  // e.g. 9+9=18
     }
-  }
 
+    // ── Show/hide flags ──
+    this.showgstamount.set(!!(isgst && gsttype));
+    this.showigst.set(gsttype === 'IGST');
+    this.showcgst.set(gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST');
+    this.showsgst.set(gsttype === 'CGST,SGST');
+    this.showutgst.set(gsttype === 'CGST,UTGST');
+
+    // ── Core calculation — identical to Payment Voucher ──
+    let taxable   = 0;
+    let gstAmt    = 0;
+    let igstamt   = 0;
+    let cgstamt   = 0;
+    let sgstamt   = 0;
+    let utgstamt  = 0;
+    let tdsAmount = 0;
+
+    // Back-calculate taxable from gross entered amount
+    taxable =
+      gstRate > 0 || tdsRate > 0
+        ? Math.round((amountReceived * 100) / (100 + gstRate - tdsRate))
+        : amountReceived;
+
+    // GST breakdown
+    if (isgst && gstRate > 0) {
+      gstAmt = Math.round((taxable * gstRate) / 100);
+
+      if (gsttype === 'IGST') {
+        igstamt = gstAmt;
+
+      } else if (gsttype === 'CGST,SGST') {
+        cgstamt = Math.round(gstAmt / 2);  // ✅ both Math.round — matches PV
+        sgstamt = Math.round(gstAmt / 2);  // ✅ NOT (gstAmt - cgstamt)
+
+      } else if (gsttype === 'CGST,UTGST') {
+        cgstamt  = Math.round(gstAmt / 2); // ✅
+        utgstamt = Math.round(gstAmt / 2); // ✅
+      }
+    }
+
+    // TDS on taxable
+    if (isTds && tdsRate > 0) {
+      tdsAmount = Math.round((taxable * tdsRate) / 100);
+    }
+
+    const totalAmount = Math.round(taxable + gstAmt);             // gross before TDS
+    const netAmount   = Math.round(taxable + gstAmt - tdsAmount); // net received
+
+    // ── Patch form ──
+    rg.patchValue({
+      pamount:      netAmount,
+      pgstamount:   gstAmt,
+      pigstamount:  igstamt,
+      pcgstamount:  cgstamt,
+      psgstamount:  sgstamt,
+      putgstamount: utgstamt,
+      ptotalamount: totalAmount,
+    }, { emitEvent: false });
+
+    this.GeneralReceiptForm.get('ptdsamount')
+      ?.setValue(tdsAmount, { emitEvent: false });
+
+  } catch (e) {
+    this.cs.showErrorMessage(e);
+  }
+}
   private _getTdsPercentageValue(): number {
     const raw = this.GeneralReceiptForm.get('pTdsPercentage')?.value;
     if (raw === null || raw === undefined || raw === '') return 0;
