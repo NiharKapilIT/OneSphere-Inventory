@@ -128,8 +128,8 @@
               <div class="col-12 col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">IFSC Code</label>
-                  <input class="erp-input" type="text" maxlength="12" formControlName="pIfsccode" appNoLeadingZero
-                    (input)="onIfscInput()" [class.is-invalid]="bankmastervalidations.pIfsccode" />
+                  <input class="erp-input" type="text" maxlength="12" formControlName="pIfsccode"
+                    (input)="onIfscInput($event)" [class.is-invalid]="bankmastervalidations.pIfsccode" />
                   @if (bankmastervalidations.pIfsccode) {
                   <div class="field-error">{{ bankmastervalidations.pIfsccode }}</div>
                   }

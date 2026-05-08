@@ -278,7 +278,7 @@
             <div [class]="showsubledger ? 'col-12 col-md-6' : 'col-12 col-md-6 offset-md-6'">
               <div class="erp-form-group">
                 <label class="erp-label" for="pactualpaidamount">Amount Paid <span class="required">*</span></label>
-                <input id="pactualpaidamount" class="erp-input" type="text" placeholder="0.00"
+                <input id="pactualpaidamount" class="erp-input" type="text" placeholder="0.00" appNoLeadingZero
                   formControlName="pactualpaidamount" inputmode="numeric" (input)="onAmountInput($event)"
                   (keydown)="blockInvalidAmountKeys($event)" (blur)="formatAmountOnBlur()"
                   [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pactualpaidamount')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pactualpaidamount')?.touched}" />
@@ -324,7 +324,7 @@
                 <label class="erp-label">Section <span class="required">*</span></label>
                 <ng-select appendTo="body" [items]="tdssectionlist" bindLabel="pTdsSection" bindValue="pTdsSection"
                   placeholder="Select Section" formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                  (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.markAsTouched()"
+                  (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.markAsTouched()" aria-placeholder="Select Section"
                   [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched}">
                 </ng-select>
                 @if (formValidationMessages?.['pTdsSection'] &&
@@ -399,7 +399,7 @@
               <label class="erp-label">GST (%) <span class="required">*</span></label>
               <ng-select appendTo="body" [items]="gstlist" bindLabel="pgstpercentage" bindValue="pgstpercentage"
                 placeholder="Select %" formControlName="pgstpercentage" [readonly]="disablegst"
-                (change)="gst_Change($event)"
+                (change)="gst_Change($event)" aria-placeholder="Select GST%"
                 (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.markAsTouched()"
                 [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.touched}">
               </ng-select>
@@ -507,8 +507,13 @@
             </ng-template>
             <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
               <tr>
-                <td class="text-center">
-                  <button type="button" class="erp-btn btn-danger btn-sm btn-icon" (click)="removeHandler(rowIndex)">
+                <td class="td-actions">
+                  <!-- <button type="button" class="erp-btn btn-danger btn-sm btn-icon" (click)="removeHandler(rowIndex)">
+                    <i class="pi pi-trash"></i>
+                  </button> -->
+
+                  <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
+                    (click)="removeHandler(rowIndex)">
                     <i class="pi pi-trash"></i>
                   </button>
                 </td>

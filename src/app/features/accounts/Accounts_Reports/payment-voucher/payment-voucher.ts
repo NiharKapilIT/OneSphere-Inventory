@@ -131,8 +131,11 @@ export class PaymentVoucher implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
+          console.log('RAW API response ppaymentslist[0]:', res[0]?.ppaymentslist?.[0]);
           const unique = this.deduplicateById(res, 'ppaymentid');
           this.tempPaymentData.set(this.computeTotals(unique));
+          console.log('ppaymentslist[0]:', this.tempPaymentData()[0]?.ppaymentslist?.[0]);
+  console.log('Gstinn:', this.Gstinn());
         },
         error: err => this.commonService.showErrorMessage(err)
       });
@@ -236,6 +239,7 @@ export class PaymentVoucher implements OnInit {
 
     const rows: any[] = [];
     let sno = 1;
+  
 
     for (const payment of this.tempPaymentData()) {
 

@@ -36,10 +36,10 @@
             </div>
             <div class="branch-meta text-end ps-3">
               <div class="p-2 bg-light rounded border border-light-subtle">
-                <p class="mb-1 small font-bold text-dark text-uppercase letter-spacing-1">Branch Location</p>
+                <p class="mb-1 small font-bold text-dark text-uppercase letter-spacing-1">Branch</p>
                 <p class="mb-0 h6 font-bold text-primary">{{ branchName() | titlecase }}</p>
               </div>
-              <p class="mt-2 mb-0 x-small text-muted italic">Generated: {{ todaydate() | date:'dd-MMM-yyyy h:mm a' }}</p>
+              <p class="mt-2 mb-0 x-small text-muted italic">Printed: {{ todaydate() | date:'dd-MMM-yyyy h:mm a' }}</p>
             </div>
           </div>
 
@@ -78,8 +78,8 @@
                   <tr>
                     <th style="width: 60px;" class="text-center py-3">S.No</th>
                     <th class="py-3">Account Particulars / Description</th>
-                    <th style="width: 160px;" class="text-end py-3">Debit ({{ currencySymbol }})</th>
-                    <th style="width: 160px;" class="text-end py-3">Credit ({{ currencySymbol }})</th>
+                    <th style="width: 160px;" class="text-end py-3">Debit Amount ({{ currencySymbol }})</th>
+                    <th style="width: 160px;" class="text-end py-3">Credit Amount ({{ currencySymbol }})</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -117,7 +117,7 @@
             <!-- Narration Section -->
             <div class="mt-4 p-4 bg-light rounded border border-dashed border-primary-subtle position-relative">
               <i class="pi pi-quote-right position-absolute bottom-0 end-0 p-3 opacity-10 h2 mb-0"></i>
-              <p class="mb-0 font-bold small text-muted text-uppercase letter-spacing-1 mb-2">Narration / Remark</p>
+              <p class="mb-0 font-bold small text-muted text-uppercase letter-spacing-1 mb-2">Narration</p>
               <p class="mb-0 h6 font-bold text-dark italic lh-base">{{ pNarration() || 'No specific narration provided for this entry.' }}</p>
             </div>
           </div>
@@ -128,14 +128,14 @@
               <div class="col-4">
                 <div class="signature-box p-4 border rounded bg-light-subtle h-100">
                   <div class="signature-line mx-auto mb-3 border-top border-dark opacity-50" style="width: 120px;"></div>
-                  <div class="font-black small text-uppercase">Authorized Signatory</div>
+                  <!-- <div class="font-black small text-uppercase">Authorized Signatory</div> -->
                   <div class="text-muted x-small mt-1">(Approved By)</div>
                 </div>
               </div>
               <div class="col-4">
                 <div class="signature-box p-4 border rounded bg-light-subtle h-100">
                   <div class="signature-line mx-auto mb-3 border-top border-dark opacity-50" style="width: 120px;"></div>
-                  <div class="font-black small text-uppercase">Accounts Auditor</div>
+                  <!-- <div class="font-black small text-uppercase">Accounts Auditor</div> -->
                   <div class="text-muted x-small mt-1">(Verified By)</div>
                 </div>
               </div>
