@@ -3,7 +3,7 @@
 
     <!-- Header / Toolbar (Hidden on Print) -->
     <div class="card-header d-print-none">
-      <h2 class="card-title"><i class="pi pi-file-o"></i>   {{ receiptName() }}</h2>
+      <h2 class="card-title"><i class="pi pi-file-o"></i> {{ receiptName() }}</h2>
       <!-- <h2 class="card-title"><i class="pi pi-file-o"></i> Payment Voucher</h2> -->
       <div class="ms-auto d-flex gap-2">
         <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
@@ -19,7 +19,7 @@
       <div id="template" class="p-4 p-print-0">
         <div id="temp-box">
           <div class="receipt-voucher-wrap">
-            
+
             <!-- Voucher Header -->
             <div class="voucher-header d-flex align-items-start border-bottom pb-3 mb-4">
               <div class="company-logo me-4">
@@ -27,157 +27,167 @@
               </div>
               <div class="company-info flex-grow-1">
                 <h4 class="mb-1 font-bold text-primary" style="font-size: 22px;">{{ companyName() }}</h4>
-                <p class="mb-1 text-muted small" style="max-width: 500px; line-height: 1.4;">{{ registrationAddress() }}</p>
+                <p class="mb-1 text-muted small" style="max-width: 500px; line-height: 1.4;">{{ registrationAddress() }}
+                </p>
                 <p class="mb-0 small"><strong>CIN:</strong> {{ cinNumber() }}</p>
               </div>
               <div class="branch-meta text-end">
                 <p class="mb-1 small"><strong>Branch:</strong> {{ branchName() | titlecase }}</p>
-                <p class="mb-0 small text-muted"><strong>Printed:</strong> {{ todaydate() | date:'dd-MMM-yyyy h:mm a' }}</p>
+                <p class="mb-0 small text-muted"><strong>Printed:</strong> {{ todaydate() | date:'dd-MMM-yyyy h:mm a' }}
+                </p>
               </div>
             </div>
 
             @for (paymentData of tempPaymentData(); track paymentData.ppaymentid) {
-              <div class="voucher-instance mb-5" [class.page-break-after]="!$last">
-                
-                <!-- Title Banner -->
-                <div class="voucher-title-banner text-center py-2 mb-4 bg-light border rounded">
-                  <h5 class="mb-0 font-bold text-uppercase" style="letter-spacing: 1px;">
-                    {{ receiptName() }}
-                    @if (duplicate() === 'Reprint') {
-                      <span class="ms-2 text-danger small" style="font-size: 12px;">(DUPLICATE)</span>
-                    }
-                  </h5>
-                </div>
+            <div class="voucher-instance mb-5" [class.page-break-after]="!$last">
 
-                <!-- Meta Data (No / Date) -->
-                <div class="row g-0 mb-4 border-bottom pb-3">
-                  <div class="col-6">
-                    <span class="text-muted small text-uppercase">Voucher No:</span>
-                    <div class="h6 mb-0 font-bold">{{ paymentData?.ppaymentid }}</div>
-                  </div>
-                  <div class="col-6 text-end">
-                    <span class="text-muted small text-uppercase">Date:</span>
-                    <div class="h6 mb-0 font-bold">{{ paymentData?.ppaymentdate | date:'dd-MMM-yyyy' }}</div>
-                  </div>
-                </div>
-
-                <!-- Main Content -->
-                <div class="voucher-content mb-4">
-                  <p class="mb-2"><strong>Paid To:</strong> <span class="font-bold border-bottom px-2 text-primary">{{ paymentData?.pcontactname }}</span></p>
-                  
-                  @if (!showGrid()) {
-                    <p class="mb-2"><strong>Towards:</strong> <span>{{ paymentData?.parentaccountname }}</span></p>
-                    <p class="mb-2"><strong>Amount:</strong> <span class="font-bold text-primary">{{ currencysymbol }} {{ paymentData?.transaction_amount | number:'1.2-2' }}</span></p>
+              <!-- Title Banner -->
+              <div class="voucher-title-banner text-center py-2 mb-4 bg-light border rounded">
+                <h5 class="mb-0 font-bold text-uppercase" style="letter-spacing: 1px;">
+                  {{ receiptName() }}
+                  @if (duplicate() === 'Reprint') {
+                  <span class="ms-2 text-danger small" style="font-size: 12px;">(DUPLICATE)</span>
                   }
-
-                  @if (showGrid()) {
-                    <div class="table-responsive mt-3">
-                      <table class="table table-bordered gr-table-print mb-4">
-                        <thead class="bg-light">
-                          <tr>
-                            <th style="width: 60px;text-transform: none;" class="text-center">S.No</th>
-                            <th style="text-transform: none;">Particulars</th>
-                            <th style="width: 180px;text-transform: none;" class="text-end">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (subItem of paymentData?.ppaymentslist; track subItem; let i = $index) {
-                            <tr>
-                              <td class="text-center">{{ i + 1 }}</td>
-                              <td>{{ subItem?.pAccountname }}</td>
-                              <td class="text-end font-bold">{{ currencysymbol }} {{ subItem?.pLedgeramount | number:'1.2-2' }}</td>
-                            </tr>
-
-                            <!-- GST Logic -->
-                            @if (subItem?.state_code?.toString() === Gstinn()) {
-                              @if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
-                                <tr class="text-muted x-small">
-                                  <td class="text-center">--</td>
-                                  <td class="ps-4 italic">P-SGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}</td>
-                                </tr>
-                                <tr class="text-muted x-small">
-                                  <td class="text-center">--</td>
-                                  <td class="ps-4 italic">P-CGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}</td>
-                                </tr>
-                              }
-                            } @else {
-                              @if (subItem?.pigstamount && subItem?.pigstamount !== 0) {
-                                <tr class="text-muted x-small">
-                                  <td class="text-center">--</td>
-                                  <td class="ps-4 italic">P-IGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.0-0' }}</td>
-                                </tr>
-                              } @else if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
-                                <tr class="text-muted x-small">
-                                  <td class="text-center">--</td>
-                                  <td class="ps-4 italic">P-IGST (Excluded)</td>
-                                  <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.0-0' }}</td>
-                                </tr>
-                              }
-                            }
-
-                            <!-- TDS Logic -->
-                            @if (subItem?.ptdsamount && subItem?.ptdsamount !== 0) {
-                              <tr class="text-danger x-small">
-                                <td class="text-center">--</td>
-                                <td class="ps-4 italic">TDS (Included)</td>
-                                <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.0-0' }})</td>
-                              </tr>
-                            }
-                          }
-                        </tbody>
-                        <tfoot class="bg-light font-bold">
-                          <tr>
-                            <td colspan="2" class="text-end">TOTAL PAID</td>
-                            <td class="text-end text-primary">
-                              {{ currencysymbol }} {{ paymentData?.totvalue | number:'1.2-2' }}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  }
-
-                  <!-- Details Footer -->
-                  <div class="p-3 bg-light rounded border border-dashed mt-3">
-                    <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize ms-1">Rupees {{ paymentData?.totvalue | numberToWords }} Only.</span></p>
-                    @if (paymentData?.pnarration) {
-                      <p class="mb-0"><strong>Narration:</strong> <span class="ms-1 italic">{{ paymentData?.pnarration }}</span></p>
-                    }
-                  </div>
-                </div>
-
-                <!-- Signatures -->
-                <div class="voucher-signatures mt-5 pt-4">
-                  <div class="row text-center">
-                    <div class="col-3">
-                      <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
-                      <div class="text-muted x-small">(Receiver's Sign)</div>
-                    </div>
-                    <div class="col-3">
-                      <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
-                      <div class="text-muted x-small">(Approved By)</div>
-                    </div>
-                    <div class="col-3">
-                      <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
-                      <div class="text-muted x-small">(Verified By)</div>
-                    </div>
-                    <div class="col-3">
-                      <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
-                      <div class="font-bold small">{{ username }}</div>
-                      <div class="text-muted x-small">(Posted By)</div>
-                    </div>
-                  </div>
-                </div>
-
+                </h5>
               </div>
+
+              <!-- Meta Data (No / Date) -->
+              <div class="row g-0 mb-4 border-bottom pb-3">
+                <div class="col-6">
+                  <span class="text-muted small text-uppercase">Voucher No:</span>
+                  <div class="h6 mb-0 font-bold">{{ paymentData?.ppaymentid }}</div>
+                </div>
+                <div class="col-6 text-end">
+                  <span class="text-muted small text-uppercase">Date:</span>
+                  <div class="h6 mb-0 font-bold">{{ paymentData?.ppaymentdate | date:'dd-MMM-yyyy' }}</div>
+                </div>
+              </div>
+
+              <!-- Main Content -->
+              <div class="voucher-content mb-4">
+                <p class="mb-2"><strong>Paid To:</strong> <span class="font-bold border-bottom px-2 text-primary">{{
+                    paymentData?.pcontactname }}</span></p>
+
+                @if (!showGrid()) {
+                <p class="mb-2"><strong>Towards:</strong> <span>{{ paymentData?.parentaccountname }}</span></p>
+                <p class="mb-2"><strong>Amount:</strong> <span class="font-bold text-primary">{{ currencysymbol }} {{
+                    paymentData?.transaction_amount | number:'1.2-2' }}</span></p>
+                }
+
+                @if (showGrid()) {
+                <div class="table-responsive mt-3">
+                  <table class="table table-bordered gr-table-print mb-4">
+                    <thead class="bg-light">
+                      <tr>
+                        <th style="width: 60px;text-transform: none;" class="text-center">S.No</th>
+                        <th style="text-transform: none;">Particulars</th>
+                        <th style="width: 180px;text-transform: none;" class="text-end">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (subItem of paymentData?.ppaymentslist; track subItem; let i = $index) {
+                      <tr>
+                        <td class="text-center">{{ i + 1 }}</td>
+                        <td>{{ subItem?.pAccountname }}</td>
+                        <td class="text-end font-bold">{{ currencysymbol }} {{ subItem?.pLedgeramount | number:'1.2-2'
+                          }}</td>
+                      </tr>
+
+                      <!-- GST Logic -->
+                      @if (subItem?.state_code?.toString() === Gstinn()) {
+                      @if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
+                      <tr class="text-muted x-small">
+                        <td class="text-center">--</td>
+                        <td class="ps-4 italic">P-SGST (Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
+                        </td>
+                      </tr>
+                      <tr class="text-muted x-small">
+                        <td class="text-center">--</td>
+                        <td class="ps-4 italic">P-CGST (Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
+                        </td>
+                      </tr>
+                      }
+                      } @else {
+                      @if (subItem?.pigstamount && subItem?.pigstamount !== 0) {
+                      <tr class="text-muted x-small">
+                        <td class="text-center">--</td>
+                        <td class="ps-4 italic">P-IGST (Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.0-0' }}</td>
+                      </tr>
+                      } @else if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
+                      <tr class="text-muted x-small">
+                        <td class="text-center">--</td>
+                        <td class="ps-4 italic">P-IGST (Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.0-0' }}</td>
+                      </tr>
+                      }
+                      }
+
+                      <!-- TDS Logic -->
+                      @if (subItem?.ptdsamount && subItem?.ptdsamount !== 0) {
+                      <tr class="text-danger x-small">
+                        <td class="text-center">--</td>
+                        <td class="ps-4 italic">TDS (Included)</td>
+                        <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.0-0' }})</td>
+                      </tr>
+                      }
+                      }
+                    </tbody>
+                    <tfoot class="bg-light font-bold">
+                      <tr>
+                        <td colspan="2" class="text-end">TOTAL PAID</td>
+                        <td class="text-end text-primary">
+                          {{ currencysymbol }} {{ paymentData?.totvalue | number:'1.2-2' }}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                }
+
+                <!-- Details Footer -->
+                <div class="p-3 bg-light rounded border border-dashed mt-3">
+                  <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize ms-1">Rupees {{
+                      paymentData?.totvalue | numberToWords }} Only.</span></p>
+                  @if (paymentData?.pnarration) {
+                  <p class="mb-0"><strong>Narration:</strong> <span class="ms-1 italic">{{ paymentData?.pnarration
+                      }}</span></p>
+                  }
+                </div>
+              </div>
+
+              <!-- Signatures -->
+              <div class="voucher-signatures mt-5 pt-4">
+                <div class="row text-center">
+                  <div class="col-3">
+                    <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
+                    <div class="text-muted x-small">(Receiver's Sign)</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
+                    <div class="text-muted x-small">(Approved By)</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
+                    <div class="text-muted x-small">(Verified By)</div>
+                  </div>
+                  <div class="col-3">
+                    <div class="signature-line mx-auto mb-2 border-top" style="width: 120px;"></div>
+                    <div class="font-bold small">{{ username }}</div>
+                    <div class="text-muted x-small">(Posted By)</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
             }
 
             <!-- Print Disclaimer -->
             <div class="mt-4 pt-3 border-top d-none d-print-block">
-              <p class="x-small text-muted text-center italic mb-0">This is a computer generated payment voucher and does not require a physical signature.</p>
+              <p class="x-small text-muted text-center italic mb-0">This is a computer generated payment voucher and
+                does not require a physical signature.</p>
             </div>
 
           </div>
@@ -191,6 +201,7 @@
   .gr-table-print {
     border-color: #dee2e6 !important;
   }
+
   .gr-table-print th {
     font-size: 13px;
     font-weight: 700;
@@ -198,15 +209,29 @@
     color: #475569;
     padding: 10px;
   }
+
   .gr-table-print td {
     padding: 10px;
     font-size: 14px;
     color: #1e293b;
   }
-  .x-small { font-size: 10px; }
+
+  .x-small {
+    font-size: 10px;
+  }
+
   @media print {
-    .no-padding-print { padding: 0 !important; }
-    .report-print-card { border: none !important; box-shadow: none !important; }
-    .page-break-after { page-break-after: always; }
+    .no-padding-print {
+      padding: 0 !important;
+    }
+
+    .report-print-card {
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .page-break-after {
+      page-break-after: always;
+    }
   }
 </style>
