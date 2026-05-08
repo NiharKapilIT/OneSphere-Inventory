@@ -81,9 +81,15 @@
                   <p-sortIcon field="receipt_date"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
+              <!-- <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
                 <div class="th-cell" style="justify-content:center">
                   <i class="pi pi-hashtag"></i>
+                  Receipt No.
+                  <p-sortIcon field="receipt_number"></p-sortIcon>
+                </div>
+              </th> -->
+              <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
+                <div class="th-cell" style="justify-content:center">
                   Receipt No.
                   <p-sortIcon field="receipt_number"></p-sortIcon>
                 </div>
@@ -132,7 +138,8 @@
 
               <!-- Receipt Number -->
               <td class="td-center">
-                <span class="receipt-no">#{{ row.receipt_number || '--' }}</span>
+                <!-- <span class="receipt-no">#{{ row.receipt_number || '--' }}</span> -->
+                <span class="receipt-no">{{ row.receipt_number || '--' }}</span>
               </td>
 
               <!-- Payment Mode -->

@@ -718,7 +718,8 @@
 
         <!-- Add / Clear -->
         <div class="d-flex gap-2 mt-2">
-          <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button>
+          <!-- <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button> -->
+           <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails(); clearParty()">Clear</button>
           <button class="erp-btn btn-primary" type="button" (click)="addPaymentDetails()">+ Add</button>
         </div>
 

@@ -161,51 +161,104 @@ this.FrmChequeReturn.get('fromdate')?.valueChanges.subscribe((val: unknown) => {
     this.validation = !!(this.f.fromdate.value && this.f.fromdate.value > date);
   }
 
+  // GetChequeReturnDetails(): void {
+  //   this.submitted = true;
+  //   this.FrmChequeReturn.markAllAsTouched();
+
+  //   if (this.FrmChequeReturn.errors?.['dateRangeInvalid']) {
+  //     alert('From Date should not be greater than To Date');
+  //     return;
+  //   }
+  //   if (this.FrmChequeReturn.invalid) return;
+
+  //   const from = this.f.fromdate.value!;
+  //   const to = this.f.todate.value!;
+
+  //   this.loading.set(true);
+  //   this.isLoading.set(true);
+  //   this.savebutton.set('Processing');
+  //   this.updateFormattedDates();
+
+  //   const fromdate = this.commonService.getFormatDateNormal(from);
+  //   const todate = this.commonService.getFormatDateNormal(to);
+
+  //   this.reportService.GetChequeReturnDetails(
+  //     fromdate,
+  //     todate,
+  //     this.commonService.getbranchname(),
+  //     this.commonService.getschemaname(),
+  //     this.commonService.getCompanyCode(),
+  //     this.commonService.getBranchCode()
+  //   ).subscribe({
+  //     next: (res: any[]) => {
+  //       const data = res || [];
+  //       this.gridData.set(data);
+  //       this.rawData = [...data];
+  //       this.showicons.set(data.length > 0);
+  //       this.showHide.set(false);
+  //       this.updatePagination(data.length);
+  //     },
+  //     error: (err) => this.commonService.showErrorMessage(err),
+  //     complete: () => {
+  //       this.loading.set(false);
+  //       this.isLoading.set(false);
+  //       this.savebutton.set('Generate Report');
+  //     }
+  //   });
+  // }
   GetChequeReturnDetails(): void {
-    this.submitted = true;
-    this.FrmChequeReturn.markAllAsTouched();
+  this.submitted = true;
+  this.FrmChequeReturn.markAllAsTouched();
 
-    if (this.FrmChequeReturn.errors?.['dateRangeInvalid']) {
-      alert('From Date should not be greater than To Date');
-      return;
-    }
-    if (this.FrmChequeReturn.invalid) return;
-
-    const from = this.f.fromdate.value!;
-    const to = this.f.todate.value!;
-
-    this.loading.set(true);
-    this.isLoading.set(true);
-    this.savebutton.set('Processing');
-    this.updateFormattedDates();
-
-    const fromdate = this.commonService.getFormatDateNormal(from);
-    const todate = this.commonService.getFormatDateNormal(to);
-
-    this.reportService.GetChequeReturnDetails(
-      fromdate,
-      todate,
-      this.commonService.getbranchname(),
-      this.commonService.getschemaname(),
-      this.commonService.getCompanyCode(),
-      this.commonService.getBranchCode()
-    ).subscribe({
-      next: (res: any[]) => {
-        const data = res || [];
-        this.gridData.set(data);
-        this.rawData = [...data];
-        this.showicons.set(data.length > 0);
-        this.showHide.set(false);
-        this.updatePagination(data.length);
-      },
-      error: (err) => this.commonService.showErrorMessage(err),
-      complete: () => {
-        this.loading.set(false);
-        this.isLoading.set(false);
-        this.savebutton.set('Generate Report');
-      }
-    });
+  if (this.FrmChequeReturn.errors?.['dateRangeInvalid']) {
+    alert('From Date should not be greater than To Date');
+    return;
   }
+  if (this.FrmChequeReturn.invalid) return;
+
+  const from = this.f.fromdate.value!;
+  const to = this.f.todate.value!;
+
+  // FIX: correct date format yyyy-MM-dd
+  const formatDate = (date: Date): string => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const fromdate = formatDate(from);
+  const todate = formatDate(to);
+
+  this.loading.set(true);
+  this.isLoading.set(true);
+  this.savebutton.set('Processing');
+  this.updateFormattedDates();
+
+  this.reportService.GetChequeReturnDetails(
+    fromdate,
+    todate,
+    this.commonService.getbranchname(),
+    this.commonService.getschemaname(),
+    this.commonService.getCompanyCode(),
+    this.commonService.getBranchCode()
+  ).subscribe({
+    next: (res: any[]) => {
+      const data = res || [];
+      this.gridData.set(data);
+      this.rawData = [...data];
+      this.showicons.set(data.length > 0);
+      this.showHide.set(false);
+      this.updatePagination(data.length);
+    },
+    error: (err) => this.commonService.showErrorMessage(err),
+    complete: () => {
+      this.loading.set(false);
+      this.isLoading.set(false);
+      this.savebutton.set('Generate Report');
+    }
+  });
+}
 
   onFooterPageChange(event: any): void {
     this.pageCriteria.offset = event.page - 1;
