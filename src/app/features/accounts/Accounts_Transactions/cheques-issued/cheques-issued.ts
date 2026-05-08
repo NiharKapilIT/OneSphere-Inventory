@@ -172,6 +172,8 @@ export class ChequesIssued implements OnInit {
   ChequesIssuedForm!: FormGroup;
   BrsReturnForm!: FormGroup;
   BrsCancelForm!: FormGroup;
+  rowsPerPageOptions = signal<number[]>([10, 20, 50]);
+
 
   constructor(
     private _accountingtransaction: AccountsTransactions,
@@ -346,13 +348,27 @@ export class ChequesIssued implements OnInit {
 
   // ── Pagination ─────────────────────────────────────────────────────────────
 
+  // setPageModel(): void {
+  //   this.pageCriteria.update(c => ({
+  //     ...c,
+  //     pageSize: this._commonService.pageSize,
+  //     offset: 0, pageNumber: 1, footerPageHeight: 50
+  //   }));
+  // }
+
   setPageModel(): void {
+    const options = this._commonService.setPageModel(
+      this.pageCriteria() as any,
+      this.gridData().length
+    );
+    this.rowsPerPageOptions.set(options);
     this.pageCriteria.update(c => ({
       ...c,
-      pageSize: this._commonService.pageSize,
+      pageSize: c.pageSize,
       offset: 0, pageNumber: 1, footerPageHeight: 50
     }));
   }
+
   setPageModel2(): void {
     this.pageCriteria2.update(c => ({
       ...c,
@@ -360,6 +376,8 @@ export class ChequesIssued implements OnInit {
       offset: 0, pageNumber: 1, footerPageHeight: 50
     }));
   }
+
+
   onFooterPageChange(event: { page: number }): void {
     this.pageCriteria.update(c => {
       const offset = event.page - 1;
@@ -633,6 +651,8 @@ export class ChequesIssued implements OnInit {
     else if (s === 'returned') this.Returned1();
     else if (s === 'cancelled') this.Cancelled1();
     else if (s === 'autobrs') this.autoBrs();
+
+    this.setPageModel();
   }
 
   // ── Search ─────────────────────────────────────────────────────────────────

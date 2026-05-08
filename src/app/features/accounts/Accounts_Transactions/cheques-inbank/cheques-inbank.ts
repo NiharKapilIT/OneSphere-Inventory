@@ -166,6 +166,8 @@ export class ChequesInbank implements OnInit {
 
   today: number = Date.now();
   todayDate: any;
+  // Add this property
+rowsPerPageOptions: number[] = [10, 20, 50];
 
   constructor() {
     this.pageCriteria = new PageCriteria();
@@ -441,7 +443,13 @@ export class ChequesInbank implements OnInit {
     else if (this.status === 'cleared') this.Cleared1();
     else if (this.status === 'returned') this.Returned1();
     if (this.fromFormName === 'fromChequesStatusInformationForm') this.chequesStatusInfoGrid();
+
+    this.rowsPerPageOptions = this._commonService.setPageModel( 
+    this.pageCriteria,
+    this.gridData.length
+  );
   }
+  
 
   All() {
     this.gridData = []; this.gridDatatemp = []; this.amounttotal = 0;
