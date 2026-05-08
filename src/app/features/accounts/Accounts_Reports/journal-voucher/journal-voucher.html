@@ -5,12 +5,14 @@
     <div class="card-header d-print-none bg-white border-bottom py-3">
       <div class="d-flex align-items-center justify-content-between w-100">
         <h2 class="card-title mb-0"><i class="pi pi-book me-2 text-primary"></i> Journal Voucher</h2>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 grid-export-actions">
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
           <button class="erp-btn btn-white btn-sm shadow-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-            <i class="pi pi-file-pdf text-danger"></i> PDF
+            <i class="pi pi-file-pdf text-danger"></i>
           </button>
           <button class="erp-btn btn-white btn-sm shadow-sm" (click)="pdfOrprint('Print')" title="Print">
-            <i class="pi pi-print text-primary"></i> Print
+            <i class="pi pi-print text-primary"></i>
           </button>
         </div>
       </div>

@@ -1793,13 +1793,13 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     this.getPartyJournalEntryData();
     this.getPaymentListColumnWiseTotals();
 
-    // ✅ Mark clean BEFORE reset so valueChanges subscribers don't fire validation
+    //  Mark clean BEFORE reset so valueChanges subscribers don't fire validation
     ctrl.markAsUntouched();
     ctrl.markAsPristine();
     ctrl.reset();
-    ctrl.updateValueAndValidity({ emitEvent: false }); // ✅ suppress valueChanges
+    ctrl.updateValueAndValidity({ emitEvent: false }); //  suppress valueChanges
 
-    // ✅ Clear after everything so no stale messages remain
+    //  Clear after everything so no stale messages remain
     this.formValidationMessages = {};
 
     this.clearPaymentDetailsParticular(); // this also sets formValidationMessages = {}
@@ -2365,7 +2365,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
         if (count !== 0) {
           this.commonService.showWarningMessage(
-            `Subledger per day Cash transactions limit below ${this.commonService.currencysymbol}${this.commonService.currencyformat(this.cashRestrictAmount)} only`
+            `Subledger per day Cash transactions limit below ${this.commonService.currencyformat(this.cashRestrictAmount)} only`
           );
           this.disableSaveButton.set(false);
           this.saveButtonLabel.set('Save');

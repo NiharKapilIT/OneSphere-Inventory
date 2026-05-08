@@ -47,6 +47,11 @@
   animation: containerIn 0.55s cubic-bezier(0.22,1,0.36,1) both;
 }
 
+.p-inputtext {
+  font-size: 13px !important;
+}
+
+
 @keyframes containerIn {
   from { opacity: 0; transform: translateY(22px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -425,8 +430,8 @@
 }
 
 :host ::ng-deep ng-select.login-combo .ng-select-container {
-  min-height: 44px !important;
-  height: 44px !important;
+  min-height: 38px !important;
+  height: 38px !important;
   background: #f8fafc !important;
   border: 1.5px solid #e2e8f0 !important;
   border-radius: 11px !important;
@@ -435,7 +440,7 @@
 }
 
 :host ::ng-deep ng-select.login-combo .ng-select-container .ng-value-container {
-  min-height: 42px !important;
+  min-height: 38px !important;
   padding: 0 12px !important;
   align-items: center !important;
 }
