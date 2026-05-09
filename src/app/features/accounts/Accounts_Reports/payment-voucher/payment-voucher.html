@@ -6,8 +6,10 @@
       <h2 class="card-title"><i class="pi pi-file-o"></i> {{ receiptName() }}</h2>
       <!-- <h2 class="card-title"><i class="pi pi-file-o"></i> Payment Voucher</h2> -->
       <div class="ms-auto d-flex gap-2 grid-export-actions">
-        <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-        <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+        <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+          data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+        <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+          title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
         <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
           <i class="pi pi-file-pdf"></i>
         </button>
@@ -153,11 +155,30 @@
                 <div class="p-3 bg-light rounded border border-dashed mt-3">
                   <p class="mb-2"><strong>Amount in Words:</strong> <span class="text-capitalize ms-1">Rupees {{
                       paymentData?.totvalue | numberToWords }} Only.</span></p>
+
                   @if (paymentData?.pnarration) {
-                  <p class="mb-0"><strong>Narration:</strong> <span class="ms-1 italic">{{ paymentData?.pnarration
+                  <p class="mb-2"><strong>Narration:</strong> <span class="ms-1 italic">{{ paymentData?.pnarration
                       }}</span></p>
                   }
-                  <p class="mb-2"><strong>Mode of Payment: </strong> <span class="ms-1 italic">{{ paymentData?.pmodofPayment }}</span></p>
+
+                  <p class="mb-0">
+                    <strong>Mode of Payment:</strong>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 px-2">
+                      @if (paymentData?.pmodofPayment?.toUpperCase() === 'CASH') {
+                      CASH
+                      } @else {
+                      {{ paymentData?.ptranstype ?? paymentData?.ptypeofpayment ?? paymentData?.pmodofPayment }}
+                      }
+                    </span>
+
+                    @if (paymentData?.reference_number || paymentData?.preferenceno || paymentData?.pChequenumber) {
+                    <span class="ms-2 text-muted small">
+                      (Ref: {{ paymentData?.reference_number ?? paymentData?.preferenceno ?? paymentData?.pChequenumber
+                      }},
+                      Bank: {{ (paymentData?.cheque_bank ?? paymentData?.pbankaccount ?? '').split('@')[0] }})
+                    </span>
+                    }
+                  </p>
                 </div>
               </div>
 

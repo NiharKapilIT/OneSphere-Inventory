@@ -166,10 +166,15 @@
               </td>
 
               <!-- Amount -->
-              <td class="td-right">
+              <!-- <td class="td-right">
                 <div class="amount-cell">
                   <span class="amt-sym">{{ currencySymbol }}</span>
                   <span class="amt-num">{{ row.totalreceivedamount ?? 0 | number:'1.2-2' }}</span>
+                </div>
+              </td> -->
+              <td class="td-right">
+                <div class="td-cell td-right amount-cell">
+                  <span class="amt-num">{{ formatCurrency(row.totalreceivedamount) }}</span>
                 </div>
               </td>
 

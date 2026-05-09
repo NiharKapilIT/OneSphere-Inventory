@@ -67,7 +67,7 @@
             </th>
             <th pResizableColumn pSortableColumn="paymentId" class="th-center">
               <div class="th-cell" style="justify-content:center">
-                <i class="pi pi-hashtag"></i>
+                <!-- <i class="pi pi-hashtag"></i> -->
                 Voucher No.
                 <p-sortIcon field="paymentId"></p-sortIcon>
               </div>
@@ -83,6 +83,7 @@
               <div class="th-cell" style="justify-content:flex-end">
                 <i class="pi pi-indian-rupee"></i>
                 Paid Amount
+
                 <p-sortIcon field="totalPaidAmount"></p-sortIcon>
               </div>
             </th>
@@ -116,7 +117,7 @@
 
             <!-- Voucher Number -->
             <td class="td-center">
-              <span class="receipt-no">#{{ row.paymentId || '--' }}</span>
+              <span class="receipt-no">{{ row.paymentId || '--' }}</span>
             </td>
 
             <!-- Payment Mode -->
@@ -145,11 +146,17 @@
             </td>
 
             <!-- Paid Amount -->
-            <td class="td-right">
+            <!-- <td class="td-right">
               <span class="amount-cell">
                 {{ currencySymbol }} {{ row.totalPaidAmount | number:'1.2-2' }}
               </span>
-            </td>
+            </td> -->
+
+            <td class="td-right">
+                <div class="td-cell td-right amount-cell">
+                  <span class="amt-num">{{ formatCurrency(row.totalPaidAmount) }}</span>
+                </div>
+              </td>
 
             <!-- Bank Name -->
             <!-- <td>
