@@ -333,7 +333,8 @@ export class PettycashReceiptCancel implements OnInit {
     this._generalreceiptcancelservice.savepettycashcancel(payload).subscribe({
       next: (res: any) => {
         if (res) {
-          this._commonService.showInfoMessage('Cancelled Successfully');
+          // this._commonService.showInfoMessage('Cancelled Successfully');
+          this._commonService.showSuccessMsg('Cancelled Successfully');
           this.getReceiptNumber();
           this.clear();
         }

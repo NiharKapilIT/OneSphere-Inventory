@@ -105,7 +105,7 @@ export class GeneralReceiptCancel implements OnInit {
       ipaddress: [''],
       userid: [''],
       activitytype: ['C'],
-      ppaymentdate: [{ value: new Date(), disabled: true }, Validators.required],
+      ppaymentdate: [this.testDate, Validators.required],
       totalreceivedamount: [''],
       narration: [''],
       cancellationreason: ['', Validators.required],
@@ -183,7 +183,7 @@ export class GeneralReceiptCancel implements OnInit {
     this.GeneralReceiptCancelForm.get('cancellationreason')?.markAsUntouched();
     this.GeneralReceiptCancelForm.get('autorizedcontactid')?.markAsUntouched();
 
-  
+
     const receiptId = typeof event === 'object'
       ? event.receiptnumber ?? event
       : event;
@@ -366,7 +366,7 @@ export class GeneralReceiptCancel implements OnInit {
     this.receiptCancelService.SaveGeneralReceiptCancel(payload).subscribe({
       next: (res: any) => {
         if (res) {
-          this.commonService.showInfoMessage('Cancelled Successfully');
+          this.commonService.showSuccessMsg('Cancelled Successfully');
           this.show.set(false);
           this.loadReceiptNumbers();
           this.clearReceiptFields();
@@ -382,8 +382,28 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Cancel / Reset  
+  // Cancel(): void {
+  //   const currentDate = this.GeneralReceiptCancelForm.get('ppaymentdate')?.value;
+
+  //   this.GeneralReceiptCancelForm.reset({ ppaymentdate: currentDate });
+  //   this.buildForm();
+  //   this.resetLoadingState();
+  //   this.show.set(false);
+  //   this.clearReceiptFields();
+  //   this.showValidation.set(false);
+  // }
+
+
   Cancel(): void {
-    this.buildForm();
+    const currentDate = this.GeneralReceiptCancelForm.get('ppaymentdate')?.value;
+
+    this.buildForm(); // this overwrites everything including ppaymentdate
+
+    // Re-apply the date after buildForm reinitializes the form
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.enable();
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.setValue(currentDate ?? new Date());
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.disable();
+
     this.resetLoadingState();
     this.show.set(false);
     this.clearReceiptFields();

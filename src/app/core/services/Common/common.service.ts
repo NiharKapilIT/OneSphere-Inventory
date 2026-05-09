@@ -2097,7 +2097,7 @@ export class CommonService {
   }
   showInfoMessage(errormsg: string) {
 
-    this.messageService.add({ severity: 'success', summary: 'Success!', detail: errormsg, life: this.messageShowTimeOut });
+    this.messageService.add({ severity: 'info', summary: 'info', detail: errormsg, life: this.messageShowTimeOut });
   }
 
 
