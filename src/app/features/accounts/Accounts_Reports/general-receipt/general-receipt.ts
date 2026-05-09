@@ -115,6 +115,8 @@ export class GeneralReceipt implements OnInit {
       .subscribe({
         next: (res: any) => {
           if (!res?.length) return;
+        
+          
           this.receiptData.set(res);
 
           const first = res[0];
@@ -188,6 +190,8 @@ let Company = this.commonService._getCompanyDetails();
     type: 'Pdf' | 'Print'
   ): void {
     const data = this.receiptData();
+  
+    
     if (!data.length) return;
 
     const kapilLogo = this.getKapilGroupLogo();
