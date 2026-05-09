@@ -2940,7 +2940,8 @@ export class PettyCash implements OnInit {
           console.log(res,'res');
           
           if (res?.success) {
-            this.commonService.showInfoMessage('Saved Successfully');
+            // this.commonService.showInfoMessage('Saved Successfully');
+            this.commonService.showSuccessMessage();
             this.clearPaymentVoucher();
             const receipt = btoa(`${res.paymentId},Petty Cash`);
             const url = this.router.serializeUrl(

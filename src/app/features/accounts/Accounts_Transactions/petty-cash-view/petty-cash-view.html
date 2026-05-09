@@ -67,7 +67,7 @@
             </th>
             <th pResizableColumn pSortableColumn="paymentId" class="th-center">
               <div class="th-cell" style="justify-content:center">
-                <i class="pi pi-hashtag"></i>
+                <!-- <i class="pi pi-hashtag"></i> -->
                 Voucher No.
                 <p-sortIcon field="paymentId"></p-sortIcon>
               </div>
@@ -117,7 +117,7 @@
 
             <!-- Voucher Number -->
             <td class="td-center">
-              <span class="receipt-no">#{{ row.paymentId || '--' }}</span>
+              <span class="receipt-no">{{ row.paymentId || '--' }}</span>
             </td>
 
             <!-- Payment Mode -->
