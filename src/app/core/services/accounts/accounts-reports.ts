@@ -3144,8 +3144,8 @@ export class AccountsReports {
   }
 
 
-  public getTDSReportDetails(localSchema: any, sectionid: any, fromdate: any, todate: any, grouptype: any, reporttype: any) {
-    const params = new HttpParams().set("localSchema", localSchema).set("sectionid", sectionid).set("fromdate", fromdate).set("todate", todate).set("grouptype", grouptype).set("reporttype", reporttype).set("globalSchema", this._CommonService.getschemaname());
+  public getTDSReportDetails(localSchema: any, sectionid: any, fromdate: any, todate: any, grouptype: any, reporttype: any, CompanyCode: any, BranchCode: any) {
+    const params = new HttpParams().set("localSchema", localSchema).set("sectionid", sectionid).set("fromdate", fromdate).set("todate", todate).set("grouptype", grouptype).set("reporttype", reporttype).set("globalSchema", this._CommonService.getschemaname()).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode)
     return this._CommonService.getAPI('/Accounts/getTDSReportDetails', params, 'YES');
   }
 
