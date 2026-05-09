@@ -14,6 +14,7 @@ import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
 import { DatePickerModule } from 'primeng/datepicker';
+import { NumbersOnlyDirective } from '../../../../core/Directive/numbers-only';
 
 
 
@@ -65,7 +66,9 @@ function percentageValidator(c: AbstractControl): ValidationErrors | null {
     ButtonModule,
     TableModule,
     DatePickerModule,
-    MessageModule
+    MessageModule,
+    NumbersOnlyDirective
+
   ],
   templateUrl: './general-receipt-new.html',
 })

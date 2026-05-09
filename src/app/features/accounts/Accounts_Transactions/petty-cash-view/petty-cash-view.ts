@@ -19,7 +19,7 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
     RouterModule,
     TableModule,
     PaginatorModule,
-    
+
   ],
   providers: [CurrencyPipe],
   templateUrl: './petty-cash-view.html',
@@ -36,14 +36,14 @@ export class PettyCashView implements OnInit, OnDestroy {
   readonly gridView = signal<any[]>([]);
   readonly loading = signal<boolean>(false);
   readonly totalRows = signal<number>(0);
-    private readonly currencyPipe = inject(CurrencyPipe);
+  private readonly currencyPipe = inject(CurrencyPipe);
 
 
   readonly hasData = computed(() => this.gridView().length > 0);
   rowsPerPageOptions: number[] = [10, 20, 50];
 
   // ── State ──────────────────────────────────────────────────────────────────
-    currencySymbol = '₹';
+  currencySymbol = '₹';
   readonly currencyCode = 'INR';
   first = 0;
   pageSize = 10;
@@ -67,7 +67,7 @@ export class PettyCashView implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-   formatCurrency(amount: number): string {
+  formatCurrency(amount: number): string {
     return this.currencyPipe.transform(amount, 'INR', 'symbol', '1.2-2') ?? '₹0.00';
   }
 
@@ -107,7 +107,7 @@ export class PettyCashView implements OnInit, OnDestroy {
   private setPageModel(): void {
     this.rowsPerPageOptions = this.commonService.setPageModel(
       this.pageCriteria,
-      this.gridView.length
+      this.gridView().length 
     );
   }
 
