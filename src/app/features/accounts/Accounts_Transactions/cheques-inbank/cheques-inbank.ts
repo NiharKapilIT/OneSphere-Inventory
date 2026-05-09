@@ -169,7 +169,7 @@ export class ChequesInbank implements OnInit {
   today: number = Date.now();
   todayDate: any;
   // Add this property
-rowsPerPageOptions: number[] = [10, 20, 50];
+  rowsPerPageOptions: number[] = [10, 20, 50];
 
   constructor() {
     this.pageCriteria = new PageCriteria();
@@ -446,12 +446,12 @@ rowsPerPageOptions: number[] = [10, 20, 50];
     else if (this.status === 'returned') this.Returned1();
     if (this.fromFormName === 'fromChequesStatusInformationForm') this.chequesStatusInfoGrid();
 
-    this.rowsPerPageOptions = this._commonService.setPageModel( 
-    this.pageCriteria,
-    this.gridData.length
-  );
+    this.rowsPerPageOptions = this._commonService.setPageModel(
+      this.pageCriteria,
+      this.gridData.length
+    );
   }
-  
+
 
   All() {
     this.gridData = []; this.gridDatatemp = []; this.amounttotal = 0;
@@ -626,8 +626,20 @@ rowsPerPageOptions: number[] = [10, 20, 50];
       this._commonService.getCompanyCode(), this._commonService.getBranchCode());
 
     forkJoin([data$, count$]).subscribe({
+      // next: (data: any) => {
+      //   this.ChequesInBankData = data[0]?.pchequesOnHandlist || [];
+      //   const rawList = data[0]?.pchequesclearreturnlist;
+      //   this.ChequesClearReturnData = Array.isArray(rawList)
+      //     ? (Array.isArray(rawList[0]) ? rawList[0] : rawList) : [];
       next: (data: any) => {
-        this.ChequesInBankData = data[0]?.pchequesOnHandlist || [];
+        // ── ADD THIS: normalize preturnstatus and pdepositstatus ──
+        this.ChequesInBankData = (data[0]?.pchequesOnHandlist || []).map((row: any) => ({
+          ...row,
+          pdepositstatus: false,
+          preturnstatus: false,
+          pchequestatus: row.pchequestatus || 'N'
+        }));
+
         const rawList = data[0]?.pchequesclearreturnlist;
         this.ChequesClearReturnData = Array.isArray(rawList)
           ? (Array.isArray(rawList[0]) ? rawList[0] : rawList) : [];
@@ -1016,24 +1028,100 @@ rowsPerPageOptions: number[] = [10, 20, 50];
     this.gridData = [...this.gridData];
   }
 
+  CheckedClear(event: any, data: any) {
+    const checkbox = event.target as HTMLInputElement;
+
+    if (checkbox.checked) {
+      // ── Uncheck Return first if it was checked ──
+      data.preturnstatus = false;
+      data.pdepositstatus = true;
+      data.pchequestatus = 'Y';
+
+      if (parseInt(this.roleid, 10) !== 2) {
+        this.gridData.forEach(el => {
+          if (el?.pChequenumber == data.pChequenumber &&
+            data.cheque_bank == el.cheque_bank &&
+            data.receipt_branch_name == el.receipt_branch_name) {
+            el.pdepositstatus = true;
+            el.preturnstatus = false;
+            el.pchequestatus = 'Y';
+          }
+        });
+      }
+    } else {
+      data.pdepositstatus = false;
+      data.preturnstatus = false;
+      data.pchequestatus = 'N';
+
+      this.gridData.forEach(el => {
+        if (el?.pChequenumber == data.pChequenumber &&
+          data.cheque_bank == el.cheque_bank) {
+          el.pdepositstatus = false;
+          el.preturnstatus = false;
+          el.pchequestatus = 'N';
+          if (this.status !== 'autobrs') el.preferencetext = '';
+        }
+      });
+
+      const idx = this.gridData.indexOf(data);
+      if (this.status !== 'autobrs') {
+        const el = document.getElementById('preferencetext' + idx) as HTMLInputElement;
+        if (el) el.value = '';
+      }
+    }
+
+    // ── Update row reference so OnPush detects the change ──
+    for (let i = 0; i < this.gridData.length; i++) {
+      if (this.gridData[i]?.preceiptid == data.preceiptid) {
+        this.gridData[i] = { ...data };
+        break;
+      }
+    }
+
+    this.selectedamt = 0;
+    this.gridData.forEach((el: any) => {
+      if (el?.pdepositstatus) this.selectedamt += el?.ptotalreceivedamount || 0;
+    });
+
+    // ── Force OnPush to re-render ──
+    this.ngZone.run(() => {
+      this.gridData = [...this.gridData];
+      this.cdr.detectChanges();
+    });
+  }
+
   CheckedReturn(event: any, data: any) {
-    const gridtemp = this.gridData.filter(a => a?.preceiptid == data.preceiptid);
-    this.PopupData = data;
+    const idx = this.gridData.findIndex(a => a?.preceiptid == data.preceiptid);
+    if (idx === -1) return;
+
     if (event.target.checked) {
-      const depositedDateStr = gridtemp[0]?.pdepositeddate;
+      const depositedDateStr = this.gridData[idx]?.pdepositeddate;
       const receiptdate = depositedDateStr
         ? this._commonService.getDateObjectFromDataBase(depositedDateStr) : null;
       const chequecleardate = this.ChequesInBankForm?.get('pchequecleardate')?.value;
+
       if (!receiptdate ||
         (chequecleardate &&
           new Date(chequecleardate).getTime() >= new Date(receiptdate).getTime())) {
-        data.preturnstatus = true;
-        data.pdepositstatus = false;
-        data.pchequestatus = 'R';
+
+        this.gridData[idx] = {
+          ...this.gridData[idx],
+          preturnstatus: true,
+          pdepositstatus: false,
+          pchequestatus: 'R'
+        };
+
+        this.PopupData = this.gridData[idx];
         this.returnChargesError = false;
-        this.chequenumber = data.pChequenumber;
+        this.chequenumber = this.gridData[idx].pChequenumber;
+
+        this.gridData = this.gridData.map((r, i) =>
+          i === idx ? { ...this.gridData[idx] } : r
+        );
+
         this.showReturnModal = true;
-        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+
         setTimeout(() => {
           const el = document.getElementById('cancelcharges') as HTMLInputElement;
           if (el) {
@@ -1041,75 +1129,33 @@ rowsPerPageOptions: number[] = [10, 20, 50];
             el.focus();
             el.select();
           }
-          this.cdr.markForCheck();
+          this.cdr.detectChanges();
         }, 50);
-      } else {
-        data.preturnstatus = false; data.pchequestatus = 'N';
-        event.target.checked = false;
-        setTimeout(() => this._commonService.showWarningMessage(
-          'Cheque Clear Date Should be Greater than or Equal Deposited Date'));
-      }
-    } else {
-      data.preturnstatus = false; data.pchequestatus = 'N';
-    }
-    for (let i = 0; i < this.gridData.length; i++) {
-      if (this.gridData[i]?.preceiptid == data.preceiptid) {
-        this.gridData[i] = data; break;
-      }
-    }
-    this.gridData = [...this.gridData];
-    this.cdr.markForCheck();
-  }
 
-  CheckedClear(event: any, data: any) {
-    const gridtemp = this.gridData.filter(a => a?.preceiptid == data.preceiptid);
-    if (event.target.checked) {
-      const receiptdate = gridtemp[0]?.pdepositeddate
-        ? this._commonService.getDateObjectFromDataBase(gridtemp[0].pdepositeddate) : null;
-      const chequecleardate = this.ChequesInBankForm?.get('pchequecleardate')?.value;
-      if (receiptdate && chequecleardate &&
-        new Date(chequecleardate).getTime() < new Date(receiptdate).getTime()) {
-        event.target.checked = false;
-        this._commonService.showWarningMessage(
-          'Cheque Clear Date Should be Greater than or Equal to Deposited Date');
       } else {
-        if (parseInt(this.roleid, 10) !== 2) {
-          data.pdepositstatus = true; data.pchequestatus = 'Y'; data.preturnstatus = false;
-          this.gridData.forEach(el => {
-            if (el?.pChequenumber == data.pChequenumber &&
-              data.cheque_bank == el.cheque_bank &&
-              data.receipt_branch_name == el.receipt_branch_name) {
-              el.pdepositstatus = true; el.preturnstatus = false; el.pchequestatus = 'Y';
-            }
-          });
-        } else {
-          data.pdepositstatus = true; data.preturnstatus = false; data.pchequestatus = 'Y';
-        }
+        this.gridData[idx] = {
+          ...this.gridData[idx],
+          preturnstatus: false,
+          pdepositstatus: false,
+          pchequestatus: 'N'
+        };
+        this.gridData = this.gridData.map((r, i) =>
+          i === idx ? { ...this.gridData[idx] } : r
+        );
+        this.cdr.detectChanges();
       }
+
     } else {
-      data.pdepositstatus = false; data.pchequestatus = 'N';
-      this.gridData.forEach(el => {
-        if (el?.pChequenumber == data.pChequenumber && data.cheque_bank == el.cheque_bank) {
-          el.pdepositstatus = false; el.preturnstatus = false; el.pchequestatus = 'N';
-          if (this.status !== 'autobrs') el.preferencetext = '';
-        }
-      });
-      data.preturnstatus = '';
-      const idx = this.gridData.indexOf(data);
-      if (this.status !== 'autobrs') {
-        const el = document.getElementById('preferencetext' + idx) as HTMLInputElement;
-        if (el) el.value = '';
-      }
+      this.gridData[idx] = {
+        ...this.gridData[idx],
+        preturnstatus: false,
+        pchequestatus: 'N'
+      };
+      this.gridData = this.gridData.map((r, i) =>
+        i === idx ? { ...this.gridData[idx] } : r
+      );
+      this.cdr.detectChanges();
     }
-    for (let i = 0; i < this.gridData.length; i++) {
-      if (this.gridData[i]?.preceiptid == data.preceiptid) {
-        this.gridData[i] = data; break;
-      }
-    }
-    this.selectedamt = 0;
-    this.gridData.forEach((el: any) => {
-      if (el?.pdepositstatus) this.selectedamt += el?.ptotalreceivedamount || 0;
-    });
   }
 
   selectAllClear(eve: any) {
@@ -1985,8 +2031,8 @@ rowsPerPageOptions: number[] = [10, 20, 50];
           this.gridLoading.set(false);
         });
       } else {
-        this._commonService.showWarningMessage(
-          'Cheque Clear Date Should be Greater than or Equal to Deposited Date');
+        // this._commonService.showWarningMessage(
+        //   'Cheque Clear Date Should be Greater than or Equal to Deposited Date');
         this.gridLoading.set(false);
         event.target.checked = false; row.pdepositstatus = false;
         this.selectedamt = this.autoBrsData

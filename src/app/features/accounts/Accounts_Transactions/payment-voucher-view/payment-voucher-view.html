@@ -576,6 +576,11 @@
                 <th pSortableColumn="pTdsSection">
                   <div class="th-cell">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon></div>
                 </th>
+
+                <th pSortableColumn="pTdsPercentage" class="th-center">
+                  <div class="th-cell">TDS % <p-sortIcon field="pTdsPercentage"></p-sortIcon></div>
+                </th>
+
                 <th pSortableColumn="ptdsamount" class="th-right">
                   <div class="th-cell">TDS Amount <p-sortIcon field="ptdsamount"></p-sortIcon></div>
                 </th>
@@ -614,6 +619,7 @@
                   </div>
                 </td>
                 <td>{{ rowData.pTdsSection || '-- NA --' }}</td>
+                <td class="td-center">{{ rowData.pTdsPercentage !== 0 ? rowData.pTdsPercentage : '-- NA --' }}</td>
                 <td class="td-right">
                   <div class="amount-cell">
                     @if (rowData.ptdsamount !== 0) {
@@ -626,7 +632,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="10" class="p-4">
+                <td colspan="11" class="p-4">
                   <div style="text-align:center;color:#94a3b8;padding:20px;">
                     <i class="pi pi-inbox" style="font-size:28px;opacity:0.5;display:block;margin-bottom:8px;"></i>
                     <p style="margin:0;font-size:14px;">No data to display.</p>
