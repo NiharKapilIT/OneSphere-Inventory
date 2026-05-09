@@ -1090,73 +1090,119 @@ export class ChequesInbank implements OnInit {
     });
   }
 
-  CheckedReturn(event: any, data: any) {
-    const idx = this.gridData.findIndex(a => a?.preceiptid == data.preceiptid);
-    if (idx === -1) return;
+  // CheckedReturn(event: any, data: any) {
+  //   console.log('CheckedReturn called, preceiptid:', data?.preceiptid, 'data:', data);
+  //   const idx = this.gridData.findIndex(a => a?.preceiptid == data.preceiptid);
+  //   console.log('idx found:', idx);
 
-    if (event.target.checked) {
-      const depositedDateStr = this.gridData[idx]?.pdepositeddate;
-      const receiptdate = depositedDateStr
-        ? this._commonService.getDateObjectFromDataBase(depositedDateStr) : null;
-      const chequecleardate = this.ChequesInBankForm?.get('pchequecleardate')?.value;
+  //   if (idx === -1) return;
 
-      if (!receiptdate ||
-        (chequecleardate &&
-          new Date(chequecleardate).getTime() >= new Date(receiptdate).getTime())) {
+  //   if (event.target.checked) {
+  //     const depositedDateStr = this.gridData[idx]?.pdepositeddate;
+  //     const receiptdate = depositedDateStr
+  //       ? this._commonService.getDateObjectFromDataBase(depositedDateStr) : null;
+  //     const chequecleardate = this.ChequesInBankForm?.get('pchequecleardate')?.value;
 
-        this.gridData[idx] = {
-          ...this.gridData[idx],
-          preturnstatus: true,
-          pdepositstatus: false,
-          pchequestatus: 'R'
-        };
+  //     if (!receiptdate ||
+  //       (chequecleardate &&
+  //         new Date(chequecleardate).getTime() >= new Date(receiptdate).getTime())) {
 
-        this.PopupData = this.gridData[idx];
-        this.returnChargesError = false;
-        this.chequenumber = this.gridData[idx].pChequenumber;
+  //       this.gridData[idx] = {
+  //         ...this.gridData[idx],
+  //         preturnstatus: true,
+  //         pdepositstatus: false,
+  //         pchequestatus: 'R'
+  //       };
 
-        this.gridData = this.gridData.map((r, i) =>
-          i === idx ? { ...this.gridData[idx] } : r
-        );
+  //       this.PopupData = this.gridData[idx];
+  //       this.returnChargesError = false;
+  //       this.chequenumber = this.gridData[idx].pChequenumber;
 
-        this.showReturnModal = true;
-        this.cdr.detectChanges();
+  //       this.gridData = this.gridData.map((r, i) =>
+  //         i === idx ? { ...this.gridData[idx] } : r
+  //       );
 
-        setTimeout(() => {
-          const el = document.getElementById('cancelcharges') as HTMLInputElement;
-          if (el) {
-            el.value = String(this.minimumReturnCharge || 250);
-            el.focus();
-            el.select();
-          }
-          this.cdr.detectChanges();
-        }, 50);
+  //       this.showReturnModal = true;
+  //       this.cdr.detectChanges();
 
-      } else {
-        this.gridData[idx] = {
-          ...this.gridData[idx],
-          preturnstatus: false,
-          pdepositstatus: false,
-          pchequestatus: 'N'
-        };
-        this.gridData = this.gridData.map((r, i) =>
-          i === idx ? { ...this.gridData[idx] } : r
-        );
-        this.cdr.detectChanges();
-      }
+  //       setTimeout(() => {
+  //         const el = document.getElementById('cancelcharges') as HTMLInputElement;
+  //         if (el) {
+  //           el.value = String(this.minimumReturnCharge || 250);
+  //           el.focus();
+  //           el.select();
+  //         }
+  //         this.cdr.detectChanges();
+  //       }, 50);
 
-    } else {
-      this.gridData[idx] = {
-        ...this.gridData[idx],
-        preturnstatus: false,
-        pchequestatus: 'N'
-      };
-      this.gridData = this.gridData.map((r, i) =>
-        i === idx ? { ...this.gridData[idx] } : r
-      );
-      this.cdr.detectChanges();
+  //     } else {
+  //       this.gridData[idx] = {
+  //         ...this.gridData[idx],
+  //         preturnstatus: false,
+  //         pdepositstatus: false,
+  //         pchequestatus: 'N'
+  //       };
+  //       this.gridData = this.gridData.map((r, i) =>
+  //         i === idx ? { ...this.gridData[idx] } : r
+  //       );
+  //       this.cdr.detectChanges();
+  //     }
+
+  //   } else {
+  //     this.gridData[idx] = {
+  //       ...this.gridData[idx],
+  //       preturnstatus: false,
+  //       pchequestatus: 'N'
+  //     };
+  //     this.gridData = this.gridData.map((r, i) =>
+  //       i === idx ? { ...this.gridData[idx] } : r
+  //     );
+  //     this.cdr.detectChanges();
+  //   }
+  // }
+
+  CheckedReturn(event: Event, data: any): void {
+
+  const checked = (event.target as HTMLInputElement).checked;
+
+  this.gridData = this.gridData.map((row: any) => {
+
+    const isSameCheque =
+      row?.pChequenumber === data?.pChequenumber &&
+      row?.cheque_bank === data?.cheque_bank &&
+      row?.receipt_branch_name === data?.receipt_branch_name;
+
+    if (!isSameCheque) {
+      return row;
     }
+
+    return {
+      ...row,
+      preturnstatus: checked,
+      pdepositstatus: false,
+      pchequestatus: checked ? 'R' : 'N'
+    };
+  });
+
+  if (checked) {
+
+    this.PopupData = data;
+    this.returnChargesError = false;
+    this.chequenumber = data?.pChequenumber;
+
+    this.showReturnModal = true;
   }
+
+  this.selectedamt = this.gridData.reduce(
+    (sum: number, el: any) =>
+      el?.pdepositstatus
+        ? sum + (el?.ptotalreceivedamount || 0)
+        : sum,
+    0
+  );
+
+  this.cdr.detectChanges();
+}
 
   selectAllClear(eve: any) {
     this.preferdrows = eve.target.checked;
