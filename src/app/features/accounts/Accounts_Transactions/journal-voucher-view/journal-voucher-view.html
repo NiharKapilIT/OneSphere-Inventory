@@ -67,7 +67,8 @@
             </th>
             <th pSortableColumn="journalVoucherNo" class="th-center">
               <div class="th-cell th-center">
-                <i class="pi pi-hashtag"></i> Journal Voucher No
+                <i class="pi pi-hashtag">
+                </i> Journal Voucher No
                 <p-sortIcon field="journalVoucherNo" />
               </div>
             </th>
@@ -102,7 +103,7 @@
 
             <td class="td-center">
               <div class="td-cell td-center">
-                <span class="receipt-no">#{{ row.journalVoucherNo || '--' }}</span>
+                <span class="receipt-no">{{ row.journalVoucherNo || '--' }}</span>
               </div>
             </td>
 
