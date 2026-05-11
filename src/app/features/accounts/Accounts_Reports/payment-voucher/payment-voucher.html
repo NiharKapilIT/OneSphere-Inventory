@@ -101,28 +101,28 @@
                       @if (subItem?.state_code?.toString() === Gstinn()) {
                       @if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
                       <tr class="text-muted x-small">
-                        <td class="text-center">--</td>
-                        <td class="ps-4 italic">P-SGST (Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
+                        <td class="text-center">{{ i + 2 }}</td>
+                        <td class="ps-4 italic">P-SGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
                         </td>
                       </tr>
                       <tr class="text-muted x-small">
-                        <td class="text-center">--</td>
-                        <td class="ps-4 italic">P-CGST (Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
+                        <td class="text-center">{{ i + 3 }}</td>
+                        <td class="ps-4 italic">P-CGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
                         </td>
                       </tr>
                       }
                       } @else {
                       @if (subItem?.pigstamount && subItem?.pigstamount !== 0) {
                       <tr class="text-muted x-small">
-                        <td class="text-center">--</td>
+                        <td class="text-center">{{ i + 2 }}</td>
                         <td class="ps-4 italic">P-IGST (Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.0-0' }}</td>
+                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.-0' }}</td>
                       </tr>
                       } @else if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
                       <tr class="text-muted x-small">
-                        <td class="text-center">--</td>
+                        <td class="text-center">{{ i + 2 }}</td>
                         <td class="ps-4 italic">P-IGST (Excluded)</td>
                         <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.0-0' }}</td>
                       </tr>
@@ -132,8 +132,13 @@
                       <!-- TDS Logic -->
                       @if (subItem?.ptdsamount && subItem?.ptdsamount !== 0) {
                       <tr class="text-danger x-small">
-                        <td class="text-center">--</td>
-                        <td class="ps-4 italic">TDS (Included)</td>
+                        <td class="text-center">{{ i + 1 +
+                              (subItem?.state_code?.toString() === Gstinn ?
+                              ((subItem?.pcgstamount && subItem?.pcgstamount !== 0) ? 2 : 0) :
+                              ((subItem?.pigstamount && subItem?.pigstamount !== 0) || (subItem?.pcgstamount && subItem?.pcgstamount
+                              !== 0) ? 1 : 0)
+                              ) + 2 }}</td>
+                        <td class="ps-4 italic">TDS ({{paymentData?.ptdspercentage}}% Included)</td>
                         <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.0-0' }})</td>
                       </tr>
                       }
