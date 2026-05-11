@@ -1307,34 +1307,12 @@ export class GeneralReceiptNew implements OnInit {
     gstCtrls.get('pStateId')?.markAsPristine();
   }
 
-  // gst_Change($event: any): void {
-  //   if (!$event) {
-  //     this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
-  //     ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
-  //       'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
-  //       .forEach(k => this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0));
-  //     this.recalculateAll();
-  //     return;
-  //   }
-  //   const pct = $event.pgstpercentage ?? $event;
-  //   ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage'].forEach(k =>
-  //     this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue('')
-  //   );
-  //   ['pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount'].forEach(k =>
-  //     this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0)
-  //   );
-  //   if (pct) this._applyGstPercentage(pct);
-  //   this.gstPercentageSelected = true;
-  //   this.recalculateAll();
-  // }
   gst_Change($event: any): void {
     if (!$event) {
       this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
       ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
         'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
         .forEach(k => this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0));
-      this.formValidationMessages['pgstpercentage'] = 'GST Percentage Is Required';
-      this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched();
       this.recalculateAll();
       return;
     }
@@ -1346,10 +1324,6 @@ export class GeneralReceiptNew implements OnInit {
       this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0)
     );
     if (pct) this._applyGstPercentage(pct);
-    // ── clear validation as soon as value is selected ──
-    this.formValidationMessages['pgstpercentage'] = '';
-    this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched();
-    this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.updateValueAndValidity();
     this.gstPercentageSelected = true;
     this.recalculateAll();
   }
@@ -1667,116 +1641,9 @@ export class GeneralReceiptNew implements OnInit {
   }
 
 
-  // addvalidations(): boolean {
-  //   this.formValidationMessages = {};
-  //   let isValid = true;
+ 
 
-  //   // ── Party ──
-  //   // if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
-  //   //   this.GeneralReceiptForm.get('ppartyid')?.markAsTouched();
-  //   //   this.formValidationMessages['ppartyid'] = 'Party Is Required';
-  //   //   isValid = false;
-  //   // }
-  //   // ── Party — always required when clicking Add ──
-  //   if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
-  //     this.GeneralReceiptForm.get('ppartyid')?.markAsTouched();
-  //     this.formValidationMessages['ppartyid'] = 'Party Is Required';
-  //     isValid = false;
-  //   }
-
-  //   const fg = this.GeneralReceiptForm.controls['preceiptslist'] as FormGroup;
-  //   const ledgerid = fg.controls['pledgerid'].value;
-  //   const pactualpaidamount = fg.controls['pactualpaidamount'].value;
-  //   const subledgerid = fg.controls['psubledgerid'].value;
-
-  //   // ── Ledger ──
-  //   if (!ledgerid) {
-  //     this.formValidationMessages['pledgerid'] = 'Ledger Is Required';
-  //     fg.controls['pledgerid'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Sub Ledger — only when visible ──
-  //   if (this.showsubledger() && !subledgerid) {
-  //     this.formValidationMessages['psubledgerid'] = 'Sub Ledger Is Required';
-  //     fg.controls['psubledgerid'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Amount ──
-  //   if (!pactualpaidamount || pactualpaidamount === '' || Number(pactualpaidamount) <= 0) {
-  //     this.formValidationMessages['pactualpaidamount'] =
-  //       'Amount Received Is Required And Must Be Greater Than 0';
-  //     fg.controls['pactualpaidamount'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Duplicate check — only when all fields valid ──
-  //   if (isValid) {
-  //     const dup = this.paymentslist().some(
-  //       (g: any) => g.pledgerid == ledgerid && g.psubledgerid == subledgerid
-  //     );
-  //     if (dup) {
-  //       this.cs.showWarningMessage('Ledger & Sub Ledger Already Exists');
-  //       isValid = false;
-  //     }
-  //   }
-
-  //   return isValid;
-  // }
-
-  // addvalidations(): boolean {
-  //   this.formValidationMessages = {};
-  //   let isValid = true;
-
-  //   // ── Party — only use formValidationMessages, never markAsTouched ──
-  //   if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
-  //     this.formValidationMessages['ppartyid'] = 'Party Is Required';
-  //     isValid = false;
-  //   }
-
-  //   const fg = this.GeneralReceiptForm.controls['preceiptslist'] as FormGroup;
-  //   const ledgerid = fg.controls['pledgerid'].value;
-  //   const pactualpaidamount = fg.controls['pactualpaidamount'].value;
-  //   const subledgerid = fg.controls['psubledgerid'].value;
-
-  //   // ── Ledger ──
-  //   if (!ledgerid) {
-  //     this.formValidationMessages['pledgerid'] = 'Ledger Is Required';
-  //     fg.controls['pledgerid'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Sub Ledger — only when visible ──
-  //   if (this.showsubledger() && !subledgerid) {
-  //     this.formValidationMessages['psubledgerid'] = 'Sub Ledger Is Required';
-  //     fg.controls['psubledgerid'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Amount ──
-  //   if (!pactualpaidamount || pactualpaidamount === '' || Number(pactualpaidamount) <= 0) {
-  //     this.formValidationMessages['pactualpaidamount'] =
-  //       'Amount Received Is Required And Must Be Greater Than 0';
-  //     fg.controls['pactualpaidamount'].markAsTouched();
-  //     isValid = false;
-  //   }
-
-  //   // ── Duplicate check — only when all fields valid ──
-  //   if (isValid) {
-  //     const dup = this.paymentslist().some(
-  //       (g: any) => g.pledgerid == ledgerid && g.psubledgerid == subledgerid
-  //     );
-  //     if (dup) {
-  //       this.cs.showWarningMessage('Ledger & Sub Ledger Already Exists');
-  //       isValid = false;
-  //     }
-  //   }
-
-  //   return isValid;
-  // }
-
-  addvalidations(): boolean {
+ addvalidations(): boolean {
     this.formValidationMessages = {};
     let isValid = true;
 
@@ -1817,18 +1684,10 @@ export class GeneralReceiptNew implements OnInit {
         fg.controls['pStateId']?.markAsTouched();
         isValid = false;
       }
-      // if (!fg.controls['pgstpercentage']?.value) {
-      //   this.formValidationMessages['pgstpercentage'] = 'GST Percentage Is Required';
-      //   fg.controls['pgstpercentage']?.markAsTouched();
-      //   isValid = false;
-      // }
-      const gstPctVal = fg.controls['pgstpercentage']?.value;
-      if (gstPctVal === null || gstPctVal === undefined || gstPctVal === '') {
+      if (!fg.controls['pgstpercentage']?.value) {
         this.formValidationMessages['pgstpercentage'] = 'GST Percentage Is Required';
         fg.controls['pgstpercentage']?.markAsTouched();
         isValid = false;
-      } else {
-        this.formValidationMessages['pgstpercentage'] = '';
       }
     }
 
@@ -2927,24 +2786,24 @@ export class GeneralReceiptNew implements OnInit {
             formname: 'General Receipt',
             preceiptdate: trans_date,
 
-          //   pmodofreceipt: this.GeneralReceiptForm.value.pmodofreceipt || '',
-          //   ptranstype: this.GeneralReceiptForm.value.ptranstype || '',
-          //   ptypeofpayment: this.GeneralReceiptForm.value.ptypeofpayment || '',
+            pmodofreceipt: this.GeneralReceiptForm.value.pmodofreceipt || '',
+            ptranstype: this.GeneralReceiptForm.value.ptranstype || '',
+            ptypeofpayment: this.GeneralReceiptForm.value.ptypeofpayment || '',
 
-          //   pbankid: this.GeneralReceiptForm.value.pbankid || 0,
-          //   pBankName: this.GeneralReceiptForm.value.pbankname || '',
-          //   pbranchname: this.GeneralReceiptForm.value.pbranchname || '',
-          //   pAccountnumber: this.GeneralReceiptForm.value.pAccountnumber || '',
-          //   pChequenumber: chequeNumber,
-          //   pchequedate: chequeDate || '',
-          //   pchequedepositdate: '',
-          //   pchequecleardate: '',
-          //   pCardNumber: this.GeneralReceiptForm.value.pCardNumber || '',
-          //   pdepositbankid: depositBankId,
-          //   pdepositbankname: this.GeneralReceiptForm.value.pdepositbankname || '',
-          //   pUpiname: this.GeneralReceiptForm.value.pUpiname || '',
-          //   pUpiid: this.GeneralReceiptForm.value.pUpiid || '',
-          //   pBankconfigurationId: '',
+            pbankid: this.GeneralReceiptForm.value.pbankid || 0,
+            pBankName: this.GeneralReceiptForm.value.pbankname || '',
+            pbranchname: this.GeneralReceiptForm.value.pbranchname || '',
+            pAccountnumber: this.GeneralReceiptForm.value.pAccountnumber || '',
+            pChequenumber: chequeNumber,
+            pchequedate: chequeDate || '',
+            pchequedepositdate: '',
+            pchequecleardate: '',
+            pCardNumber: this.GeneralReceiptForm.value.pCardNumber || '',
+            pdepositbankid: depositBankId,
+            pdepositbankname: this.GeneralReceiptForm.value.pdepositbankname || '',
+            pUpiname: this.GeneralReceiptForm.value.pUpiname || '',
+            pUpiid: this.GeneralReceiptForm.value.pUpiid || '',
+            pBankconfigurationId: '',
 
             ppartyid:
               this.GeneralReceiptForm.value.ppartyid ||
@@ -2991,29 +2850,29 @@ export class GeneralReceiptNew implements OnInit {
             pFileformat: this.uploadedFileFormat() || '',
             pDocStorePath: '',
 
-          //   global_schema: this.cs.getschemaname(),
-          //   branch_schema: this.cs.getbranchname(),
-          //   companycode: this.cs.getCompanyCode(),
-          //   branchcode: this.cs.getBranchCode(),
-          //   branchid: this.cs.getbrachid() || 1,
-          //   schemaname: this.cs.getschemaname(),
-          //   pCreatedby: this.cs.getCreatedBy() || 0,
-          //   pModifiedby: 0,
+            global_schema: this.cs.getschemaname(),
+            branch_schema: this.cs.getbranchname(),
+            companycode: this.cs.getCompanyCode(),
+            branchcode: this.cs.getBranchCode(),
+            branchid: this.cs.getbrachid() || 1,
+            schemaname: this.cs.getschemaname(),
+            pCreatedby: this.cs.getCreatedBy() || 0,
+            pModifiedby: 0,
 
-          //   pStatusid: '',
-          //   pStatusname: '',
-          //   pEffectfromdate: '',
-          //   pEffecttodate: '',
-          //   pipaddress: '',
-          //   pdepositeddate: '',
-          //   pCleardate: '',
-          //   preceiptrecordid: 0,
-          //   groupcode: '',
-          //   pchequestatus: this.GeneralReceiptForm.value.pchequestatus || '',
-          //   preferencetext: '',
-          //   chitpaymentid: 0,
-          //   adjustmentid: 0,
-          //   challanaNo: '',
+            pStatusid: '',
+            pStatusname: '',
+            pEffectfromdate: '',
+            pEffecttodate: '',
+            pipaddress: '',
+            pdepositeddate: '',
+            pCleardate: '',
+            preceiptrecordid: 0,
+            groupcode: '',
+            pchequestatus: this.GeneralReceiptForm.value.pchequestatus || '',
+            preferencetext: '',
+            chitpaymentid: 0,
+            adjustmentid: 0,
+            challanaNo: '',
 
             preceiptslist: payments.map((x: any) => {
 
