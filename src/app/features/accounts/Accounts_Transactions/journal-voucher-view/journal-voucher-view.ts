@@ -62,17 +62,17 @@ export class JournalVoucherView implements OnInit {
           this.gridData = json;
           this.gridView = json;
           // this.Journalvoucherlist = this.gridData;
-//           this.Journalvoucherlist = [
-//             ...this.gridData,
-//  jvDate: this._commonService.getFormatDateGlobal(
-//               gridData.jvDate 
-//             ),
-//           ];
+          //           this.Journalvoucherlist = [
+          //             ...this.gridData,
+          //  jvDate: this._commonService.getFormatDateGlobal(
+          //               gridData.jvDate 
+          //             ),
+          //           ];
 
-this.Journalvoucherlist = this.gridData.map((item: any) => ({
-  ...item,
-  jvDate: this._commonService.getFormatDateGlobal(item.jvDate)
-}));
+          this.Journalvoucherlist = this.gridData.map((item: any) => ({
+            ...item,
+            jvDate: this._commonService.getFormatDateGlobal(item.jvDate)
+          }));
 
 
           this.pageCriteria.totalrows = this.gridData.length;

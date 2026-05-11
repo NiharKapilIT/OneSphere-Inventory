@@ -59,9 +59,9 @@
         }
       </div>
       } @else {
-      <p-table [value]="gridData()" [paginator]="true" dataKey="paymentId" [rows]="pageCriteria.pageSize"
-        [totalRecords]="totalRecords()" [rowsPerPageOptions]="rowsPerPageOptions" [resizableColumns]="true"
-        sortMode="single" responsiveLayout="scroll" [showCurrentPageReport]="true"
+      <p-table [value]="gridData()" [paginator]="gridData().length > pageCriteria.pageSize" dataKey="paymentId"
+        [rows]="pageCriteria.pageSize" [totalRecords]="totalRecords()" [rowsPerPageOptions]="rowsPerPageOptions"
+        [resizableColumns]="true" sortMode="single" responsiveLayout="scroll" [showCurrentPageReport]="true"
         currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
         styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 

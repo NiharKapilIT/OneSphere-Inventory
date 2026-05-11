@@ -64,11 +64,11 @@
 
       <!-- DataTable -->
       <div class="tbl-wrap">
-        <p-table [value]="filteredData()" [paginator]="true" [rows]="pageSize()" [showCurrentPageReport]="true"
-          [rowsPerPageOptions]="rowsPerPageOptions" (onPage)="onPageChange($event)"
-          currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries" responsiveLayout="scroll"
-          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
-          [resizableColumns]="true">
+        <p-table [value]="filteredData()" [paginator]="filteredData().length > pageCriteria.pageSize"
+          [rows]="pageSize()" [showCurrentPageReport]="true" [rowsPerPageOptions]="rowsPerPageOptions"
+          (onPage)="onPageChange($event)" currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries"
+          responsiveLayout="scroll" [loading]="loading()" [sortMode]="'single'" styleClass="gr-table"
+          paginatorPosition="bottom" [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
