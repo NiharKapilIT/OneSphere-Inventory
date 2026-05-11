@@ -249,7 +249,7 @@
           [paginator]="!isCleared() && page().totalElements > 0" [rows]="pageCriteria.pageSize"
           [totalRecords]="page().totalElements" [first]="pageCriteria.offset * pageCriteria.pageSize"
           [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
-           sortField="preceiptdate" [sortOrder]="1"
+          [rowsPerPageOptions]="rowsPerPageOptions" sortField="preceiptdate" [sortOrder]="1"
           [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
           [resizableColumns]="true">

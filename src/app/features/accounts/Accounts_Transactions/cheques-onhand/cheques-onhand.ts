@@ -371,15 +371,6 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
-  onFooterPageChange(event: any): void {
-    this.pageCriteria.offset = event.page - 1;
-    this.pageCriteria.CurrentPage = event.page;
-    if (this.pageCriteria.totalrows < event.page * this.pageCriteria.pageSize) {
-      this.pageCriteria.currentPageRows = this.pageCriteria.totalrows % this.pageCriteria.pageSize;
-    } else {
-      this.pageCriteria.currentPageRows = this.pageCriteria.pageSize;
-    }
-  }
 
   change_date(event: any) {
     this.gridData.update(data =>
@@ -392,6 +383,8 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+
+  
   pageSetUp() {
     this.page.update(p => ({ ...p, offset: 0, pageNumber: 1, size: this._commonService.pageSize }));
     this.startindex = 0;
@@ -399,6 +392,8 @@ export class ChequesOnhand implements OnInit {
     this.pageCriteria.offset = 0;
     this.pageCriteria.pageSize = this._commonService.pageSize;
   }
+
+
   private applySortToGrid() {
     const field = this.currentSortField();
     const order = this.currentSortOrder();
