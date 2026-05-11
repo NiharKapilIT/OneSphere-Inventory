@@ -605,20 +605,23 @@
             }
 
             <div class="col-12 col-md-6">
-              <label class="erp-label">GST (%) <span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
-                formControlName="pgstpercentage" placeholder="Select GST %" [searchable]="false"
-                (change)="gst_Change($event)"
-                (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
-                [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
-              </ng-select>
-
-              @if (getValidationMsg('pgstpercentage')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                getValidationMsg('pgstpercentage') }}</div>
-              }
+              <div class="erp-form-group">
+                <label class="erp-label">GST (%) <span class="required">*</span></label>
+                <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
+                  formControlName="pgstpercentage" placeholder="Select GST %" [searchable]="false"
+                  (change)="gst_Change($event)"
+                  (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
+                  [ngClass]="{'ng-invalid': formValidationMessages['pgstpercentage']}">
+                </ng-select>
+                @if (formValidationMessages['pgstpercentage']) {
+                <div class="erp-field-error">{{ formValidationMessages['pgstpercentage'] }}</div>
+                }
+              </div>
             </div>
+
           </div>
+
+          <!-- GST Breakdown -->
 
           <!-- GST Breakdown -->
           <div class="row mt-2">

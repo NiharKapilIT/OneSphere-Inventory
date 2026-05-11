@@ -1210,7 +1210,7 @@ export class JournalVoucher implements OnInit {
         .subscribe({
           next: (res: any) => {
             if (res?.success === true) {
-              this.commonService.showInfoMessage('Saved successfully');
+              this.commonService.showSuccessMessage();
               this.clearPaymentVoucher();
               const receipt = btoa(`${res.voucherNo},Journal Voucher`);
               const url = this.router.serializeUrl(
