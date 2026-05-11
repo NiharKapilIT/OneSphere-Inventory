@@ -2403,7 +2403,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
                 this.disableSaveButton.set(false);
                 this.saveButtonLabel.set('Save');
 
-                this.commonService.showInfoMessage('Saved successfully');
+                this.commonService.showSuccessMessage();
                 this.clearPaymentVoucher();
 
                 // ── Clear bank validators and validation AFTER clearPaymentVoucher ──

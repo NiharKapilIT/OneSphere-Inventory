@@ -131,11 +131,13 @@ export class PaymentVoucher implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
+          console.log('FULL ROOT:', JSON.stringify(res[0]));
+          console.log('FULL payment root object:', JSON.stringify(res[0], null, 2));
           console.log('RAW API response ppaymentslist[0]:', res[0]?.ppaymentslist?.[0]);
           const unique = this.deduplicateById(res, 'ppaymentid');
           this.tempPaymentData.set(this.computeTotals(unique));
           console.log('ppaymentslist[0]:', this.tempPaymentData()[0]?.ppaymentslist?.[0]);
-  console.log('Gstinn:', this.Gstinn());
+          console.log('Gstinn:', this.Gstinn());
         },
         error: err => this.commonService.showErrorMessage(err)
       });
@@ -239,7 +241,7 @@ export class PaymentVoucher implements OnInit {
 
     const rows: any[] = [];
     let sno = 1;
-  
+
 
     for (const payment of this.tempPaymentData()) {
 
@@ -384,5 +386,33 @@ export class PaymentVoucher implements OnInit {
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+
+
+
+
+  formatPaymentMode(payment: any): string {
+    const mode = (payment?.pmodofPayment ?? payment?.pmodofPayment ?? '').toString().toUpperCase().trim();
+    const isCash = mode === 'CASH' || mode === 'C';
+    if (isCash) return 'CASH';
+    const transType = (payment?.ptranstype ?? payment?.ptypeofpayment ?? '').toString().trim();
+    const refNo = (payment?.reference_number ?? payment?.preferenceno ?? payment?.pChequenumber ?? '').toString().trim();
+    const rawBank = (payment?.cheque_bank ?? payment?.pbankaccount ?? '').toString().trim();
+    const bankName = rawBank.includes('@') ? rawBank.split('@')[0].trim() : rawBank;
+
+    const displayMode = transType || mode;
+
+    if (refNo || bankName) {
+      const parts: string[] = [];
+      if (refNo) parts.push(`Ref: ${refNo}`);
+      if (bankName) parts.push(`Bank: ${bankName}`);
+      return `${displayMode} (${parts.join(', ')})`;
+    }
+
+    return displayMode;
+  }
+
+
+
+
 }
 

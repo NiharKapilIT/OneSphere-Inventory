@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Table, TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { CommonService } from '../../../../core/services/Common/common.service';
@@ -62,7 +62,18 @@ export class JournalVoucherView implements OnInit {
           this.gridData = json;
           this.gridView = json;
           // this.Journalvoucherlist = this.gridData;
-          this.Journalvoucherlist = [...this.gridData];
+//           this.Journalvoucherlist = [
+//             ...this.gridData,
+//  jvDate: this._commonService.getFormatDateGlobal(
+//               gridData.jvDate 
+//             ),
+//           ];
+
+this.Journalvoucherlist = this.gridData.map((item: any) => ({
+  ...item,
+  jvDate: this._commonService.getFormatDateGlobal(item.jvDate)
+}));
+
 
           this.pageCriteria.totalrows = this.gridData.length;
           this.pageCriteria.TotalPages = 1;
