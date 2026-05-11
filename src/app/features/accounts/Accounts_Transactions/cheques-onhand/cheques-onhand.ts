@@ -67,7 +67,7 @@ export class ChequesOnhand implements OnInit {
   ChequesOnHandValidation = signal<any>({});
 
   currentSortField = signal<string>('preceiptdate');
-currentSortOrder = signal<number>(1);
+  currentSortOrder = signal<number>(1);
 
   ChequesOnHandData: any[] = [];
   ChequesClearReturnData: any[] = [];
@@ -114,6 +114,8 @@ currentSortOrder = signal<number>(1);
 
   pageCriteria: PageCriteria;
   pageSize = 10;
+  rowsPerPageOptions: number[] = [10, 20, 50];
+
 
   public dpConfig: any = {};
   public brsfromConfig: any = {};
@@ -354,11 +356,19 @@ currentSortOrder = signal<number>(1);
       });
   }
 
+  // setPageModel() {
+  //   this.pageCriteria.pageSize = this._commonService.pageSize;
+  //   this.pageCriteria.offset = 0;
+  //   this.pageCriteria.pageNumber = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+  // }
+
+
   setPageModel() {
-    this.pageCriteria.pageSize = this._commonService.pageSize;
-    this.pageCriteria.offset = 0;
-    this.pageCriteria.pageNumber = 1;
-    this.pageCriteria.footerPageHeight = 50;
+    this.rowsPerPageOptions = this._commonService.setPageModel(
+      this.pageCriteria,
+      this.gridData().length
+    );
   }
 
   onFooterPageChange(event: any): void {
@@ -390,38 +400,38 @@ currentSortOrder = signal<number>(1);
     this.pageCriteria.pageSize = this._commonService.pageSize;
   }
   private applySortToGrid() {
-  const field = this.currentSortField();
-  const order = this.currentSortOrder();
-  if (!field) return;
-  this.gridData.update(data =>
-    [...data].sort((a, b) => {
-      const v1 = a[field], v2 = b[field];
-      if (v1 == null && v2 == null) return 0;
-      if (v1 == null) return 1;
-      if (v2 == null) return -1;
-      if (typeof v1 === 'string') return v1.localeCompare(v2) * order;
-      return (v1 < v2 ? -1 : v1 > v2 ? 1 : 0) * order;
-    })
-  );
-  this.gridDatatemp.set(this.gridData());
-}
-
-  setPage(event: any) {
-     this.preferdrows = false;
-
-  if (event.sortField) {
-    this.currentSortField.set(event.sortField);
-    this.currentSortOrder.set(event.sortOrder ?? 1);
+    const field = this.currentSortField();
+    const order = this.currentSortOrder();
+    if (!field) return;
+    this.gridData.update(data =>
+      [...data].sort((a, b) => {
+        const v1 = a[field], v2 = b[field];
+        if (v1 == null && v2 == null) return 0;
+        if (v1 == null) return 1;
+        if (v2 == null) return -1;
+        if (typeof v1 === 'string') return v1.localeCompare(v2) * order;
+        return (v1 < v2 ? -1 : v1 > v2 ? 1 : 0) * order;
+      })
+    );
+    this.gridDatatemp.set(this.gridData());
   }
 
-  this.page.update(p => ({
-    ...p,
-    offset: event.first / event.rows,
-    pageNumber: event.first / event.rows + 1,
-    size: event.rows
-  }));
-  this.startindex = event.first;
-  this.endindex = event.first + event.rows;
+  setPage(event: any) {
+    this.preferdrows = false;
+
+    if (event.sortField) {
+      this.currentSortField.set(event.sortField);
+      this.currentSortOrder.set(event.sortOrder ?? 1);
+    }
+
+    this.page.update(p => ({
+      ...p,
+      offset: event.first / event.rows,
+      pageNumber: event.first / event.rows + 1,
+      size: event.rows
+    }));
+    this.startindex = event.first;
+    this.endindex = event.first + event.rows;
 
 
     if (
@@ -775,6 +785,7 @@ currentSortOrder = signal<number>(1);
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
+    this.setPageModel();
   }
 
   ChequesReceived() {
@@ -819,6 +830,7 @@ currentSortOrder = signal<number>(1);
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
+    this.setPageModel();
   }
 
 
@@ -866,6 +878,7 @@ currentSortOrder = signal<number>(1);
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
+    this.setPageModel();
   }
 
 
@@ -972,6 +985,7 @@ currentSortOrder = signal<number>(1);
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
+    this.setPageModel();
   }
 
   Cancelled() {
@@ -1051,6 +1065,7 @@ currentSortOrder = signal<number>(1);
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
     );
+    this.setPageModel();
   }
 
 
@@ -1861,6 +1876,8 @@ currentSortOrder = signal<number>(1);
 
     this.showicons.set(this.gridData().length > 0);
     this.pageSetUp();
+    this.setPageModel();
+
   }
 
 
