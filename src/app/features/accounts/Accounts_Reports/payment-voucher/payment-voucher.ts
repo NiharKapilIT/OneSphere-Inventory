@@ -358,6 +358,8 @@ export class PaymentVoucher implements OnInit {
     const amountInWords =
       `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
 
+    
+
 
     this.commonService._downloadGridPdf1(
       this.receiptName(),
@@ -377,7 +379,7 @@ export class PaymentVoucher implements OnInit {
       this.username,
       paidTo,
       amountInWords
-       
+
     );
   }
 
