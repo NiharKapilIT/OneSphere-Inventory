@@ -1459,7 +1459,7 @@ export class GeneralReceiptNew implements OnInit {
       isValid = false;
     }
 
-    // ── GST validations —  
+    // ── GST validations  
     const isgst = fg.controls['pisgstapplicable']?.value;
     if (isgst) {
       if (!fg.controls['pStateId']?.value) {
@@ -1478,7 +1478,7 @@ export class GeneralReceiptNew implements OnInit {
       }
     }
 
-    // ── TDS validations —  
+    // ── TDS validations 
     const istds = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
     if (istds) {
       if (!this.GeneralReceiptForm.get('pTdsSection')?.value) {
@@ -1627,7 +1627,7 @@ export class GeneralReceiptNew implements OnInit {
       pgstcalculationtype: 'INCLUDE'
     });
 
-    // ── Clear party completely after add ──
+    // ── Clear party completely after add  
     const partyCtrl = this.GeneralReceiptForm.get('ppartyid');
     partyCtrl?.clearValidators();
     partyCtrl?.setValue(null, { emitEvent: false });
@@ -1643,13 +1643,13 @@ export class GeneralReceiptNew implements OnInit {
     this.tdspercentagelist.set([]);
     this.availableAmount = 0;
 
-    // ── Restore narration ──
+    // ── Restore narration  
     this.GeneralReceiptForm.get('pnarration')?.setValue(currentNarration, { emitEvent: false });
 
-    // ── Restore mode of receipt ──
+    // ── Restore mode of receipt  
     this.GeneralReceiptForm.get('pmodofreceipt')?.setValue(currentMode, { emitEvent: false });
 
-    // ── Restore bank fields ──
+    // ── Restore bank fields  
     this.GeneralReceiptForm.get('ptranstype')?.setValue(currentTranstype, { emitEvent: false });
     this.GeneralReceiptForm.get('pbankid')?.setValue(currentBankId, { emitEvent: false });
     this.GeneralReceiptForm.get('pbranchname')?.setValue(currentBranchName, { emitEvent: false });
@@ -1664,7 +1664,7 @@ export class GeneralReceiptNew implements OnInit {
     this.GeneralReceiptForm.get('pUpiname')?.setValue(currentUpiName, { emitEvent: false });
     this.GeneralReceiptForm.get('pUpiid')?.setValue(currentUpiId, { emitEvent: false });
 
-    // ── Reset TDS root fields ──
+    // ── Reset TDS root fields  
     this.GeneralReceiptForm.patchValue({
       pistdsapplicable: false,
       pTdsSection: '',
@@ -1672,7 +1672,7 @@ export class GeneralReceiptNew implements OnInit {
       ptdsamount: 0
     }, { emitEvent: false });
 
-    // ── Clear validators on receipt line fields ──
+    // ── Clear validators on receipt line fields 
     ctrl.get('pactualpaidamount')?.clearValidators();
     ctrl.get('pactualpaidamount')?.updateValueAndValidity();
     ctrl.get('psubledgerid')?.clearValidators();
@@ -1680,7 +1680,7 @@ export class GeneralReceiptNew implements OnInit {
     ctrl.get('pledgerid')?.clearValidators();
     ctrl.get('pledgerid')?.updateValueAndValidity();
 
-    // ── Reset receipt line UI state ──
+    // ── Reset receipt line UI state  
     this.showtds.set(false);
     this.showgst.set(false);
     this._resetGstFlags();
@@ -1691,13 +1691,13 @@ export class GeneralReceiptNew implements OnInit {
     this.formValidationMessages = {};
     this.gstPercentageSelected = false;
 
-    // ── Final safety — clear party message and state after all cycles ──
-    // ── Final safety — clear party message and state after all cycles ──
+    // ── Final safety — clear party message and state after all cycles 
+    // ── Final safety — clear party message and state after all cycles  
     setTimeout(() => {
       this.formValidationMessages['ppartyid'] = '';
       this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
       this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
-      // ── Restore required validator for next entry ──
+      // ── Restore required validator for next entry  
       this.GeneralReceiptForm.get('ppartyid')?.setValidators(Validators.required);
       this.GeneralReceiptForm.get('ppartyid')?.updateValueAndValidity({ emitEvent: false });
     }, 0);
@@ -2036,7 +2036,7 @@ export class GeneralReceiptNew implements OnInit {
       this.formValidationMessages['ppartyid'] = '';
     }
 
-    // ── Bank mode validations — only for current active tab ──
+    // ── Bank mode validations — only for current active tab  
     if (this.bankshowhide()) {
 
       if (!this.GeneralReceiptForm.get('ptranstype')?.value) {
@@ -2134,7 +2134,7 @@ export class GeneralReceiptNew implements OnInit {
       }
     }
 
-    // ── Ledger / SubLedger / Amount — only validate if no payments added yet ──
+    // ── Ledger / SubLedger / Amount — only validate if no payments added yet  
     const fg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
     if (this.paymentslist().length === 0) {
       if (!fg.get('pledgerid')?.value) {
@@ -2158,7 +2158,7 @@ export class GeneralReceiptNew implements OnInit {
       }
     }
 
-    // ── Narration ──
+    // ── Narration  
     const narrationVal = this.GeneralReceiptForm.get('pnarration')?.value;
     if (!narrationVal || !narrationVal.toString().trim()) {
       this.formValidationMessages['pnarration'] = 'Narration Is Required';
@@ -2166,16 +2166,16 @@ export class GeneralReceiptNew implements OnInit {
       hasError = true;
     }
 
-    // ── Payments list ──
+    // ── Payments list  
     if (this.paymentslist().length === 0) {
       this.cs.showWarningMessage('Please add at least one payment detail');
       return;
     }
 
-    // ── Stop here if any validation failed ──
+    // ── Stop here if any validation failed 
     if (hasError) return;
 
-    // ── Cash limit check ──
+    // ── Cash limit check 
     if (this.GeneralReceiptForm.get('pmodofreceipt')?.value?.toUpperCase() === 'CASH') {
       const total = this.paymentslist().reduce(
         (s: number, i: any) => s + (parseFloat(i.ptotalamount?.toString() || '0') || 0), 0
