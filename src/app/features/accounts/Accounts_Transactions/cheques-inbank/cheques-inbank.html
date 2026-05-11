@@ -275,7 +275,7 @@
         </div>
 
         <div class="tbl-wrap">
-          <p-table #dt [value]="gridData || []" [paginator]="gridData.length > pageCriteria.pageSize"
+          <p-table #dt [value]="gridData || []" [dataKey]="'preceiptid'" [paginator]="gridData.length > pageCriteria.pageSize"
             [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true"
             scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
@@ -405,7 +405,7 @@
                 }
 
                 <td>
-                  <span class="receipt-no">#{{ row?.preceiptid || '-- NA --' }}</span>
+                  <span class="receipt-no">{{ row?.preceiptid || '-- NA --' }}</span>
                 </td>
                 <td>
                   <span class="erp-badge badge-info">{{ row?.ptypeofpayment || '-- NA --' }}</span>

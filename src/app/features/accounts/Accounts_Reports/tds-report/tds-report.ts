@@ -230,7 +230,9 @@ export class TdsReport implements OnInit {
           from,
           to,
           this.grouptype(),
-          reporttype
+          reporttype,
+        this.commonService.getCompanyCode(),
+        this.commonService.getBranchCode()
         )
         .subscribe({
           next: (res: any[]) => {

@@ -956,7 +956,7 @@ const payload: SavePayload[] = grid.map((row: any) => ({
               '/dashboard/accounts/accounts-config/cheque-management',
             ]);
           }else{
-            this.commonService.showInfo(saveddata.o_message);
+            this.commonService.showSuccessMsg(saveddata.o_message);
           }
         },
         error: (err: unknown) => {
