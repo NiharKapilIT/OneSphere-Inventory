@@ -257,7 +257,7 @@ export class ChequeManagement implements OnInit, OnDestroy {
       .subscribe({
         next: (res: any) => {
           if (res) {
-            this.commonService.showInfoMessage('Updated Successfully');
+            this.commonService.showSuccessMsg('Updated Successfully');
             this.loadGridData();
           }
         },
