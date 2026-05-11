@@ -157,7 +157,8 @@
               <label class="erp-label">Account Number <span class="required">*</span></label>
               <input class="erp-input" formControlName="pAccountnumber" placeholder="Account Number" minlength="8"
                 maxlength="20" (keyup.enter)="focusNext('pChequenumber')" (keypress)="numberOnly($event)"
-                (blur)="pAccountnumber_change()" [ngClass]="{'ng-invalid': getValidationMsg('pAccountnumber')}">
+                (blur)="pAccountnumber_change()" [ngClass]="{'ng-invalid': getValidationMsg('pAccountnumber')}"
+                appNoLeadingZero>
               @if (getValidationMsg('pAccountnumber')) {
               <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">
                 Please Enter Account Number
