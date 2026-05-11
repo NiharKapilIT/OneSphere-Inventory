@@ -102,13 +102,13 @@
                       @if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
                       <tr class="text-muted x-small">
                         <td class="text-center">--</td>
-                        <td class="ps-4 italic">P-SGST (Excluded)</td>
+                        <td class="ps-4 italic">P-SGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
                         <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
                         </td>
                       </tr>
                       <tr class="text-muted x-small">
                         <td class="text-center">--</td>
-                        <td class="ps-4 italic">P-CGST (Excluded)</td>
+                        <td class="ps-4 italic">P-CGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
                         <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.0-0' }}
                         </td>
                       </tr>
@@ -133,7 +133,7 @@
                       @if (subItem?.ptdsamount && subItem?.ptdsamount !== 0) {
                       <tr class="text-danger x-small">
                         <td class="text-center">--</td>
-                        <td class="ps-4 italic">TDS (Included)</td>
+                        <td class="ps-4 italic">TDS ({{paymentData?.ptdspercentage}}% Included)</td>
                         <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.0-0' }})</td>
                       </tr>
                       }
