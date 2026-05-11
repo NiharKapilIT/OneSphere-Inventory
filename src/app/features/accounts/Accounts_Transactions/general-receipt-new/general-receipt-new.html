@@ -650,7 +650,7 @@
                 }}%)</label>
               <div class="erp-value-pill">
                 <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
+                  number:'1.2-2' }}</span>
               </div>
             </div>
             }
@@ -660,7 +660,7 @@
                 }}%)</label>
               <div class="erp-value-pill">
                 <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
+                  number:'1.2-2' }}</span>
               </div>
             </div>
             }
@@ -806,7 +806,7 @@
               <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
               <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
               <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
-              <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.0-0' }}</td>
+              <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.2-2' }}</td>
               <td class="text-center">
                 @if (row.pistdsapplicable && row.pTdsSection) {
                 <span class="grn-tds-badge">{{ row.pTdsSection }}</span>
