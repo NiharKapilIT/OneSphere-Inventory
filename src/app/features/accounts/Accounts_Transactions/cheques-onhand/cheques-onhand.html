@@ -245,14 +245,11 @@
       <!-- DataTable -->
       <div class="tbl-wrap">
 
-        <p-table #dt [value]="gridData()" [lazy]="true" (onLazyLoad)="setPage($event)"
-          [paginator]="!isCleared() && page().totalElements > 0" [rows]="pageCriteria.pageSize"
-          [totalRecords]="page().totalElements" [first]="pageCriteria.offset * pageCriteria.pageSize"
-          [scrollable]="true" scrollHeight="500px" [resizableColumns]="true" columnResizeMode="fit"
-          [rowsPerPageOptions]="rowsPerPageOptions" sortField="preceiptdate" [sortOrder]="1"
-          [showCurrentPageReport]="!isCleared() && page().totalElements > 0"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
-          [resizableColumns]="true">
+        <p-table #dt [value]="gridData()" [paginator]="page().totalElements > 0" [rows]="pageCriteria.pageSize"
+          [totalRecords]="page().totalElements" [first]="0" [lazy]="true" (onLazyLoad)="setPage($event)"
+          [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true" scrollHeight="500px" [resizableColumns]="true"
+          columnResizeMode="fit" [showCurrentPageReport]="page().totalElements > 0"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single">
 
 
           <ng-template pTemplate="header">
