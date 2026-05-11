@@ -8,6 +8,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
+import { PageCriteria } from '../../../../core/models/pagecriteria';
 
 
 
@@ -38,6 +39,7 @@ export class GeneralReceipt implements OnInit {
   private readonly currencyPipe = inject(CurrencyPipe);
 
 
+
   // ── State ────────────────────────────────────────────────────────────────
   allData = signal<Receipt[]>([]);
   searchText = signal<string>('');
@@ -46,11 +48,14 @@ export class GeneralReceipt implements OnInit {
   fromDate = signal<Date | null>(null);
   toDate = signal<Date | null>(null);
   readonly currencyCode = 'INR';
+  pageCriteria = new PageCriteria();
 
 
   readonly currencySymbol = this.cs.currencysymbol || '₹';
 
-  readonly rowsPerPageOptions = [5, 10, 20, 50];
+  // readonly rowsPerPageOptions = [5, 10, 20, 50];
+  rowsPerPageOptions: number[] = [10, 20, 50];
+
 
   // ── Derived ──────────────────────────────────────────────────────────────
   filteredData = computed(() => {
@@ -109,6 +114,8 @@ export class GeneralReceipt implements OnInit {
         }));
 
         this.allData.set(mapped);
+        this.pageCriteria.totalrows = mapped.length;
+        this.setPageModel();
       },
       error: (err) => {
         this.loading.set(false);
@@ -136,7 +143,12 @@ export class GeneralReceipt implements OnInit {
     window.open(url, '_blank');
   }
 
-
+  private setPageModel(): void {
+    this.rowsPerPageOptions = this.cs.setPageModel(
+      this.pageCriteria,
+      this.filteredData().length
+    );
+  }
 
   // ── Display Helpers ──────────────────────────────────────────────────────
   getPaymentLabel(row: Receipt): string {

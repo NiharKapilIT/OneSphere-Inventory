@@ -99,7 +99,7 @@
             <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
               title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
             @if (showIcons()) {
-            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF"
+            <!-- <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF"
               tooltipPosition="bottom">
               <i class="pi pi-file-pdf"></i>
             </button>
@@ -110,6 +110,16 @@
             <button class="erp-btn btn-white btn-sm" (click)="export()" pTooltip="Export Excel"
               tooltipPosition="bottom">
               <i class="pi pi-download"></i>
+            </button> -->
+
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
+              <i class="pi pi-print"></i>
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
+              <i class="pi pi-file-excel"></i>
             </button>
             }
           </div>

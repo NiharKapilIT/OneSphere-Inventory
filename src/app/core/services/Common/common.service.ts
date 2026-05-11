@@ -5205,9 +5205,8 @@ export class CommonService {
     postedby: any,
     paidTo: any,
     amountInWords: any,
-    
-    
-
+     modeOfPayment?: string,      
+  referenceInfo?: string 
   ) {
 
     const address = this.getcompanyaddress();
@@ -5273,7 +5272,7 @@ export class CommonService {
 
       columnStyles: colWidthHeight,
 
-      startY: 55,
+      startY: 62,
 
       margin: {
         right: 10,
@@ -5395,6 +5394,11 @@ export class CommonService {
                 50
               );
             }
+//             if (modeOfPayment && reportName !== 'Journal Voucher') {
+//   const mopLabel = 'Mode of Payment : ' + modeOfPayment.toUpperCase();
+//   const refPart = referenceInfo ? '  (' + referenceInfo + ')' : '';
+//   doc.text(mopLabel + refPart, 15, 55);
+// }
 
             doc.text(
               'Date : ' + Jvdate,
@@ -5557,6 +5561,16 @@ export class CommonService {
     const narrationText = String(Narration ?? '');
     const narrationLines = doc.splitTextToSize(narrationText, 140);
     doc.text(narrationLines, 45, narrationY);
+     const narrationEndY = narrationY + (narrationLines.length * 5);
+if (modeOfPayment && reportName !== 'Journal Voucher') {
+      const mopLabel = 'Mode of Payment : ' + modeOfPayment.toUpperCase();
+      const refPart = referenceInfo ? '  (' + referenceInfo + ')' : '';
+      doc.text(mopLabel + refPart, 15, narrationEndY + 5);
+    }
+const sigY = narrationEndY + 15;
+if (sigY + 20 > pageHeight) {
+  doc.addPage();
+}
 
     // this.addWrappedText({
     //   text: P1Lines,
@@ -5572,12 +5586,6 @@ export class CommonService {
 
     // const narrationLineCount = P1Lines.length;
     // const narrationEndY = finalY + 15 + (narrationLineCount * 4);
-    const narrationEndY = narrationY + (narrationLines.length * 5);
-    const sigY = narrationEndY + 20;
-
-    if (sigY + 20 > pageHeight) {
-      doc.addPage();
-    }
 
     doc.text('(Approved By)', 25, sigY);
     doc.text('(Verified By)', 95, sigY);

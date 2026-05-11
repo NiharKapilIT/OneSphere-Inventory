@@ -11,6 +11,7 @@ import { TagModule } from 'primeng/tag';
 import { SkeletonModule } from 'primeng/skeleton';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
+import { PageCriteria } from '../../../../core/models/pagecriteria';
 
 // ── Inline Types ────────────────────────────────────────────────────────────
 // NOTE: Interface renamed to VoucherRow to avoid conflict with class PaymentVoucher
@@ -73,16 +74,26 @@ export class PaymentVoucher implements OnInit {
 
   // ── Computed ────────────────────────────────────────────────────────────
   readonly totalRecords = computed(() => this.gridData().length);
+  pageCriteria: PageCriteria;
+
+
+  constructor() {
+    this.pageCriteria = new PageCriteria();
+  }
+
 
   // ── Page state (inline — no external class) ─────────────────────────────
-  pageCriteria: PageState = {
-    pageSize: 10,
-    totalrows: 0,
-    TotalPages: 0,
-    currentPageRows: 0,
-  };
+  // pageCriteria: PageState = {
+  //   pageSize: 10,
+  //   totalrows: 0,
+  //   TotalPages: 0,
+  //   currentPageRows: 0,
+  // };
 
-  readonly rowsPerPageOptions = [5, 10, 20, 50];
+  // readonly rowsPerPageOptions = [5, 10, 20, 50];
+  rowsPerPageOptions: number[] = [10, 20, 50];
+
+
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -120,6 +131,7 @@ export class PaymentVoucher implements OnInit {
           this.allData.set(formatted);
           this.gridData.set(formatted);
           this.updatePageCriteria(formatted.length);
+          this.setPageModel();
           this.isLoading.set(false);
         },
         error: (err: unknown) => {
@@ -155,6 +167,13 @@ export class PaymentVoucher implements OnInit {
       this.router.createUrlTree(['/payment-voucher', receipt])
     );
     window.open(url, '_blank');
+  }
+
+  private setPageModel(): void {
+    this.rowsPerPageOptions = this.commonService.setPageModel(
+      this.pageCriteria,
+      this.gridData().length
+    );
   }
 
 

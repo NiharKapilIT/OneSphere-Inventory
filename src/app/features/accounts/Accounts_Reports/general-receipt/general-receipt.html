@@ -137,12 +137,12 @@
                       <div class="row">
                         @if (receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount) {
                           <div class="col-md-4">
-                            <p class="mb-0 small"><strong>GST (Included):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount | number:'1.0-0' }}</p>
+                            <p class="mb-0 small"><strong>GST ({{receiptdata.pgstpercentage}}% Included):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.pcgstamount | number:'1.2-2' }}</p>
                           </div>
                         }
                         @if (receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount) {
                           <div class="col-md-4">
-                            <p class="mb-0 small"><strong>TDS (Excluded):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount | number:'1.0-0' }}</p>
+                            <p class="mb-0 small"><strong>TDS ({{receiptdata.pTdsPercentage}}% Excluded):</strong> {{ currencySymbol }} {{ receiptdata.pGeneralReceiptSubDetailsList[0]?.ptdsamount | number:'1.2-2' }}</p>
                           </div>
                         }
                       </div>
