@@ -365,6 +365,9 @@ const refNo = first?.reference_number ?? first?.preferenceno ?? first?.pChequenu
 const bank = (String(first?.cheque_bank ?? first?.pbankaccount ?? '')).split('@')[0];
 const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
 
+    
+
+
     this.commonService._downloadGridPdf1(
       this.receiptName(),
       rows,
