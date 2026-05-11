@@ -604,7 +604,7 @@
             </div>
             }
 
-          <div class="col-12 col-md-6">
+            <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label">GST (%) <span class="required">*</span></label>
                 <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
@@ -623,345 +623,345 @@
 
           <!-- GST Breakdown -->
 
-            <!-- GST Breakdown -->
-            <div class="row mt-2">
-              @if (showgstamount()) {
-              <div class="col-md-6 mb-2">
-                <label class="erp-label">GST Amount</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 |
-                    number:'1.0-0' }}</span>
-                </div>
+          <!-- GST Breakdown -->
+          <div class="row mt-2">
+            @if (showgstamount()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">GST Amount</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
               </div>
-              }
-              @if (showigst()) {
-              <div class="col-md-6 mb-2">
-                <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value
-                  }}%)</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 |
-                    number:'1.0-0' }}</span>
-                </div>
+            </div>
+            }
+            @if (showigst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
               </div>
-              }
-              @if (showcgst()) {
-              <div class="col-md-6 mb-2">
-                <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value
-                  }}%)</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
-                    number:'1.0-0' }}</span>
-                </div>
+            </div>
+            }
+            @if (showcgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
               </div>
-              }
-              @if (showsgst()) {
-              <div class="col-md-6 mb-2">
-                <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value
-                  }}%)</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
-                    number:'1.0-0' }}</span>
-                </div>
+            </div>
+            }
+            @if (showsgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
               </div>
+            </div>
+            }
+            @if (showutgst()) {
+            <div class="col-md-6 mb-2">
+              <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value
+                }}%)</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span>
+              </div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+        <!-- ── TDS DETAILS ── -->
+        @if (showtds()) {
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Section <span class="required">*</span></label>
+
+              <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
+                formControlName="pTdsSection" (change)="tdsSection_Change($event)"
+                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
+                placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
+                [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
+              </ng-select>
+              @if (getValidationMsg('pTdsSection')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                getValidationMsg('pTdsSection') }}</div>
               }
-              @if (showutgst()) {
-              <div class="col-md-6 mb-2">
-                <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value
-                  }}%)</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 |
-                    number:'1.0-0' }}</span>
-                </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Percentage <span class="required">*</span></label>
+              <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
+                bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
+                placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
+                [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
+              </ng-select>
+              @if (getValidationMsg('pTdsPercentage')) {
+              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required
               </div>
               }
             </div>
           </div>
-          }
-          <!-- ── TDS DETAILS ── -->
-          @if (showtds()) {
-          <div class="row g-2 mb-3">
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">Section <span class="required">*</span></label>
 
-                <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
-                  formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                  (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
-                  placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
-                  [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
-                </ng-select>
-                @if (getValidationMsg('pTdsSection')) {
-                <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                  getValidationMsg('pTdsSection') }}</div>
-                }
-              </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">Percentage <span class="required">*</span></label>
-                <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
-                  bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
-                  placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
-                  [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
-                </ng-select>
-                @if (getValidationMsg('pTdsPercentage')) {
-                <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required
-                </div>
-                }
-              </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-              <div class="erp-form-group">
-                <label class="erp-label">TDS Amount</label>
-                <div class="erp-value-pill">
-                  <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
-                </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Amount</label>
+              <div class="erp-value-pill">
+                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
               </div>
             </div>
           </div>
-          }
+        </div>
+        }
 
 
 
-          <!-- Add / Clear -->
-          <div class="d-flex gap-2 mt-2">
-            <!-- <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button> -->
-            <button class="erp-btn btn-secondary" type="button"
-              (click)="clearPaymentDetails(); clearParty()">Clear</button>
-            <button class="erp-btn btn-primary" type="button" (click)="addPaymentDetails()">+ Add</button>
-          </div>
+        <!-- Add / Clear -->
+        <div class="d-flex gap-2 mt-2">
+          <!-- <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button> -->
+          <button class="erp-btn btn-secondary" type="button"
+            (click)="clearPaymentDetails(); clearParty()">Clear</button>
+          <button class="erp-btn btn-primary" type="button" (click)="addPaymentDetails()">+ Add</button>
+        </div>
 
-          <!-- Payments Grid -->
-          @if (gridshowhide()) {
-          <hr class="erp-section-divider">
-          <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
-            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
-            sortMode="single" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
-            <ng-template pTemplate="header">
-              <tr>
-                <th class="text-center">Actions</th>
-                <th pSortableColumn="pledgername">
-                  <div class="th-cell">Ledger Name <p-sortIcon field="pledgername"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="psubledgername">
-                  <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="pamount" class="text-end">
-                  <div class="th-cell justify-content-end">Amount <p-sortIcon field="pamount"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="pgstcalculationtype" class="text-center">
-                  <div class="th-cell justify-content-center">GST Calc Type <p-sortIcon
-                      field="pgstcalculationtype"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="pgsttype" class="text-center">
-                  <div class="th-cell justify-content-center">GST Type <p-sortIcon field="pgsttype"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="pgstpercentage" class="text-center">
-                  <div class="th-cell justify-content-center">GST(%) <p-sortIcon field="pgstpercentage"></p-sortIcon>
-                  </div>
-                </th>
-                <th pSortableColumn="pgstamount" class="text-end">
-                  <div class="th-cell justify-content-end">GST Amount <p-sortIcon field="pgstamount"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="pTdsSection" class="text-center">
-                  <div class="th-cell justify-content-center">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon>
-                  </div>
-                </th>
-                <th pSortableColumn="pTdsPercentage" class="text-center">
-                  <div class="th-cell justify-content-center">TDS(%) <p-sortIcon field="pTdsPercentage"></p-sortIcon>
-                  </div>
-                </th>
-                <th pSortableColumn="ptdsamountindividual" class="text-end">
-                  <div class="th-cell justify-content-end">TDS Amount <p-sortIcon
-                      field="ptdsamountindividual"></p-sortIcon></div>
-                </th>
-                <th pSortableColumn="ptotalamount" class="text-end">
-                  <div class="th-cell justify-content-end">Total Amount <p-sortIcon field="ptotalamount"></p-sortIcon>
-                  </div>
-                </th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
-              <tr>
-                <td class="text-center">
-                  <!-- <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
+        <!-- Payments Grid -->
+        @if (gridshowhide()) {
+        <hr class="erp-section-divider">
+        <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
+          sortMode="single" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+          <ng-template pTemplate="header">
+            <tr>
+              <th class="text-center">Actions</th>
+              <th pSortableColumn="pledgername">
+                <div class="th-cell">Ledger Name <p-sortIcon field="pledgername"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="psubledgername">
+                <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pamount" class="text-end">
+                <div class="th-cell justify-content-end">Amount <p-sortIcon field="pamount"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgstcalculationtype" class="text-center">
+                <div class="th-cell justify-content-center">GST Calc Type <p-sortIcon
+                    field="pgstcalculationtype"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgsttype" class="text-center">
+                <div class="th-cell justify-content-center">GST Type <p-sortIcon field="pgsttype"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pgstpercentage" class="text-center">
+                <div class="th-cell justify-content-center">GST(%) <p-sortIcon field="pgstpercentage"></p-sortIcon>
+                </div>
+              </th>
+              <th pSortableColumn="pgstamount" class="text-end">
+                <div class="th-cell justify-content-end">GST Amount <p-sortIcon field="pgstamount"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="pTdsSection" class="text-center">
+                <div class="th-cell justify-content-center">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon>
+                </div>
+              </th>
+              <th pSortableColumn="pTdsPercentage" class="text-center">
+                <div class="th-cell justify-content-center">TDS(%) <p-sortIcon field="pTdsPercentage"></p-sortIcon>
+                </div>
+              </th>
+              <th pSortableColumn="ptdsamountindividual" class="text-end">
+                <div class="th-cell justify-content-end">TDS Amount <p-sortIcon
+                    field="ptdsamountindividual"></p-sortIcon></div>
+              </th>
+              <th pSortableColumn="ptotalamount" class="text-end">
+                <div class="th-cell justify-content-end">Total Amount <p-sortIcon field="ptotalamount"></p-sortIcon>
+                </div>
+              </th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+            <tr>
+              <td class="text-center">
+                <!-- <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
                   (click)="deleteRow(rowIndex)">
                 </button> -->
-                  <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
-                    (click)="deleteRow(rowIndex)">
-                    <i class="pi pi-trash"></i>
-                  </button>
-                </td>
-                <td>{{ row.pledgername }}</td>
-                <td>{{ row.psubledgername }}</td>
-                <!-- <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td> -->
-                <td class="td-right">
-                  <div class="amount-cell">
-                    <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
-                    <span class="amt-num">{{ row.pamount | number:'1.2-2' }}</span>
-                  </div>
-                </td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
-                <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
-                <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.0-0' }}</td>
-                <td class="text-center">
-                  @if (row.pistdsapplicable && row.pTdsSection) {
-                  <span class="grn-tds-badge">{{ row.pTdsSection }}</span>
-                  } @else {
-                  <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <td class="text-center">
-                  @if (row.pistdsapplicable && row.pTdsPercentage) {
-                  {{ row.pTdsPercentage }}
-                  } @else {
-                  <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <td class="text-end">
-                  @if (row.pistdsapplicable && row.ptdsamountindividual) {
-                  <span class="grn-amount">{{ currencySymbol }} {{ (row.ptdsamountindividual || 0) | number:'1.0-0'
-                    }}</span>
-                  } @else {
-                  <span class="grn-na">-- NA --</span>
-                  }
-                </td>
-                <!-- <td class="grn-td grn-td--right grn-td--bold">
+                <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
+                  (click)="deleteRow(rowIndex)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+              <td>{{ row.pledgername }}</td>
+              <td>{{ row.psubledgername }}</td>
+              <!-- <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td> -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                  <span class="amt-num">{{ row.pamount | number:'1.2-2' }}</span>
+                </div>
+              </td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}</td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}</td>
+              <td class="text-center">{{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}</td>
+              <td class="text-end">{{ currencySymbol }} {{ (row.pgstamount || 0) | number:'1.0-0' }}</td>
+              <td class="text-center">
+                @if (row.pistdsapplicable && row.pTdsSection) {
+                <span class="grn-tds-badge">{{ row.pTdsSection }}</span>
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <td class="text-center">
+                @if (row.pistdsapplicable && row.pTdsPercentage) {
+                {{ row.pTdsPercentage }}
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <td class="text-end">
+                @if (row.pistdsapplicable && row.ptdsamountindividual) {
+                <span class="grn-amount">{{ currencySymbol }} {{ (row.ptdsamountindividual || 0) | number:'1.0-0'
+                  }}</span>
+                } @else {
+                <span class="grn-na">-- NA --</span>
+                }
+              </td>
+              <!-- <td class="grn-td grn-td--right grn-td--bold">
                 {{ currencySymbol }} {{ (row.ptotalamount || 0) | number:'1.0-0' }}
               </td> -->
-                <td class="td-right">
-                  <div class="amount-cell">
-                    <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
-                    <span class="amt-num">{{ row.ptotalamount | number:'1.2-2' }}</span>
-                  </div>
-                </td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-              <tr>
-                <td colspan="12" class="grn-table-empty">No Data To Display</td>
-              </tr>
-            </ng-template>
-          </p-table>
-          <div class="grn-table-count">{{ paymentslist().length }} total</div>
-          }
-        </div>
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                  <span class="amt-num">{{ row.ptotalamount | number:'1.2-2' }}</span>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="12" class="grn-table-empty">No Data To Display</td>
+            </tr>
+          </ng-template>
+        </p-table>
+        <div class="grn-table-count">{{ paymentslist().length }} total</div>
+        }
+      </div>
 
-        <!-- ── JOURNAL + NARRATION + ATTACHMENT ── -->
-        <div class="p-4">
-          <div class="row g-2">
+      <!-- ── JOURNAL + NARRATION + ATTACHMENT ── -->
+      <div class="p-4">
+        <div class="row g-2">
 
-            <!-- Journal Entry -->
-            <div class="col-12 col-md-6">
-              @if (gridshowhide()) {
-              <div class="grn-journal-wrapper">
-                <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll" sortMode="single"
-                  styleClass="p-datatable-sm p-datatable-gridlines gr-table">
-                  <ng-template pTemplate="header">
-                    <tr>
-                      <th pSortableColumn="accountname">
-                        <div class="th-cell">Particulars <p-sortIcon field="accountname"></p-sortIcon></div>
-                      </th>
-                      <th pSortableColumn="debitamount" class="text-end">
-                        <div class="th-cell justify-content-end">Dr <p-sortIcon field="debitamount"></p-sortIcon></div>
-                      </th>
-                      <th pSortableColumn="creditamount" class="text-end">
-                        <div class="th-cell justify-content-end">Cr <p-sortIcon field="creditamount"></p-sortIcon></div>
-                      </th>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="body" let-row>
-                    <tr>
-                      <td>{{ row.accountname || '' }}</td>
-                      <!-- <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
+          <!-- Journal Entry -->
+          <div class="col-12 col-md-6">
+            @if (gridshowhide()) {
+            <div class="grn-journal-wrapper">
+              <p-table [value]="partyjournalentrylist()" [rows]="5" responsiveLayout="scroll" sortMode="single"
+                styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th pSortableColumn="accountname">
+                      <div class="th-cell">Particulars <p-sortIcon field="accountname"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="debitamount" class="text-end">
+                      <div class="th-cell justify-content-end">Dr <p-sortIcon field="debitamount"></p-sortIcon></div>
+                    </th>
+                    <th pSortableColumn="creditamount" class="text-end">
+                      <div class="th-cell justify-content-end">Cr <p-sortIcon field="creditamount"></p-sortIcon></div>
+                    </th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-row>
+                  <tr>
+                    <td>{{ row.accountname || '' }}</td>
+                    <!-- <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
                     <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td> -->
-                      <td class="td-right">
-                        <div class="amount-cell">
-                          <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
-                          <span class="amt-num">{{ row.debitamount | number:'1.2-2' }}</span>
-                        </div>
-                      </td>
-                      <td class="td-right">
-                        <div class="amount-cell">
-                          <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
-                          <span class="amt-num">{{ row.creditamount | number:'1.2-2' }}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </ng-template>
-                  <ng-template pTemplate="emptymessage">
-                    <tr>
-                      <td colspan="3" class="grn-table-empty">No Data To Display</td>
-                    </tr>
-                  </ng-template>
-                </p-table>
-                <div class="grn-table-count">{{ partyjournalentrylist().length }} total</div>
-              </div>
-              }
+                    <td class="td-right">
+                      <div class="amount-cell">
+                        <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
+                        <span class="amt-num">{{ row.debitamount | number:'1.2-2' }}</span>
+                      </div>
+                    </td>
+                    <td class="td-right">
+                      <div class="amount-cell">
+                        <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
+                        <span class="amt-num">{{ row.creditamount | number:'1.2-2' }}</span>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                  <tr>
+                    <td colspan="3" class="grn-table-empty">No Data To Display</td>
+                  </tr>
+                </ng-template>
+              </p-table>
+              <div class="grn-table-count">{{ partyjournalentrylist().length }} total</div>
             </div>
-
-            <!-- Narration & Attachment Group -->
-            <div class="col-12 col-md-6">
-              <div class="row">
-                <!-- Narration -->
-                <div class="col-12 mb-3">
-                  <div class="erp-form-group">
-                    <label class="erp-label">Narration <span class="required">*</span></label>
-                    <textarea class="erp-textarea" rows="4" formControlName="pnarration" maxlength="250"
-                      placeholder="Enter Narration" (blur)="GeneralReceiptForm.get('pnarration')?.markAsTouched()">
-                  </textarea>
-                    @if (getValidationMsg('pnarration')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                      getValidationMsg('pnarration') }}</div>
-                    }
-                    @if (submitted() && GeneralReceiptForm.controls['pnarration'].errors?.['maxlength']) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Maximum 250
-                      Characters Allowed</div>
-                    }
-                  </div>
-                </div>
-
-                <!-- Upload Attachment -->
-                <div class="col-12">
-                  <div class="erp-form-group">
-                    <label class="erp-label">Upload Attachment</label>
-                    <div class="erp-file-upload">
-                      <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
-                      <input type="text" class="erp-input erp-file-input"
-                        [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
-                        placeholder="No file selected">
-                      <button type="button" class="erp-file-btn" (click)="fileInput.click()">
-                        <i class="pi pi-upload"></i> Upload
-                      </button>
-                      <input type="file" hidden (change)="uploadAndProgress($event)" #fileInput>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="card-footer d-flex gap-2 justify-end">
-          <button type="button" (click)="ClearGenerealReceipt()" class="erp-btn btn-secondary">
-            <i class="pi pi-times"></i> Clear
-          </button>
-          <button type="button" (click)="saveGeneralReceipt()" [disabled]="disablesavebutton()"
-            class="erp-btn btn-primary">
-            @if (!disablesavebutton()) {
-            <i class="pi pi-check"></i>
-            } @else {
-            <i class="pi pi-spin pi-spinner"></i>
             }
-            {{ savebutton() }}
-          </button>
+          </div>
+
+          <!-- Narration & Attachment Group -->
+          <div class="col-12 col-md-6">
+            <div class="row">
+              <!-- Narration -->
+              <div class="col-12 mb-3">
+                <div class="erp-form-group">
+                  <label class="erp-label">Narration <span class="required">*</span></label>
+                  <textarea class="erp-textarea" rows="4" formControlName="pnarration" maxlength="250"
+                    placeholder="Enter Narration" (blur)="GeneralReceiptForm.get('pnarration')?.markAsTouched()">
+                  </textarea>
+                  @if (getValidationMsg('pnarration')) {
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                    getValidationMsg('pnarration') }}</div>
+                  }
+                  @if (submitted() && GeneralReceiptForm.controls['pnarration'].errors?.['maxlength']) {
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Maximum 250
+                    Characters Allowed</div>
+                  }
+                </div>
+              </div>
+
+              <!-- Upload Attachment -->
+              <div class="col-12">
+                <div class="erp-form-group">
+                  <label class="erp-label">Upload Attachment</label>
+                  <div class="erp-file-upload">
+                    <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
+                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
+                    <input type="text" class="erp-input erp-file-input"
+                      [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
+                      placeholder="No file selected">
+                    <button type="button" class="erp-file-btn" (click)="fileInput.click()">
+                      <i class="pi pi-upload"></i> Upload
+                    </button>
+                    <input type="file" hidden (change)="uploadAndProgress($event)" #fileInput>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="card-footer d-flex gap-2 justify-end">
+        <button type="button" (click)="ClearGenerealReceipt()" class="erp-btn btn-secondary">
+          <i class="pi pi-times"></i> Clear
+        </button>
+        <button type="button" (click)="saveGeneralReceipt()" [disabled]="disablesavebutton()"
+          class="erp-btn btn-primary">
+          @if (!disablesavebutton()) {
+          <i class="pi pi-check"></i>
+          } @else {
+          <i class="pi pi-spin pi-spinner"></i>
+          }
+          {{ savebutton() }}
+        </button>
+      </div>
 
     </form>
   </div>
