@@ -103,13 +103,13 @@
                       <tr class="text-muted x-small">
                         <td class="text-center">{{ i + 2 }}</td>
                         <td class="ps-4 italic">P-SGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
+                        <td class="text-end">{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
                         </td>
                       </tr>
                       <tr class="text-muted x-small">
                         <td class="text-center">{{ i + 3 }}</td>
                         <td class="ps-4 italic">P-CGST ({{paymentData?.pgstpercentage/2}}% Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
+                        <td class="text-end">{{ currencysymbol }} {{ (subItem?.pcgstamount / 2) | number:'1.2-2' }}
                         </td>
                       </tr>
                       }
@@ -118,13 +118,13 @@
                       <tr class="text-muted x-small">
                         <td class="text-center">{{ i + 2 }}</td>
                         <td class="ps-4 italic">P-IGST (Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.2-2' }}</td>
+                        <td class="text-end">{{ currencysymbol }} {{ subItem?.pigstamount | number:'1.2-2' }}</td>
                       </tr>
                       } @else if (subItem?.pcgstamount && subItem?.pcgstamount !== 0) {
                       <tr class="text-muted x-small">
                         <td class="text-center">{{ i + 2 }}</td>
                         <td class="ps-4 italic">P-IGST (Excluded)</td>
-                        <td class="text-end">-{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.2-2' }}</td>
+                        <td class="text-end">{{ currencysymbol }} {{ subItem?.pcgstamount | number:'1.2-2' }}</td>
                       </tr>
                       }
                       }
@@ -139,7 +139,7 @@
                               !== 0) ? 1 : 0)
                               ) + 2 }}</td>
                         <td class="ps-4 italic">TDS ({{paymentData?.ptdspercentage}}% Included)</td>
-                        <td class="text-end">-({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.2-2' }})</td>
+                        <td class="text-end">({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.2-2' }})</td>
                       </tr>
                       }
                       }
