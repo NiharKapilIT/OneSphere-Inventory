@@ -41,8 +41,10 @@
         </div>
 
         <div class="card-actions">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+            data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+          <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+            title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
           @if (gridData && gridData.length > 0) {
           <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="PDF">
             <i class="pi pi-file-pdf"></i>
@@ -116,7 +118,7 @@
                     @if (!bankbalancetype) {
                     {{ currencySymbol ?? '' }} 0.00
                     }
-                    <small>{{ bankbalancetype ?? '' }}</small>
+                    <!-- <small>{{ bankbalancetype ?? '' }}</small> -->
                   </span>
                 </span>
                 <span class="info-item">
@@ -275,9 +277,10 @@
         </div>
 
         <div class="tbl-wrap">
-          <p-table #dt [value]="gridData || []" [dataKey]="'preceiptid'" [paginator]="gridData.length > pageCriteria.pageSize"
-            [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true"
-            scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
+          <p-table #dt [value]="gridData || []" [dataKey]="'preceiptid'"
+            [paginator]="gridData.length > pageCriteria.pageSize" [rows]="pageCriteria.pageSize"
+            [rowsPerPageOptions]="rowsPerPageOptions" [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
+            [showCurrentPageReport]="true"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
             styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 

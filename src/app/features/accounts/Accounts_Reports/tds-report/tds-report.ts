@@ -14,11 +14,12 @@ import { DatePickerModule } from 'primeng/datepicker';
 
 @Component({
   selector: "app-tds-report",
-  standalone:true,
+  standalone: true,
   imports: [DatePickerModule, CommonModule, FormsModule, ReactiveFormsModule, TableModule, NgSelectModule, SelectModule],
   templateUrl: "./tds-report.html",
   // styleUrl: "./tds-report.css",
-  host: { ngSkipHydration: '' }
+  host: { ngSkipHydration: '' },
+  providers: [DatePipe]
 })
 
 export class TdsReport implements OnInit {
@@ -60,6 +61,7 @@ export class TdsReport implements OnInit {
   // Sorting
   readonly sortColumn = signal('');
   readonly sortDirection = signal<1 | -1>(1);
+  rowsPerPageOptions: number[] = [10, 20, 50];
 
   // ── Computed signals ─────────────────────────────────────────────────────────
   readonly saveButtonLabel = computed(() => this.loading() ? 'Processing…' : 'Show');
@@ -73,7 +75,12 @@ export class TdsReport implements OnInit {
     this.betweenDate() ? 'From Date' : 'Date'
   );
 
-  readonly currencySymbol = signal('');
+  // readonly currencySymbol = signal('');
+  // readonly currencySymbol = signal('₹');
+  currencySymbol = '₹';
+
+
+
   readonly branchSchema = signal<string | null>(null);
   toDateMinDate: Date | null = null;
 
@@ -95,19 +102,23 @@ export class TdsReport implements OnInit {
     this.setPageModel();
     this.getTDSSectionDetails();
     this.branchSchema.set(sessionStorage.getItem('loginBranchSchemaname'));
-    this.currencySymbol.set(
-      String(this.commonService.datePickerPropertiesSetup('currencysymbol'))
-    );
+    // this.currencySymbol.set(
+    //   String(this.commonService.datePickerPropertiesSetup('currencysymbol'))
+    // );
+    // this.currencySymbol.set(
+    //   this.commonService.datePickerPropertiesSetup('currencysymbol') as string ||
+    //   this.commonService.currencysymbol || '₹'
+    // );
     const initialFrom = this.TdsReportForm.get('fromdate')?.value;
-  this.toDateMinDate = initialFrom ?? null;
+    this.toDateMinDate = initialFrom ?? null;
 
-  this.TdsReportForm.get('fromdate')?.valueChanges.subscribe((val: Date | null) => {
-    this.toDateMinDate = val ?? null;
-    const toDate = this.TdsReportForm.get('todate')?.value;
-    if (toDate && val && toDate < val) {
-      this.TdsReportForm.get('todate')?.setValue(null as unknown as Date);
-    }
-  });
+    this.TdsReportForm.get('fromdate')?.valueChanges.subscribe((val: Date | null) => {
+      this.toDateMinDate = val ?? null;
+      const toDate = this.TdsReportForm.get('todate')?.value;
+      if (toDate && val && toDate < val) {
+        this.TdsReportForm.get('todate')?.setValue(null as unknown as Date);
+      }
+    });
   }
 
   // ── Initializers ─────────────────────────────────────────────────────────────
@@ -148,12 +159,28 @@ export class TdsReport implements OnInit {
     };
   }
 
+  // private setPageModel(): void {
+  //   this.pageCriteria.pageSize = this.commonService.pageSize;
+  //   this.pageCriteria.offset = 0;
+  //   this.pageCriteria.pageNumber = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+  // }
+
+
+
+
   private setPageModel(): void {
-    this.pageCriteria.pageSize = this.commonService.pageSize;
-    this.pageCriteria.offset = 0;
-    this.pageCriteria.pageNumber = 1;
-    this.pageCriteria.footerPageHeight = 50;
+    this.rowsPerPageOptions = this.commonService.setPageModel(
+      this.pageCriteria,
+      this.tdsReportData().length
+    );
   }
+
+
+  onPageChange(event: { rows: number }): void {
+    this.pageCriteria.pageSize = event.rows;
+  }
+
 
   // ── Form-control accessor ─────────────────────────────────────────────────────
   get f() { return this.TdsReportForm.controls; }
@@ -231,8 +258,8 @@ export class TdsReport implements OnInit {
           to,
           this.grouptype(),
           reporttype,
-        this.commonService.getCompanyCode(),
-        this.commonService.getBranchCode()
+          this.commonService.getCompanyCode(),
+          this.commonService.getBranchCode()
         )
         .subscribe({
           next: (res: any[]) => {
@@ -241,6 +268,7 @@ export class TdsReport implements OnInit {
             this.rawData.set([...data]);
             this.pageCriteria.totalrows = data.length;
             this.loading.set(false);
+            this.setPageModel();
           },
           error: () => this.loading.set(false)
         });
@@ -256,6 +284,7 @@ export class TdsReport implements OnInit {
           this.mismatchDetails.set(res ?? []);
           if (this.mismatchDetails().length) this.exportMismatch();
           this.loading.set(false);
+
         });
     }
   }

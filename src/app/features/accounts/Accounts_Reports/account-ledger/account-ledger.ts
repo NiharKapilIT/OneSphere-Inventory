@@ -3,7 +3,6 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal, computed, linkedSignal, effect, ChangeDetectionStrategy } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
-
 import { TableModule } from 'primeng/table';
 import { Companydetails } from '../../../common/company-details/companydetails/companydetails';
 import { AccountsReports } from '../../../../core/services/accounts/accounts-reports';

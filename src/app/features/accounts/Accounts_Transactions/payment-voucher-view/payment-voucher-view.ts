@@ -2364,6 +2364,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
 
         if (count !== 0) {
+          debugger
           this.commonService.showWarningMessage(
             `Subledger per day Cash transactions limit below ${this.commonService.currencyformat(this.cashRestrictAmount)} only`
           );
