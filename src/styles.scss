@@ -6395,8 +6395,17 @@ body input[type='checkbox']:not(.p-checkbox-input):disabled {
   }
 
   /* Paginator Select (Rows per page) - Enhanced for p-select and p-dropdown */
+  .p-paginator-rpp {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+  }
+
   .p-select,
   .p-dropdown {
+    width: auto !important;
+    min-width: 80px !important;
     min-height: 32px !important;
     height: 32px !important;
     border-color: #dbe8f9 !important;
