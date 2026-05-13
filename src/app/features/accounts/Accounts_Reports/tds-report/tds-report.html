@@ -104,7 +104,7 @@
         <div class="p-4">
 
           <!-- Toolbar -->
-          <div class="erp-table-toolbar mb-3">
+          <!-- <div class="erp-table-toolbar mb-3">
             <div class="tb-left">
               <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
             </div>
@@ -133,7 +133,44 @@
                 <i class="pi pi-download"></i>
               </button>
             </div>
+          </div> -->
+
+
+          <!-- Toolbar -->
+          <div class="erp-table-toolbar mb-3">
+            <div class="tb-left">
+              <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
+            </div>
+            <div class="tb-right">
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+                data-grid-share="mail">
+                <i class="pi pi-envelope"></i>
+              </a>
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+                title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp">
+                <i class="pi pi-whatsapp"></i>
+              </a>
+              <button class="erp-btn btn-white btn-sm" (click)="dt.reset()" title="Clear Filters">
+                <i class="pi pi-filter-slash"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="Show()" title="Reload Data">
+                <i class="pi pi-refresh"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
+                <i class="pi pi-file-pdf"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
+                <i class="pi pi-print"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
+                <i class="pi pi-file-excel"></i>
+              </button>
+            </div>
           </div>
+
+
+
+
 
           <div class="erp-report-context mb-3">
             <span class="context-pill">
@@ -159,11 +196,18 @@
           </div>
 
           <div class="tbl-wrap">
-            <p-table [value]="tdsReportData()" [paginator]="true" [rows]="pageCriteria.pageSize"
-              [rowsPerPageOptions]="[10, 20, 50]" [showCurrentPageReport]="true"
+            <!-- <p-table [value]="tdsReportData()" [paginator]="tdsReportData().length > pageCriteria.pageSize"
+              [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [showCurrentPageReport]="true"
               currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" paginatorPosition="bottom"
-              [scrollable]="true" scrollHeight="500px" responsiveLayout="scroll"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines" #dt>
+              paginatorDropdownAppendTo="body" [scrollable]="true" scrollHeight="flex" responsiveLayout="scroll"
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines" #dt> -->
+
+            <p-table [value]="tdsReportData()" [paginator]="tdsReportData().length > pageCriteria.pageSize"
+              [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [showCurrentPageReport]="true"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" paginatorPosition="bottom"
+              responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines"
+              (onPage)="onPageChange($event)" #dt>
+
               <ng-template pTemplate="header">
                 <tr>
                   @if (!summary()) {
@@ -269,15 +313,15 @@
                   <td class="text-center">{{ row.transaction_date | date:'dd-MMM-yyyy' }}</td>
                   }
                   <td class="td-right font-bold">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ row.paidamount < 0 ? '(' + (getAbsoluteValue(row.paidamount) | number:'1.2-2') + ')' :
                       (row.paidamount | number:'1.2-2') }} </td>
                   <td class="td-right font-bold text-danger">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ row.tdscalculatedamount < 0 ? '(' + (getAbsoluteValue(row.tdscalculatedamount) | number:'1.2-2')
                       + ')' : (row.tdscalculatedamount | number:'1.2-2') }} </td>
                   <td class="td-right font-bold">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ row.ledgeramount < 0 ? '(' + (getAbsoluteValue(row.ledgeramount) | number:'1.2-2') + ')' :
                       (row.ledgeramount | number:'1.2-2') }} </td>
                       @if (!summary()) {
@@ -290,15 +334,15 @@
                 <tr class="font-bold bg-light">
                   <td [attr.colspan]="summary() ? 3 : 6" class="text-end">Grand Total:</td>
                   <td class="text-end">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ totalPaidAmt() < 0 ? '(' + (getAbsoluteValue(totalPaidAmt()) | number:'1.2-2') + ')' :
                       (totalPaidAmt() | number:'1.2-2') }} </td>
                   <td class="text-end text-danger">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ totalTds() < 0 ? '(' + (getAbsoluteValue(totalTds()) | number:'1.2-2') + ')' : (totalTds() |
                       number:'1.2-2') }} </td>
                   <td class="text-end">
-                    {{ currencySymbol() }}
+                    {{ currencySymbol }}
                     {{ totalLedger() < 0 ? '(' + (getAbsoluteValue(totalLedger()) | number:'1.2-2') + ')' :
                       (totalLedger() | number:'1.2-2') }} </td>
                       @if (!summary()) {

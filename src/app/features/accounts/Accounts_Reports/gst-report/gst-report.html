@@ -181,15 +181,17 @@
             </ng-template>
 
             <ng-template pTemplate="groupheader" let-rowData>
-              <tr>
+              <tr style="cursor:pointer" (click)="toggleGroup(rowData.parentname)">
                 <td colspan="9" class="bg-light font-bold">
-                  <i class="pi pi-folder me-2 text-primary"></i>
+                  <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(rowData.parentname) ? 'pi pi-folder' : 'pi-folder-open'"></i>
                   <span class="text-primary text-uppercase small">{{ rowData.parentname }}</span>
                 </td>
               </tr>
             </ng-template>
 
             <ng-template pTemplate="body" let-row>
+               @if (!isGroupCollapsed(row.parentname)) {
               <tr>
                 <td class="font-bold small">{{ row.groupcode }}</td>
                 <td class="small">{{ row.accountname }}</td>
@@ -201,6 +203,7 @@
                 <td class="td-right text-muted small">{{ row.sgstamount | number:'1.2-2' }}</td>
                 <td class="td-right text-muted small">{{ row.igstamount | number:'1.2-2' }}</td>
               </tr>
+            }
             </ng-template>
 
             <ng-template pTemplate="emptymessage">

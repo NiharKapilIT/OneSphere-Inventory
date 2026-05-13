@@ -45,10 +45,10 @@ export class RePrint implements OnInit {
   // ── plain properties ───────────────────────────────────────────────────────
   ReprintRepotForm!: FormGroup;
   submitted = false;
- readonly loading = signal(false);
+  readonly loading = signal(false);
   lstreporttype: { reporttype: string; reporttypeid: string }[] = [];
   ReprinttValidation: Record<string, string> = {};
-   readonly saveButtonLabel = computed(() => this.loading() ? 'Processing…' : 'Generate Report');
+  readonly saveButtonLabel = computed(() => this.loading() ? 'Processing…' : 'Generate Report');
 
   @ViewChild('myTable') table: any;
 
@@ -315,13 +315,13 @@ export class RePrint implements OnInit {
 
   // ── generate report ────────────────────────────────────────────────────────
   getduplicateReport(): void {
-
     this.submitted = true;
     this.ReprintRepotForm.markAllAsTouched();
     if (this.ReprintRepotForm.invalid) return;
-this.loading.set(true);
-    const transType  = this.ReprintRepotForm.controls['TransType'].value;
-    const transNo    = this.ReprintRepotForm.controls['Transno'].value;
+    this.loading.set(true);
+
+    const transType = this.ReprintRepotForm.controls['TransType'].value;
+    const transNo = this.ReprintRepotForm.controls['Transno'].value;
     const schemaName = this._commonService.getbranchname();
 
     if (transType === 'General Receipt') {
@@ -334,7 +334,6 @@ this.loading.set(true);
         )
         .subscribe(count => {
           if (count === 0) {
-          
             this._AccountingReportsService
               .GetGeneralReceiptbyId(
                 transNo,
@@ -345,18 +344,15 @@ this.loading.set(true);
               )
               .subscribe(res => {
                 if (res) {
-
                   const receipt = btoa(`${transNo},General Receipt,Reprint,${schemaName}`);
-                 
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/general-receipt', receipt])
-    );
-    window.open(url, '_blank');
-  this.loading.set(false);
-
-
-                } 
-                else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+                  const url = this.router.serializeUrl(
+                    this.router.createUrlTree(['/general-receipt', receipt])
+                  );
+                  window.open(url, '_blank');
+                } else {
+                  this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+                }
+                this.loading.set(false); 
               });
           } else {
             this._AccountingReportsService
@@ -365,8 +361,10 @@ this.loading.set(true);
                 if (res) {
                   const receipt = btoa(`${transNo},Inter Branch Receipt,Reprint`);
                   window.open(`/InterBranchReport?id=${receipt}`, '_blank');
-                    this.loading.set(false);
-                } else alert('Transaction No. Does Not Exit !');
+                } else {
+                  alert('Transaction No. Does Not Exit !');
+                }
+                this.loading.set(false); 
               });
           }
         });
@@ -387,13 +385,16 @@ this.loading.set(true);
               this.pageCriteria.totalrows = res.length;
               this.pageCriteria.TotalPages = Math.ceil(res.length / this.pageCriteria.pageSize);
               this.pageCriteria.CurrentPage = 1;
-                this.loading.set(false);
             } else {
               this._commonService.showWarningMessage('No Records!');
               this.form15HGridData.set([]);
             }
+            this.loading.set(false); 
           },
-          error: () => this._commonService.showErrorMessage('Error fetching UID list')
+          error: () => {
+            this._commonService.showErrorMessage('Error fetching UID list');
+            this.loading.set(false); 
+          }
         });
       return;
     }
@@ -414,8 +415,10 @@ this.loading.set(true);
               this.router.serializeUrl(this.router.createUrlTree(['/GeneralReceiptReport', receipt])),
               '_blank'
             );
-              this.loading.set(false);
-          } else alert('Transaction No. Does Not Exit !');
+          } else {
+            alert('Transaction No. Does Not Exit !');
+          }
+          this.loading.set(false); 
         });
     }
 
@@ -431,16 +434,14 @@ this.loading.set(true);
         )
         .subscribe(res => {
           if (res?.length > 0) {
-
-
-
             const url = this.router.serializeUrl(
               this.router.createUrlTree(['/journal-voucher', receipt])
             );
             window.open(url, '_blank');
-
-  this.loading.set(false);
-          } else alert('Transaction No. Does Not Exit !');
+          } else {
+            alert('Transaction No. Does Not Exit !');
+          }
+          this.loading.set(false); 
         });
     }
 
@@ -456,16 +457,14 @@ this.loading.set(true);
         .subscribe(res => {
           if (res?.length > 0) {
             const receipt = btoa(`${transNo},Payment Voucher,Reprint`);
-
-           
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/payment-voucher', receipt])
-    );
-    window.open(url, '_blank');
-  this.loading.set(false);
-
-
-          } else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+            const url = this.router.serializeUrl(
+              this.router.createUrlTree(['/payment-voucher', receipt])
+            );
+            window.open(url, '_blank');
+          } else {
+            this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+          }
+          this.loading.set(false); 
         });
     }
 
@@ -477,9 +476,13 @@ this.loading.set(true);
           if (debit === credit) {
             const receipt = btoa(`${transNo},Subscriber JV,Reprint`);
             window.open(`/#/JournalVoucherPrint?id=${receipt}`, '_blank');
-              this.loading.set(false);
-          } else this._commonService.showWarningMessage('Credit and Debit Not Matched!!');
-        } else this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+          } else {
+            this._commonService.showWarningMessage('Credit and Debit Not Matched!!');
+          }
+        } else {
+          this._commonService.showWarningMessage('Transaction No. Does Not Exit !');
+        }
+        this.loading.set(false); 
       });
     }
 
@@ -495,12 +498,14 @@ this.loading.set(true);
         .subscribe(res => {
           if (res?.length > 0) {
             const receipt = btoa(`${transNo},Petty Cash,Reprint`);
-             const url = this.router.serializeUrl(
-      this.router.createUrlTree(['/payment-voucher', receipt])
-    );
-    window.open(url, '_blank');
-    this.loading.set(false);
-          } else alert('Transaction No. Does Not Exit !');
+            const url = this.router.serializeUrl(
+              this.router.createUrlTree(['/payment-voucher', receipt])
+            );
+            window.open(url, '_blank');
+          } else {
+            alert('Transaction No. Does Not Exit !');
+          }
+          this.loading.set(false); 
         });
     }
 
@@ -520,19 +525,22 @@ this.loading.set(true);
               this.router.serializeUrl(this.router.createUrlTree(['/PaymentVoucher', receipt])),
               '_blank'
             );
-              this.loading.set(false);
-          } else alert('Transaction No. Does Not Exist !');
+          } else {
+            alert('Transaction No. Does Not Exist !');
+          }
+          this.loading.set(false); 
         });
     }
 
     if (transType === 'GST BILL') {
       this._AccountService.Getgstvocuherprint(schemaName, transNo).subscribe(res => {
         this.gstvoucherprintdata = res ?? [];
-        if (this.gstvoucherprintdata.length > 0) 
-          {this.print();
-          this.loading.set(false);  
-          }
-        else alert('Transaction No. Does Not Exist !');
+        if (this.gstvoucherprintdata.length > 0) {
+          this.print();
+        } else {
+          alert('Transaction No. Does Not Exist !');
+        }
+        this.loading.set(false); 
       });
     }
   }

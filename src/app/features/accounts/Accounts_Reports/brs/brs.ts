@@ -89,6 +89,19 @@ export class Brs implements OnInit {
   today = new Date();
   // ── Form ─────────────────────────────────────────────────────────────────────
   BRStatmentForm!: FormGroup;
+   collapsedGroups = signal<Set<string>>(new Set());
+
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
 
   get f(): { [key: string]: AbstractControl } {
     return this.BRStatmentForm.controls;

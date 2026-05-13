@@ -1508,14 +1508,16 @@ export class ChequesOnhand implements OnInit {
 
     gridData.forEach((element: any) => {
 
-      const datereceipt = this._commonService.getFormatDateGlobal(element.preceiptdate);
+      const datereceipt = this.datepipe.transform(element.preceiptdate,'dd-MMM-yyyy');
+      // this._commonService.getFormatDateGlobal(element.preceiptdate);
 
       const depositeddate = element.pdepositeddate
-        ? this._commonService.getFormatDateGlobal(element.pdepositeddate)
+        ? this.datepipe.transform(element.pdepositeddate,'dd-MMM-yyyy')
         : '';
 
       const chequedate = element.pchequedate
-        ? this._commonService.getFormatDateGlobal(element.pchequedate)
+        ? this.datepipe.transform(element.pchequedate,'dd-MMM-yyyy')
+        // this._commonService.getFormatDateGlobal(element.pchequedate)
         : '';
 
       const branchName =

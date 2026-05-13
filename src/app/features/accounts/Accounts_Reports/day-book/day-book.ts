@@ -87,6 +87,19 @@ export class DayBook implements OnInit {
   private rawBalanceData: any[] = [];
 
   pageCriteria = new PageCriteria();
+   collapsedGroups = signal<Set<string>>(new Set());
+
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
 
   // ── Datepicker configs ───────────────────────────────────────────────────────
   // dpConfig: any = {
