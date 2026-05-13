@@ -145,9 +145,11 @@
             responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines" #dt>
 
             <ng-template pTemplate="groupheader" let-rowData>
-              <tr>
+              <tr style="cursor:pointer" (click)="toggleGroup(rowData.ptransactiondate)">
                 <td colspan="6" class="bg-light font-bold">
-                  <i class="pi pi-calendar me-2 text-primary small"></i>
+                  <!-- <i class="pi pi-calendar me-2 text-primary small"></i> -->
+                   <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(rowData.ptransactiondate) ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
                   <span class="text-primary text-uppercase small letter-spacing-1">{{ rowData.ptransactiondate |
                     date:'dd-MMM-yyyy' }}</span>
                 </td>
@@ -199,6 +201,7 @@
             </ng-template>
 
             <ng-template pTemplate="body" let-row>
+              @if (!isGroupCollapsed(row.ptransactiondate)) {
               <tr>
                 <td>
                   @if (!row.ptransactionno) {
@@ -231,6 +234,7 @@
                   } @else { <span class="text-muted">--</span> }
                 </td>
               </tr>
+            }
             </ng-template>
             <ng-template pTemplate="footer">
               <tr class="font-bold bg-light">

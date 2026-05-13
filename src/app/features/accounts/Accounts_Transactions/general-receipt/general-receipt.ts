@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -28,7 +28,7 @@ export interface Receipt {
   standalone: true,
   imports: [CommonModule, RouterModule, ButtonModule, TableModule, TooltipModule, DatePickerModule, FormsModule],
   templateUrl: './general-receipt.html',
-  providers: [CurrencyPipe, DecimalPipe],
+  providers: [CurrencyPipe, DecimalPipe,DatePipe],
 })
 
 export class GeneralReceipt implements OnInit {
