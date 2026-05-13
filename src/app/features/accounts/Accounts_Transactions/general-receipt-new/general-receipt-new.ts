@@ -2296,7 +2296,7 @@ export class GeneralReceiptNew implements OnInit {
             pTdsSectionId: payments[0]?.pTdsSection || 0,
             pTdsPercentage: payments[0]?.pTdsPercentage || 0,
             ptdsamount: payments[0]?.ptdsamountindividual || 0,
-            ptdscalculationtype: '',
+            ptdscalculationtype: 'EXCLUDE',
             ptdsaccountid: 0,
 
             pnarration: this.GeneralReceiptForm.value.pnarration || '',

@@ -54,7 +54,8 @@ export class TdsJv implements OnInit {
   totalcreditamount = 0;
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  currencysymbol: any;
+  currencysymbol:  "₹";
+  // currencysymbol: any;
   showhidetable = false;
   dataisempty = false;
   isExists = false;
@@ -95,7 +96,7 @@ export class TdsJv implements OnInit {
     private _AccountingTransactionsService: AccountsTransactions,
     private cdr: ChangeDetectorRef,
   ) {
-    this.currencysymbol = this._commonService.datePickerPropertiesSetup('currencysymbol');
+    this.currencysymbol =  "₹";
     this.pageCriteria = new PageCriteria();
 
     this.dpConfig1.maxDate = new Date();
