@@ -1728,10 +1728,14 @@ export class ChequesInbank implements OnInit {
       data.push([
         e?.pChequenumber || '', e?.pbranchname || '',
         this._commonService.convertAmountToPdfFormat(amt), e?.preceiptid || '',
-        e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '',
-        e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '',
+        e?.preceiptdate ? this.datepipe.transform(e.preceiptdate,'dd-MMM-yyyy') : '',
+        e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate,'dd-MMM-yyyy') : '',
         ...(hasDateCol
-          ? [e?.pCleardate ? this._commonService.getFormatDateGlobal(e.pCleardate) : ''] : []),
+          ? [e?.pCleardate ? this.datepipe.transform(e.pCleardate,'dd-MMM-yyyy') : ''] : []),
+        //   e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '',
+        // e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '',
+        // ...(hasDateCol
+        //   ? [e?.pCleardate ? this._commonService.getFormatDateGlobal(e.pCleardate) : ''] : []),
         e?.ptypeofpayment || '',
         (e?.cheque_bank && e.cheque_bank !== '--NA--') ? e.cheque_bank : '',
         (e?.receipt_branch_name && e.receipt_branch_name !== '--NA--') ? e.receipt_branch_name : '',

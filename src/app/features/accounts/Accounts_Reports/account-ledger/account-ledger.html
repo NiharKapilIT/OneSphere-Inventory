@@ -106,8 +106,7 @@
             <!-- Row 3: Generate Button -->
             <div class="col-12 col-md-4">
               <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary" (click)="generateReport()"
-                  [disabled]="isLoading()">
+                <button type="button" class="erp-btn btn-primary" (click)="generateReport()" [disabled]="isLoading()">
 
                   @if (!isLoading()) {
                   <i class="pi pi-search"></i> Generate
@@ -142,8 +141,10 @@
           <div class="tb-left"></div>
 
           <div class="tb-right">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+            <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+              data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+            <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+              title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
             <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
               <i class="pi pi-file-pdf"></i>
             </button>
@@ -191,8 +192,10 @@
 
               <!-- Group Header -->
               <ng-template pTemplate="groupheader" let-rowData>
-                <tr>
+                <tr style="cursor:pointer" (click)="toggleGroup(rowData.ptransactiondate)">
                   <td colspan="5" class="bg-light font-bold">
+                    <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(rowData.ptransactiondate) ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
                     <span class="text-primary">
                       {{ rowData.ptransactiondate | date:'dd-MMM-yyyy' }}
                     </span>
@@ -247,6 +250,7 @@
 
               <!-- Table Body -->
               <ng-template pTemplate="body" let-row>
+                @if (!isGroupCollapsed(row.ptransactiondate)) {
                 <tr>
                   <td class="td-center">
                     {{ row.ptransactionno === 0 ? '--NA--' : row.ptransactionno }}
@@ -282,6 +286,7 @@
                     </span>
                   </td>
                 </tr>
+                }
               </ng-template>
 
               <!-- Footer Totals -->

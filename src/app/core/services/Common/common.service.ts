@@ -1155,7 +1155,7 @@ export class CommonService {
 
     const storedFormat = sessionStorage.getItem('dateformat') ?? '';
 
-    let format = 'dd/MM/yyyy';
+    let format = 'dd-MMM-yyyy';
 
     switch (storedFormat) {
       case "MM DD YYYY": format = 'MM dd yyyy'; break;
@@ -1862,12 +1862,36 @@ export class CommonService {
         }
       },
 
+      // didDrawCell: (data) => {
+      //   if (
+      //     (data.column.index === 2 || data.column.index === 3 || data.column.index === 5) &&
+      //     data.section === 'body'
+      //   ) {
+      //     if (this.currencysymbol === '₹') {
+      //       const x = data.cell.x + 2;
+      //       const y = data.cell.y + data.cell.height / 2;
+      //       doc.addImage(rupeeImage, x, y - 2, 3, 3);
+      //     }
+      //   }
+      // }
+
       didDrawCell: (data: any) => {
 
         const currencyColumns =
           reportName === 'TDS Report'
             ? [6, 7, 8]
             : [3, 4, 5];
+
+            if (
+          (data.column.index === 6 || data.column.index === 7 || data.column.index === 8) &&
+          data.section === 'body'
+        ) {
+          if (this.currencysymbol === '₹') {
+            const x = data.cell.x + 2;
+            const y = data.cell.y + data.cell.height / 2;
+            doc.addImage(rupeeImage, x, y-1.5, 1.5, 1.5);
+          }
+        }
 
         if (
           currencyColumns.includes(data.column.index) &&
