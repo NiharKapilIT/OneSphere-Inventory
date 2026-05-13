@@ -17,21 +17,13 @@
             <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label required">Bank Account <span class="required">*</span></label>
-                <ng-select
-                  [items]="BankData()"
-                  formControlName="pbankname"
-                  bindLabel="bankName"
-                  bindValue="bankAccountId"
-                  placeholder="Select Bank"
-                  [searchable]="true"
-                  [clearable]="true"
-                  appendTo="body"
-                  (change)="BankName_Cahange($event)"
-                  class="erp-ng-select"
+                <ng-select [items]="BankData()" formControlName="pbankname" bindLabel="bankName"
+                  bindValue="bankAccountId" placeholder="Select Bank" [searchable]="true" [clearable]="true"
+                  appendTo="body" (change)="BankName_Cahange($event)" class="erp-ng-select"
                   [class.is-invalid]="f['pbankname'].touched && f['pbankname'].invalid">
                 </ng-select>
                 @if (f['pbankname'].touched && f['pbankname'].errors?.['required']) {
-                  <div class="erp-field-error">Bank selection is required</div>
+                <div class="erp-field-error">Bank selection is required</div>
                 }
               </div>
             </div>
@@ -40,21 +32,13 @@
             <div class="col-12 col-md-4">
               <div class="erp-form-group">
                 <label class="erp-label required">Cheque Range / No. <span class="required">*</span></label>
-                <ng-select
-                  [items]="lstBankChequeDetails()"
-                  formControlName="pchqfromto"
-                  bindLabel="pchqfromto"
-                  bindValue="pchkBookId"
-                  placeholder="Select Cheque Range"
-                  appendTo="body"
-                  [searchable]="true"
-                  [clearable]="true"
-                  (change)="GetIssuedBankDetails($event)"
-                  class="erp-ng-select"
+                <ng-select [items]="lstBankChequeDetails()" formControlName="pchqfromto" bindLabel="pchqfromto"
+                  bindValue="pchkBookId" placeholder="Select Cheque Range" appendTo="body" [searchable]="true"
+                  [clearable]="true" (change)="GetIssuedBankDetails($event)" class="erp-ng-select"
                   [class.is-invalid]="f['pchqfromto'].touched && f['pchqfromto'].invalid">
                 </ng-select>
                 @if (f['pchqfromto'].touched && f['pchqfromto'].errors?.['required']) {
-                  <div class="erp-field-error">Cheque number range is required</div>
+                <div class="erp-field-error">Cheque number range is required</div>
                 }
               </div>
             </div>
@@ -65,179 +49,228 @@
 
       <!-- Unused Cheques Section -->
       <!-- @if (gridData().length > 0) { -->
-        <div class="p-4 bg-light-subtle border-bottom">
-          <div class="section-title d-flex align-items-center mb-4">
-            <span class="bg-warning text-white py-1 px-2  rounded-circle shadow-sm"><i class="pi pi-info-circle small"></i></span>
-            <h6 class="card-title"> &nbsp; &nbsp; Unused Cheques Register</h6>
-            <div class="flex-grow-1 ms-3 border-top"></div>
-            <button class="erp-btn btn-primary btn-sm ms-3 shadow-sm" type="button" (click)="UnusedChequeCancel()">
-              <i class="pi pi-times-circle me-1"></i> {{ savebutton() }}
-            </button>
-          </div>
+      <!-- Unused Cheques Section -->
+      <!-- Unused Cheques Section -->
+      <div class="p-4 bg-light-subtle border-bottom">
 
-          <div class="tbl-wrap">
-            <p-table
-              [value]="gridData()"
-              [paginator]="true"
-              [rows]="10"
-              [rowsPerPageOptions]="[10,20,50,100]"
-              responsiveLayout="scroll"
-              styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 70px;" class="text-center">Action</th>
-                  <th (click)="sortUnused('pchequenumber')" class="cursor-pointer">
-                    <div class="th-cell">Cheque No <span class="sort-icon" [innerHTML]="getSortIconUnused('pchequenumber')"></span></div>
-                  </th>
-                  <th (click)="sortUnused('pbankname')" class="cursor-pointer">
-                    <div class="th-cell">Bank Name <span class="sort-icon" [innerHTML]="getSortIconUnused('pbankname')"></span></div>
-                  </th>
-                  <th (click)="sortUnused('pchkBookId')" class="cursor-pointer" style="width: 150px;">
-                    <div class="th-cell">Book ID <span class="sort-icon" [innerHTML]="getSortIconUnused('pchkBookId')"></span></div>
-                  </th>
-                  <th (click)="sortUnused('pchequestatus')" class="cursor-pointer" style="width: 140px;">
-                    <div class="th-cell">Status <span class="sort-icon" [innerHTML]="getSortIconUnused('pchequestatus')"></span></div>
-                  </th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-row>
-                <tr>
-                  <td class="text-center">
-                    <label class="erp-checkbox m-0 d-inline-flex">
-                      <input type="checkbox" [checked]="row.isSelected === true" (change)="checkedCancel($event, row)" />
-                      <span></span>
-                    </label>
-                  </td>
-                  <td><span class="font-bold text-primary">{{ row.pchequenumber }}</span></td>
-                  <td class="small">{{ row.pbankname }}</td>
-                  <td class="small text-muted">{{ row.pchkBookId }}</td>
-                  <td>
-                    <span class="badge w-100 py-2 bg-warning-subtle text-warning border border-warning small">
-                      <i class="pi pi-clock me-1 smaller"></i> {{ row.pchequestatus }}
-                    </span>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="emptymessage">
-                <tr><td colspan="5" class="p-4 text-center text-muted italic">No unused cheques found for the selected criteria</td></tr>
-              </ng-template>
-            </p-table>
-          </div>
+        <!-- Section Header — always visible, click to toggle -->
+        <div class="d-flex align-items-center" [class.mb-4]="unusedSectionOpen()">
+          <span class="bg-warning text-white p-2 rounded-circle me-3 shadow-sm">
+            <i class="pi pi-info-circle small"></i>
+          </span>
+          <h6 class="mb-0 font-bold text-primary text-uppercase letter-spacing-1">Unused Cheques Register</h6>
+          <div class="flex-grow-1 ms-3 border-top"></div>
+
+          <button class="erp-btn btn-white btn-sm ms-3 shadow-sm" type="button" (click)="toggleUnusedSection()">
+            <i class="pi" [ngClass]="unusedSectionOpen() ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
+          </button>
+
+          <button class="erp-btn btn-primary btn-sm ms-2 shadow-sm" type="button" (click)="UnusedChequeCancel()">
+            <i class="pi pi-times-circle me-1"></i> {{ savebutton() }}
+          </button>
         </div>
+
+        <!-- Collapsible Table -->
+        @if (unusedSectionOpen()) {
+        <div class="tbl-wrap">
+          <p-table [value]="gridData()" [paginator]="true" [rows]="10" [rowsPerPageOptions]="[10,20,50,100]"
+            responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+            <ng-template pTemplate="header">
+              <tr>
+                <th style="width: 70px;" class="text-center">Action</th>
+                <th (click)="sortUnused('pchequenumber')" class="cursor-pointer">
+                  <div class="th-cell">Cheque No <span class="sort-icon"
+                      [innerHTML]="getSortIconUnused('pchequenumber')"></span></div>
+                </th>
+                <th (click)="sortUnused('pbankname')" class="cursor-pointer">
+                  <div class="th-cell">Bank Name <span class="sort-icon"
+                      [innerHTML]="getSortIconUnused('pbankname')"></span></div>
+                </th>
+                <th (click)="sortUnused('pchkBookId')" class="cursor-pointer" style="width: 150px;">
+                  <div class="th-cell">Book ID <span class="sort-icon"
+                      [innerHTML]="getSortIconUnused('pchkBookId')"></span></div>
+                </th>
+                <th (click)="sortUnused('pchequestatus')" class="cursor-pointer" style="width: 140px;">
+                  <div class="th-cell">Status <span class="sort-icon"
+                      [innerHTML]="getSortIconUnused('pchequestatus')"></span></div>
+                </th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-row>
+              <tr>
+                <td class="text-center">
+                  <label class="erp-checkbox m-0 d-inline-flex">
+                    <input type="checkbox" [checked]="row.isSelected === true" (change)="checkedCancel($event, row)" />
+                    <span></span>
+                  </label>
+                </td>
+                <td><span class="font-bold text-primary">{{ row.pchequenumber }}</span></td>
+                <td class="small">{{ row.pbankname }}</td>
+                <td class="small text-muted">{{ row.pchkBookId }}</td>
+                <td>
+                  <span class="badge w-100 py-2 bg-warning-subtle text-warning border border-warning small">
+                    <i class="pi pi-clock me-1 smaller"></i> {{ row.pchequestatus }}
+                  </span>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+              <tr>
+                <td colspan="5" class="p-4 text-center text-muted italic">
+                  No unused cheques found for the selected criteria
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+        }
+
+      </div>
       <!-- } -->
 
       <!-- Issued Details Section -->
       <!-- @if (gridDataDetails().length > 0) { -->
-        <div class="p-4">
-          
-          <!-- Export Toolbar -->
-          <div class="erp-table-toolbar mb-4 d-print-none">
-            <div class="tb-left"><h6 class="mb-0 font-bold text-primary">Issued Cheque Ledger</h6></div>
-            <div class="tb-right">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
-                <i class="pi pi-file-pdf"></i>
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
-                <i class="pi pi-print"></i>
-              </button>
-              <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
-                <i class="pi pi-file-excel"></i>
-              </button>
-            </div>
+      <div class="p-4">
+
+        <!-- Export Toolbar -->
+
+        <div class="erp-table-toolbar mb-4 d-print-none">
+          <div class="tb-left">
+            <h6 class="mb-0 font-bold text-primary">Issued Cheque Ledger</h6>
           </div>
-
-          <div class="report-view-container">
-            <app-companydetails [printedDateShowhide]="printedDate()" />
-            <div class="report-title-strip text-center bg-light py-2 border rounded my-3">
-               <h5 class="mb-0 font-bold text-uppercase small letter-spacing-1">Cheque Issuance Details</h5>
-            </div>
-
-            <div class="tbl-wrap">
-              <p-table
-                [value]="gridDataDetails()"
-                [paginator]="true"
-                [rows]="commencementgridPage().size"
-                [first]="commencementgridPage().pageNumber * commencementgridPage().size"
-                [totalRecords]="commencementgridPage().totalElements"
-                [scrollable]="true"
-                scrollHeight="500px"
-                rowGroupMode="subheader"
-                groupRowsBy="pchequestatus"
-                sortField="pchequestatus"
-                [sortOrder]="1"
-                styleClass="gr-table p-datatable-sm p-datatable-gridlines">
-                
-                <ng-template pTemplate="header">
-                  <tr>
-                    <th (click)="sortIssued('pchequenumber')" class="cursor-pointer" style="width: 120px;">
-                      <div class="th-cell">Cheque No <span class="sort-icon" [innerHTML]="getSortIconIssued('pchequenumber')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('ppaymentid')" class="cursor-pointer" style="width: 120px;">
-                      <div class="th-cell">Payment ID <span class="sort-icon" [innerHTML]="getSortIconIssued('ppaymentid')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('pparticulars')" class="cursor-pointer">
-                      <div class="th-cell">Particulars <span class="sort-icon" [innerHTML]="getSortIconIssued('pparticulars')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('ppaymentdate')" class="cursor-pointer" style="width: 130px;">
-                      <div class="th-cell">Issue Date <span class="sort-icon" [innerHTML]="getSortIconIssued('ppaymentdate')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('pcleardate')" class="cursor-pointer" style="width: 130px;">
-                      <div class="th-cell">Cleared Date <span class="sort-icon" [innerHTML]="getSortIconIssued('pcleardate')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('ppaidamount')" class="cursor-pointer text-end" style="width: 130px;">
-                      <div class="th-cell justify-content-end">Paid Amount <span class="sort-icon" [innerHTML]="getSortIconIssued('ppaidamount')"></span></div>
-                    </th>
-                    <th (click)="sortIssued('pbankname')" class="cursor-pointer" style="width: 180px;">
-                      <div class="th-cell">Bank Name <span class="sort-icon" [innerHTML]="getSortIconIssued('pbankname')"></span></div>
-                    </th>
-                  </tr>
-                </ng-template>
-
-                <ng-template pTemplate="groupheader" let-row let-expanded="expanded">
-                  <tr>
-                    <td colspan="7" class="bg-light font-bold">
-                      <i class="pi" [ngClass]="expanded ? 'pi-chevron-down' : 'pi-chevron-right'"></i>
-                      <span class="text-primary text-uppercase small letter-spacing-1 ms-2">{{ row.pchequestatus }}</span>
-                    </td>
-                  </tr>
-                </ng-template>
-
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    <td><span class="font-bold text-primary">{{ row.pchequenumber }}</span></td>
-                    <td class="small font-bold text-success">{{ row.ppaymentid }}</td>
-                    <td class="small">{{ row.pparticulars }}</td>
-                    <td class="text-center small">{{ row.ppaymentdate | date:'dd-MMM-yyyy' }}</td>
-                    <td class="text-center small">{{ row.pcleardate | date:'dd-MMM-yyyy' }}</td>
-                    <td class="td-right font-black text-danger">
-                      @if (row.ppaidamount !== 0) {
-                        {{ currencysymbol }} {{ row.ppaidamount | number:'1.2-2' }}
-                      } @else { <span class="smaller text-muted">--</span> }
-                    </td>
-                    <td class="small text-muted">{{ row.pbankname }}</td>
-                  </tr>
-                </ng-template>
-
-                <ng-template pTemplate="emptymessage">
-                  <tr><td colspan="7" class="p-4 text-center text-muted italic">No issued cheque details found</td></tr>
-                </ng-template>
-              </p-table>
-            </div>
+          <div class="tb-right">
+            <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+              data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+            <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+              title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Pdf')" title="Export PDF">
+              <i class="pi pi-file-pdf"></i>
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="pdfOrprint('Print')" title="Print">
+              <i class="pi pi-print"></i>
+            </button>
+            <button class="erp-btn btn-white btn-sm" (click)="export()" title="Excel">
+              <i class="pi pi-file-excel"></i>
+            </button>
           </div>
         </div>
+
+        <div class="report-view-container">
+          <app-companydetails [printedDateShowhide]="printedDate()" />
+          <div class="report-title-strip text-center bg-light py-2 border rounded my-3">
+            <h5 class="mb-0 font-bold text-uppercase small letter-spacing-1">Cheque Issuance Details</h5>
+          </div>
+
+          <div class="tbl-wrap">
+            <!-- <p-table [value]="gridDataDetails()" [paginator]="true" [rows]="commencementgridPage().size"
+              [first]="commencementgridPage().pageNumber * commencementgridPage().size"
+              [totalRecords]="commencementgridPage().totalElements" [scrollable]="true" scrollHeight="500px"
+              rowGroupMode="subheader" groupRowsBy="pchequestatus" sortField="pchequestatus" [sortOrder]="1"
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines"> -->
+            <p-table [value]="gridDataDetails()" [paginator]="true" [rows]="commencementgridPage().size"
+              [first]="commencementgridPage().pageNumber * commencementgridPage().size"
+              [totalRecords]="commencementgridPage().totalElements" [scrollable]="true" scrollHeight="500px"
+              rowGroupMode="subheader" groupRowsBy="pchequestatus" sortField="pchequestatus" [sortOrder]="1"
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+
+              <ng-template pTemplate="header">
+                <tr>
+                  <th (click)="sortIssued('pchequenumber')" class="cursor-pointer" style="width: 120px;">
+                    <div class="th-cell">Cheque No <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('pchequenumber')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('ppaymentid')" class="cursor-pointer" style="width: 120px;">
+                    <div class="th-cell">Payment ID <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('ppaymentid')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('pparticulars')" class="cursor-pointer">
+                    <div class="th-cell">Particulars <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('pparticulars')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('ppaymentdate')" class="cursor-pointer" style="width: 130px;">
+                    <div class="th-cell">Issue Date <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('ppaymentdate')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('pcleardate')" class="cursor-pointer" style="width: 130px;">
+                    <div class="th-cell">Cleared Date <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('pcleardate')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('ppaidamount')" class="cursor-pointer text-end" style="width: 130px;">
+                    <div class="th-cell justify-content-end">Paid Amount <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('ppaidamount')"></span></div>
+                  </th>
+                  <th (click)="sortIssued('pbankname')" class="cursor-pointer" style="width: 180px;">
+                    <div class="th-cell">Bank Name <span class="sort-icon"
+                        [innerHTML]="getSortIconIssued('pbankname')"></span></div>
+                  </th>
+                </tr>
+              </ng-template>
+
+
+
+              <ng-template pTemplate="groupheader" let-row>
+                <tr style="cursor:pointer" (click)="toggleGroup(row.pchequestatus)">
+                  <td colspan="7" class="bg-light font-bold">
+                    <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(row.pchequestatus) ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
+                    <span class="text-primary text-uppercase small letter-spacing-1">{{ row.pchequestatus }}</span>
+                  </td>
+                </tr>
+              </ng-template>
+
+
+              <ng-template pTemplate="body" let-row>
+                @if (!isGroupCollapsed(row.pchequestatus)) {
+                <tr>
+                  <td><span class="font-bold text-primary">{{ row.pchequenumber }}</span></td>
+                  <td class="small font-bold text-success">{{ row.ppaymentid }}</td>
+                  <td class="small">{{ row.pparticulars }}</td>
+                  <td class="text-center small">{{ row.ppaymentdate | date:'dd-MMM-yyyy' }}</td>
+                  <td class="text-center small">{{ row.pcleardate | date:'dd-MMM-yyyy' }}</td>
+                  <td class="td-right font-black text-danger">
+                    @if (row.ppaidamount !== 0) {
+                    {{ currencysymbol }} {{ row.ppaidamount | number:'1.2-2' }}
+                    } @else { <span class="smaller text-muted">--</span> }
+                  </td>
+                  <td class="small text-muted">{{ row.pbankname }}</td>
+                </tr>
+                }
+              </ng-template>
+
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td colspan="7" class="p-4 text-center text-muted italic">No issued cheque details found</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </div>
+      </div>
       <!-- } -->
     </div>
   </div>
 </div>
 
 <style>
-  .letter-spacing-1 { letter-spacing: 0.5px; }
-  .font-black { font-weight: 900; }
-  .smaller { font-size: 0.75rem; }
+  .letter-spacing-1 {
+    letter-spacing: 0.5px;
+  }
+
+  .font-black {
+    font-weight: 900;
+  }
+
+  .smaller {
+    font-size: 0.75rem;
+  }
+
   @media print {
-    .report-view-container { padding: 0 !important; }
-    .gr-table { border: 1px solid #000 !important; }
+    .report-view-container {
+      padding: 0 !important;
+    }
+
+    .gr-table {
+      border: 1px solid #000 !important;
+    }
   }
 </style>

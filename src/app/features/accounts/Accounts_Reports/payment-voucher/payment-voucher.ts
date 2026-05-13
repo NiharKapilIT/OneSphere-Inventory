@@ -131,8 +131,13 @@ export class PaymentVoucher implements OnInit {
       )
       .subscribe({
         next: (res: any) => {
+          console.log('FULL ROOT:', JSON.stringify(res[0]));
+          console.log('FULL payment root object:', JSON.stringify(res[0], null, 2));
+          console.log('RAW API response ppaymentslist[0]:', res[0]?.ppaymentslist?.[0]);
           const unique = this.deduplicateById(res, 'ppaymentid');
           this.tempPaymentData.set(this.computeTotals(unique));
+          console.log('ppaymentslist[0]:', this.tempPaymentData()[0]?.ppaymentslist?.[0]);
+          console.log('Gstinn:', this.Gstinn());
         },
         error: err => this.commonService.showErrorMessage(err)
       });
@@ -207,9 +212,9 @@ export class PaymentVoucher implements OnInit {
     );
   }
   getKapilGroupLogo() {
-let img:string='';
-let Company = this.commonService._getCompanyDetails();
-  img = Company.companyLogo;
+    let img: string = '';
+    let Company = this.commonService._getCompanyDetails();
+    img = Company.companyLogo;
     return img;
   }
 
@@ -231,31 +236,75 @@ let Company = this.commonService._getCompanyDetails();
     return result.length ? result : [{}];
   }
 
+
   private buildRows(): any[] {
+
     const rows: any[] = [];
     let sno = 1;
 
-    for (const payment of this.tempPaymentData()) {
-      for (const item of payment.ppaymentslist) {
-        rows.push([sno++, item.pAccountname, this.commonService.currencyFormat(item.pLedgeramount)]);
 
-        const isIntra = item.state_code?.toString() === this.Gstinn();
+    for (const payment of this.tempPaymentData()) {
+
+      for (const item of payment.ppaymentslist) {
+
+        rows.push([
+          sno++,
+          item.pAccountname,
+
+          Number(item.pLedgeramount || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })
+        ]);
+
+        const isIntra =
+          item.state_code?.toString() === this.Gstinn();
 
         if (isIntra) {
+
           if (item.pcgstamount) {
-            rows.push([sno++, 'P-SGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount / 2)]);
-            rows.push([sno++, 'P-CGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount / 2)]);
+
+            rows.push([
+              sno++,
+              'P-SGST (Exclude)',
+              item.pcgstamount / 2
+            ]);
+
+            rows.push([
+              sno++,
+              'P-CGST (Exclude)',
+              item.pcgstamount / 2
+            ]);
           }
+
         } else {
+
+
           if (item.pigstamount) {
-            rows.push([sno++, 'P-IGST (Exclude)', this.commonService.currencyFormat(item.pigstamount)]);
+
+            rows.push([
+              sno++,
+              'P-IGST (Exclude)',
+              item.pigstamount
+            ]);
+
           } else if (item.pcgstamount) {
-            rows.push([sno++, 'P-IGST (Exclude)', this.commonService.currencyFormat(item.pcgstamount)]);
+
+            rows.push([
+              sno++,
+              'P-IGST (Exclude)',
+              item.pcgstamount
+            ]);
           }
         }
 
         if (item.ptdsamount) {
-          rows.push([sno++, 'TDS (Include)', `-(${this.commonService.currencyFormat(item.ptdsamount)})`]);
+
+          rows.push([
+            sno++,
+            'TDS (Include)',
+            `-(${item.ptdsamount})`
+          ]);
         }
       }
     }
@@ -282,21 +331,52 @@ let Company = this.commonService._getCompanyDetails();
   }
 
   // ── PDF / Print ───────────────────────────────────────────────────────────
-  pdfOrPrint(action: 'Pdf' | 'Print'): void {
-    const rows = this.buildRows();
-    const grandTotal = this.computeGrandTotal();
 
-    rows.push(['', 'Total', this.commonService.currencyFormat(grandTotal)]);
+  pdfOrPrint(action: 'Pdf' | 'Print'): void {
+    debugger;
+
+    const rows = this.buildRows();
+
+    const grandTotal = Number(this.computeGrandTotal());
+
+    rows.push([
+      '',
+      'Total',
+      grandTotal.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
+    ]);
 
     const first = this.tempPaymentData()[0];
-    const paidTo = first?.pcontactname ?? first?.pAccountname ?? '';
-    const amountInWords = `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
+
+    const paidTo =
+      first?.pcontactname ??
+      first?.pAccountname ??
+      '';
+
+    const amountInWords =
+      `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
+    const modeOfPayment = first?.pmodofPayment?.toUpperCase() === 'CASH'
+  ? 'CASH'
+  : (first?.ptranstype ?? first?.ptypeofpayment ?? first?.pmodofPayment ?? '');
+
+const refNo = first?.reference_number ?? first?.preferenceno ?? first?.pChequenumber ?? '';
+const bank = (String(first?.cheque_bank ?? first?.pbankaccount ?? '')).split('@')[0];
+const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
+
+    
+
 
     this.commonService._downloadGridPdf1(
       this.receiptName(),
       rows,
       ['S.No.', 'Particulars', 'Amount'],
-      { 0: { halign: 'center', cellWidth: 20 }, 1: { halign: 'left' }, 2: { halign: 'right' } },
+      {
+        0: { halign: 'center', cellWidth: 20 },
+        1: { halign: 'left' },
+        2: { halign: 'right' }
+      },
       'a4',
       action,
       first?.pnarration,
@@ -305,7 +385,9 @@ let Company = this.commonService._getCompanyDetails();
       this.datePipe.transform(this.todaydate(), 'dd-MMM-yyyy h:mm:ss a'),
       this.username,
       paidTo,
-      amountInWords
+      amountInWords,
+      modeOfPayment,
+  referenceInfo
     );
   }
 
@@ -316,5 +398,33 @@ let Company = this.commonService._getCompanyDetails();
       .map(w => w.charAt(0).toUpperCase() + w.slice(1))
       .join(' ');
   }
+
+
+
+
+  formatPaymentMode(payment: any): string {
+    const mode = (payment?.pmodofPayment ?? payment?.pmodofPayment ?? '').toString().toUpperCase().trim();
+    const isCash = mode === 'CASH' || mode === 'C';
+    if (isCash) return 'CASH';
+    const transType = (payment?.ptranstype ?? payment?.ptypeofpayment ?? '').toString().trim();
+    const refNo = (payment?.reference_number ?? payment?.preferenceno ?? payment?.pChequenumber ?? '').toString().trim();
+    const rawBank = (payment?.cheque_bank ?? payment?.pbankaccount ?? '').toString().trim();
+    const bankName = rawBank.includes('@') ? rawBank.split('@')[0].trim() : rawBank;
+
+    const displayMode = transType || mode;
+
+    if (refNo || bankName) {
+      const parts: string[] = [];
+      if (refNo) parts.push(`Ref: ${refNo}`);
+      if (bankName) parts.push(`Bank: ${bankName}`);
+      return `${displayMode} (${parts.join(', ')})`;
+    }
+
+    return displayMode;
+  }
+
+
+
+
 }
 

@@ -124,7 +124,7 @@ export class PettycashReceiptCancel implements OnInit {
       narration: [''],
       cancellationreason: ['', Validators.required],
       schemaid: [this._commonService.getschemaname()],
-      autorizedcontactid: ['', Validators.required],
+      autorizedcontactid: [null, Validators.required],
       subintroducedname: [''],
       pCreatedby: [this._commonService.getCreatedBy()]
     }) as any;
@@ -333,7 +333,8 @@ export class PettycashReceiptCancel implements OnInit {
     this._generalreceiptcancelservice.savepettycashcancel(payload).subscribe({
       next: (res: any) => {
         if (res) {
-          this._commonService.showInfoMessage('Cancelled Successfully');
+          // this._commonService.showInfoMessage('Cancelled Successfully');
+          this._commonService.showSuccessMsg('Cancelled Successfully');
           this.getReceiptNumber();
           this.clear();
         }

@@ -160,6 +160,7 @@ export class ChequeEnquiry implements OnInit {
 
   // ── Type switch ──────────────────────────────────────────────────────────────
   selectChequesType(type: 'Issued' | 'Received'): void {
+    debugger;
     this.showIssuedCheques.set(type === 'Issued');
     this.showReceivedCheques.set(type === 'Received');
 

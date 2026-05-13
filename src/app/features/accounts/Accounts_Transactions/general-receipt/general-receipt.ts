@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
@@ -8,6 +8,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
+import { PageCriteria } from '../../../../core/models/pagecriteria';
 
 
 
@@ -25,8 +26,9 @@ export interface Receipt {
 @Component({
   selector: 'app-general-receipt',
   standalone: true,
-  imports: [CommonModule, RouterModule, ButtonModule, TableModule, TooltipModule, DecimalPipe, DatePickerModule, FormsModule],
+  imports: [CommonModule, RouterModule, ButtonModule, TableModule, TooltipModule, DatePickerModule, FormsModule],
   templateUrl: './general-receipt.html',
+  providers: [CurrencyPipe, DecimalPipe,DatePipe],
 })
 
 export class GeneralReceipt implements OnInit {
@@ -34,6 +36,9 @@ export class GeneralReceipt implements OnInit {
   private cs = inject(CommonService);
   private service = inject(AccountsTransactions);
   private router = inject(Router);
+  private readonly currencyPipe = inject(CurrencyPipe);
+
+
 
   // ── State ────────────────────────────────────────────────────────────────
   allData = signal<Receipt[]>([]);
@@ -42,10 +47,15 @@ export class GeneralReceipt implements OnInit {
   pageSize = signal<number>(10);
   fromDate = signal<Date | null>(null);
   toDate = signal<Date | null>(null);
+  readonly currencyCode = 'INR';
+  pageCriteria = new PageCriteria();
+
 
   readonly currencySymbol = this.cs.currencysymbol || '₹';
 
-  readonly rowsPerPageOptions = [5, 10, 20, 50];
+  // readonly rowsPerPageOptions = [5, 10, 20, 50];
+  rowsPerPageOptions: number[] = [10, 20, 50];
+
 
   // ── Derived ──────────────────────────────────────────────────────────────
   filteredData = computed(() => {
@@ -62,7 +72,13 @@ export class GeneralReceipt implements OnInit {
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
   ngOnInit(): void {
+
     this.loadData();
+  }
+
+
+  formatCurrency(amount: number): string {
+    return this.currencyPipe.transform(amount, 'INR', 'symbol', '1.2-2') ?? '₹0.00';
   }
 
   // ── Data ─────────────────────────────────────────────────────────────────
@@ -98,6 +114,8 @@ export class GeneralReceipt implements OnInit {
         }));
 
         this.allData.set(mapped);
+        this.pageCriteria.totalrows = mapped.length;
+        this.setPageModel();
       },
       error: (err) => {
         this.loading.set(false);
@@ -125,7 +143,12 @@ export class GeneralReceipt implements OnInit {
     window.open(url, '_blank');
   }
 
-
+  private setPageModel(): void {
+    this.rowsPerPageOptions = this.cs.setPageModel(
+      this.pageCriteria,
+      this.filteredData().length
+    );
+  }
 
   // ── Display Helpers ──────────────────────────────────────────────────────
   getPaymentLabel(row: Receipt): string {

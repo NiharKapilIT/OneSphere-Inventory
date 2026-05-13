@@ -1381,6 +1381,10 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       const net = Math.round(taxable + gstAmt - tds);
       const total = Math.round(taxable + gstAmt);
 
+      console.log('PV → gstRate:', gstPct, '| gstType:', gstType,
+            '| taxable:', taxable, '| gstAmt:', gstAmt,
+            '| cgst:', cgst, '| sgst:', sgst);
+
       group?.patchValue({
         ptaxableamount: taxable,
         pgstamount: gstAmt,
@@ -1663,54 +1667,191 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       this.subLedgerAccountsList?.find((x) => x.subledgerid === subledgerid) ??
       null;
 
+    // const currentRow = {
+    //   ppartyname: ctrl.get('ppartyname')?.value,
+    //   pledgername: ctrl.get('pledgername')?.value,
+    //   psubledgerid: selectedSub?.subledgerid ?? subledgerid,
+    //   psubledgername: selectedSub?.subledgername ?? '',
+    //   ptotalamount: round(
+    //     parseFloat(
+    //       this.commonService.removeCommasInAmount(
+    //         ctrl.get('ptotalamount')?.value ?? '0'
+    //       )
+    //     )
+    //   ),
+    //   pamount: round(
+    //     parseFloat(
+    //       this.commonService.removeCommasInAmount(
+    //         ctrl.get('pamount')?.value ?? '0'
+    //       )
+    //     )
+    //   ),
+    //   pgstcalculationtype: isgst ? ctrl.get('pgstcalculationtype')?.value : null,
+    //   pgsttype: isgst ? ctrl.get('pgsttype')?.value : null,
+    //   pgstpercentage: isgst ? ctrl.get('pgstpercentage')?.value ?? 0 : 0,
+    //   pgstamount: isgst
+    //     ? round(parseFloat(ctrl.get('pgstamount')?.value ?? '0'))
+    //     : 0,
+    //   pisgstapplicable: isgst ?? false,
+    //   pTdsSection: istds ? ctrl.get('pTdsSection')?.value : null,
+    //   pTdsPercentage: istds ? ctrl.get('pTdsPercentage')?.value ?? 0 : 0,
+    //   ptdsamount: istds
+    //     ? round(
+    //       parseFloat(
+    //         this.commonService.removeCommasInAmount(
+    //           ctrl.get('ptdsamount')?.value ?? '0'
+    //         )
+    //       )
+    //     )
+    //     : 0,
+    //   ptdscalculationtype: istds ? ctrl.get('ptdscalculationtype')?.value : null,
+    //   pistdsapplicable: istds ?? false,
+    //   ppartyid,
+    //   pledgerid,
+    //   pStateId: isgst ? ctrl.get('pStateId')?.value ?? 0 : 0,
+    //   pState: isgst ? ctrl.get('pState')?.value ?? '' : '',
+    //   pgstno: isgst ? ctrl.get('pgstno')?.value ?? '' : '',
+    //   ppartyreferenceid: ctrl.get('ppartyreferenceid')?.value ?? '',
+    //   ppartyreftype: ctrl.get('ppartyreftype')?.value ?? '',
+    //   ppartypannumber: ctrl.get('ppartypannumber')?.value ?? '',
+    // };
+
+
     const currentRow = {
-      ppartyname: ctrl.get('ppartyname')?.value,
-      pledgername: ctrl.get('pledgername')?.value,
-      psubledgerid: selectedSub?.subledgerid ?? subledgerid,
-      psubledgername: selectedSub?.subledgername ?? '',
-      ptotalamount: round(
+  ppartyname: ctrl.get('ppartyname')?.value,
+  pledgername: ctrl.get('pledgername')?.value,
+
+  psubledgerid: selectedSub?.subledgerid ?? subledgerid,
+  psubledgername: selectedSub?.subledgername ?? '',
+
+  ptotalamount: round(
+    parseFloat(
+      this.commonService.removeCommasInAmount(
+        ctrl.get('ptotalamount')?.value ?? '0'
+      )
+    )
+  ),
+
+  pamount: round(
+    parseFloat(
+      this.commonService.removeCommasInAmount(
+        ctrl.get('pamount')?.value ?? '0'
+      )
+    )
+  ),
+
+  // ───── GST ─────────────────────────────
+
+  pgstcalculationtype: isgst
+    ? ctrl.get('pgstcalculationtype')?.value
+    : null,
+
+  pgsttype: isgst
+    ? ctrl.get('pgsttype')?.value
+    : null,
+
+  pgstpercentage: isgst
+    ? ctrl.get('pgstpercentage')?.value ?? 0
+    : 0,
+
+  pgstamount: isgst
+    ? round(parseFloat(ctrl.get('pgstamount')?.value ?? '0'))
+    : 0,
+
+  // ───── Individual GST Amounts ──────────
+
+  pigstamount: isgst
+    ? round(parseFloat(ctrl.get('pigstamount')?.value ?? '0'))
+    : 0,
+
+  pcgstamount: isgst
+    ? round(parseFloat(ctrl.get('pcgstamount')?.value ?? '0'))
+    : 0,
+
+  psgstamount: isgst
+    ? round(parseFloat(ctrl.get('psgstamount')?.value ?? '0'))
+    : 0,
+
+  putgstamount: isgst
+    ? round(parseFloat(ctrl.get('putgstamount')?.value ?? '0'))
+    : 0,
+
+  // ───── Individual GST Percentages ─────
+
+  pigstpercentage: isgst
+    ? ctrl.get('pigstpercentage')?.value ?? 0
+    : 0,
+
+  pcgstpercentage: isgst
+    ? ctrl.get('pcgstpercentage')?.value ?? 0
+    : 0,
+
+  psgstpercentage: isgst
+    ? ctrl.get('psgstpercentage')?.value ?? 0
+    : 0,
+
+  putgstpercentage: isgst
+    ? ctrl.get('putgstpercentage')?.value ?? 0
+    : 0,
+
+  pisgstapplicable: isgst ?? false,
+
+  // ───── TDS ─────────────────────────────
+
+  pTdsSection: istds
+    ? ctrl.get('pTdsSection')?.value
+    : null,
+
+  pTdsPercentage: istds
+    ? ctrl.get('pTdsPercentage')?.value ?? 0
+    : 0,
+
+  ptdsamount: istds
+    ? round(
         parseFloat(
           this.commonService.removeCommasInAmount(
-            ctrl.get('ptotalamount')?.value ?? '0'
+            ctrl.get('ptdsamount')?.value ?? '0'
           )
         )
-      ),
-      pamount: round(
-        parseFloat(
-          this.commonService.removeCommasInAmount(
-            ctrl.get('pamount')?.value ?? '0'
-          )
-        )
-      ),
-      pgstcalculationtype: isgst ? ctrl.get('pgstcalculationtype')?.value : null,
-      pgsttype: isgst ? ctrl.get('pgsttype')?.value : null,
-      pgstpercentage: isgst ? ctrl.get('pgstpercentage')?.value ?? 0 : 0,
-      pgstamount: isgst
-        ? round(parseFloat(ctrl.get('pgstamount')?.value ?? '0'))
-        : 0,
-      pisgstapplicable: isgst ?? false,
-      pTdsSection: istds ? ctrl.get('pTdsSection')?.value : null,
-      pTdsPercentage: istds ? ctrl.get('pTdsPercentage')?.value ?? 0 : 0,
-      ptdsamount: istds
-        ? round(
-          parseFloat(
-            this.commonService.removeCommasInAmount(
-              ctrl.get('ptdsamount')?.value ?? '0'
-            )
-          )
-        )
-        : 0,
-      ptdscalculationtype: istds ? ctrl.get('ptdscalculationtype')?.value : null,
-      pistdsapplicable: istds ?? false,
-      ppartyid,
-      pledgerid,
-      pStateId: isgst ? ctrl.get('pStateId')?.value ?? 0 : 0,
-      pState: isgst ? ctrl.get('pState')?.value ?? '' : '',
-      pgstno: isgst ? ctrl.get('pgstno')?.value ?? '' : '',
-      ppartyreferenceid: ctrl.get('ppartyreferenceid')?.value ?? '',
-      ppartyreftype: ctrl.get('ppartyreftype')?.value ?? '',
-      ppartypannumber: ctrl.get('ppartypannumber')?.value ?? '',
-    };
+      )
+    : 0,
+
+  ptdscalculationtype: istds
+    ? ctrl.get('ptdscalculationtype')?.value
+    : null,
+
+  pistdsapplicable: istds ?? false,
+
+  // ───── Party / Ledger ──────────────────
+
+  ppartyid,
+  pledgerid,
+
+  // ───── State / GST Info ────────────────
+
+  pStateId: isgst
+    ? ctrl.get('pStateId')?.value ?? 0
+    : 0,
+
+  pState: isgst
+    ? ctrl.get('pState')?.value ?? ''
+    : '',
+
+  pgstno: isgst
+    ? ctrl.get('pgstno')?.value ?? ''
+    : '',
+
+  // ───── References ──────────────────────
+
+  ppartyreferenceid:
+    ctrl.get('ppartyreferenceid')?.value ?? '',
+
+  ppartyreftype:
+    ctrl.get('ppartyreftype')?.value ?? '',
+
+  ppartypannumber:
+    ctrl.get('ppartypannumber')?.value ?? '',
+};
 
     if (!this.validateAddPaymentDetails(currentRow)) {
       this.resetAddButton();
@@ -1789,13 +1930,13 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
     this.getPartyJournalEntryData();
     this.getPaymentListColumnWiseTotals();
 
-    // ✅ Mark clean BEFORE reset so valueChanges subscribers don't fire validation
+    //  Mark clean BEFORE reset so valueChanges subscribers don't fire validation
     ctrl.markAsUntouched();
     ctrl.markAsPristine();
     ctrl.reset();
-    ctrl.updateValueAndValidity({ emitEvent: false }); // ✅ suppress valueChanges
+    ctrl.updateValueAndValidity({ emitEvent: false }); //  suppress valueChanges
 
-    // ✅ Clear after everything so no stale messages remain
+    //  Clear after everything so no stale messages remain
     this.formValidationMessages = {};
 
     this.clearPaymentDetailsParticular(); // this also sets formValidationMessages = {}
@@ -2360,8 +2501,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
 
         if (count !== 0) {
+          debugger
           this.commonService.showWarningMessage(
-            `Subledger per day Cash transactions limit below ${this.commonService.currencysymbol}${this.commonService.currencyformat(this.cashRestrictAmount)} only`
+            `Subledger per day Cash transactions limit below ${this.commonService.currencyformat(this.cashRestrictAmount)} only`
           );
           this.disableSaveButton.set(false);
           this.saveButtonLabel.set('Save');
@@ -2385,7 +2527,15 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         this.paymentVoucherForm.get('pCreatedby')?.setValue(9);
         console.log(this.paymentVoucherForm.value, 'formval');
 
-        const payload = this.buildSavePayload(
+
+
+     this.paymentsList.forEach((x:any)=>{
+  console.log("IGSTSHJD",
+    x.pigstamount,
+    x.pcgstamount,
+    x.psgstamount
+  );
+});   const payload = this.buildSavePayload(
           this.paymentVoucherForm.getRawValue()
         );
 
@@ -2399,7 +2549,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
                 this.disableSaveButton.set(false);
                 this.saveButtonLabel.set('Save');
 
-                this.commonService.showInfoMessage('Saved successfully');
+                this.commonService.showSuccessMessage();
                 this.clearPaymentVoucher();
 
                 // ── Clear bank validators and validation AFTER clearPaymentVoucher ──

@@ -113,7 +113,7 @@
               <input class="erp-input" id="pdebitamount" title="Debit Amount" formControlName="pdebitamount"
                 [readonly]="readonlydebit" type="text" placeholder="0.00" (keyup)="disableamounttype('Debit')"
                 (blur)="pamount_change(); formatCurrency('pdebitamount')" (input)="allowNumberOnly($event)"
-                appRoundecimal="12@2" appMyCurrencyFormatorincludingzero
+                appRoundecimal="12@2" appMyCurrencyFormatorincludingzero  appNoLeadingZero
                 [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.dirty)}" />
               @if (paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.touched &&
               paymentVoucherForm.get('ppaymentsslistcontrols.pdebitamount')?.errors?.['required']) {
@@ -129,7 +129,7 @@
               <input class="erp-input" id="pcreditamount" title="Credit Amount" formControlName="pcreditamount"
                 [readonly]="readonlycredit" type="text" placeholder="0.00" (keyup)="disableamounttype('Credit')"
                 (blur)="pamount_change(); formatCurrency('pcreditamount')" (input)="allowNumberOnly($event)"
-                appRoundecimal="12@2" appMyCurrencyFormatorincludingzero
+                appRoundecimal="12@2" appMyCurrencyFormatorincludingzero appNoLeadingZero  
                 [ngClass]="{'ng-invalid ng-dirty': paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.invalid && (paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.touched || paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.dirty)}" />
               @if (paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.touched &&
               paymentVoucherForm.get('ppaymentsslistcontrols.pcreditamount')?.errors?.['required']) {

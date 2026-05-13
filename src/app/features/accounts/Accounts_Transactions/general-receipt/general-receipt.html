@@ -64,11 +64,11 @@
 
       <!-- DataTable -->
       <div class="tbl-wrap">
-        <p-table [value]="filteredData()" [paginator]="true" [rows]="pageSize()" [showCurrentPageReport]="true"
-          [rowsPerPageOptions]="rowsPerPageOptions" (onPage)="onPageChange($event)"
-          currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries" responsiveLayout="scroll"
-          [loading]="loading()" [sortMode]="'single'" styleClass="gr-table" paginatorPosition="bottom"
-          [resizableColumns]="true">
+        <p-table [value]="filteredData()" [paginator]="filteredData().length > pageCriteria.pageSize"
+          [rows]="pageSize()" [showCurrentPageReport]="true" [rowsPerPageOptions]="rowsPerPageOptions"
+          (onPage)="onPageChange($event)" currentPageReportTemplate="Showing {first}–{last} of {totalRecords} entries"
+          responsiveLayout="scroll" [loading]="loading()" [sortMode]="'single'" styleClass="gr-table"
+          paginatorPosition="bottom" [resizableColumns]="true">
 
           <!-- Header -->
           <ng-template pTemplate="header">
@@ -81,9 +81,15 @@
                   <p-sortIcon field="receipt_date"></p-sortIcon>
                 </div>
               </th>
-              <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
+              <!-- <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
                 <div class="th-cell" style="justify-content:center">
                   <i class="pi pi-hashtag"></i>
+                  Receipt No.
+                  <p-sortIcon field="receipt_number"></p-sortIcon>
+                </div>
+              </th> -->
+              <th pResizableColumn pSortableColumn="receipt_number" class="th-center">
+                <div class="th-cell" style="justify-content:center">
                   Receipt No.
                   <p-sortIcon field="receipt_number"></p-sortIcon>
                 </div>
@@ -132,7 +138,8 @@
 
               <!-- Receipt Number -->
               <td class="td-center">
-                <span class="receipt-no">#{{ row.receipt_number || '--' }}</span>
+                <!-- <span class="receipt-no">#{{ row.receipt_number || '--' }}</span> -->
+                <span class="receipt-no">{{ row.receipt_number || '--' }}</span>
               </td>
 
               <!-- Payment Mode -->
@@ -159,10 +166,15 @@
               </td>
 
               <!-- Amount -->
-              <td class="td-right">
+              <!-- <td class="td-right">
                 <div class="amount-cell">
                   <span class="amt-sym">{{ currencySymbol }}</span>
                   <span class="amt-num">{{ row.totalreceivedamount ?? 0 | number:'1.2-2' }}</span>
+                </div>
+              </td> -->
+              <td class="td-right">
+                <div class="td-cell td-right amount-cell">
+                  <span class="amt-num">{{ formatCurrency(row.totalreceivedamount) }}</span>
                 </div>
               </td>
 

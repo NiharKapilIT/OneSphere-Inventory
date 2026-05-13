@@ -99,7 +99,7 @@ export class LedgerExtract implements OnInit {
 
     this.http
       .get<LedgerRow[]>(
-        `https://localhost:5001/api/Accounts/GetLedgerExtractReport?fromDate=${fromApi}&toDate=${toApi}&Narration=${this.rc.Narration}`
+        `https://localhost:5001/api/Accounts/GetLedgerExtractReport?fromDate=${fromApi}&toDate=${toApi}&Narration=${this.rc.Narration}&BranchSchema=accounts`
       )
       .subscribe({
         next: (data) => {

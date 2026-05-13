@@ -59,13 +59,15 @@ export class ChequesOnhand implements OnInit {
   disablesavebutton = signal<boolean>(false);
   pdatepickerenablestatus = signal<boolean>(false);
   isCleared = signal<boolean>(false);
-  page = signal<any>({});
+  // page = signal<any>({});
 
   bankname = signal<any>(null);
   brsdate = signal<string>('');
   chequenumber = signal<any>(null);
   ChequesOnHandValidation = signal<any>({});
 
+  currentSortField = signal<string>('preceiptdate');
+  currentSortOrder = signal<number>(1);
 
   ChequesOnHandData: any[] = [];
   ChequesClearReturnData: any[] = [];
@@ -112,6 +114,9 @@ export class ChequesOnhand implements OnInit {
 
   pageCriteria: PageCriteria;
   pageSize = 10;
+  rowsPerPageOptions: number[] = [10, 20, 50];
+  page = signal<any>({ totalElements: 0, totalPages: 0, offset: 0, size: 0 });
+
 
   public dpConfig: any = {};
   public brsfromConfig: any = {};
@@ -352,22 +357,21 @@ export class ChequesOnhand implements OnInit {
       });
   }
 
+  // setPageModel() {
+  //   this.pageCriteria.pageSize = this._commonService.pageSize;
+  //   this.pageCriteria.offset = 0;
+  //   this.pageCriteria.pageNumber = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+  // }
+
+
   setPageModel() {
-    this.pageCriteria.pageSize = this._commonService.pageSize;
-    this.pageCriteria.offset = 0;
-    this.pageCriteria.pageNumber = 1;
-    this.pageCriteria.footerPageHeight = 50;
+    this.rowsPerPageOptions = this._commonService.setPageModel(
+      this.pageCriteria,
+      this.gridData().length
+    );
   }
 
-  onFooterPageChange(event: any): void {
-    this.pageCriteria.offset = event.page - 1;
-    this.pageCriteria.CurrentPage = event.page;
-    if (this.pageCriteria.totalrows < event.page * this.pageCriteria.pageSize) {
-      this.pageCriteria.currentPageRows = this.pageCriteria.totalrows % this.pageCriteria.pageSize;
-    } else {
-      this.pageCriteria.currentPageRows = this.pageCriteria.pageSize;
-    }
-  }
 
   change_date(event: any) {
     this.gridData.update(data =>
@@ -380,38 +384,221 @@ export class ChequesOnhand implements OnInit {
     );
   }
 
+
+
   pageSetUp() {
-    this.page.update(p => ({ ...p, offset: 0, pageNumber: 1, size: this._commonService.pageSize }));
     this.startindex = 0;
     this.endindex = this._commonService.pageSize;
     this.pageCriteria.offset = 0;
     this.pageCriteria.pageSize = this._commonService.pageSize;
   }
 
+
+  private applySortToGrid() {
+    const field = this.currentSortField();
+    const order = this.currentSortOrder();
+    if (!field) return;
+    this.gridData.update(data =>
+      [...data].sort((a, b) => {
+        const v1 = a[field], v2 = b[field];
+        if (v1 == null && v2 == null) return 0;
+        if (v1 == null) return 1;
+        if (v2 == null) return -1;
+        if (typeof v1 === 'string') return v1.localeCompare(v2) * order;
+        return (v1 < v2 ? -1 : v1 > v2 ? 1 : 0) * order;
+      })
+    );
+    this.gridDatatemp.set(this.gridData());
+  }
+
+  // setPage(event: any) {
+  //   this.preferdrows = false;
+
+  //   if (event.sortField) {
+  //     this.currentSortField.set(event.sortField);
+  //     this.currentSortOrder.set(event.sortOrder ?? 1);
+  //   }
+
+  //   this.page.update(p => ({
+  //     ...p,
+  //     offset: event.first / event.rows,
+  //     pageNumber: event.first / event.rows + 1,
+  //     size: event.rows
+  //   }));
+  //   this.startindex = event.first;
+  //   this.endindex = event.first + event.rows;
+
+
+  //   if (
+  //     this.fromdate && this.fromdate !== '' &&
+  //     this.todate && this.todate !== '' &&
+  //     this.bankid && this.bankid !== 0
+  //   ) {
+  //     this.GetDataOnBrsDates1(this.fromdate, this.todate, this.bankid);
+  //   } else {
+  //     this.GetChequesOnHand(this.bankid, this.startindex, this.endindex, '');
+  //   }
+  // }
+
+  // GetChequesOnHand_Load(bankid: any) {
+  //   this.gridLoading = true;
+  //   const modeofreceipt = this.modeofreceipt || 'ALL';
+
+  //   const chequesData$ = this._accountingtransaction.GetChequesOnHandData(
+  //     bankid,
+  //     this._commonService.getschemaname(),
+  //     this._commonService.getbranchname(),
+  //     this.startindex,
+  //     this.endindex,
+  //     this._searchText,
+  //     modeofreceipt,
+  //     '',
+  //     this._commonService.getCompanyCode(),
+  //     this._commonService.getBranchCode()
+  //   );
+
+  //   const countData$ = this._accountingtransaction.GetChequesRowCount(
+  //     bankid,
+  //     this._commonService.getschemaname(),
+  //     this._commonService.getbranchname(),
+  //     this._searchText,
+  //     'CHEQUESONHAND',
+  //     modeofreceipt,
+  //     this._commonService.getCompanyCode(),
+  //     this._commonService.getBranchCode()
+  //   );
+
+  //   forkJoin([chequesData$, countData$]).subscribe({
+  //     next: ([data, countData]: [any, any]) => {
+  //       this.gridLoading = false;
+  //       this.ChequesOnHandData = data.pchequesOnHandlist || [];
+  //       this.ChequesClearReturnData = data.pchequesclearreturnlist || [];
+  //       this._countData = countData;
+  //       this.CountOfRecords();
+  //       this.totalElements = +countData['total_count'];
+  //       this.page.update(p => ({
+  //         ...p,
+  //         totalElements: +countData['total_count'],
+  //         totalPages: +countData['total_count'] > 10
+  //           ? Math.ceil(+countData['total_count'] / 10)
+  //           : p.totalPages
+  //       }));
+
+  //       const s = this.status();
+  //       if (s === 'all') this.All1();
+  //       else if (s === 'chequesreceived') this.ChequesReceived1();
+  //       else if (s === 'onlinereceipts') this.OnlineReceipts1();
+  //       else if (s === 'deposited') this.Deposited1();
+  //       else if (s === 'cancelled') this.Cancelled1();
+  //       this.applySortToGrid();
+  //     },
+  //     error: (error: any) => {
+  //       this.gridLoading = false;
+  //       this._commonService.showErrorMessage(error);
+  //     }
+  //   });
+  // }
+
+
+
   setPage(event: any) {
-    this.preferdrows = false;
+    const first = event.first ?? 0;
+    const rows = event.rows ?? this._commonService.pageSize;
+
+    const pageIndex = Math.floor(first / rows);
+
+    this.startindex = first;
+    this.endindex = first + rows;
+
     this.page.update(p => ({
       ...p,
-      offset: event.first / event.rows,
-      pageNumber: event.first / event.rows + 1,
-      size: event.rows
+      offset: pageIndex,
+      // pageNumber: pageIndex,
+      pageNumber: pageIndex + 1,
+      size: rows
     }));
-    this.startindex = event.first;
-    this.endindex = event.first + event.rows;
 
-    if (
-      this.fromdate && this.fromdate !== '' &&
-      this.todate && this.todate !== '' &&
-      this.bankid && this.bankid !== 0
-    ) {
-      this.GetDataOnBrsDates1(this.fromdate, this.todate, this.bankid);
-    } else {
-      this.GetChequesOnHand(this.bankid, this.startindex, this.endindex, '');
-    }
+    this.GetChequesOnHand_Load(this.bankid);
   }
+
+
+
+  // GetChequesOnHand_Load(bankid: any) {
+  //   this.gridLoading = true;
+  //   const modeofreceipt = this.modeofreceipt || 'ALL';
+
+  //   const chequesData$ = this._accountingtransaction.GetChequesOnHandData(
+  //     bankid,
+  //     this._commonService.getschemaname(),
+  //     this._commonService.getbranchname(),
+  //     this.startindex,   // ← these must be 0 and pageSize after pageSetUp()
+  //     this.endindex,
+  //     this._searchText,
+  //     modeofreceipt,
+  //     '',
+  //     this._commonService.getCompanyCode(),
+  //     this._commonService.getBranchCode()
+  //   );
+
+  //   const countData$ = this._accountingtransaction.GetChequesRowCount(
+  //     bankid,
+  //     this._commonService.getschemaname(),
+  //     this._commonService.getbranchname(),
+  //     this._searchText,
+  //     'CHEQUESONHAND',
+  //     modeofreceipt,
+  //     this._commonService.getCompanyCode(),
+  //     this._commonService.getBranchCode()
+  //   );
+
+  //   forkJoin([chequesData$, countData$]).subscribe({
+  //     next: ([data, countData]: [any, any]) => {
+  //       this.gridLoading = false;
+  //       this.ChequesOnHandData = data.pchequesOnHandlist || [];
+  //       this.ChequesClearReturnData = data.pchequesclearreturnlist || [];
+  //       this._countData = countData;
+  //       this.CountOfRecords();
+
+  //       const total = +countData['total_count'];
+  //       this.totalElements = total;
+
+
+  //       this.page.set({
+  //         totalElements: total,
+  //         totalPages: total > this._commonService.pageSize
+  //           ? Math.ceil(total / this._commonService.pageSize)
+  //           : 1,
+  //         offset: 0,
+  //         pageNumber: 1,
+  //         size: this._commonService.pageSize
+  //       });
+
+  //       this.startindex = 0;
+  //       this.endindex = this._commonService.pageSize;
+  //       if (this.dt) {
+  //         this.dt.first = 0;
+  //       }
+  //       const s = this.status();
+  //       if (s === 'all') this.All1();
+  //       else if (s === 'chequesreceived') this.ChequesReceived1();
+  //       else if (s === 'onlinereceipts') this.OnlineReceipts1();
+  //       else if (s === 'deposited') this.Deposited1();
+  //       else if (s === 'cancelled') this.Cancelled1();
+  //       this.applySortToGrid();
+  //     },
+  //     error: (error: any) => {
+  //       this.gridLoading = false;
+  //       this._commonService.showErrorMessage(error);
+  //     }
+  //   });
+  // }
+
+
+
 
   GetChequesOnHand_Load(bankid: any) {
     this.gridLoading = true;
+
     const modeofreceipt = this.modeofreceipt || 'ALL';
 
     const chequesData$ = this._accountingtransaction.GetChequesOnHandData(
@@ -440,33 +627,60 @@ export class ChequesOnhand implements OnInit {
 
     forkJoin([chequesData$, countData$]).subscribe({
       next: ([data, countData]: [any, any]) => {
+
         this.gridLoading = false;
-        this.ChequesOnHandData = data.pchequesOnHandlist || [];
-        this.ChequesClearReturnData = data.pchequesclearreturnlist || [];
+
+        this.ChequesOnHandData =
+          data.pchequesOnHandlist || [];
+
+        this.ChequesClearReturnData =
+          data.pchequesclearreturnlist || [];
+
         this._countData = countData;
+
         this.CountOfRecords();
-        this.totalElements = +countData['total_count'];
+
+        const total = +countData['total_count'] || 0;
+
+        this.totalElements = total;
+
+        // ✅ ONLY update totals
+        // ❌ DO NOT reset paginator state here
         this.page.update(p => ({
           ...p,
-          totalElements: +countData['total_count'],
-          totalPages: +countData['total_count'] > 10
-            ? Math.ceil(+countData['total_count'] / 10)
-            : p.totalPages
+          totalElements: total,
+          totalPages: Math.ceil(total / p.size)
         }));
 
         const s = this.status();
-        if (s === 'all') this.All1();
-        else if (s === 'chequesreceived') this.ChequesReceived1();
-        else if (s === 'onlinereceipts') this.OnlineReceipts1();
-        else if (s === 'deposited') this.Deposited1();
-        else if (s === 'cancelled') this.Cancelled1();
+
+        if (s === 'all') {
+          this.All1();
+        }
+        else if (s === 'chequesreceived') {
+          this.ChequesReceived1();
+        }
+        else if (s === 'onlinereceipts') {
+          this.OnlineReceipts1();
+        }
+        else if (s === 'deposited') {
+          this.Deposited1();
+        }
+        else if (s === 'cancelled') {
+          this.Cancelled1();
+        }
+
+        this.applySortToGrid();
       },
+
       error: (error: any) => {
         this.gridLoading = false;
         this._commonService.showErrorMessage(error);
       }
     });
   }
+
+
 
   GetChequesOnHand(bankid: any, startindex: any, endindex: any, searchText: any) {
     this.gridLoading = true;
@@ -497,6 +711,7 @@ export class ChequesOnhand implements OnInit {
           else if (s === 'onlinereceipts') this.OnlineReceipts1();
           else if (s === 'deposited') this.Deposited1();
           else if (s === 'cancelled') this.Cancelled1();
+          this.applySortToGrid();
         },
         error: (error: any) => {
           this.gridLoading = false;
@@ -717,6 +932,40 @@ export class ChequesOnhand implements OnInit {
     this.GetChequesOnHand_Load(this.bankid);
   }
 
+  // All1() {
+  //   this.gridData.set([]);
+  //   this.gridDatatemp.set([]);
+  //   this.GridColumnsShow();
+  //   this.status.set('all');
+  //   this.pdfstatus = 'All';
+  //   this.modeofreceipt = 'ALL';
+
+  //   const mapped = this.ChequesOnHandData.map((element: any) => ({
+  //     ...element,
+  //     pbranchname: this.extractBranchName(element)
+  //   }));
+
+  //   this.gridData.set(JSON.parse(JSON.stringify(mapped)));
+  //   this.gridDatatemp.set(this.gridData());
+  //   this.showicons.set(this.gridData().length > 0);
+
+  //   const total = this._countData && +this._countData['total_count'] > 0
+  //     ? +this._countData['total_count']
+  //     : this.gridData().length;
+
+  //   this.page.update(p => ({
+  //     ...p,
+  //     totalElements: total,
+  //     totalPages: total > 10 ? Math.ceil(total / 10) : p.totalPages
+  //   }));
+  //   this.totalElements = total;
+
+  //   this.amounttotal.set(
+  //     parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
+  //   );
+  //   this.setPageModel();
+  // }
+
   All1() {
     this.gridData.set([]);
     this.gridDatatemp.set([]);
@@ -733,17 +982,6 @@ export class ChequesOnhand implements OnInit {
     this.gridData.set(JSON.parse(JSON.stringify(mapped)));
     this.gridDatatemp.set(this.gridData());
     this.showicons.set(this.gridData().length > 0);
-
-    const total = this._countData && +this._countData['total_count'] > 0
-      ? +this._countData['total_count']
-      : this.gridData().length;
-
-    this.page.update(p => ({
-      ...p,
-      totalElements: total,
-      totalPages: total > 10 ? Math.ceil(total / 10) : p.totalPages
-    }));
-    this.totalElements = total;
 
     this.amounttotal.set(
       parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0))
@@ -1270,14 +1508,16 @@ export class ChequesOnhand implements OnInit {
 
     gridData.forEach((element: any) => {
 
-      const datereceipt = this._commonService.getFormatDateGlobal(element.preceiptdate);
+      const datereceipt = this.datepipe.transform(element.preceiptdate,'dd-MMM-yyyy');
+      // this._commonService.getFormatDateGlobal(element.preceiptdate);
 
       const depositeddate = element.pdepositeddate
-        ? this._commonService.getFormatDateGlobal(element.pdepositeddate)
+        ? this.datepipe.transform(element.pdepositeddate,'dd-MMM-yyyy')
         : '';
 
       const chequedate = element.pchequedate
-        ? this._commonService.getFormatDateGlobal(element.pchequedate)
+        ? this.datepipe.transform(element.pchequedate,'dd-MMM-yyyy')
+        // this._commonService.getFormatDateGlobal(element.pchequedate)
         : '';
 
       const branchName =
@@ -1834,6 +2074,8 @@ export class ChequesOnhand implements OnInit {
 
     this.showicons.set(this.gridData().length > 0);
     this.pageSetUp();
+    this.setPageModel();
+
   }
 
 
@@ -1923,6 +2165,7 @@ export class ChequesOnhand implements OnInit {
         this.amounttotal.set(
           parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0).toFixed(2))
         );
+        this.applySortToGrid();
       },
       error: (error: any) => this._commonService.showErrorMessage(error)
     });
@@ -1965,6 +2208,7 @@ export class ChequesOnhand implements OnInit {
           this.amounttotal.set(
             parseFloat(this.gridData().reduce((sum: number, c: any) => sum + (c.ptotalreceivedamount || 0), 0).toFixed(2))
           );
+          this.applySortToGrid();
         },
         error: (error: any) => this._commonService.showErrorMessage(error)
       });
@@ -2194,10 +2438,31 @@ export class ChequesOnhand implements OnInit {
     }
   }
 
+
+
+  // selectTab(tab: string) {
+  //   this.isCleared.set(false);
+  //   this.selectedTab.set(tab);
+  //   if (this.dt) this.dt.first = 0;
+
+  //   if (tab === 'all') this.All();
+  //   else if (tab === 'cheques') this.ChequesReceived();
+  //   else if (tab === 'online') this.OnlineReceipts();
+  //   else if (tab === 'deposited') this.Deposited();
+  //   else if (tab === 'cancelled') this.Cancelled();
+  // }
+
+
   selectTab(tab: string) {
     this.isCleared.set(false);
     this.selectedTab.set(tab);
-    if (this.dt) this.dt.first = 0;
+
+    this.startindex = 0;
+    this.endindex = this._commonService.pageSize;
+    this.pageCriteria.offset = 0;
+    if (this.dt) {
+      this.dt.first = 0;  // force PrimeNG internal state to page 1
+    }
 
     if (tab === 'all') this.All();
     else if (tab === 'cheques') this.ChequesReceived();
@@ -2205,6 +2470,8 @@ export class ChequesOnhand implements OnInit {
     else if (tab === 'deposited') this.Deposited();
     else if (tab === 'cancelled') this.Cancelled();
   }
+
+
 
   onDepositChange(event: any, row: any) {
     if (event.checked) {

@@ -17,22 +17,13 @@
             <div class="col-12 col-md-3">
               <div class="erp-form-group">
                 <label class="erp-label required">Section <span class="required">*</span></label>
-                <ng-select
-                  [items]="tdsSectionData()"
-                  bindLabel="sectionId"
-                  bindValue="tdsId"
-                  placeholder="Select Section"
-                  [multiple]="false"
-                  [searchable]="true"
-                  [clearable]="true"
-                  formControlName="sectionid"
-                  (change)="onSectionChange($event)"
-                  appendTo="body"
-                  class="erp-ng-select"
+                <ng-select [items]="tdsSectionData()" bindLabel="sectionId" bindValue="tdsId"
+                  placeholder="Select Section" [multiple]="false" [searchable]="true" [clearable]="true"
+                  formControlName="sectionid" (change)="onSectionChange($event)" appendTo="body" class="erp-ng-select"
                   [class.is-invalid]="f['sectionid'].errors && submitted()">
                 </ng-select>
                 @if (submitted() && f['sectionid'].errors?.['required']) {
-                  <div class="erp-field-error">Section is required</div>
+                <div class="erp-field-error">Section is required</div>
                 }
               </div>
             </div>
@@ -68,21 +59,25 @@
                 <label class="erp-label">{{ lblFromDate() }}</label>
                 <div class="erp-input-wrap erp-date-wrap">
                   <i class="pi pi-calendar erp-input-icon"></i>
-                  <p-datepicker formControlName="fromdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate"></p-datepicker>
+                  <p-datepicker formControlName="fromdate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                    [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                    [maxDate]="pDatepickerMaxDate"></p-datepicker>
                 </div>
               </div>
             </div>
 
             @if (betweenDate()) {
-              <div class="col-12 col-md-3">
-                <div class="erp-form-group">
-                  <label class="erp-label">To Date</label>
-                  <div class="erp-input-wrap erp-date-wrap">
-                    <i class="pi pi-calendar erp-input-icon"></i>
-                    <p-datepicker formControlName="todate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100" [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
-                  </div>
+            <div class="col-12 col-md-3">
+              <div class="erp-form-group">
+                <label class="erp-label">To Date</label>
+                <div class="erp-input-wrap erp-date-wrap">
+                  <i class="pi pi-calendar erp-input-icon"></i>
+                  <p-datepicker formControlName="todate" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
+                    [readonlyInput]="true" appendTo="body" styleClass="w-100" inputStyleClass="erp-input icon-pad w-100"
+                    [maxDate]="pDatepickerMaxDate" [minDate]="toDateMinDate"></p-datepicker>
                 </div>
               </div>
+            </div>
             }
 
             <!-- Show Button -->
@@ -98,228 +93,272 @@
           </div>
 
           @if (noDtTable()) {
-            <div class="alert alert-info mt-3 mb-0 py-2 text-center small font-bold">
-              <i class="pi pi-info-circle me-2"></i>NO RECORDS TO DISPLAY
-            </div>
+          <div class="alert alert-info mt-3 mb-0 py-2 text-center small font-bold">
+            <i class="pi pi-info-circle me-2"></i>NO RECORDS TO DISPLAY
+          </div>
           }
         </div>
 
         <!-- Data Table Section -->
         @if (dtTable()) {
-          <div class="p-4">
-            
-            <!-- Toolbar -->
-            <div class="erp-table-toolbar mb-3">
-              <div class="tb-left">
-                <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
-              </div>
-              <div class="tb-right">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
-                <button class="erp-btn-icon btn-filter" (click)="dt.reset()" pTooltip="Clear Filters" tooltipPosition="bottom">
-                  <i class="pi pi-filter-slash"></i>
-                </button>
-                <button class="erp-btn-icon btn-reload" (click)="Show()" pTooltip="Reload Data" tooltipPosition="bottom">
-                  <i class="pi pi-refresh"></i>
-                </button>
-                <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF" tooltipPosition="bottom">
-                  <i class="pi pi-file-pdf"></i>
-                </button>
-                <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Print')" pTooltip="Print" tooltipPosition="bottom">
-                  <i class="pi pi-print"></i>
-                </button>
-                <button class="erp-btn-icon btn-export" (click)="export()" pTooltip="Export Excel" tooltipPosition="bottom">
-                  <i class="pi pi-download"></i>
-                </button>
-              </div>
-            </div>
+        <div class="p-4">
 
-            <div class="erp-report-context mb-3">
-              <span class="context-pill">
-                <i class="pi pi-filter"></i>
-                {{ grouptype() === 'Ason' ? 'As On' : 'Between' }}
-              </span>
-              <span class="context-text">
-                @if (grouptype() === 'Ason') {
-                  {{ TdsReportForm.get('fromdate')?.value | date:'dd-MMM-yyyy' }}
-                } @else {
-                  {{ TdsReportForm.get('fromdate')?.value | date:'dd-MMM-yyyy' }}
-                  <span class="context-separator">to</span>
-                  {{ TdsReportForm.get('todate')?.value | date:'dd-MMM-yyyy' }}
-                }
-              </span>
-              <span class="context-divider"></span>
-              <span class="context-text">
-                <strong>Section:</strong> {{ TdsReportForm.get('sectionname')?.value || '--' }}
-              </span>
-              <span class="context-text">
-                <strong>View:</strong> {{ summary() ? 'Summary' : 'Detail' }}
-              </span>
+          <!-- Toolbar -->
+          <!-- <div class="erp-table-toolbar mb-3">
+            <div class="tb-left">
+              <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
             </div>
+            <div class="tb-right">
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+                data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+                title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+              <button class="erp-btn-icon btn-filter" (click)="dt.reset()" pTooltip="Clear Filters"
+                tooltipPosition="bottom">
+                <i class="pi pi-filter-slash"></i>
+              </button>
+              <button class="erp-btn-icon btn-reload" (click)="Show()" pTooltip="Reload Data" tooltipPosition="bottom">
+                <i class="pi pi-refresh"></i>
+              </button>
+              <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Pdf')" pTooltip="Export PDF"
+                tooltipPosition="bottom">
+                <i class="pi pi-file-pdf"></i>
+              </button>
+              <button class="erp-btn-icon btn-export" (click)="pdfOrPrint('Print')" pTooltip="Print"
+                tooltipPosition="bottom">
+                <i class="pi pi-print"></i>
+              </button>
+              <button class="erp-btn-icon btn-export" (click)="export()" pTooltip="Export Excel"
+                tooltipPosition="bottom">
+                <i class="pi pi-download"></i>
+              </button>
+            </div>
+          </div> -->
 
-            <div class="tbl-wrap">
-              <p-table
-                [value]="tdsReportData()"
-                [paginator]="true"
-                [rows]="pageCriteria.pageSize"
-                [rowsPerPageOptions]="[10, 25, 50, 100]"
-                [showCurrentPageReport]="true"
-                currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-                paginatorPosition="bottom"
-                paginatorDropdownAppendTo="body"
-                [scrollable]="true"
-                scrollHeight="500px"
-                responsiveLayout="scroll"
-                styleClass="gr-table p-datatable-sm p-datatable-gridlines"
-                #dt>
-                <ng-template pTemplate="header">
-                  <tr>
-                    @if (!summary()) {
-                      <th pSortableColumn="paid_to" style="min-width: 200px;">
-                        <div class="th-cell">
-                          Particulars 
-                          <p-sortIcon field="paid_to"></p-sortIcon>
-                          <p-columnFilter type="text" field="paid_to" display="menu" class="ms-auto"></p-columnFilter>
-                        </div>
-                      </th>
-                    }
-                    <th pSortableColumn="pannumber" style="width: 150px;">
-                      <div class="th-cell">
-                        PAN Number 
-                        <p-sortIcon field="pannumber"></p-sortIcon>
-                        <p-columnFilter type="text" field="pannumber" display="menu" class="ms-auto"></p-columnFilter>
-                      </div>
-                    </th>
-                    @if (!summary()) {
-                      <th pSortableColumn="panstatus" style="width: 120px;">
-                        <div class="th-cell">
-                          PAN Status 
-                          <p-sortIcon field="panstatus"></p-sortIcon>
-                          <p-columnFilter field="panstatus" matchMode="equals" display="menu" class="ms-auto">
-                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
-                              <p-select [ngModel]="value" [options]="['Valid', 'Invalid', 'NA']" (onChange)="filter($event.value)" placeholder="Any"></p-select>
-                            </ng-template>
-                          </p-columnFilter>
-                        </div>
-                      </th>
-                    }
-                    <th pSortableColumn="agentName" style="min-width: 180px;">
-                      <div class="th-cell">
-                        Agent Name 
-                        <p-sortIcon field="agentName"></p-sortIcon>
-                        <p-columnFilter type="text" field="agentName" display="menu" class="ms-auto"></p-columnFilter>
-                      </div>
-                    </th>
-                    <th pSortableColumn="referalcode" style="width: 130px;">
-                      <div class="th-cell">
-                        Agent Code 
-                        <p-sortIcon field="referalcode"></p-sortIcon>
-                        <p-columnFilter type="text" field="referalcode" display="menu" class="ms-auto"></p-columnFilter>
-                      </div>
-                    </th>
-                    @if (!summary()) {
-                      <th pSortableColumn="transaction_date" style="width: 150px;">
-                        <div class="th-cell">
-                          Trans. Date 
-                          <p-sortIcon field="transaction_date"></p-sortIcon>
-                          <p-columnFilter type="date" field="transaction_date" display="menu" class="ms-auto"></p-columnFilter>
-                        </div>
-                      </th>
-                    }
-                    <th pSortableColumn="paidamount" style="width: 150px;">
-                      <div class="th-cell text-end">
-                        Paid Amt 
-                        <p-sortIcon field="paidamount"></p-sortIcon>
-                      </div>
-                    </th>
-                    <th pSortableColumn="tdscalculatedamount" style="width: 180px;">
-                      <div class="th-cell text-end">
-                        TDS Calc. Amt 
-                        <p-sortIcon field="tdscalculatedamount"></p-sortIcon>
-                      </div>
-                    </th>
-                    <th pSortableColumn="ledgeramount" style="width: 150px;">
-                      <div class="th-cell text-end">
-                        Amount 
-                        <p-sortIcon field="ledgeramount"></p-sortIcon>
-                      </div>
-                    </th>
-                    @if (!summary()) {
-                      <th pSortableColumn="effectedjvid" style="width: 140px;">
-                        <div class="th-cell">
-                          Effective JV 
-                          <p-sortIcon field="effectedjvid"></p-sortIcon>
-                        </div>
-                      </th>
-                      <th pSortableColumn="subscriberbranchname" style="width: 180px;">
-                        <div class="th-cell">
-                          Branch 
-                          <p-sortIcon field="subscriberbranchname"></p-sortIcon>
-                        </div>
-                      </th>
-                    }
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="body" let-row>
-                  <tr>
-                    @if (!summary()) {
-                      <td class="font-bold">{{ row.paid_to }}</td>
-                    }
-                    <td><code>{{ row.pannumber || '--NA--' }}</code></td>
-                    @if (!summary()) {
-                      <td><span class="badge bg-light text-dark border">{{ row.panstatus || '--NA--' }}</span></td>
-                    }
-                    <td>{{ row.agentName }}</td>
-                    <td><span class="text-muted small">{{ row.referalcode }}</span></td>
-                    @if (!summary()) {
-                      <td class="text-center">{{ row.transaction_date | date:'dd-MMM-yyyy' }}</td>
-                    }
-                    <td class="td-right font-bold">
-                      {{ currencySymbol() }}
-                      {{ row.paidamount < 0 ? '(' + (getAbsoluteValue(row.paidamount) | number:'1.2-2') + ')' : (row.paidamount | number:'1.2-2') }}
-                    </td>
-                    <td class="td-right font-bold text-danger">
-                      {{ currencySymbol() }}
-                      {{ row.tdscalculatedamount < 0 ? '(' + (getAbsoluteValue(row.tdscalculatedamount) | number:'1.2-2') + ')' : (row.tdscalculatedamount | number:'1.2-2') }}
-                    </td>
-                    <td class="td-right font-bold">
-                      {{ currencySymbol() }}
-                      {{ row.ledgeramount < 0 ? '(' + (getAbsoluteValue(row.ledgeramount) | number:'1.2-2') + ')' : (row.ledgeramount | number:'1.2-2') }}
-                    </td>
-                    @if (!summary()) {
-                      <td>{{ row.effectedjvid }}</td>
-                      <td>{{ row.subscriberbranchname || '--NA--' }}</td>
-                    }
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="footer">
-                  <tr class="font-bold bg-light">
-                    <td [attr.colspan]="summary() ? 3 : 6" class="text-end">Grand Total:</td>
-                    <td class="text-end">
-                      {{ currencySymbol() }}
-                      {{ totalPaidAmt() < 0 ? '(' + (getAbsoluteValue(totalPaidAmt()) | number:'1.2-2') + ')' : (totalPaidAmt() | number:'1.2-2') }}
-                    </td>
-                    <td class="text-end text-danger">
-                      {{ currencySymbol() }}
-                      {{ totalTds() < 0 ? '(' + (getAbsoluteValue(totalTds()) | number:'1.2-2') + ')' : (totalTds() | number:'1.2-2') }}
-                    </td>
-                    <td class="text-end">
-                      {{ currencySymbol() }}
-                      {{ totalLedger() < 0 ? '(' + (getAbsoluteValue(totalLedger()) | number:'1.2-2') + ')' : (totalLedger() | number:'1.2-2') }}
-                    </td>
-                    @if (!summary()) {
-                      <td colspan="2"></td>
-                    }
-                  </tr>
-                </ng-template>
-                <ng-template pTemplate="emptymessage">
-                  <tr>
-                    <td [attr.colspan]="summary() ? 6 : 11" class="p-4 text-center text-muted">No data available for the selected criteria</td>
-                  </tr>
-                </ng-template>
-              </p-table>
+
+          <!-- Toolbar -->
+          <div class="erp-table-toolbar mb-3">
+            <div class="tb-left">
+              <h6 class="mb-0 font-bold text-primary">TDS Section Records</h6>
+            </div>
+            <div class="tb-right">
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+                data-grid-share="mail">
+                <i class="pi pi-envelope"></i>
+              </a>
+              <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+                title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp">
+                <i class="pi pi-whatsapp"></i>
+              </a>
+              <button class="erp-btn btn-white btn-sm" (click)="dt.reset()" title="Clear Filters">
+                <i class="pi pi-filter-slash"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="Show()" title="Reload Data">
+                <i class="pi pi-refresh"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
+                <i class="pi pi-file-pdf"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Print')" title="Print">
+                <i class="pi pi-print"></i>
+              </button>
+              <button class="erp-btn btn-white btn-sm" (click)="export()" title="Export Excel">
+                <i class="pi pi-file-excel"></i>
+              </button>
             </div>
           </div>
+
+
+
+
+
+          <div class="erp-report-context mb-3">
+            <span class="context-pill">
+              <i class="pi pi-filter"></i>
+              {{ grouptype() === 'Ason' ? 'As On' : 'Between' }}
+            </span>
+            <span class="context-text">
+              @if (grouptype() === 'Ason') {
+              {{ TdsReportForm.get('fromdate')?.value | date:'dd-MMM-yyyy' }}
+              } @else {
+              {{ TdsReportForm.get('fromdate')?.value | date:'dd-MMM-yyyy' }}
+              <span class="context-separator">to</span>
+              {{ TdsReportForm.get('todate')?.value | date:'dd-MMM-yyyy' }}
+              }
+            </span>
+            <span class="context-divider"></span>
+            <span class="context-text">
+              <strong>Section:</strong> {{ TdsReportForm.get('sectionname')?.value || '--' }}
+            </span>
+            <span class="context-text">
+              <strong>View:</strong> {{ summary() ? 'Summary' : 'Detail' }}
+            </span>
+          </div>
+
+          <div class="tbl-wrap">
+            <!-- <p-table [value]="tdsReportData()" [paginator]="tdsReportData().length > pageCriteria.pageSize"
+              [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [showCurrentPageReport]="true"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" paginatorPosition="bottom"
+              paginatorDropdownAppendTo="body" [scrollable]="true" scrollHeight="flex" responsiveLayout="scroll"
+              styleClass="gr-table p-datatable-sm p-datatable-gridlines" #dt> -->
+
+            <p-table [value]="tdsReportData()" [paginator]="tdsReportData().length > pageCriteria.pageSize"
+              [rows]="pageCriteria.pageSize" [rowsPerPageOptions]="rowsPerPageOptions" [showCurrentPageReport]="true"
+              currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" paginatorPosition="bottom"
+              responsiveLayout="scroll" styleClass="gr-table p-datatable-sm p-datatable-gridlines"
+              (onPage)="onPageChange($event)" #dt>
+
+              <ng-template pTemplate="header">
+                <tr>
+                  @if (!summary()) {
+                  <th pSortableColumn="paid_to" style="min-width: 200px;">
+                    <div class="th-cell">
+                      Particulars
+                      <p-sortIcon field="paid_to"></p-sortIcon>
+                      <p-columnFilter type="text" field="paid_to" display="menu" class="ms-auto"></p-columnFilter>
+                    </div>
+                  </th>
+                  }
+                  <th pSortableColumn="pannumber" style="width: 150px;">
+                    <div class="th-cell">
+                      PAN Number
+                      <p-sortIcon field="pannumber"></p-sortIcon>
+                      <p-columnFilter type="text" field="pannumber" display="menu" class="ms-auto"></p-columnFilter>
+                    </div>
+                  </th>
+                  @if (!summary()) {
+                  <th pSortableColumn="panstatus" style="width: 120px;">
+                    <div class="th-cell">
+                      PAN Status
+                      <p-sortIcon field="panstatus"></p-sortIcon>
+                      <p-columnFilter field="panstatus" matchMode="equals" display="menu" class="ms-auto">
+                        <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                          <p-select [ngModel]="value" [options]="['Valid', 'Invalid', 'NA']"
+                            (onChange)="filter($event.value)" placeholder="Any"></p-select>
+                        </ng-template>
+                      </p-columnFilter>
+                    </div>
+                  </th>
+                  }
+                  <th pSortableColumn="agentName" style="min-width: 180px;">
+                    <div class="th-cell">
+                      Agent Name
+                      <p-sortIcon field="agentName"></p-sortIcon>
+                      <p-columnFilter type="text" field="agentName" display="menu" class="ms-auto"></p-columnFilter>
+                    </div>
+                  </th>
+                  <th pSortableColumn="referalcode" style="width: 130px;">
+                    <div class="th-cell">
+                      Agent Code
+                      <p-sortIcon field="referalcode"></p-sortIcon>
+                      <p-columnFilter type="text" field="referalcode" display="menu" class="ms-auto"></p-columnFilter>
+                    </div>
+                  </th>
+                  @if (!summary()) {
+                  <th pSortableColumn="transaction_date" style="width: 150px;">
+                    <div class="th-cell">
+                      Trans. Date
+                      <p-sortIcon field="transaction_date"></p-sortIcon>
+                      <p-columnFilter type="date" field="transaction_date" display="menu"
+                        class="ms-auto"></p-columnFilter>
+                    </div>
+                  </th>
+                  }
+                  <th pSortableColumn="paidamount" style="width: 150px;">
+                    <div class="th-cell text-end">
+                      Paid Amt
+                      <p-sortIcon field="paidamount"></p-sortIcon>
+                    </div>
+                  </th>
+                  <th pSortableColumn="tdscalculatedamount" style="width: 180px;">
+                    <div class="th-cell text-end">
+                      TDS Calc. Amt
+                      <p-sortIcon field="tdscalculatedamount"></p-sortIcon>
+                    </div>
+                  </th>
+                  <th pSortableColumn="ledgeramount" style="width: 150px;">
+                    <div class="th-cell text-end">
+                      Amount
+                      <p-sortIcon field="ledgeramount"></p-sortIcon>
+                    </div>
+                  </th>
+                  @if (!summary()) {
+                  <th pSortableColumn="effectedjvid" style="width: 140px;">
+                    <div class="th-cell">
+                      Effective JV
+                      <p-sortIcon field="effectedjvid"></p-sortIcon>
+                    </div>
+                  </th>
+                  <th pSortableColumn="subscriberbranchname" style="width: 180px;">
+                    <div class="th-cell">
+                      Branch
+                      <p-sortIcon field="subscriberbranchname"></p-sortIcon>
+                    </div>
+                  </th>
+                  }
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-row>
+                <tr>
+                  @if (!summary()) {
+                  <td class="font-bold">{{ row.paid_to }}</td>
+                  }
+                  <td><code>{{ row.pannumber || '--NA--' }}</code></td>
+                  @if (!summary()) {
+                  <td><span class="badge bg-light text-dark border">{{ row.panstatus || '--NA--' }}</span></td>
+                  }
+                  <td>{{ row.agentName }}</td>
+                  <td><span class="text-muted small">{{ row.referalcode }}</span></td>
+                  @if (!summary()) {
+                  <td class="text-center">{{ row.transaction_date | date:'dd-MMM-yyyy' }}</td>
+                  }
+                  <td class="td-right font-bold">
+                    {{ currencySymbol }}
+                    {{ row.paidamount < 0 ? '(' + (getAbsoluteValue(row.paidamount) | number:'1.2-2') + ')' :
+                      (row.paidamount | number:'1.2-2') }} </td>
+                  <td class="td-right font-bold text-danger">
+                    {{ currencySymbol }}
+                    {{ row.tdscalculatedamount < 0 ? '(' + (getAbsoluteValue(row.tdscalculatedamount) | number:'1.2-2')
+                      + ')' : (row.tdscalculatedamount | number:'1.2-2') }} </td>
+                  <td class="td-right font-bold">
+                    {{ currencySymbol }}
+                    {{ row.ledgeramount < 0 ? '(' + (getAbsoluteValue(row.ledgeramount) | number:'1.2-2') + ')' :
+                      (row.ledgeramount | number:'1.2-2') }} </td>
+                      @if (!summary()) {
+                  <td>{{ row.effectedjvid }}</td>
+                  <td>{{ row.subscriberbranchname || '--NA--' }}</td>
+                  }
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="footer">
+                <tr class="font-bold bg-light">
+                  <td [attr.colspan]="summary() ? 3 : 6" class="text-end">Grand Total:</td>
+                  <td class="text-end">
+                    {{ currencySymbol }}
+                    {{ totalPaidAmt() < 0 ? '(' + (getAbsoluteValue(totalPaidAmt()) | number:'1.2-2') + ')' :
+                      (totalPaidAmt() | number:'1.2-2') }} </td>
+                  <td class="text-end text-danger">
+                    {{ currencySymbol }}
+                    {{ totalTds() < 0 ? '(' + (getAbsoluteValue(totalTds()) | number:'1.2-2') + ')' : (totalTds() |
+                      number:'1.2-2') }} </td>
+                  <td class="text-end">
+                    {{ currencySymbol }}
+                    {{ totalLedger() < 0 ? '(' + (getAbsoluteValue(totalLedger()) | number:'1.2-2') + ')' :
+                      (totalLedger() | number:'1.2-2') }} </td>
+                      @if (!summary()) {
+                  <td colspan="2"></td>
+                  }
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="emptymessage">
+                <tr>
+                  <td [attr.colspan]="summary() ? 6 : 11" class="p-4 text-center text-muted">No data available for the
+                    selected criteria</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </div>
         }
       </form>
     </div>

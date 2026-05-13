@@ -152,9 +152,11 @@
                   styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
                   <ng-template pTemplate="groupheader" let-rowData>
-                    <tr>
+                    <tr style="cursor:pointer" (click)="toggleGroup(rowData.pGroupType)">
                       <td colspan="4" class="bg-light-subtle font-bold text-primary py-2">
-                        <i class="pi pi-folder-open me-2"></i>
+                        <!-- <i class="pi pi-folder-open me-2"></i> -->
+                         <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(rowData.pGroupType) ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
                         <span class="text-uppercase small letter-spacing-1">{{ rowData.pGroupType }}</span>
                       </td>
                     </tr>
@@ -178,6 +180,7 @@
                   </ng-template>
 
                   <ng-template pTemplate="body" let-row>
+                     @if (!isGroupCollapsed(row.pGroupType)) {
                     <tr>
                       <td class="text-center small">{{ row.ptransactiondate | date:'dd-MMM-yyyy' }}</td>
                       <td><span class="font-bold text-primary">{{ row.pChequeNumber || '--NA--' }}</span></td>
@@ -186,6 +189,7 @@
                         {{ currencysymbol }} {{ row.ptotalreceivedamount | number:'1.2-2' }}
                       </td>
                     </tr>
+                  }
                   </ng-template>
 
                   <ng-template pTemplate="groupfooter" let-rowData>

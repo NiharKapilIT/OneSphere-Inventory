@@ -1420,6 +1420,7 @@ import { CommonService } from '../../../../core/services/Common/common.service';
 import { AccountsTransactions } from '../../../../core/services/accounts/accounts-transactions';
 import { DatePickerModule } from 'primeng/datepicker';
 import { ValidationMessageComponent } from '../../../common/validation-message/validation-message.component';
+import { NoLeadingZeroDirective } from '../../../../core/Directive/no-leading-zero';
 
 @Component({
   selector: 'app-petty-cash',
@@ -1435,6 +1436,7 @@ import { ValidationMessageComponent } from '../../../common/validation-message/v
     InputTextModule,
     NgSelectModule,
     PaginatorModule,
+    NoLeadingZeroDirective
     // ValidationMessageComponent,
   ],
   templateUrl: './petty-cash.html',
@@ -1449,7 +1451,7 @@ export class PettyCash implements OnInit {
   private readonly router = inject(Router);
   private readonly commonService = inject(CommonService);
   private readonly accountingService = inject(AccountsTransactions);
-   private datepipe = inject(DatePipe);
+  private datepipe = inject(DatePipe);
   private readonly cdr = inject(ChangeDetectorRef);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -1530,7 +1532,7 @@ export class PettyCash implements OnInit {
   dpConfig1: any = {};
 
   private _selectedPartyStateName = '';
-   readonly today = new Date();
+  readonly today = new Date();
   readonly maxDate = new Date();
 
   readonly gstnopattern = '^(0[1-9]|[1-2][0-9]|3[0-9])([a-zA-Z]){5}([0-9]){4}([a-zA-Z]){1}([a-zA-Z0-9]){1}([a-zA-Z]){1}([a-zA-Z0-9]){1}?';
@@ -1551,7 +1553,7 @@ export class PettyCash implements OnInit {
   }
 
   ngOnInit(): void {
-     this._configureDatepickers();
+    this._configureDatepickers();
     this.currencySymbol = this.commonService.currencysymbol || '₹';
 
     const company = this.commonService.comapnydetails;
@@ -1588,7 +1590,7 @@ export class PettyCash implements OnInit {
     this.blurEventAllControls(this.paymentVoucherForm);
     this.getLoadData();
   }
-   private _configureDatepickers(): void {
+  private _configureDatepickers(): void {
     this.dpConfig.containerClass = 'theme-dark-blue';
     this.dpConfig.dateInputFormat = 'DD-MMM-YYYY';
     this.dpConfig.showWeekNumbers = false;
@@ -1608,18 +1610,18 @@ export class PettyCash implements OnInit {
       pgsttype: [''],
       pisgstapplicable: [false],
       pgstcalculationtype: ['EXCLUDE'],
-      pgstpercentage: [''],
+      pgstpercentage: [null],
       pgstamount: [''],
       pigstamount: [''],
       pcgstamount: [''],
       psgstamount: [''],
       putgstamount: [''],
       ppartyname: ['', Validators.required],
-      ppartyid: [null,Validators.required],
+      ppartyid: [null, Validators.required],
       pistdsapplicable: [false],
       pgstno: new FormControl('', Validators.pattern(this.gstnopattern)),
-      pTdsSection: [''],
-      pTdsPercentage: [''],
+      pTdsSection: [null],
+      pTdsPercentage: [null],
       ptdsamount: [''],
       ptdscalculationtype: ['INCLUDE'],
       ppannumber: [''],
@@ -2087,9 +2089,9 @@ export class PettyCash implements OnInit {
     this._selectedPartyStateName = '';
 
     this.pc.patchValue({
-      pStateId: '', pState: '', pTdsSection: '', pTdsPercentage: '',
+      pStateId: '', pState: '', pTdsSection: null, pTdsPercentage: null,
       ppartyreferenceid: '', ppartyreftype: '', ppartypannumber: '',
-      pgsttype: '', pgstpercentage: '', pgstamount: 0,
+      pgsttype: '', pgstpercentage: null, pgstamount: 0,
       pigstamount: 0, pcgstamount: 0, psgstamount: 0, putgstamount: 0,
       pisgstapplicable: false, pistdsapplicable: false,
     });
@@ -2512,17 +2514,17 @@ export class PettyCash implements OnInit {
     const keepSubName = ctrl.get('psubledgername')?.value;
 
     ctrl.patchValue({
-// pledgerid: keepLedgerId,psubledgerid: keepSubId,
-     ppartyid: null, ppartyname: '',pledgerid:'',psubledgerid:'',
-       pactualpaidamount: '',
+      // pledgerid: keepLedgerId,psubledgerid: keepSubId,
+      ppartyid: null, ppartyname: '', pledgerid: '', psubledgerid: '',
+      pactualpaidamount: '',
       ptdsamount: 0, pamount: '', ptotalamount: '', pgstamount: 0,
       pigstamount: 0, pcgstamount: 0, psgstamount: 0, putgstamount: 0,
       pisgstapplicable: false, pistdsapplicable: false,
       pStateId: '', pgstpercentage: '', pTdsSection: '', pTdsPercentage: '',
       pgsttype: '', pState: '', pgstno: '',
       pigstpercentage: 0, pcgstpercentage: 0, psgstpercentage: 0, putgstpercentage: 0,
-       pledgername: keepLedgerName,
-       psubledgername: keepSubName,
+      pledgername: keepLedgerName,
+      psubledgername: keepSubName,
     });
 
 
@@ -2592,7 +2594,7 @@ export class PettyCash implements OnInit {
       this.pc.patchValue({
         pistdsapplicable: false, pisgstapplicable: false,
         pledgerid: null, psubledgerid: null, ppartyid: null,
-        pStateId: '', pgstpercentage: '', pTdsSection: '', pTdsPercentage: '',
+        pStateId: '', pgstpercentage: null, pTdsSection: null, pTdsPercentage: null,
         pgstcalculationtype: 'EXCLUDE', ptdscalculationtype: 'INCLUDE',
       });
 
@@ -2764,12 +2766,13 @@ export class PettyCash implements OnInit {
 
 
   savePaymentVoucher(): void {
+    debugger
     if (!this.validatesavePaymentVoucher()) {
-     return;
-   }
+      return;
+    }
 
 
-   if (!confirm('Do You Want To Save ?')) {
+    if (!confirm('Do You Want To Save ?')) {
       return;
     }
 
@@ -2927,15 +2930,29 @@ export class PettyCash implements OnInit {
       };
 
       this.accountingService.SavePettyCash(payload).subscribe({
+        // next: (res: any) => {
+        //   if (res?.success) {
+        //     this.commonService.showInfoMessage('Saved Successfully');
+        //     this.router.navigate(['dashboard/accounts/accounts-transactions/petty-cash-view']);
+        //   } else {
+
         next: (res: any) => {
+          console.log(res,'res');
+          
           if (res?.success) {
-            this.commonService.showInfoMessage('Saved Successfully');
-            this.router.navigate(['dashboard/accounts/accounts-transactions/petty-cash-view']);
+            // this.commonService.showInfoMessage('Saved Successfully');
+            this.commonService.showSuccessMessage();
+            this.clearPaymentVoucher();
+            const receipt = btoa(`${res.paymentId},Petty Cash`);
+            const url = this.router.serializeUrl(
+              this.router.createUrlTree(['/payment-voucher', receipt]),
+            );
+            window.open(url, '_blank');
           } else {
             this.commonService.showErrorMessage(res?.message || 'Save failed');
-            this.disablesavebutton.set(false);
-            this.cdr.markForCheck();
           }
+          this.disablesavebutton.set(false);  
+          this.cdr.markForCheck();
         },
         error: (err: any) => {
           this.commonService.showErrorMessage(err);

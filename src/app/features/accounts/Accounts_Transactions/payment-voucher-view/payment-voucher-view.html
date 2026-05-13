@@ -114,7 +114,7 @@
               </div>
             </div>
             }
-<!-- 
+            <!-- 
             @if (showTypeofPayment()) {
             <div class="col-12 col-md-6">
               <div class="erp-form-group">
@@ -139,33 +139,25 @@
             } -->
 
             @if (showTypeofPayment()) {
-<div class="col-12 col-md-6">
-  <div class="erp-form-group">
-    <label class="erp-label" id="ptypeofpayment" title="Type of Payment">
-      Type of Payment
-    </label>
-    <ng-select 
-      appendTo="body"
-      [items]="typeOfPaymentList"
-      formControlName="ptypeofpayment"
-      bindLabel="ptypeofpayment"
-      bindValue="ptypeofpayment"
-      placeholder="Select"
-      [searchable]="false"
-      [clearable]="false"
-      (change)="typeofPaymentChange()"
-      (close)="paymentVoucherForm.get('ptypeofpayment')?.markAsTouched()"
-      [ngClass]="{
+            <div class="col-12 col-md-6">
+              <div class="erp-form-group">
+                <label class="erp-label" id="ptypeofpayment" title="Type of Payment">
+                  Type of Payment
+                </label>
+                <ng-select appendTo="body" [items]="typeOfPaymentList" formControlName="ptypeofpayment"
+                  bindLabel="ptypeofpayment" bindValue="ptypeofpayment" placeholder="Select" [searchable]="false"
+                  [clearable]="false" (change)="typeofPaymentChange()"
+                  (close)="paymentVoucherForm.get('ptypeofpayment')?.markAsTouched()" [ngClass]="{
         'ng-invalid': paymentVoucherForm.get('ptypeofpayment')?.touched && !paymentVoucherForm.get('ptypeofpayment')?.value,
         'ng-dirty':   paymentVoucherForm.get('ptypeofpayment')?.touched && !paymentVoucherForm.get('ptypeofpayment')?.value
       }">
-    </ng-select>
-    @if (formValidationMessages['ptypeofpayment']) {
-    <div class="erp-field-error">{{ formValidationMessages['ptypeofpayment'] }}</div>
-    }
-  </div>
-</div>
-}
+                </ng-select>
+                @if (formValidationMessages['ptypeofpayment']) {
+                <div class="erp-field-error">{{ formValidationMessages['ptypeofpayment'] }}</div>
+                }
+              </div>
+            </div>
+            }
 
             @if (showBranch()) {
             <div class="col-12 col-md-6">
@@ -191,7 +183,8 @@
                 <label class="erp-label" id="pbankname" title="Bank / Financial Services">
                   Bank / Financial Services
                 </label>
-                <input class="erp-input erp-input--readonly" type="text" readonly formControlName="pbankname" placeholder="Auto-filled on card select" />
+                <input class="erp-input erp-input--readonly" type="text" readonly formControlName="pbankname"
+                  placeholder="Auto-filled on card select" />
               </div>
             </div>
             }
@@ -274,7 +267,7 @@
 
       <!-- PAYMENT DETAILS -->
       <div class="p-4" formGroupName="ppaymentsslistcontrols">
-        <h3 class="section-title mb-2">Payment Details</h3>
+        <!-- <h3 class="section-title mb-2">Payment Details</h3> -->
 
         <!-- ROW 1: Party + Ledger -->
         <div class="row g-2 mb-2">
@@ -556,10 +549,10 @@
 
       <!-- PAYMENT LINE ITEMS TABLE -->
       <div class="p-4">
-        <h3 class="section-title mb-3">Payment Line Items</h3>
+        <!-- <h3 class="section-title mb-3">Payment Line Items</h3> -->
         <div class="tbl-wrap">
-          <p-table [value]="paymentsList1" [paginator]="true" [rows]="5" [scrollable]="true" scrollHeight="300px" sortMode="single"
-            styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+          <p-table [value]="paymentsList1" [paginator]="true" [rows]="5" [scrollable]="true" scrollHeight="300px"
+            sortMode="single" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
             <ng-template pTemplate="header">
               <tr>
                 <th class="th-actions">Actions</th>
@@ -573,7 +566,7 @@
                   <div class="th-cell">Sub Ledger Name <p-sortIcon field="psubledgername"></p-sortIcon></div>
                 </th>
                 <th pSortableColumn="ptotalamount" class="th-right">
-                  <div class="th-cell">Total Paid <p-sortIcon field="ptotalamount"></p-sortIcon></div>
+                  <div class="th-cell">Taxable Amount <p-sortIcon field="ptotalamount"></p-sortIcon></div>
                 </th>
                 <th pSortableColumn="pamount" class="th-right">
                   <div class="th-cell">Paid Amount <p-sortIcon field="pamount"></p-sortIcon></div>
@@ -584,9 +577,18 @@
                 <th pSortableColumn="pgstpercentage" class="th-center">
                   <div class="th-cell">GST % <p-sortIcon field="pgstpercentage"></p-sortIcon></div>
                 </th>
+
+                <th>
+                  <div class="th-cell">GST Amount <p-sortIcon field="pgstpercentage"></p-sortIcon></div>
+                </th>
                 <th pSortableColumn="pTdsSection">
                   <div class="th-cell">TDS Section <p-sortIcon field="pTdsSection"></p-sortIcon></div>
                 </th>
+
+                <th pSortableColumn="pTdsPercentage" class="th-center">
+                  <div class="th-cell">TDS % <p-sortIcon field="pTdsPercentage"></p-sortIcon></div>
+                </th>
+
                 <th pSortableColumn="ptdsamount" class="th-right">
                   <div class="th-cell">TDS Amount <p-sortIcon field="ptdsamount"></p-sortIcon></div>
                 </th>
@@ -616,7 +618,16 @@
                 </td>
                 <td class="td-center">{{ rowData.pgstcalculationtype || '-- NA --' }}</td>
                 <td class="td-center">{{ rowData.pgstpercentage !== 0 ? rowData.pgstpercentage : '-- NA --' }}</td>
+                <td class="td-right">
+                  <div class="amount-cell">
+                    @if (rowData.pgstamount && rowData.pgstamount !== 0) {
+                    <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
+                    <span class="amt-num">{{ rowData.pgstamount | number:'1.2-2' }}</span>
+                    } @else { -- NA -- }
+                  </div>
+                </td>
                 <td>{{ rowData.pTdsSection || '-- NA --' }}</td>
+                <td class="td-center">{{ rowData.pTdsPercentage !== 0 ? rowData.pTdsPercentage : '-- NA --' }}</td>
                 <td class="td-right">
                   <div class="amount-cell">
                     @if (rowData.ptdsamount !== 0) {
@@ -629,7 +640,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="10" class="p-4">
+                <td colspan="11" class="p-4">
                   <div style="text-align:center;color:#94a3b8;padding:20px;">
                     <i class="pi pi-inbox" style="font-size:28px;opacity:0.5;display:block;margin-bottom:8px;"></i>
                     <p style="margin:0;font-size:14px;">No data to display.</p>
@@ -645,10 +656,10 @@
       <div class="p-4">
         <div class="row g-2">
           <div class="col-12 col-md-6">
-            <h3 class="section-title mb-3">Journal Entry</h3>
+            <!-- <h3 class="section-title mb-3">Journal Entry</h3> -->
             <div class="tbl-wrap">
-              <p-table [value]="partyjournalentrylist" [paginator]="true" [rows]="5" [scrollable]="true" sortMode="single"
-                scrollHeight="300px" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+              <p-table [value]="partyjournalentrylist" [paginator]="true" [rows]="5" [scrollable]="true"
+                sortMode="single" scrollHeight="300px" styleClass="gr-table p-datatable-sm p-datatable-gridlines">
                 <ng-template pTemplate="header">
                   <tr>
                     <th pSortableColumn="accountname">
@@ -735,7 +746,7 @@
 
 
           <div class="col-12 col-md-6">
-            <h3 class="section-title mb-3">Narration & Attachment</h3>
+            <!-- <h3 class="section-title mb-3">Narration & Attachment</h3> -->
             <div class="row g-1 pv-attachment-stack">
               <div class="col-12">
                 <div class="erp-form-group">

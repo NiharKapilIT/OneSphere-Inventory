@@ -9,9 +9,8 @@
       <p class="page-subtitle">Record and manage business expenses and vendor payments</p>
     </div>
 
-    <a routerLink="/dashboard/accounts/accounts-transactions/payment-voucher-view"
-       class="erp-btn btn-primary btn-lg"
-       style="margin-top: auto; white-space: nowrap;">
+    <a routerLink="/dashboard/accounts/accounts-transactions/payment-voucher-view" class="erp-btn btn-primary btn-lg"
+      style="margin-top: auto; white-space: nowrap;">
       <i class="pi pi-plus"></i> New Voucher
     </a>
   </div>
@@ -29,12 +28,8 @@
       <div class="header-search" style="flex: 1; max-width: 300px;">
         <div class="erp-input-wrap">
           <i class="pi pi-search erp-input-icon"></i>
-          <input type="search"
-                 class="erp-input icon-pad"
-                 placeholder="Search vouchers..."
-                 [value]="searchTerm()"
-                 (input)="onSearch($any($event.target).value)"
-                 autocomplete="off" />
+          <input type="search" class="erp-input icon-pad" placeholder="Search vouchers..." [value]="searchTerm()"
+            (input)="onSearch($any($event.target).value)" autocomplete="off" />
         </div>
       </div>
 
@@ -58,136 +53,125 @@
     <div class="tbl-wrap">
 
       @if (isLoading()) {
-        <div class="skeleton-loader">
-          @for (_ of [1,2,3,4,5]; track $index) {
-            <p-skeleton class="skeleton-row" height="44px" borderRadius="6px" />
-          }
-        </div>
+      <div class="skeleton-loader">
+        @for (_ of [1,2,3,4,5]; track $index) {
+        <p-skeleton class="skeleton-row" height="44px" borderRadius="6px" />
+        }
+      </div>
       } @else {
-        <p-table
-          [value]="gridData()"
-          [paginator]="true"
-          dataKey="paymentId"
-          [rows]="pageCriteria.pageSize"
-          [totalRecords]="totalRecords()"
-          [rowsPerPageOptions]="rowsPerPageOptions"
-          [resizableColumns]="true"
-          sortMode="single"
-          responsiveLayout="scroll"
-          [showCurrentPageReport]="true"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-          styleClass="gr-table p-datatable-sm p-datatable-gridlines">
+      <p-table [value]="gridData()" [paginator]="gridData().length > pageCriteria.pageSize" dataKey="paymentId"
+        [rows]="pageCriteria.pageSize" [totalRecords]="totalRecords()" [rowsPerPageOptions]="rowsPerPageOptions"
+        [resizableColumns]="true" sortMode="single" responsiveLayout="scroll" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+        styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
-          <!-- Header -->
-          <ng-template pTemplate="header">
-            <tr>
-              <th pResizableColumn class="th-actions">
-                <div class="th-cell">Actions</div>
-              </th>
-              <th pResizableColumn pSortableColumn="paymentDate">
-                <div class="th-cell">
-                  <i class="pi pi-calendar"></i> Payment Date
-                  <p-sortIcon field="paymentDate" />
-                </div>
-              </th>
-              <th pResizableColumn pSortableColumn="paymentId" class="th-center">
-                <div class="th-cell th-center">
-                  <i class="pi pi-hashtag"></i> Voucher No.
-                  <p-sortIcon field="paymentId" />
-                </div>
-              </th>
-              <th pResizableColumn pSortableColumn="modeOfPayment">
-                <div class="th-cell">
-                  <i class="pi pi-credit-card"></i> Payment Mode
-                  <p-sortIcon field="modeOfPayment" />
-                </div>
-              </th>
-              <th pResizableColumn pSortableColumn="bankName">
-                <div class="th-cell">
-                  <i class="pi pi-building"></i> Bank Name
-                  <p-sortIcon field="bankName" />
-                </div>
-              </th>
-              <th pResizableColumn pSortableColumn="totalPaidAmount" class="th-right">
-                <div class="th-cell th-right">
-                  <i class="pi pi-indian-rupee"></i> Paid Amount
-                  <p-sortIcon field="totalPaidAmount" />
-                </div>
-              </th>
-            </tr>
-          </ng-template>
+        <!-- Header -->
+        <ng-template pTemplate="header">
+          <tr>
+            <th pResizableColumn class="th-actions">
+              <div class="th-cell">Actions</div>
+            </th>
+            <th pResizableColumn pSortableColumn="paymentDate">
+              <div class="th-cell">
+                <i class="pi pi-calendar"></i> Payment Date
+                <p-sortIcon field="paymentDate" />
+              </div>
+            </th>
+            <th pResizableColumn pSortableColumn="paymentId" class="th-center">
+              <div class="th-cell th-center">
+                <i class="pi pi"></i> Voucher No.
+                <p-sortIcon field="paymentId" />
+              </div>
+            </th>
+            <th pResizableColumn pSortableColumn="modeOfPayment">
+              <div class="th-cell">
+                <i class="pi pi-credit-card"></i> Payment Mode
+                <p-sortIcon field="modeOfPayment" />
+              </div>
+            </th>
+            <th pResizableColumn pSortableColumn="bankName">
+              <div class="th-cell">
+                <i class="pi pi-building"></i> Bank Name
+                <p-sortIcon field="bankName" />
+              </div>
+            </th>
+            <th pResizableColumn pSortableColumn="totalPaidAmount" class="th-right">
+              <div class="th-cell th-right">
+                <i class="pi pi-indian-rupee"></i> Paid Amount
+                <p-sortIcon field="totalPaidAmount" />
+              </div>
+            </th>
+          </tr>
+        </ng-template>
 
-          <!-- Body -->
-          <ng-template pTemplate="body" let-row>
-            <tr>
-              <td class="td-actions">
-                <button
-                  class="erp-btn btn-outline btn-sm btn-icon"
-                  title="View"
-                  (click)="openVoucherReport(row)">
-                  <i class="pi pi-eye"></i>
-                </button>
-              </td>
+        <!-- Body -->
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            <td class="td-actions">
+              <button class="erp-btn btn-outline btn-sm btn-icon" title="View" (click)="openVoucherReport(row)">
+                <i class="pi pi-eye"></i>
+              </button>
+            </td>
 
-              <td class="td-date">
-                <div class="td-cell">
-                  <i class="pi pi-calendar-clock"></i>
-                  {{ row.paymentDate || '--' }}
-                </div>
-              </td>
+            <td class="td-date">
+              <div class="td-cell">
+                <i class="pi pi-calendar-clock"></i>
+                {{ row.paymentDate || '--' }}
+              </div>
+            </td>
 
-              <td class="td-center">
-                <div class="td-cell td-center">
-                  <span class="receipt-no">#{{ row.paymentId || '--' }}</span>
-                </div>
-              </td>
+            <td class="td-center">
+              <div class="td-cell td-center">
+                <span class="receipt-no">{{ row.paymentId || '--' }}</span>
+              </div>
+            </td>
 
-              <td>
-                <div class="td-payment">
-                  <span class="erp-badge" [class.badge-success]="row.modeOfPayment === 'C'"
-                    [class.badge-info]="row.modeOfPayment === 'B'"
-                    [class.badge-neutral]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
-                    <i class="pi" [class.pi-wallet]="row.modeOfPayment === 'C'"
-                      [class.pi-credit-card]="row.modeOfPayment === 'B'"
-                      [class.pi-circle]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
-                    </i>
-                    {{ getPaymentMode(row) }}
-                  </span>
-                  <!-- <p-tag class="erp-badge badge-success"
+            <td>
+              <div class="td-payment">
+                <span class="erp-badge" [class.badge-success]="row.modeOfPayment === 'C'"
+                  [class.badge-info]="row.modeOfPayment === 'B'"
+                  [class.badge-neutral]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
+                  <i class="pi" [class.pi-wallet]="row.modeOfPayment === 'C'"
+                    [class.pi-credit-card]="row.modeOfPayment === 'B'"
+                    [class.pi-circle]="row.modeOfPayment !== 'C' && row.modeOfPayment !== 'B'">
+                  </i>
+                  {{ getPaymentMode(row) }}
+                </span>
+                <!-- <p-tag class="erp-badge badge-success"
                     [value]="getPaymentMode(row)"
                     [severity]="getPaymentModeSeverity(row)" /> -->
-                </div>
-              </td>
+              </div>
+            </td>
 
-              <td>
-                <div class="td-cell">{{ row.bankName || '-- NA --' }}</div>
-              </td>
+            <td>
+              <div class="td-cell">{{ row.bankName || '-- NA --' }}</div>
+            </td>
 
-              <td class="td-right">
-                <div class="td-cell td-right amount-cell">
-                  <span class="amt-num">{{ formatCurrency(row.totalPaidAmount) }}</span>
-                </div>
-              </td>
+            <td class="td-right">
+              <div class="td-cell td-right amount-cell">
+                <span class="amt-num">{{ formatCurrency(row.totalPaidAmount) }}</span>
+              </div>
+            </td>
 
-            </tr>
-          </ng-template>
+          </tr>
+        </ng-template>
 
-          <!-- Empty Message -->
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="6">
-                <div class="td-cell" style="text-align:center; padding:40px; color:#8fa0c4;">
-                  <i class="pi pi-inbox" style="font-size:32px; margin-bottom:10px; display:block;"></i>
-                  <p style="margin:0; font-weight:500;">No payment vouchers found</p>
-                  @if (searchTerm()) {
-                    <p style="margin:5px 0 0 0; font-size:12px;">Try clearing the search filter</p>
-                  }
-                </div>
-              </td>
-            </tr>
-          </ng-template>
+        <!-- Empty Message -->
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="6">
+              <div class="td-cell" style="text-align:center; padding:40px; color:#8fa0c4;">
+                <i class="pi pi-inbox" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                <p style="margin:0; font-weight:500;">No payment vouchers found</p>
+                @if (searchTerm()) {
+                <p style="margin:5px 0 0 0; font-size:12px;">Try clearing the search filter</p>
+                }
+              </div>
+            </td>
+          </tr>
+        </ng-template>
 
-        </p-table>
+      </p-table>
       }
 
     </div>

@@ -1,6 +1,6 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, signal, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Table, TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { CommonService } from '../../../../core/services/Common/common.service';
@@ -24,6 +24,10 @@ export class JournalVoucherView implements OnInit {
   currencySymbol: any;
   filteredData: any[] = [];
   columnsWithSearch: string[] = [];
+  rowsPerPageOptions: number[] = [10, 20, 50];
+  readonly totalRows = signal<number>(0);
+
+
 
   public headerCells: any = { textAlign: 'center' };
   pageCriteria: PageCriteria;
@@ -34,14 +38,14 @@ export class JournalVoucherView implements OnInit {
     private _commonService: CommonService,
     private _AccountingTransactionsService: AccountsTransactions,
     private router: Router,
-     private cdr: ChangeDetectorRef 
+    private cdr: ChangeDetectorRef
   ) {
     this.pageCriteria = new PageCriteria();
   }
 
   ngOnInit(): void {
     this.getLoadData();
-    this.setPageModel();
+    //this.setPageModel();
     this.currencySymbol = this._commonService.currencysymbol;
   }
 
@@ -52,13 +56,24 @@ export class JournalVoucherView implements OnInit {
       this._commonService.getBranchCode()
     ).subscribe({
       next: (json: any) => {
-        console.log(json,"json");
-        
+        console.log(json, "json");
+
         if (json != null) {
           this.gridData = json;
           this.gridView = json;
           // this.Journalvoucherlist = this.gridData;
-              this.Journalvoucherlist = [...this.gridData]; 
+          //           this.Journalvoucherlist = [
+          //             ...this.gridData,
+          //  jvDate: this._commonService.getFormatDateGlobal(
+          //               gridData.jvDate 
+          //             ),
+          //           ];
+
+          this.Journalvoucherlist = this.gridData.map((item: any) => ({
+            ...item,
+            jvDate: this._commonService.getFormatDateGlobal(item.jvDate)
+          }));
+
 
           this.pageCriteria.totalrows = this.gridData.length;
           this.pageCriteria.TotalPages = 1;
@@ -74,9 +89,10 @@ export class JournalVoucherView implements OnInit {
               : this.pageSize;
 
           // this.filteredData = this.gridView;
-           this.filteredData = [...this.gridView];
+          this.filteredData = [...this.gridView];
           this.columnsWithSearch = Object.keys(this.gridView[0]);
-           this.cdr.detectChanges();   
+          this.setPageModel();
+          this.cdr.detectChanges();
         }
       },
       error: (error) => {
@@ -85,11 +101,18 @@ export class JournalVoucherView implements OnInit {
     });
   }
 
-  setPageModel(): void {
-    this.pageCriteria.pageSize = this._commonService.pageSize;
-    this.pageCriteria.offset = 0;
-    this.pageCriteria.pageNumber = 1;
-    this.pageCriteria.footerPageHeight = 50;
+  // setPageModel(): void {
+  //   this.pageCriteria.pageSize = this._commonService.pageSize;
+  //   this.pageCriteria.offset = 0;
+  //   this.pageCriteria.pageNumber = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+  // }
+
+  private setPageModel(): void {
+    this.rowsPerPageOptions = this._commonService.setPageModel(
+      this.pageCriteria,
+      this.Journalvoucherlist.length
+    );
   }
 
   onFooterPageChange(event: any): void {

@@ -28,14 +28,14 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
 })
 export class IssuedCheque implements OnInit {
 
-  private fb                   = inject(FormBuilder);
-  private router               = inject(Router);
-  private datePipe             = inject(DatePipe);
-  private reportService        = inject(AccountsReports);
-  private commonService        = inject(CommonService);
-  private bankBookService      = inject(AccountsReports);
+  private fb = inject(FormBuilder);
+  private router = inject(Router);
+  private datePipe = inject(DatePipe);
+  private reportService = inject(AccountsReports);
+  private commonService = inject(CommonService);
+  private bankBookService = inject(AccountsReports);
   private accountingTransaction = inject(AccountsTransactions);
-  private destroyRef           = inject(DestroyRef);
+  private destroyRef = inject(DestroyRef);
 
   // ── Form ────────────────────────────────────────────────────────────────────
   FrmIssuedCheque!: FormGroup;
@@ -43,36 +43,37 @@ export class IssuedCheque implements OnInit {
   get f() { return this.FrmIssuedCheque.controls; }
 
   // ── Signals ─────────────────────────────────────────────────────────────────
-  BankData             = signal<any[]>([]);
+  BankData = signal<any[]>([]);
   lstBankChequeDetails = signal<any[]>([]);
-  gridData             = signal<any[]>([]);
-  gridDataDetails      = signal<any[]>([]);
-  DataForCancel        = signal<any[]>([]);
+  gridData = signal<any[]>([]);
+  gridDataDetails = signal<any[]>([]);
+  DataForCancel = signal<any[]>([]);
 
-  savebutton    = signal('Submit');
-  printedDate   = signal(true);
-  TotalPages    = signal(0);
+  savebutton = signal('Submit');
+  printedDate = signal(true);
+  TotalPages = signal(0);
 
-  unusedSortColumn    = signal('');
+  unusedSortColumn = signal('');
   unusedSortDirection = signal<1 | -1>(1);
-  issuedSortColumn    = signal('');
+  issuedSortColumn = signal('');
   issuedSortDirection = signal<1 | -1>(1);
+  unusedSectionOpen = signal(true);
 
   commencementgridPage = signal({ size: 10, totalElements: 0, pageNumber: 0 });
 
   // ── Private state ────────────────────────────────────────────────────────────
   private rawUnusedData: any[] = [];
   private rawIssuedData: any[] = [];
-  private _BankId:    any;
+  private _BankId: any;
   private _ChqBookId: any;
   private _ChqFromNo: any;
-  private _ChqToNo:   any;
-  private BankName:   any;
+  private _ChqToNo: any;
+  private BankName: any;
   private chequefrom: any;
-  private strChqNo:   any;
+  private strChqNo: any;
 
   currencysymbol = this.commonService.datePickerPropertiesSetup('currencysymbol');
-  pageCriteria   = new PageCriteria();
+  pageCriteria = new PageCriteria();
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -84,18 +85,18 @@ export class IssuedCheque implements OnInit {
   // ── Init helpers ─────────────────────────────────────────────────────────────
   private initForm(): void {
     this.FrmIssuedCheque = this.fb.group({
-      pbankname:    [null, Validators.required],
-      pchqfromto:   [null, Validators.required],
+      pbankname: [null, Validators.required],
+      pchqfromto: [null, Validators.required],
       branchSchema: [''],
       lstIssuedCheque: [[]]
     });
   }
 
   private setPageModel(): void {
-    this.pageCriteria.pageSize          = this.commonService.pageSize;
-    this.pageCriteria.offset            = 0;
-    this.pageCriteria.pageNumber        = 1;
-    this.pageCriteria.footerPageHeight  = 50;
+    this.pageCriteria.pageSize = this.commonService.pageSize;
+    this.pageCriteria.offset = 0;
+    this.pageCriteria.pageNumber = 1;
+    this.pageCriteria.footerPageHeight = 50;
   }
 
   // ── Data loading ─────────────────────────────────────────────────────────────
@@ -111,6 +112,28 @@ export class IssuedCheque implements OnInit {
     });
   }
 
+
+  toggleUnusedSection(): void {
+    this.unusedSectionOpen.update(v => !v);
+  }
+
+
+  // Add this signal after unusedSectionOpen
+  collapsedGroups = signal<Set<string>>(new Set());
+
+  // Add these 2 methods after toggleUnusedSection()
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
+
   BankName_Cahange(event: any): void {
     this.gridData.set([]);
     this.gridDataDetails.set([]);
@@ -119,7 +142,7 @@ export class IssuedCheque implements OnInit {
 
     if (!event) return;
 
-    this._BankId  = event.bankAccountId;
+    this._BankId = event.bankAccountId;
     this.BankName = event.bankName;
 
     this.reportService.GetBankChequeDetails(
@@ -139,9 +162,9 @@ export class IssuedCheque implements OnInit {
       return;
     }
 
-    this._BankId    = this.f['pbankname'].value;
+    this._BankId = this.f['pbankname'].value;
     this._ChqBookId = this.f['pchqfromto'].value;
-    this.strChqNo   = event.pchqfromto;
+    this.strChqNo = event.pchqfromto;
     this.chequefrom = event.pchqfromto;
 
     this.GetData();
@@ -149,8 +172,8 @@ export class IssuedCheque implements OnInit {
 
   GetData(): void {
     const [from, to] = this.strChqNo.split('-');
-    this._ChqFromNo  = from;
-    this._ChqToNo    = to;
+    this._ChqFromNo = from;
+    this._ChqToNo = to;
 
     this.reportService.GetUnusedChequeDetails(
       this._BankId, this._ChqBookId, from, to,
@@ -162,8 +185,9 @@ export class IssuedCheque implements OnInit {
       next: (res: any) => {
         const data = res ?? [];
         this.gridData.set(data);
-        this.rawUnusedData          = [...data];
+        this.rawUnusedData = [...data];
         this.pageCriteria.totalrows = data.length;
+        this.unusedSectionOpen.set(true);
       },
       error: (err: any) => this.commonService.showErrorMessage(err)
     });
@@ -188,18 +212,18 @@ export class IssuedCheque implements OnInit {
   // ── Export ───────────────────────────────────────────────────────────────────
   export(): void {
     const rows = this.gridDataDetails().map(element => ({
-      'Cheque Status':  element.pchequestatus,
-      'Cheque No.':     element.pchequenumber,
-      'Payment ID':     element.ppaymentid,
-      'Particulars':    element.pparticulars,
-      'Payment Date':   this.commonService.getFormatDateGlobal(element.ppaymentdate),
-      'Cleared Date':   this.commonService.getFormatDateGlobal(element.pcleardate),
-      'Paid Amt.':      element.ppaidamount
-                          ? this.commonService.convertAmountToPdfFormat(
-                              this.commonService.currencyFormat(element.ppaidamount)
-                            )
-                          : '',
-      'Bank Name':      element.pbankname,
+      'Cheque Status': element.pchequestatus,
+      'Cheque No.': element.pchequenumber,
+      'Payment ID': element.ppaymentid,
+      'Particulars': element.pparticulars,
+      'Payment Date': this.commonService.getFormatDateGlobal(element.ppaymentdate),
+      'Cleared Date': this.commonService.getFormatDateGlobal(element.pcleardate),
+      'Paid Amt.': element.ppaidamount
+        ? this.commonService.convertAmountToPdfFormat(
+          this.commonService.currencyFormat(element.ppaidamount)
+        )
+        : '',
+      'Bank Name': element.pbankname,
       'Cheque Book ID': element.pchkBookId,
       'Cheque Status ': element.pchequestatus
     }));
@@ -217,25 +241,25 @@ export class IssuedCheque implements OnInit {
     const [from, to] = this.chequefrom.split('-');
 
     const payload = {
-      pchequeNoFrom:   Number(from),
-      pchequeNoTo:     Number(to),
-      pchkBookId:      this._ChqBookId,
-      pbankaccountid:  this._BankId,
-      pbankname:       this.BankName,
-      pchqfromto:      this.chequefrom,
-      branchSchema:    this.commonService.getbranchname(),
-      pchequenumber:   '',
-      ppaymentid:      '',
-      pparticulars:    '',
-      ppaymentdate:    '',
-      pcleardate:      '',
-      pstatus:         'Cancelled',
-      ppaidamount:     0,
-      pchequestatus:   '',
+      pchequeNoFrom: Number(from),
+      pchequeNoTo: Number(to),
+      pchkBookId: this._ChqBookId,
+      pbankaccountid: this._BankId,
+      pbankname: this.BankName,
+      pchqfromto: this.chequefrom,
+      branchSchema: this.commonService.getbranchname(),
+      pchequenumber: '',
+      ppaymentid: '',
+      pparticulars: '',
+      ppaymentdate: '',
+      pcleardate: '',
+      pstatus: 'Cancelled',
+      ppaidamount: 0,
+      pchequestatus: '',
       lstIssuedCheque: this.DataForCancel().map((row: any) => ({
         pbankaccountid: this._BankId,
-        pchkBookId:     this._ChqBookId,
-        pchequenumber:  String(row.pchequenumber)
+        pchkBookId: this._ChqBookId,
+        pchequenumber: String(row.pchequenumber)
       }))
     };
 
@@ -258,9 +282,9 @@ export class IssuedCheque implements OnInit {
 
   // ── PDF / Print ──────────────────────────────────────────────────────────────
   pdfOrprint(printorpdf: 'Pdf' | 'Print'): void {
-    const rows: any[]    = [];
-    const reportname     = 'Issued Cheque';
-    const gridheaders    = [
+    const rows: any[] = [];
+    const reportname = 'Issued Cheque';
+    const gridheaders = [
       'Cheque No.', 'Payment ID', 'Particulars', 'Payment Date',
       'Cheque\nCleared Date', 'Paid Amt.', 'Bank Name', 'Cheque Book ID', 'Cheque Status'
     ];
@@ -275,20 +299,20 @@ export class IssuedCheque implements OnInit {
     retungridData.forEach((element: any) => {
       const paymentdate = element.ppaymentdate
         ? (this.datePipe.transform(element.ppaymentdate, 'dd-MMM-yyyy') ?? '') : '';
-      const cleardate   = element.pcleardate
+      const cleardate = element.pcleardate
         ? (this.datePipe.transform(element.pcleardate, 'dd-MMM-yyyy') ?? '') : '';
-      const paidamount  = element.ppaidamount && element.ppaidamount !== 0
+      const paidamount = element.ppaidamount && element.ppaidamount !== 0
         ? this.commonService.convertAmountToPdfFormat(
-            this.commonService.currencyFormat(parseFloat(String(element.ppaidamount)))
-          )
+          this.commonService.currencyFormat(parseFloat(String(element.ppaidamount)))
+        )
         : '';
 
       rows.push(
         element.group
           ? [element.group, element.pchequenumber, element.ppaymentid, element.pparticulars,
-             paymentdate, cleardate, paidamount, element.pbankname, element.pchkBookId, element.pchequestatus]
+            paymentdate, cleardate, paidamount, element.pbankname, element.pchkBookId, element.pchequestatus]
           : [element.pchequenumber, element.ppaymentid, element.pparticulars,
-             paymentdate, cleardate, paidamount, element.pbankname, element.pchkBookId, element.pchequestatus]
+            paymentdate, cleardate, paidamount, element.pbankname, element.pchkBookId, element.pchequestatus]
       );
     });
 
@@ -300,7 +324,7 @@ export class IssuedCheque implements OnInit {
   // ── Checkbox cancel selection ────────────────────────────────────────────────
   checkedCancel(event: any, row: any): void {
     const isChecked = (event.target as HTMLInputElement).checked;
-    row.isSelected  = isChecked;
+    row.isSelected = isChecked;
     if (isChecked) {
       this.DataForCancel.update(list => [...list, row]);
     } else {

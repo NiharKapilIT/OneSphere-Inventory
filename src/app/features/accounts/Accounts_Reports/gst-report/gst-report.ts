@@ -85,6 +85,19 @@ export class GstReport implements OnInit {
   toDateMinDate: any | null = null;
 
   private loginBranchSchema: any;
+   collapsedGroups = signal<Set<string>>(new Set());
+
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
 
   // ── Datepicker configs ────────────────────────────────────────────────────
   dpConfig: any = {
@@ -429,7 +442,7 @@ export class GstReport implements OnInit {
           element.state, element.guarantoraddress, transactionDate, element.receiptnumber,
           taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       } else {
-        rows.push(['', '', '', '', '', '', '', '', 'Total', taxableAmount, igstAmount, cgstAmount, sgstAmount]);
+        rows.push([element.groupcode,  gstNumber, element.accountname, element.area, element.city, element.state, element.guarantoraddress, transactionDate, element.receiptnumber, taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       }
     });
 

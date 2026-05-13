@@ -172,6 +172,8 @@ export class ChequesIssued implements OnInit {
   ChequesIssuedForm!: FormGroup;
   BrsReturnForm!: FormGroup;
   BrsCancelForm!: FormGroup;
+  rowsPerPageOptions = signal<number[]>([10, 20, 50]);
+
 
   constructor(
     private _accountingtransaction: AccountsTransactions,
@@ -346,13 +348,27 @@ export class ChequesIssued implements OnInit {
 
   // ── Pagination ─────────────────────────────────────────────────────────────
 
+  // setPageModel(): void {
+  //   this.pageCriteria.update(c => ({
+  //     ...c,
+  //     pageSize: this._commonService.pageSize,
+  //     offset: 0, pageNumber: 1, footerPageHeight: 50
+  //   }));
+  // }
+
   setPageModel(): void {
+    const options = this._commonService.setPageModel(
+      this.pageCriteria() as any,
+      this.gridData().length
+    );
+    this.rowsPerPageOptions.set(options);
     this.pageCriteria.update(c => ({
       ...c,
-      pageSize: this._commonService.pageSize,
+      pageSize: c.pageSize,
       offset: 0, pageNumber: 1, footerPageHeight: 50
     }));
   }
+
   setPageModel2(): void {
     this.pageCriteria2.update(c => ({
       ...c,
@@ -360,6 +376,8 @@ export class ChequesIssued implements OnInit {
       offset: 0, pageNumber: 1, footerPageHeight: 50
     }));
   }
+
+
   onFooterPageChange(event: { page: number }): void {
     this.pageCriteria.update(c => {
       const offset = event.page - 1;
@@ -633,6 +651,8 @@ export class ChequesIssued implements OnInit {
     else if (s === 'returned') this.Returned1();
     else if (s === 'cancelled') this.Cancelled1();
     else if (s === 'autobrs') this.autoBrs();
+
+    this.setPageModel();
   }
 
   // ── Search ─────────────────────────────────────────────────────────────────
@@ -1084,14 +1104,15 @@ export class ChequesIssued implements OnInit {
   }
 
   ShowBrsClear(): void {
+    debugger
     this.gridData.set([]); this.cleared.set(0); this._searchText = '';
     const fromdate = this.ChequesIssuedForm.controls['pfrombrsdate'].value;
     const todate = this.ChequesIssuedForm.controls['ptobrsdate'].value;
     if (fromdate != null && todate != null) {
       this.OnBrsDateChanges(fromdate, todate);
       if (!this.validate) {
-        this.fromdate = this.datepipe.transform(fromdate, 'MM/dd/yyyy') || '';
-        this.todate = this.datepipe.transform(todate, 'MM/dd/yyyy') || '';
+        this.fromdate = this.datepipe.transform(fromdate, 'yyyy-MM-dd') || '';
+        this.todate = this.datepipe.transform(todate, 'yyyy-MM-dd') || '';
         this.validatebrsdateclear.set(false); this.pageSetUp();
         this.GetDataOnBrsDates(this.fromdate, this.todate, this.bankid);
       } else { this.validatebrsdateclear.set(true); }
@@ -1335,6 +1356,7 @@ export class ChequesIssued implements OnInit {
   // }
 
   GetDataOnBrsDates(frombrsdate: any, tobrsdate: any, bankid: any): void {
+    debugger
     const bank = this.safeBank(bankid);
     const search = this.safeSearch(this._searchText);
 
@@ -1352,7 +1374,7 @@ export class ChequesIssued implements OnInit {
       next: ([clearreturndata, countdata]: any) => {
         console.log('GetDataOnBrsDates response:', clearreturndata);
 
-        const list: ChequesIssuedRow[] = (clearreturndata?.pchequesclearreturnlist || [])
+        const list: ChequesIssuedRow[] = (clearreturndata || [])
           .map((i: any) => this.normalizeDates(i));
 
         const s = this.status();
@@ -1837,9 +1859,12 @@ export class ChequesIssued implements OnInit {
     gd.forEach((e: any) => {
       const amt = Number(e?.ptotalreceivedamount || 0);
       Totlaamount += amt;
-      const dr = e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '';
-      const dd = e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '--NA--';
-      const cls = e?.pCleardate ? this._commonService.getFormatDateGlobal(e.pCleardate) : '';
+      // const dr = e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '';
+      // const dd = e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '--NA--';
+      // const cls = e?.pCleardate ? this._commonService.getFormatDateGlobal(e.pCleardate) : '';
+       const dr = e?.preceiptdate ? this.datepipe.transform(e.preceiptdate,'dd-MMM-yyyy') : '';
+      const dd = e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate,'dd-MMM-yyyy') : '--NA--';
+      const cls = e?.pCleardate ? this.datepipe.transform(e.pCleardate,'dd-MMM-yyyy') : '';
       data.push([
         e?.pChequenumber || '',
         this._commonService.convertAmountToPdfFormat(amt),

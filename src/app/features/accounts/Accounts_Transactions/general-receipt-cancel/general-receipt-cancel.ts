@@ -105,12 +105,12 @@ export class GeneralReceiptCancel implements OnInit {
       ipaddress: [''],
       userid: [''],
       activitytype: ['C'],
-      ppaymentdate: [{ value: new Date(), disabled: true }, Validators.required],
+      ppaymentdate: [this.testDate, Validators.required],
       totalreceivedamount: [''],
       narration: [''],
       cancellationreason: ['', Validators.required],
       schemaid: [this.globalSchema],
-      autorizedcontactid: ['', Validators.required],
+      autorizedcontactid: [null, Validators.required],
       subintroducedname: [''],
 
     });
@@ -174,12 +174,15 @@ export class GeneralReceiptCancel implements OnInit {
       this.show.set(false);
       return;
     }
+
     this.GeneralReceiptCancelForm.patchValue({
       cancellationreason: '',
-      autorizedcontactid: '',
+      // autorizedcontactid: '',
+      autorizedcontactid: null,
     });
     this.GeneralReceiptCancelForm.get('cancellationreason')?.markAsUntouched();
     this.GeneralReceiptCancelForm.get('autorizedcontactid')?.markAsUntouched();
+
 
     const receiptId = typeof event === 'object'
       ? event.receiptnumber ?? event
@@ -207,6 +210,38 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Bind Receipt Data  
+  // private bindReceiptData(data: any): void {
+
+  //   if (!data) { this.clearReceiptFields(); return; }
+
+  //   this.receivedfrom.set(data.account_name ?? data.contact_name ?? '');
+  //   this.receiptdate.set(data.receipt_date ?? data.receiptdate ?? '');
+  //   this.narration.set(data.narration ?? '');
+  //   this.pmodofPayment.set(
+  //     data.modeof_receipt === 'C' ? 'Cash' : (data.modeof_receipt ?? '')
+  //   );
+  //   this.doneby.set(data.employeename ?? data.posted_by ?? '');
+
+  //   const details = [{
+  //     pAccountname: data.account_name ?? 'Receipt Amount',
+  //     pLedgeramount: data.pLedgeramount,
+  //     // pLedgeramount: data.pLedgeramount ?? 0,
+  //     //pLedgeramount: data.ledger_amount ?? data.pLedgeramount ?? 0, 
+  //   }];
+
+
+
+  //   this.lstdetails.set(details);
+  //   this.generalReceiptData = details;
+  //   this.showtotalamount.set(parseFloat(data.ledger_amount) || 0);
+  //   this.pageCriteria.update(pc => ({ ...pc, totalrows: details.length }));
+
+  //   this.GeneralReceiptCancelForm.patchValue({
+  //     receiptnumber: data.receiptid ?? '',
+  //     narration: data.narration ?? '',
+  //   });
+  // }
+
   private bindReceiptData(data: any): void {
     if (!data) { this.clearReceiptFields(); return; }
 
@@ -218,14 +253,19 @@ export class GeneralReceiptCancel implements OnInit {
     );
     this.doneby.set(data.employeename ?? data.posted_by ?? '');
 
-    const details = [{
-      pAccountname: data.account_name ?? 'Receipt Amount',
-      pLedgeramount: data.pLedgeramount ?? 0,
-    }];
+    // Map from pGeneralReceiptSubDetailsList
+    const subDetails = data.pGeneralReceiptSubDetailsList ?? [];
+    const details = subDetails.map((item: any) => ({
+      pAccountname: item.pAccountname ?? data.account_name ?? 'Receipt Amount',
+      pLedgeramount: item.pLedgeramount ?? 0,
+    }));
 
     this.lstdetails.set(details);
     this.generalReceiptData = details;
-    this.showtotalamount.set(parseFloat(data.ledger_amount) || 0);
+
+    const total = subDetails.reduce((sum: number, item: any) =>
+      sum + (parseFloat(item.pLedgeramount) || 0), 0);
+    this.showtotalamount.set(total);
     this.pageCriteria.update(pc => ({ ...pc, totalrows: details.length }));
 
     this.GeneralReceiptCancelForm.patchValue({
@@ -236,6 +276,7 @@ export class GeneralReceiptCancel implements OnInit {
 
 
   Show(): void {
+    debugger
     if (!this.GeneralReceiptCancelForm.controls['receiptid'].value) {
       this.showValidation.set(true);
       // this.commonService.showWarningMessage('Please select the receipt number');
@@ -251,7 +292,7 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Save  
-   
+
   Save(): void {
     this.GeneralReceiptCancelForm.markAllAsTouched();
     if (this.GeneralReceiptCancelForm.invalid) {
@@ -325,7 +366,7 @@ export class GeneralReceiptCancel implements OnInit {
     this.receiptCancelService.SaveGeneralReceiptCancel(payload).subscribe({
       next: (res: any) => {
         if (res) {
-          this.commonService.showInfoMessage('Cancelled Successfully');
+          this.commonService.showSuccessMsg('Cancelled Successfully');
           this.show.set(false);
           this.loadReceiptNumbers();
           this.clearReceiptFields();
@@ -341,8 +382,28 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Cancel / Reset  
+  // Cancel(): void {
+  //   const currentDate = this.GeneralReceiptCancelForm.get('ppaymentdate')?.value;
+
+  //   this.GeneralReceiptCancelForm.reset({ ppaymentdate: currentDate });
+  //   this.buildForm();
+  //   this.resetLoadingState();
+  //   this.show.set(false);
+  //   this.clearReceiptFields();
+  //   this.showValidation.set(false);
+  // }
+
+
   Cancel(): void {
-    this.buildForm();
+    const currentDate = this.GeneralReceiptCancelForm.get('ppaymentdate')?.value;
+
+    this.buildForm(); // this overwrites everything including ppaymentdate
+
+    // Re-apply the date after buildForm reinitializes the form
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.enable();
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.setValue(currentDate ?? new Date());
+    this.GeneralReceiptCancelForm.get('ppaymentdate')?.disable();
+
     this.resetLoadingState();
     this.show.set(false);
     this.clearReceiptFields();
@@ -350,7 +411,7 @@ export class GeneralReceiptCancel implements OnInit {
   }
 
   // ─── Helpers  
-   
+
 
   private clearReceiptFields(): void {
     this.receivedfrom.set('');
@@ -364,7 +425,8 @@ export class GeneralReceiptCancel implements OnInit {
     this.pageCriteria.update(pc => ({ ...pc, totalrows: 0 }));
     this.GeneralReceiptCancelForm.patchValue({
       cancellationreason: '',
-      autorizedcontactid: '',
+      // autorizedcontactid: '',
+      autorizedcontactid: null,
     });
     this.GeneralReceiptCancelForm.get('cancellationreason')?.markAsUntouched();
     this.GeneralReceiptCancelForm.get('autorizedcontactid')?.markAsUntouched();

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { TableModule } from 'primeng/table';
@@ -19,41 +19,46 @@ import { PageCriteria } from '../../../../core/models/pagecriteria';
     RouterModule,
     TableModule,
     PaginatorModule,
-    DecimalPipe,
+
   ],
+  providers: [CurrencyPipe],
   templateUrl: './petty-cash-view.html',
 })
 export class PettyCashView implements OnInit, OnDestroy {
 
   // ── DI via inject() ────────────────────────────────────────────────────────
-  private readonly router             = inject(Router);
-  private readonly commonService      = inject(CommonService);
-  private readonly accountingService  = inject(AccountsTransactions);
-  private readonly cdr                = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
+  private readonly commonService = inject(CommonService);
+  private readonly accountingService = inject(AccountsTransactions);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   // ── Signals ────────────────────────────────────────────────────────────────
-  readonly gridView    = signal<any[]>([]);
-  readonly loading     = signal<boolean>(false);
-  readonly totalRows   = signal<number>(0);
+  readonly gridView = signal<any[]>([]);
+  readonly loading = signal<boolean>(false);
+  readonly totalRows = signal<number>(0);
+  private readonly currencyPipe = inject(CurrencyPipe);
+
 
   readonly hasData = computed(() => this.gridView().length > 0);
+  rowsPerPageOptions: number[] = [10, 20, 50];
 
   // ── State ──────────────────────────────────────────────────────────────────
-  currencySymbol  = '₹';
-  first           = 0;
-  pageSize        = 10;
+  currencySymbol = '₹';
+  readonly currencyCode = 'INR';
+  first = 0;
+  pageSize = 10;
 
-  pageCriteria    = new PageCriteria();
+  pageCriteria = new PageCriteria();
 
   // ── Private ────────────────────────────────────────────────────────────────
-  private filteredData:      any[]     = [];
-  private columnsWithSearch: string[]  = [];
+  private filteredData: any[] = [];
+  private columnsWithSearch: string[] = [];
   private readonly destroy$ = new Subject<void>();
 
   // ══════════════════════════════════════════════════════════════════════════
   ngOnInit(): void {
-    this.currencySymbol = this.commonService.currencysymbol || '₹';
-    this.setPageModel();
+    this.currencySymbol = this.commonService.currencysymbol;
+    // this.setPageModel();
     this.getLoadData();
   }
 
@@ -62,13 +67,50 @@ export class PettyCashView implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ── Page model ─────────────────────────────────────────────────────────────
-  private setPageModel(): void {
-    this.pageCriteria.pageSize         = 10;
-    this.pageCriteria.offset           = 0;
-    this.pageCriteria.pageNumber       = 1;
-    this.pageCriteria.footerPageHeight = 50;
+  formatCurrency(amount: number): string {
+    return this.currencyPipe.transform(amount, 'INR', 'symbol', '1.2-2') ?? '₹0.00';
   }
+
+  // ── Page model ─────────────────────────────────────────────────────────────
+  // private setPageModel(): void {
+  //   this.pageCriteria.pageSize         = 10;
+  //   this.pageCriteria.offset           = 0;
+  //   this.pageCriteria.pageNumber       = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+  // }
+
+  // private setPageModel(): void {
+  //   const total = this.totalRows();
+
+  //   this.pageCriteria.pageSize =
+  //     total > 0 && total < 10 ? total : 10;
+
+  //   this.pageCriteria.offset = 0;
+  //   this.pageCriteria.pageNumber = 1;
+  //   this.pageCriteria.footerPageHeight = 50;
+
+  //   if (total <= 0) {
+  //     this.rowsPerPageOptions = [10];
+  //   } else if (total < 10) {
+  //     this.rowsPerPageOptions = [total];
+  //   } else if (total === 10) {
+  //     this.rowsPerPageOptions = [10];
+  //   } else if (total <= 20) {
+  //     this.rowsPerPageOptions = [10, total];
+  //   } else if (total <= 50) {
+  //     this.rowsPerPageOptions = [10, 20, total];
+  //   } else {
+  //     this.rowsPerPageOptions = [10, 20, 50];
+  //   }
+  // }
+
+  private setPageModel(): void {
+    this.rowsPerPageOptions = this.commonService.setPageModel(
+      this.pageCriteria,
+      this.gridView().length 
+    );
+  }
+
 
   // ── Data fetch ─────────────────────────────────────────────────────────────
   getLoadData(): void {
@@ -102,15 +144,15 @@ export class PettyCashView implements OnInit, OnDestroy {
             ),
           }));
 
-          this.filteredData      = processed;
+          this.filteredData = processed;
           this.columnsWithSearch = Object.keys(processed[0]);
 
           this.gridView.set([...processed]);
           this.totalRows.set(processed.length);
 
-          this.pageCriteria.totalrows  = processed.length;
+          this.pageCriteria.totalrows = processed.length;
           this.pageCriteria.TotalPages = Math.ceil(processed.length / this.pageCriteria.pageSize);
-
+          this.setPageModel();
           this.cdr.markForCheck();
         },
         error: (err: any) => {
@@ -129,11 +171,11 @@ export class PettyCashView implements OnInit, OnDestroy {
     const result = !term
       ? [...this.filteredData]
       : this.filteredData.filter(item =>
-          this.columnsWithSearch.some(col => {
-            const val = item[col];
-            return val && val.toString().toLowerCase().includes(term);
-          }),
-        );
+        this.columnsWithSearch.some(col => {
+          const val = item[col];
+          return val && val.toString().toLowerCase().includes(term);
+        }),
+      );
 
     this.gridView.set(result);
     this.totalRows.set(result.length);
@@ -144,7 +186,7 @@ export class PettyCashView implements OnInit, OnDestroy {
 
   // ── Pagination ─────────────────────────────────────────────────────────────
   onPageChange(event: any): void {
-    this.first    = event.first;
+    this.first = event.first;
     this.pageSize = event.rows;
     this.pageCriteria.pageSize = event.rows;
   }
@@ -153,7 +195,7 @@ export class PettyCashView implements OnInit, OnDestroy {
   viewRow(row: any): void {
     if (!row?.paymentId) return;
     const receipt = btoa(`${row.paymentId},Petty Cash`);
-    const url     = this.router.serializeUrl(
+    const url = this.router.serializeUrl(
       this.router.createUrlTree(['/payment-voucher', receipt]),
     );
     window.open(url, '_blank');

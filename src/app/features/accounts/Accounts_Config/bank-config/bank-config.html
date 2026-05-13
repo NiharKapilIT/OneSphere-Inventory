@@ -128,8 +128,8 @@
               <div class="col-12 col-md-6">
                 <div class="erp-form-group">
                   <label class="erp-label">IFSC Code</label>
-                  <input class="erp-input" type="text" maxlength="12" formControlName="pIfsccode" appNoLeadingZero
-                    (input)="onIfscInput()" [class.is-invalid]="bankmastervalidations.pIfsccode" />
+                  <input class="erp-input" type="text" maxlength="12" formControlName="pIfsccode"
+                    (input)="onIfscInput($event)" [class.is-invalid]="bankmastervalidations.pIfsccode" />
                   @if (bankmastervalidations.pIfsccode) {
                   <div class="field-error">{{ bankmastervalidations.pIfsccode }}</div>
                   }
@@ -216,7 +216,7 @@
                       <div class="row g-2">
                         <div class="col-6">
                           <div class="erp-form-group">
-                            <label class="erp-label">Valid From</label>
+                            <label class="erp-label">Valid From<span class="required">*</span></label>
                             <div class="erp-input-wrap erp-date-wrap">
                               <i class="pi pi-calendar erp-input-icon"></i>
                               <p-datepicker formControlName="pValidfrom" view="month" dateFormat="mm/yy"
@@ -233,7 +233,7 @@
 
                         <div class="col-6">
                           <div class="erp-form-group">
-                            <label class="erp-label">Valid Thru</label>
+                            <label class="erp-label">Valid Thru<span class="required">*</span></label>
                             <div class="erp-input-wrap erp-date-wrap">
                               <i class="pi pi-calendar erp-input-icon"></i>
                               <p-datepicker formControlName="pValidto" view="month" dateFormat="mm/yy"

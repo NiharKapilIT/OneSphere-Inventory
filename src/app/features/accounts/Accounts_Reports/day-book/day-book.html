@@ -168,15 +168,18 @@
                 </ng-template>
 
                 <ng-template pTemplate="groupheader" let-rowData>
-                  <tr>
+                  <tr style="cursor:pointer" (click)="toggleGroup(rowData.prcpttransactiondate)">
                     <td colspan="8" class="bg-light font-bold">
-                      <i class="pi pi-calendar me-2 text-primary small"></i>
+                      <!-- <i class="pi pi-calendar me-2 text-primary small"></i> -->
+                       <i class="pi me-2"
+                      [ngClass]="isGroupCollapsed(rowData.ptransactiondate) ? 'pi-chevron-right' : 'pi-chevron-down'"></i>
                       <span class="text-primary text-uppercase small letter-spacing-1">{{ rowData.prcpttransactiondate | date:'dd-MMM-yyyy' }}</span>
                     </td>
                   </tr>
                 </ng-template>
 
                 <ng-template pTemplate="body" let-row>
+                   @if (!isGroupCollapsed(row.prcpttransactiondate)) {
                   <tr>
                     <!-- Receipt Columns -->
                     <td class="small font-bold text-success">{{ row.prcpttransactionno }}</td>
@@ -197,6 +200,7 @@
                       } @else { <span class="text-muted smaller">--</span> }
                     </td>
                   </tr>
+                }
                 </ng-template>
 
                 <ng-template pTemplate="emptymessage">

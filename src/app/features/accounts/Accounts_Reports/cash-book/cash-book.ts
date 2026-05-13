@@ -42,6 +42,20 @@ export class CashBook implements OnInit {
   readonly totalReceipts = computed(() => this.gridView().reduce((s, x) => s + (x.pdebitamount ?? 0), 0));
   readonly totalPayments = computed(() => this.gridView().reduce((s, x) => s + (x.pcreditamount ?? 0), 0));
 
+   collapsedGroups = signal<Set<string>>(new Set());
+
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
+
   // Datepicker configs as signals so template reacts to minDate/maxDate updates
   readonly dpConfig = signal<any>({
     dateInputFormat: 'DD-MMM-YYYY',
@@ -196,7 +210,7 @@ export class CashBook implements OnInit {
       receiptName = 'General Receipt';
     } else if (transNo.startsWith('MV_')) {
       route = '/payment-voucher';
-      receiptName = 'Bank Payment';
+      receiptName = 'Payment Voucher';
     } else if (transNo.startsWith('JV_')) {
       route = '/journal-voucher';
       receiptName = 'Journal Voucher';
