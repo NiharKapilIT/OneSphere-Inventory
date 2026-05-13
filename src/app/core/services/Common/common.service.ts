@@ -1155,7 +1155,7 @@ export class CommonService {
 
     const storedFormat = sessionStorage.getItem('dateformat') ?? '';
 
-    let format = 'dd/MM/yyyy';
+    let format = 'dd-MMM-yyyy';
 
     switch (storedFormat) {
       case "MM DD YYYY": format = 'MM dd yyyy'; break;

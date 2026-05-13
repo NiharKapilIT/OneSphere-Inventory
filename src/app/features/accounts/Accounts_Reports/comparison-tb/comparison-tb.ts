@@ -81,6 +81,20 @@ export class ComparisonTb implements OnInit {
   @ViewChild('myTable') table: any;
   toDateMinDate: any | null = null;
 
+  collapsedGroups = signal<Set<string>>(new Set());
+
+  toggleGroup(status: string): void {
+    this.collapsedGroups.update(groups => {
+      const next = new Set(groups);
+      next.has(status) ? next.delete(status) : next.add(status);
+      return next;
+    });
+  }
+
+  isGroupCollapsed(status: string): boolean {
+    return this.collapsedGroups().has(status);
+  }
+
   constructor() {
     this.currencysymbol = String(
       this.commonService.datePickerPropertiesSetup('currencysymbol')
