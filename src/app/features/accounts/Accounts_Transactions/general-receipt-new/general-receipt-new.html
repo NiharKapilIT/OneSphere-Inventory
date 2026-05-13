@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page accounts-entry-page">
 
   <!-- ── Cash Warning Alert ── -->
   @if (showCashWarning()) {
@@ -535,13 +535,13 @@
 
         </div>
 
-        <!-- ── TAX TOGGLES (TDS & GST) ── -->
-        <div class="mt-3 mb-3">
-          <div class="d-flex gap-4 align-items-center">
-
-            <!-- TDS Toggle -->
-            <div class="d-flex align-items-center gap-2">
-              <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">TDS</span>
+        <div class="account-tax-groups">
+          <section class="account-tax-group" [class.is-expanded]="showtds()">
+            <div class="account-tax-group-header">
+              <div>
+                <h4>TDS Details</h4>
+                <span>Tax deduction setup for this receipt line.</span>
+              </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
                 <input id="tds-switch" name="tds-switch" formControlName="pistdsapplicable" type="checkbox"
                   [attr.disabled]="!GeneralReceiptForm.get('ppartyid')?.value ? true : null"
@@ -549,10 +549,56 @@
                 <label for="tds-switch" class="erp-toggle"></label>
               </div>
             </div>
+            @if (showtds()) {
+            <div class="account-tax-group-body">
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">Section <span class="required">*</span></label>
+                    <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
+                      formControlName="pTdsSection" (change)="tdsSection_Change($event)"
+                      (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
+                      placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
+                      [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
+                    </ng-select>
+                    @if (getValidationMsg('pTdsSection')) {
+                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                      getValidationMsg('pTdsSection') }}</div>
+                    }
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">Percentage <span class="required">*</span></label>
+                    <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
+                      bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
+                      placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
+                      [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
+                    </ng-select>
+                    @if (getValidationMsg('pTdsPercentage')) {
+                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required</div>
+                    }
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">TDS Amount</label>
+                    <div class="erp-value-pill">
+                      <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+          </section>
 
-            <!-- GST Toggle -->
-            <div class="d-flex align-items-center gap-2" formGroupName="preceiptslist">
-              <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">GST</span>
+          <section class="account-tax-group" [class.is-expanded]="showgst()" formGroupName="preceiptslist">
+            <div class="account-tax-group-header">
+              <div>
+                <h4>GST Details</h4>
+                <span>GST state, percentage and calculated breakup.</span>
+              </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
                 <input id="gst-switch" type="checkbox" formControlName="pisgstapplicable"
                   [attr.disabled]="!GeneralReceiptForm.get('ppartyid')?.value ? true : null"
@@ -560,60 +606,9 @@
                 <label for="gst-switch" class="erp-toggle"></label>
               </div>
             </div>
-
-          </div>
-        </div>
-
-        <!-- ── TDS DETAILS ── -->
-        @if (showtds()) {
-        <div class="row g-2 mb-3">
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">Section <span class="required">*</span></label>
-           
-              <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
-                formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
-                placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
-                [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
-              </ng-select>
-              @if (getValidationMsg('pTdsSection')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                getValidationMsg('pTdsSection') }}</div>
-              }
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">Percentage <span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
-                bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
-                placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
-                [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
-              </ng-select>
-              @if (getValidationMsg('pTdsPercentage')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required
-              </div>
-              }
-            </div>
-          </div>
-
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">TDS Amount</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        }
-
-        <!-- ── GST DETAILS ── -->
-        @if (showgst()) {
-        <div formGroupName="preceiptslist">
-          <div class="row g-2 mb-2">
+            @if (showgst()) {
+            <div class="account-tax-group-body">
+              <div class="row g-2 mb-2">
             <div class="col-12 col-md-6">
               <label class="erp-label">State <span class="required">*</span></label>
               @if (statelist().length === 1) {
@@ -662,7 +657,7 @@
           </div>
 
           <!-- GST Breakdown -->
-          <div class="row mt-2">
+              <div class="row mt-2">
             @if (showgstamount()) {
             <div class="col-md-6 mb-2">
               <label class="erp-label">GST Amount</label>
@@ -712,9 +707,11 @@
               </div>
             </div>
             }
-          </div>
+              </div>
+            </div>
+            }
+          </section>
         </div>
-        }
 
         <!-- Add / Clear -->
         <div class="d-flex gap-2 mt-2">

@@ -1,0 +1,18 @@
+import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { DatePickerModule } from 'primeng/datepicker';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
+import { productionReturnConfig } from '../../Inventory_Shared/inventory-screen.model';
+
+@Component({
+  selector: 'app-inventory-production-return',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell],
+  templateUrl: './production-return.html'
+})
+export class InventoryProductionReturnComponent extends InventoryScreenShell {
+  override readonly config = productionReturnConfig;
+}

@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx ng *)"
+      "Bash(npx ng *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Angular Projects\\\\OneSphere_Version21_APR18\\\\GLOBAL_ERP_V21\\\\src\\\\app\\\\features\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Select-String -Path \"d:\\\\Angular Projects\\\\OneSphere_Version21_APR18\\\\GLOBAL_ERP_V21\\\\src\\\\styles.scss\" -Pattern \"inventory-modal-backdrop\")",
+      "Bash(Select-Object -First 5)"
     ]
   }
 }
