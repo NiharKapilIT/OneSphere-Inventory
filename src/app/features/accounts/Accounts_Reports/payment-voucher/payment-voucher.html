@@ -136,8 +136,8 @@
                               (subItem?.state_code?.toString() === Gstinn ?
                               ((subItem?.pcgstamount && subItem?.pcgstamount !== 0) ? 2 : 0) :
                               ((subItem?.pigstamount && subItem?.pigstamount !== 0) || (subItem?.pcgstamount && subItem?.pcgstamount
-                              !== 0) ? 1 : 0)
-                              ) + 2 }}</td>
+                              !== 0) ? 2 : 0)
+                              ) + 1 }}</td>
                         <td class="ps-4 italic">TDS ({{paymentData?.ptdspercentage}}% Included)</td>
                         <td class="text-end">({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.2-2' }})</td>
                       </tr>
