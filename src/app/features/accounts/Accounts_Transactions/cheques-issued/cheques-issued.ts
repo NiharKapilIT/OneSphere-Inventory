@@ -1569,7 +1569,7 @@ export class ChequesIssued implements OnInit {
           this._commonService.showWarningMessage('Duplicates Found please enter unique values');
           isValid = false;
         } else if (isempty) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           isValid = false;
         } else if (selrec.length === 0) {
           if (iscancel.length > 0) {

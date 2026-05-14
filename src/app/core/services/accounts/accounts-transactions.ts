@@ -467,7 +467,7 @@ export class AccountsTransactions {
       .set('startindex', startindex ?? 0)
       .set('endindex', endindex ?? 10)
       .set('modeofreceipt', modeofreceipt ?? 'ALL')
-      .set('searchtext', searchtext || '0')
+      .set('searchtext', searchtext || '')
       .set('GlobalSchema', this._CommonService.getschemaname())
       .set('companyCode', this._CommonService.getCompanyCode())
       .set('branchCode', this._CommonService.getBranchCode());
