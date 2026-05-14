@@ -1795,7 +1795,7 @@ export class CommonService {
             doc.text('Branch : ' + companyBranch, 163, 40);
 
             if (grouptype === 'Between') {
-              doc.text(`Between : ${companyBranch}` + from + ' And ' + to, 15, 40);
+              doc.text(`Between :` + from + ' And ' + to, 15, 40);
             } else if (grouptype === 'Ason' && from) {
               doc.text('As on : ' + from, 15, 40);
             }
@@ -1828,7 +1828,7 @@ export class CommonService {
 
             doc.setFontSize(10);
             // doc.text('Branch : ' + company?.pBranchname, 235, 40);
-            doc.text(`Between : ${companyBranch}`, 235, 40);
+            doc.text(`Branch: ${companyBranch}`, 235, 40);
 
             if (grouptype === 'Between') {
               doc.text('Between : ' + from + ' And ' + to, 15, 40);
