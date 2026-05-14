@@ -1311,7 +1311,7 @@ export class ChequesInbank implements OnInit {
           this._commonService.showWarningMessage('Duplicates Found please enter unique values');
           isvalid = false;
         } else if (isempty) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           isvalid = false;
         } else if (selectrecords.length == 0) {
           this._commonService.showWarningMessage('Please Select records');
@@ -1390,7 +1390,7 @@ export class ChequesInbank implements OnInit {
           .filter(el => el.pchequestatus === 'Y')
           .some(item => !item.preferencetext || item.preferencetext.toString().trim() === '');
         if (emptyRef) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           return;
         }
 
