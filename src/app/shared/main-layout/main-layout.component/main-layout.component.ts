@@ -50,6 +50,7 @@ interface FlyoutScreenGroup {
 })
 export class MainLayoutComponent implements OnInit, AfterViewInit {
   @ViewChild('moduleScroller') private moduleScroller?: ElementRef<HTMLElement>;
+  @ViewChild('contentArea') private contentArea?: ElementRef<HTMLElement>;
 
   modules: Module[] = [];
   selectedModule: Module | null = null;
@@ -154,6 +155,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       .subscribe(event => {
         this.restoreNavigationFromRoute(event.urlAfterRedirects);
         this.updateReferenceTray(event.urlAfterRedirects);
+        this.contentArea?.nativeElement.scrollTo({ top: 0 });
       });
 
     // Set General Receipt as default selection
