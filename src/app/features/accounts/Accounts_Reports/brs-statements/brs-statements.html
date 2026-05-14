@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page accounts-entry-page">
   <div class="erp-card">
 
     <!-- Header -->
@@ -76,10 +76,10 @@
 
             <!-- Generate Button -->
             <div class="col-12 col-md-2">
-              <div class="erp-form-group">
-                <button type="button" class="erp-btn btn-primary shadow-sm" (click)="show()" [disabled]="isSaving()">
+              <div class="erp-form-group mb-0">
+                <button type="button" class="erp-btn btn-primary" (click)="show()" [disabled]="isSaving()">
                   <i class="pi" [ngClass]="isSaving() ? 'pi-spin pi-spinner' : 'pi-search'"></i>
-                  {{ isSaving() ? 'Processing' : saveButtonLabel() }}
+                  {{ isSaving() ? 'Generating' : 'Generate' }}
                 </button>
               </div>
             </div>
@@ -99,39 +99,40 @@
                 </h6>
               </div>
               <div class="tb-right">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
                 @if (bankCreditShow()) {
-                  <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintCredit('Pdf')" title="Export PDF">
-                    <i class="pi pi-file-pdf"></i>
-                  </button>
                   <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintCredit('Print')" title="Print">
                     <i class="pi pi-print"></i>
+                  </button>
+                  <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintCredit('Pdf')" title="Export PDF">
+                    <i class="pi pi-file-pdf"></i>
                   </button>
                   <button class="erp-btn btn-white btn-sm" (click)="exportBankCredit()" title="Excel">
                     <i class="pi pi-file-excel"></i>
                   </button>
                 }
                 @if (bankDebitShow()) {
-                  <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintDebit('Pdf')" title="Export PDF">
-                    <i class="pi pi-file-pdf"></i>
-                  </button>
                   <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintDebit('Print')" title="Print">
                     <i class="pi pi-print"></i>
+                  </button>
+                  <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrintDebit('Pdf')" title="Export PDF">
+                    <i class="pi pi-file-pdf"></i>
                   </button>
                   <button class="erp-btn btn-white btn-sm" (click)="exportBankDebit()" title="Excel">
                     <i class="pi pi-file-excel"></i>
                   </button>
                 }
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
               </div>
             </div>
 
-            <div class="tbl-wrap">
+            <div class="tbl-wrap brs-statements-table-wrap">
               <!-- Bank Credit Table -->
               @if (bankCreditShow()) {
-                <p-table [value]="sortedGrid()" [paginator]="true" [rows]="pageCriteria.pageSize"
+                <p-table [value]="sortedGrid()" [paginator]="true" [rows]="10"
                   [rowsPerPageOptions]="[10, 20, 50]"
-                  [first]="pageCriteria.offset * pageCriteria.pageSize" (onPage)="onPageChange($event)"
+                  [showCurrentPageReport]="true"
+                  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
                   responsiveLayout="scroll" [loading]="loading()"
                   styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 
@@ -188,9 +189,10 @@
 
               <!-- Bank Debit Table -->
               @if (bankDebitShow()) {
-                <p-table [value]="sortedGrid()" [paginator]="true" [rows]="pageCriteria.pageSize"
+                <p-table [value]="sortedGrid()" [paginator]="true" [rows]="10"
                   [rowsPerPageOptions]="[10, 20, 50]"
-                  [first]="pageCriteria.offset * pageCriteria.pageSize" (onPage)="onPageChange($event)"
+                  [showCurrentPageReport]="true"
+                  currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
                   responsiveLayout="scroll" [loading]="loading()"
                   styleClass="gr-table p-datatable-sm p-datatable-gridlines">
 

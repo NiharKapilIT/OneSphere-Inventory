@@ -1,32 +1,426 @@
-<div class="module-page">
-  <div class="erp-card">
-    <div class="card-header">
-      <div>
-        <h4 class="card-title">
-          <i class="pi pi-box"></i>
-          Inventory Dashboard
-        </h4>
-        <p class="card-subtitle">Deposit, withdrawal, and transfer overview</p>
+<div class="inv-owner-dashboard">
+  <header class="inv-owner-hero">
+    <div class="inv-owner-title">
+      <span class="inv-owner-kicker"><i class="pi pi-box"></i> Inventory owner cockpit</span>
+      <h1>Inventory Dashboard</h1>
+      <p>Simple decisions for stock, cash blocked, approvals, dispatch and segment performance.</p>
+      <div class="inv-owner-meta">
+        <span><i class="pi pi-clock"></i> {{ dashboardTime() }}</span>
+        <span><i class="pi pi-filter"></i> {{ selectedSegment() }}</span>
+        <span><i class="pi pi-calendar"></i> {{ selectedPeriod() | titlecase }}</span>
       </div>
     </div>
 
-    <div class="card-body p-0">
-      <div class="p-4">
-        <div class="row g-3">
-          @for (stat of stats; track stat.label) {
-            <div class="col-xl-3 col-lg-4 col-md-6">
-              <div class="erp-grid-shell p-3 h-100 d-flex align-items-center justify-content-between">
+    <div class="inv-owner-controls">
+      <div class="inv-period-toggle" aria-label="Dashboard period">
+        <button type="button" [class.active]="selectedPeriod() === 'today'" (click)="selectPeriod('today')">Today</button>
+        <button type="button" [class.active]="selectedPeriod() === 'week'" (click)="selectPeriod('week')">Week</button>
+        <button type="button" [class.active]="selectedPeriod() === 'month'" (click)="selectPeriod('month')">Month</button>
+        <button type="button" [class.active]="selectedPeriod() === 'quarter'" (click)="selectPeriod('quarter')">Quarter</button>
+      </div>
+
+      <div class="inv-owner-toolbar">
+        <button type="button" title="Refresh" (click)="refreshDashboard()"><i class="pi pi-refresh"></i></button>
+        <button type="button" title="Print action list" (click)="handleGridAction('actions', 'print')"><i class="pi pi-print"></i></button>
+        <button type="button" title="Mail action list" (click)="handleGridAction('actions', 'mail')"><i class="pi pi-envelope"></i></button>
+        <button type="button" title="Export MIS" (click)="handleGridAction('segments', 'export')"><i class="pi pi-file-excel"></i></button>
+        <button type="button" title="WhatsApp action list" (click)="handleGridAction('actions', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <section class="inv-owner-filter-band">
+    <div class="inv-owner-filter">
+      <label>Segment</label>
+      <select class="erp-input" [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)">
+        @for (segment of segmentNames(); track segment) {
+          <option [value]="segment">{{ segment }}</option>
+        }
+      </select>
+    </div>
+    <div class="inv-owner-filter search">
+      <label>Search dashboard</label>
+      <div>
+        <i class="pi pi-search"></i>
+        <input class="erp-input" type="text" placeholder="Product, document, location, action" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" />
+      </div>
+    </div>
+    <button type="button" class="inv-owner-reset" (click)="clearSearch()"><i class="pi pi-times"></i> Clear</button>
+    <div class="inv-owner-decision">
+      <span>Next owner decision</span>
+      <strong>{{ topDecision() }}</strong>
+    </div>
+  </section>
+
+  <section class="inv-owner-kpi-grid">
+    @for (kpi of ownerKpis; track kpi.label) {
+      <button type="button" class="inv-owner-kpi tone-{{ kpi.tone }}" (click)="openKpi(kpi)">
+        <span class="inv-owner-kpi-icon"><i [class]="kpi.icon"></i></span>
+        <span class="inv-owner-kpi-copy">
+          <small>{{ kpi.label }}</small>
+          <strong>{{ kpi.value }}</strong>
+          <em>{{ kpi.note }}</em>
+        </span>
+        <i class="pi pi-chevron-right"></i>
+      </button>
+    }
+  </section>
+
+  <nav class="inv-owner-tabs" aria-label="Inventory dashboard sections">
+    <button type="button" [class.active]="activeTab() === 'owner'" (click)="setActiveTab('owner')"><i class="pi pi-home"></i> Owner View</button>
+    <button type="button" [class.active]="activeTab() === 'segments'" (click)="setActiveTab('segments')"><i class="pi pi-sitemap"></i> Segments</button>
+    <button type="button" [class.active]="activeTab() === 'actions'" (click)="setActiveTab('actions')"><i class="pi pi-bolt"></i> Actions</button>
+    <button type="button" [class.active]="activeTab() === 'transactions'" (click)="setActiveTab('transactions')"><i class="pi pi-list"></i> Transactions</button>
+    <button type="button" [class.active]="activeTab() === 'warehouses'" (click)="setActiveTab('warehouses')"><i class="pi pi-building"></i> Warehouses</button>
+  </nav>
+
+  @if (activeTab() === 'owner') {
+    <div class="inv-owner-layout">
+      <section class="inv-owner-panel span-2">
+        <div class="inv-owner-section-head">
+          <div>
+            <h2>Segment Health</h2>
+            <p>Where money is blocked, where sales may stop, and what the owner should clear first.</p>
+          </div>
+          <div class="inv-grid-actions">
+            <button type="button" title="Print" (click)="handleGridAction('segments', 'print')"><i class="pi pi-print"></i></button>
+            <button type="button" title="Mail" (click)="handleGridAction('segments', 'mail')"><i class="pi pi-envelope"></i></button>
+            <button type="button" title="Export" (click)="handleGridAction('segments', 'export')"><i class="pi pi-file-excel"></i></button>
+            <button type="button" title="WhatsApp" (click)="handleGridAction('segments', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          </div>
+        </div>
+
+        <div class="inv-segment-cards">
+          @for (segment of filteredSegments(); track segment.segment) {
+            <article class="inv-segment-owner-card" (click)="openDetail(segment.segment, segment, segment.route)">
+              <div class="inv-segment-top">
+                <span><i [class]="segment.icon"></i></span>
                 <div>
-                  <span class="text-muted text-small d-block">{{ stat.label }}</span>
-                  <strong class="fs-5">{{ stat.value }}</strong>
+                  <strong>{{ segment.segment }}</strong>
+                  <small>{{ segment.stockValue }} stock / {{ segment.revenueHold }} hold</small>
                 </div>
-                <i [class]="stat.icon"></i>
               </div>
+              <div class="inv-health-row">
+                <span>Health</span>
+                <strong>{{ segment.health }}%</strong>
+              </div>
+              <div class="inv-health-track">
+                <div [style.width]="healthWidth(segment.health)"></div>
+              </div>
+              <div class="inv-segment-mini">
+                <span><b>{{ segment.lowStock }}</b> low stock</span>
+                <span><b>{{ segment.pendingApprovals }}</b> approvals</span>
+              </div>
+              <p>{{ segment.decision }}</p>
+            </article>
+          }
+        </div>
+      </section>
+
+      <section class="inv-owner-panel">
+        <div class="inv-owner-section-head">
+          <div>
+            <h2>Critical Actions</h2>
+            <p>Short list for fast decisions.</p>
+          </div>
+          <div class="inv-grid-actions">
+            <button type="button" title="Print" (click)="handleGridAction('actions', 'print')"><i class="pi pi-print"></i></button>
+            <button type="button" title="Mail" (click)="handleGridAction('actions', 'mail')"><i class="pi pi-envelope"></i></button>
+            <button type="button" title="Export" (click)="handleGridAction('actions', 'export')"><i class="pi pi-file-excel"></i></button>
+            <button type="button" title="WhatsApp" (click)="handleGridAction('actions', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          </div>
+        </div>
+
+        <div class="inv-owner-action-stack">
+          @for (action of filteredActionRows().slice(0, 4); track action.action) {
+            <article class="inv-owner-action-card priority-{{ action.priority.toLowerCase() }}" (click)="openDetail(action.action, action, action.route)">
+              <span>{{ action.priority }}</span>
+              <strong>{{ action.action }}</strong>
+              <small>{{ action.segment }} / {{ action.value }} / {{ action.due }}</small>
+            </article>
+          }
+        </div>
+      </section>
+    </div>
+
+    <section class="inv-owner-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Stock Risk Grid</h2>
+          <p>Products that can stop sales, block cash, or need urgent movement.</p>
+        </div>
+        <div class="inv-grid-actions">
+          <button type="button" title="Print" (click)="handleGridAction('risk', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" title="Mail" (click)="handleGridAction('risk', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" title="Export" (click)="handleGridAction('risk', 'export')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" title="WhatsApp" (click)="handleGridAction('risk', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+        </div>
+      </div>
+      <div class="inv-owner-table-wrap">
+        <table class="inv-owner-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Segment</th>
+              <th>Location</th>
+              <th>Available</th>
+              <th>Coverage</th>
+              <th>Impact</th>
+              <th>Action</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredRiskRows(); track row.product) {
+              <tr (click)="openDetail(row.product, row, row.route)">
+                <td><strong>{{ row.product }}</strong></td>
+                <td>{{ row.segment }}</td>
+                <td>{{ row.location }}</td>
+                <td>{{ row.available }}</td>
+                <td>{{ row.coverage }}</td>
+                <td>{{ row.impact }}</td>
+                <td>{{ row.recommendedAction }}</td>
+                <td><span class="inv-status status-{{ row.status.toLowerCase() }}">{{ row.status }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (activeTab() === 'segments') {
+    <section class="inv-owner-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Segment Dashboard</h2>
+          <p>Logical segment-wise view for stock value, cash hold, health and decision focus.</p>
+        </div>
+        <div class="inv-grid-actions">
+          <button type="button" title="Print" (click)="handleGridAction('segments', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" title="Mail" (click)="handleGridAction('segments', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" title="Export" (click)="handleGridAction('segments', 'export')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" title="WhatsApp" (click)="handleGridAction('segments', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+        </div>
+      </div>
+      <div class="inv-owner-table-wrap">
+        <table class="inv-owner-table">
+          <thead>
+            <tr>
+              <th>Segment</th>
+              <th>Stock Value</th>
+              <th>Revenue Hold</th>
+              <th>Health</th>
+              <th>Low Stock</th>
+              <th>Approvals</th>
+              <th>Owner Decision</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredSegments(); track row.segment) {
+              <tr (click)="openDetail(row.segment, row, row.route)">
+                <td><strong><i [class]="row.icon"></i> {{ row.segment }}</strong></td>
+                <td>{{ row.stockValue }}</td>
+                <td>{{ row.revenueHold }}</td>
+                <td>
+                  <div class="inv-inline-health">
+                    <span [style.width]="healthWidth(row.health)"></span>
+                    <b>{{ row.health }}%</b>
+                  </div>
+                </td>
+                <td>{{ row.lowStock }}</td>
+                <td>{{ row.pendingApprovals }}</td>
+                <td>{{ row.decision }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (activeTab() === 'actions') {
+    <section class="inv-owner-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Owner Action Register</h2>
+          <p>Tasks that can be printed, shared or opened into source screens.</p>
+        </div>
+        <div class="inv-grid-actions">
+          <button type="button" title="Print" (click)="handleGridAction('actions', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" title="Mail" (click)="handleGridAction('actions', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" title="Export" (click)="handleGridAction('actions', 'export')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" title="WhatsApp" (click)="handleGridAction('actions', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+        </div>
+      </div>
+      <div class="inv-owner-table-wrap">
+        <table class="inv-owner-table">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Action</th>
+              <th>Segment</th>
+              <th>Owner</th>
+              <th>Due</th>
+              <th>Value</th>
+              <th>Status</th>
+              <th>Open</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredActionRows(); track row.action) {
+              <tr>
+                <td><span class="inv-priority priority-{{ row.priority.toLowerCase() }}">{{ row.priority }}</span></td>
+                <td><strong>{{ row.action }}</strong></td>
+                <td>{{ row.segment }}</td>
+                <td>{{ row.owner }}</td>
+                <td>{{ row.due }}</td>
+                <td>{{ row.value }}</td>
+                <td>{{ row.status }}</td>
+                <td><a class="inv-open-btn" [routerLink]="row.route"><i class="pi pi-external-link"></i></a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (activeTab() === 'transactions') {
+    <section class="inv-owner-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Transaction Control Grid</h2>
+          <p>Latest inventory movements with next-step clarity.</p>
+        </div>
+        <div class="inv-grid-actions">
+          <button type="button" title="Print" (click)="handleGridAction('transactions', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" title="Mail" (click)="handleGridAction('transactions', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" title="Export" (click)="handleGridAction('transactions', 'export')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" title="WhatsApp" (click)="handleGridAction('transactions', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+        </div>
+      </div>
+      <div class="inv-owner-table-wrap">
+        <table class="inv-owner-table">
+          <thead>
+            <tr>
+              <th>Ref</th>
+              <th>Type</th>
+              <th>Segment</th>
+              <th>Party / Location</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Next Step</th>
+              <th>Open</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredTransactionRows(); track row.ref) {
+              <tr>
+                <td><strong>{{ row.ref }}</strong></td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.segment }}</td>
+                <td>{{ row.party }}</td>
+                <td>{{ row.amount }}</td>
+                <td>{{ row.date }}</td>
+                <td><span class="inv-status status-{{ row.status.toLowerCase() }}">{{ row.status }}</span></td>
+                <td>{{ row.nextStep }}</td>
+                <td><a class="inv-open-btn" [routerLink]="row.route"><i class="pi pi-external-link"></i></a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (activeTab() === 'warehouses') {
+    <section class="inv-owner-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Warehouse and Location Grid</h2>
+          <p>Capacity, blocked value and location-level action view.</p>
+        </div>
+        <div class="inv-grid-actions">
+          <button type="button" title="Print" (click)="handleGridAction('warehouses', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" title="Mail" (click)="handleGridAction('warehouses', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" title="Export" (click)="handleGridAction('warehouses', 'export')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" title="WhatsApp" (click)="handleGridAction('warehouses', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+        </div>
+      </div>
+      <div class="inv-owner-table-wrap">
+        <table class="inv-owner-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Segment</th>
+              <th>Capacity</th>
+              <th>Fill</th>
+              <th>Stock Value</th>
+              <th>Slow Moving</th>
+              <th>Pending Dispatch</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of filteredWarehouseRows(); track row.location) {
+              <tr (click)="openDetail(row.location, row)">
+                <td><strong>{{ row.location }}</strong></td>
+                <td>{{ row.segment }}</td>
+                <td>{{ row.capacity }}</td>
+                <td>
+                  <div class="inv-fill-line fill-{{ fillTone(row.fill) }}">
+                    <span [style.width.%]="row.fill"></span>
+                    <b>{{ row.fill }}%</b>
+                  </div>
+                </td>
+                <td>{{ row.stockValue }}</td>
+                <td>{{ row.slowMoving }}</td>
+                <td>{{ row.pendingDispatch }}</td>
+                <td>{{ row.action }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+
+  @if (activeModal(); as modal) {
+    <div class="inventory-modal-backdrop" (click)="closeModal()">
+      <div class="inventory-card inventory-modal inv-owner-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <div>
+            <h3>{{ modal.title }}</h3>
+            <p>{{ modal.subtitle }}</p>
+          </div>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" (click)="closeModal()"><i class="pi pi-times"></i></button>
+        </div>
+
+        <div class="inv-owner-modal-grid">
+          @for (row of modal.rows; track row.label) {
+            <div>
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
             </div>
           }
         </div>
 
+        <div class="inventory-form-actions">
+          @if (modal.route) {
+            <a class="erp-btn btn-primary" [routerLink]="modal.route" (click)="closeModal()"><i class="pi pi-external-link"></i> Open Source Screen</a>
+          }
+          <button type="button" class="erp-btn btn-white" (click)="closeModal()"><i class="pi pi-check"></i> Done</button>
+        </div>
       </div>
     </div>
-  </div>
+  }
+
+  @if (toastMessage()) {
+    <div class="inv-owner-toast">
+      <i class="pi pi-check-circle"></i>
+      {{ toastMessage() }}
+    </div>
+  }
 </div>

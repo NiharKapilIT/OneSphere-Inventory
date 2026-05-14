@@ -14,6 +14,9 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SosHelpComponent } from '../../sos-help/sos-help.component';
 import { VoiceAssistantComponent } from '../../voice-assistant/voice-assistant.component';
+import { ReferenceDataTrayComponent } from '../../reference-data-tray/reference-data-tray.component';
+import { ReferenceDataTrayConfig } from '../../reference-data-tray/reference-data-tray.models';
+import { ReferenceDataTrayService } from '../../reference-data-tray/reference-data-tray.service';
 
 export interface Theme {
   id: string;
@@ -33,10 +36,15 @@ export interface RecentForm {
   time: Date;
 }
 
+interface FlyoutScreenGroup {
+  name: string;
+  screens: Screen[];
+}
+
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent],
+  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent, ReferenceDataTrayComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })
@@ -51,6 +59,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   sidebarCollapsed = true;
   username = '';
   expandedSubModules: Set<string> = new Set<string>();
+  expandedFlyoutGroups: Set<string> = new Set<string>();
 
   // Snapshot of the path for the currently active screen
   breadcrumbPath = {
@@ -72,6 +81,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   activeTheme = 'sky';
 
   recentForms: RecentForm[] = [];
+  referenceTrayConfig: ReferenceDataTrayConfig | null = null;
 
   themes: Theme[] = [
     { id: 'sky', name: 'Sky', colors: ['#7fb3ff', '#4d8fff'] },
@@ -88,6 +98,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     private navigationService: NavigationService,
     private authService: AuthService,
     private router: Router,
+    private referenceDataTrayService: ReferenceDataTrayService,
     private destroyRef: DestroyRef
   ) {}
 
@@ -114,6 +125,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((subModule: SubModule | null) => {
         this.selectedSubModule = subModule;
+        this.initializeFlyoutGroups(subModule);
       });
 
     this.navigationService.selectedScreen$
@@ -132,13 +144,17 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       });
 
     this.restoreNavigationFromRoute(this.router.url);
+    this.updateReferenceTray(this.router.url);
 
     this.router.events
       .pipe(
         filter((event): event is NavigationEnd => event instanceof NavigationEnd),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe(event => this.restoreNavigationFromRoute(event.urlAfterRedirects));
+      .subscribe(event => {
+        this.restoreNavigationFromRoute(event.urlAfterRedirects);
+        this.updateReferenceTray(event.urlAfterRedirects);
+      });
 
     // Set General Receipt as default selection
     // this.setDefaultSelection();
@@ -243,6 +259,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.expandedSubModules.clear();
     this.expandedSubModules.add(subModule.id);
     this.navigationService.selectSubModule(subModule);
+    this.initializeFlyoutGroups(subModule);
     this.closeFlyoutSearch();
   }
 
@@ -258,6 +275,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
     this.expandedSubModules.clear();
     this.navigationService.selectSubModule(subModule);
+    this.initializeFlyoutGroups(subModule);
     this.closeFlyoutSearch();
 
     const firstScreen = subModule.screens[0];
@@ -327,6 +345,9 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     if (this.hasFlyoutItems(path.subModule)) {
       this.expandedSubModules.add(path.subModule.id);
     }
+
+    this.initializeFlyoutGroups(path.subModule);
+    this.expandActiveFlyoutGroup(path.subModule, path.screen);
 
     if (this.selectedSubModule?.id !== path.subModule.id) {
       this.navigationService.selectSubModule(path.subModule);
@@ -426,6 +447,10 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private updateReferenceTray(route: string): void {
+    this.referenceTrayConfig = this.referenceDataTrayService.resolveForRoute(route);
+  }
+
   private isDashboardHome(route: string): boolean {
     return this.normalizeRoute(route) === '/dashboard';
   }
@@ -513,6 +538,48 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     return allResults;
   }
 
+  get hasGroupedFlyoutScreens(): boolean {
+    return !this.flyoutSearchQuery.trim() && !!this.selectedSubModule?.screens?.some(screen => !!screen.group);
+  }
+
+  get groupedFlyoutScreens(): FlyoutScreenGroup[] {
+    const groups = new Map<string, Screen[]>();
+
+    for (const screen of this.selectedSubModule?.screens || []) {
+      const groupName = screen.group || 'Other';
+      groups.set(groupName, [...(groups.get(groupName) || []), screen]);
+    }
+
+    return Array.from(groups.entries()).map(([name, screens]) => ({ name, screens }));
+  }
+
+  toggleFlyoutGroup(groupName: string): void {
+    if (this.expandedFlyoutGroups.has(groupName)) {
+      this.expandedFlyoutGroups.delete(groupName);
+      return;
+    }
+
+    this.expandedFlyoutGroups.add(groupName);
+  }
+
+  isFlyoutGroupExpanded(groupName: string): boolean {
+    return this.expandedFlyoutGroups.has(groupName);
+  }
+
+  isFlyoutGroupActive(group: FlyoutScreenGroup): boolean {
+    return !!this.selectedScreen && group.screens.some(screen => screen.id === this.selectedScreen?.id);
+  }
+
+  private initializeFlyoutGroups(subModule: SubModule | null): void {
+    this.expandedFlyoutGroups.clear();
+  }
+
+  private expandActiveFlyoutGroup(subModule: SubModule, screen: Screen): void {
+    if (screen.group && subModule.screens.some(item => item.group === screen.group)) {
+      this.expandedFlyoutGroups.add(screen.group);
+    }
+  }
+
   navigateToScreen(item: any): void {
     if (item.subModule) {
       this.navigationService.selectSubModule(item.subModule);
@@ -521,6 +588,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       if (this.hasFlyoutItems(item.subModule)) {
         this.expandedSubModules.add(item.subModule.id);
       }
+
+      this.initializeFlyoutGroups(item.subModule);
     }
 
     this.selectScreen(item);
