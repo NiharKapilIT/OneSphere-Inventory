@@ -366,8 +366,6 @@ export class PaymentVoucher implements OnInit {
     const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
 
 
-
-
     this.commonService._downloadGridPdf1(
       this.receiptName(),
       rows,

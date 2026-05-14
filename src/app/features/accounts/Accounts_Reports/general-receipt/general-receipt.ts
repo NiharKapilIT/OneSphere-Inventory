@@ -264,7 +264,7 @@ let Company = this.commonService._getCompanyDetails();
       const refInfo = this.hasStringRef(row.reference_number)
         ? ` (${refLabel} : ${row.reference_number}, Bank : ${bankName})`
         : '';
-
+     
       const content = [
         `Received With Thanks From : ${row.account_name}`,
         `Amount In Words : ${amountWords}`,
