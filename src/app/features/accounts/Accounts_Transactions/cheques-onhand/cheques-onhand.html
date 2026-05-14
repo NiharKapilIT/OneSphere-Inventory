@@ -255,8 +255,10 @@
           <ng-template pTemplate="header">
             <tr>
               @if (status() !== 'deposited' && status() !== 'cancelled') {
-              <th pResizableColumn>Deposit</th>
-              <th pResizableColumn>Cancel</th>
+              <!-- <th pResizableColumn>Deposit</th>
+              <th pResizableColumn>Cancel</th> -->
+              <th pResizableColumn class="th-checkbox">Deposit</th>
+              <th pResizableColumn class="th-checkbox">Cancel</th>
               }
               <th pResizableColumn pSortableColumn="pChequenumber">Cheque/Reference No. <p-sortIcon
                   field="pChequenumber"></p-sortIcon></th>
@@ -297,11 +299,20 @@
           <ng-template pTemplate="body" let-row>
             <tr>
               @if (status() !== 'deposited' && status() !== 'cancelled') {
-              <td pFrozenColumn>
+              <!-- <td pFrozenColumn>
                 <input type="checkbox" [checked]="row.pdepositstatus"
                   (change)="onDepositChange({ checked: $any($event.target).checked }, row)" />
               </td>
               <td pFrozenColumn>
+                <input type="checkbox" [checked]="row.pcancelstatus"
+                  (change)="onCancelChange({ checked: $any($event.target).checked }, row)" />
+              </td> -->
+
+              <td class="td-actions">
+                <input type="checkbox" [checked]="row.pdepositstatus"
+                  (change)="onDepositChange({ checked: $any($event.target).checked }, row)" />
+              </td>
+              <td class="td-actions">
                 <input type="checkbox" [checked]="row.pcancelstatus"
                   (change)="onCancelChange({ checked: $any($event.target).checked }, row)" />
               </td>
