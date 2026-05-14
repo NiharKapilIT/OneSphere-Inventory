@@ -393,6 +393,14 @@ export class GeneralReceiptCancel implements OnInit {
   //   this.showValidation.set(false);
   // }
 
+   subIntroducedGridRowSelect(selected: any): void {
+    if (selected) {
+      this.GeneralReceiptCancelForm.patchValue({
+        autorizedcontactid: selected.subintroducedid,
+        subintroducedname: selected.subintroducedname
+      });
+    }
+  }
 
   Cancel(): void {
     const currentDate = this.GeneralReceiptCancelForm.get('ppaymentdate')?.value;
