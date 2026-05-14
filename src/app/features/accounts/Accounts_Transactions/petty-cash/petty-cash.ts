@@ -2331,78 +2331,174 @@ export class PettyCash implements OnInit {
   }
 
 
+  // claculategsttdsamounts(): void {
+  //   try {
+  //     if (!this.pc) return;
+  //     let paid = parseFloat(
+  //       this.commonService.removeCommasInAmount((this.pc.get('pactualpaidamount')?.value || '0').toString())
+  //     ) || 0;
+
+  //     const gstOn = this.pc.get('pisgstapplicable')?.value;
+  //     const gstType = this.pc.get('pgsttype')?.value;
+  //     const gstCalc = this.pc.get('pgstcalculationtype')?.value || 'EXCLUDE';
+  //     const igstPct = parseFloat(this.pc.get('pigstpercentage')?.value) || 0;
+  //     const cgstPct = parseFloat(this.pc.get('pcgstpercentage')?.value) || 0;
+  //     const sgstPct = parseFloat(this.pc.get('psgstpercentage')?.value) || 0;
+  //     const utgstPct = parseFloat(this.pc.get('putgstpercentage')?.value) || 0;
+
+  //     let igst = 0, cgst = 0, sgst = 0, utgst = 0, taxable = paid;
+
+  //     if (gstOn && gstType && paid > 0) {
+  //       if (gstCalc === 'EXCLUDE') {
+  //         if (gstType === 'IGST') igst = Math.round(paid * igstPct / 100);
+  //         else if (gstType === 'CGST,SGST') {
+  //           const t = Math.round(paid * (cgstPct + sgstPct) / 100);
+  //           cgst = Math.round(t / 2); sgst = t - cgst;
+  //         } else if (gstType === 'CGST,UTGST') {
+  //           const t = Math.round(paid * (cgstPct + utgstPct) / 100);
+  //           cgst = Math.round(t / 2); utgst = t - cgst;
+  //         }
+  //       } else {
+  //         if (gstType === 'IGST') {
+  //           igst = Math.round(paid * igstPct / (100 + igstPct));
+  //           taxable = paid - igst;
+  //         } else if (gstType === 'CGST,SGST') {
+  //           const rate = cgstPct + sgstPct;
+  //           const t = Math.round(paid * rate / (100 + rate));
+  //           cgst = Math.round(t / 2); sgst = t - cgst;
+  //           taxable = paid - cgst - sgst;
+  //         } else if (gstType === 'CGST,UTGST') {
+  //           const rate = cgstPct + utgstPct;
+  //           const t = Math.round(paid * rate / (100 + rate));
+  //           cgst = Math.round(t / 2); utgst = t - cgst;
+  //           taxable = paid - cgst - utgst;
+  //         }
+  //       }
+  //     }
+
+  //     const gst = igst + cgst + sgst + utgst;
+
+  //     const tdsOn = this.pc.get('pistdsapplicable')?.value;
+  //     const tdsCalc = this.pc.get('ptdscalculationtype')?.value || 'INCLUDE';
+  //     const tdsPct = parseFloat(this.pc.get('pTdsPercentage')?.value) || 0;
+  //     let tds = 0;
+
+  //     if (tdsOn && tdsPct > 0 && paid > 0) {
+  //       tds = tdsCalc === 'INCLUDE'
+  //         ? Math.round(taxable * tdsPct / (100 + tdsPct))
+  //         : Math.round(taxable * tdsPct / 100);
+  //     }
+
+  //     const total = parseFloat((taxable + gst - tds).toFixed(2));
+
+  //     this.pc.patchValue({
+  //       pamount: taxable > 0 ? taxable : '',
+  //       pgstamount: gst,
+  //       pigstamount: igst,
+  //       pcgstamount: cgst,
+  //       psgstamount: sgst,
+  //       putgstamount: utgst,
+  //       ptdsamount: tds,
+  //       ptotalamount: total,
+  //     });
+  //     this.formValidationMessages['pamount'] = '';
+  //     this.cdr.markForCheck();
+  //   } catch (e) {
+  //     this.commonService.showErrorMessage(e);
+  //   }
+  // }
+
   claculategsttdsamounts(): void {
+    debugger
     try {
       if (!this.pc) return;
-      let paid = parseFloat(
-        this.commonService.removeCommasInAmount((this.pc.get('pactualpaidamount')?.value || '0').toString())
+
+      // ── Amount ──
+      const rawAmount = this.pc.get('pactualpaidamount')?.value;
+      const amountReceived = parseFloat(
+        (typeof rawAmount === 'string'
+          ? rawAmount.replace(/,/g, '')
+          : rawAmount?.toString() || '0')
       ) || 0;
 
-      const gstOn = this.pc.get('pisgstapplicable')?.value;
-      const gstType = this.pc.get('pgsttype')?.value;
-      const gstCalc = this.pc.get('pgstcalculationtype')?.value || 'EXCLUDE';
-      const igstPct = parseFloat(this.pc.get('pigstpercentage')?.value) || 0;
-      const cgstPct = parseFloat(this.pc.get('pcgstpercentage')?.value) || 0;
-      const sgstPct = parseFloat(this.pc.get('psgstpercentage')?.value) || 0;
-      const utgstPct = parseFloat(this.pc.get('putgstpercentage')?.value) || 0;
+      // ── GST flags ──
+      const isgst = this.pc.get('pisgstapplicable')?.value;
+      const gsttype = this.pc.get('pgsttype')?.value;
+      const cgstpct = parseFloat(this.pc.get('pcgstpercentage')?.value || '0') || 0;
+      const sgstpct = parseFloat(this.pc.get('psgstpercentage')?.value || '0') || 0;
+      const utgstpct = parseFloat(this.pc.get('putgstpercentage')?.value || '0') || 0;
+      const pgstPct = parseFloat(this.pc.get('pgstpercentage')?.value || '0') || 0;
 
-      let igst = 0, cgst = 0, sgst = 0, utgst = 0, taxable = paid;
+      // ── TDS flags ──
+      const isTds = this.pc.get('pistdsapplicable')?.value;
+      const rawTds = this.pc.get('pTdsPercentage')?.value;
+      const tdsRate = rawTds === null || rawTds === undefined || rawTds === ''
+        ? 0
+        : (typeof rawTds === 'object' && 'pTdsPercentage' in rawTds
+          ? Number(rawTds.pTdsPercentage)
+          : Number(rawTds)) || 0;
 
-      if (gstOn && gstType && paid > 0) {
-        if (gstCalc === 'EXCLUDE') {
-          if (gstType === 'IGST') igst = Math.round(paid * igstPct / 100);
-          else if (gstType === 'CGST,SGST') {
-            const t = Math.round(paid * (cgstPct + sgstPct) / 100);
-            cgst = Math.round(t / 2); sgst = t - cgst;
-          } else if (gstType === 'CGST,UTGST') {
-            const t = Math.round(paid * (cgstPct + utgstPct) / 100);
-            cgst = Math.round(t / 2); utgst = t - cgst;
-          }
-        } else {
-          if (gstType === 'IGST') {
-            igst = Math.round(paid * igstPct / (100 + igstPct));
-            taxable = paid - igst;
-          } else if (gstType === 'CGST,SGST') {
-            const rate = cgstPct + sgstPct;
-            const t = Math.round(paid * rate / (100 + rate));
-            cgst = Math.round(t / 2); sgst = t - cgst;
-            taxable = paid - cgst - sgst;
-          } else if (gstType === 'CGST,UTGST') {
-            const rate = cgstPct + utgstPct;
-            const t = Math.round(paid * rate / (100 + rate));
-            cgst = Math.round(t / 2); utgst = t - cgst;
-            taxable = paid - cgst - utgst;
-          }
+      // ── Effective GST rate ──
+      let gstRate = 0;
+      if (isgst && gsttype) {
+        if (gsttype === 'IGST') gstRate = pgstPct;
+        else if (gsttype === 'CGST,SGST') gstRate = cgstpct + sgstpct;
+        else if (gsttype === 'CGST,UTGST') gstRate = cgstpct + utgstpct;
+      }
+
+      // ── Show/hide breakdown flags ──
+      this.showgstamount = !!(isgst && gsttype);
+      this.showigst = gsttype === 'IGST';
+      this.showcgst = gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST';
+      this.showsgst = gsttype === 'CGST,SGST';
+      this.showutgst = gsttype === 'CGST,UTGST';
+
+      // ── Core calculation (same as General Receipt recalculateAll) ──
+      // Back-calculate taxable from the gross entered amount
+      let taxable = 0, gstAmt = 0, igstamt = 0, cgstamt = 0,
+        sgstamt = 0, utgstamt = 0, tdsAmount = 0;
+
+      taxable = (gstRate > 0 || tdsRate > 0)
+        ? Math.round((amountReceived * 100) / (100 + gstRate - tdsRate))
+        : amountReceived;
+
+      // GST breakdown
+      if (isgst && gstRate > 0) {
+        gstAmt = Math.round((taxable * gstRate) / 100);
+        if (gsttype === 'IGST') {
+          igstamt = gstAmt;
+        } else if (gsttype === 'CGST,SGST') {
+          cgstamt = Math.round(gstAmt / 2);
+          sgstamt = Math.round(gstAmt / 2);
+        } else if (gsttype === 'CGST,UTGST') {
+          cgstamt = Math.round(gstAmt / 2);
+          utgstamt = Math.round(gstAmt / 2);
         }
       }
 
-      const gst = igst + cgst + sgst + utgst;
-
-      const tdsOn = this.pc.get('pistdsapplicable')?.value;
-      const tdsCalc = this.pc.get('ptdscalculationtype')?.value || 'INCLUDE';
-      const tdsPct = parseFloat(this.pc.get('pTdsPercentage')?.value) || 0;
-      let tds = 0;
-
-      if (tdsOn && tdsPct > 0 && paid > 0) {
-        tds = tdsCalc === 'INCLUDE'
-          ? Math.round(taxable * tdsPct / (100 + tdsPct))
-          : Math.round(taxable * tdsPct / 100);
+      // TDS on taxable
+      if (isTds && tdsRate > 0) {
+        tdsAmount = Math.round((taxable * tdsRate) / 100);
       }
 
-      const total = parseFloat((taxable + gst - tds).toFixed(2));
+      const totalAmount = Math.round(taxable + gstAmt);
+      const netAmount = Math.round(taxable + gstAmt - tdsAmount);
 
+      // ── Patch form ──
       this.pc.patchValue({
-        pamount: taxable > 0 ? taxable : '',
-        pgstamount: gst,
-        pigstamount: igst,
-        pcgstamount: cgst,
-        psgstamount: sgst,
-        putgstamount: utgst,
-        ptdsamount: tds,
-        ptotalamount: total,
-      });
+        pamount: netAmount,
+        pgstamount: gstAmt,
+        pigstamount: igstamt,
+        pcgstamount: cgstamt,
+        psgstamount: sgstamt,
+        putgstamount: utgstamt,
+        ptdsamount: tdsAmount,
+        ptotalamount: totalAmount,
+      }, { emitEvent: false });
+
       this.formValidationMessages['pamount'] = '';
       this.cdr.markForCheck();
+
     } catch (e) {
       this.commonService.showErrorMessage(e);
     }
@@ -2476,6 +2572,72 @@ export class PettyCash implements OnInit {
     return isValid;
   }
 
+  // addPaymentDetails(): void {
+  //   debugger
+  //   if (this.disableaddbutton()) return;
+  //   this.disableaddbutton.set(true);
+
+  //   if (!this.validateaddPaymentDetails()) {
+  //     this.disableaddbutton.set(false);
+  //     return;
+  //   }
+
+  //   const ctrl = this.pc;
+  //   const safeRemove = (v: any) => this.commonService.removeCommasInAmount((v || '0').toString());
+  //   const row = {
+  //     ppartyname: ctrl.get('ppartyname')?.value,
+  //     pledgername: ctrl.get('pledgername')?.value,
+  //     psubledgername: ctrl.get('psubledgername')?.value,
+  //     ptotalamount: safeRemove(ctrl.get('ptotalamount')?.value),
+  //     pamount: safeRemove(ctrl.get('pamount')?.value),
+  //     pgstcalculationtype: ctrl.get('pgstcalculationtype')?.value || 'EXCLUDE',
+  //     pTdsSection: ctrl.get('pTdsSection')?.value,
+  //     pgstpercentage: ctrl.get('pgstpercentage')?.value || 0,
+  //     ptdsamount: safeRemove(ctrl.get('ptdsamount')?.value),
+  //     ptdscalculationtype: ctrl.get('ptdscalculationtype')?.value || 'INCLUDE',
+  //     pTdsPercentage: ctrl.get('pTdsPercentage')?.value || 0,
+  //   };
+
+  //   this.paymentslist1.update(list => [...list, row]);
+  //   this.paymentslist.push(ctrl.value);
+
+  //   this.getpartyJournalEntryData();
+  //   this.getPaymentListColumnWisetotals();
+
+
+  //   const keepLedgerId = ctrl.get('pledgerid')?.value;
+  //   const keepLedgerName = ctrl.get('pledgername')?.value;
+  //   const keepSubId = ctrl.get('psubledgerid')?.value;
+  //   const keepSubName = ctrl.get('psubledgername')?.value;
+
+  //   ctrl.patchValue({
+  //     // pledgerid: keepLedgerId,psubledgerid: keepSubId,
+  //     ppartyid: null, ppartyname: '', pledgerid: '', psubledgerid: '',
+  //     pactualpaidamount: '',
+  //     ptdsamount: 0, pamount: '', ptotalamount: '', pgstamount: 0,
+  //     pigstamount: 0, pcgstamount: 0, psgstamount: 0, putgstamount: 0,
+  //     pisgstapplicable: false, pistdsapplicable: false,
+  //     pStateId: '', pgstpercentage: '', pTdsSection: '', pTdsPercentage: '',
+  //     pgsttype: '', pState: '', pgstno: '',
+  //     pigstpercentage: 0, pcgstpercentage: 0, psgstpercentage: 0, putgstpercentage: 0,
+  //     pledgername: keepLedgerName,
+  //     psubledgername: keepSubName,
+  //   });
+
+
+  //   const amtEl = document.getElementById('pactualpaidamount') as HTMLInputElement;
+  //   if (amtEl) amtEl.value = '';
+
+  //   Object.keys(ctrl.controls).forEach(key => {
+  //     ctrl.get(key)?.markAsUntouched();
+  //     ctrl.get(key)?.markAsPristine();
+  //   });
+
+  //   this.formValidationMessages = {};
+  //   this.disableaddbutton.set(false);
+  //   this.cdr.markForCheck();
+  // }
+
   addPaymentDetails(): void {
     if (this.disableaddbutton()) return;
     this.disableaddbutton.set(true);
@@ -2487,18 +2649,50 @@ export class PettyCash implements OnInit {
 
     const ctrl = this.pc;
     const safeRemove = (v: any) => this.commonService.removeCommasInAmount((v || '0').toString());
+
     const row = {
+      // ── Display fields (shown in grid) ──
       ppartyname: ctrl.get('ppartyname')?.value,
       pledgername: ctrl.get('pledgername')?.value,
       psubledgername: ctrl.get('psubledgername')?.value,
-      ptotalamount: safeRemove(ctrl.get('ptotalamount')?.value),
-      pamount: safeRemove(ctrl.get('pamount')?.value),
+
+      // ── Amounts ──
+      pamount: Number(safeRemove(ctrl.get('pamount')?.value)) || 0,
+      pgstamount: Number(safeRemove(ctrl.get('pgstamount')?.value)) || 0,
+      ptdsamount: Number(safeRemove(ctrl.get('ptdsamount')?.value)) || 0,
+      ptotalamount: Number(safeRemove(ctrl.get('ptotalamount')?.value)) || 0,
+      pactualpaidamount: Number(safeRemove(ctrl.get('pactualpaidamount')?.value)) || 0,
+
+      // ── GST breakdown ──
+      pisgstapplicable: ctrl.get('pisgstapplicable')?.value || false,
+      pgsttype: ctrl.get('pgsttype')?.value || '',
       pgstcalculationtype: ctrl.get('pgstcalculationtype')?.value || 'EXCLUDE',
-      pTdsSection: ctrl.get('pTdsSection')?.value,
       pgstpercentage: ctrl.get('pgstpercentage')?.value || 0,
-      ptdsamount: safeRemove(ctrl.get('ptdsamount')?.value),
-      ptdscalculationtype: ctrl.get('ptdscalculationtype')?.value || 'INCLUDE',
+      pigstpercentage: ctrl.get('pigstpercentage')?.value || 0,
+      pigstamount: Number(safeRemove(ctrl.get('pigstamount')?.value)) || 0,
+      pcgstpercentage: ctrl.get('pcgstpercentage')?.value || 0,
+      pcgstamount: Number(safeRemove(ctrl.get('pcgstamount')?.value)) || 0,
+      psgstpercentage: ctrl.get('psgstpercentage')?.value || 0,
+      psgstamount: Number(safeRemove(ctrl.get('psgstamount')?.value)) || 0,
+      putgstpercentage: ctrl.get('putgstpercentage')?.value || 0,
+      putgstamount: Number(safeRemove(ctrl.get('putgstamount')?.value)) || 0,
+      pState: ctrl.get('pState')?.value || '',
+      pStateId: ctrl.get('pStateId')?.value || '',
+      pgstno: ctrl.get('pgstno')?.value || '',
+
+      // ── TDS breakdown ──
+      pistdsapplicable: ctrl.get('pistdsapplicable')?.value || false,
+      pTdsSection: ctrl.get('pTdsSection')?.value || '',
       pTdsPercentage: ctrl.get('pTdsPercentage')?.value || 0,
+      ptdscalculationtype: ctrl.get('ptdscalculationtype')?.value || 'INCLUDE',
+
+      // ── Party / ledger ids (needed for save payload) ──
+      ppartyid: ctrl.get('ppartyid')?.value || 0,
+      pledgerid: ctrl.get('pledgerid')?.value || 0,
+      psubledgerid: ctrl.get('psubledgerid')?.value || 0,
+      ppartyreferenceid: ctrl.get('ppartyreferenceid')?.value || '',
+      ppartyreftype: ctrl.get('ppartyreftype')?.value || '',
+      ppartypannumber: ctrl.get('ppannumber')?.value || '',
     };
 
     this.paymentslist1.update(list => [...list, row]);
@@ -2507,14 +2701,11 @@ export class PettyCash implements OnInit {
     this.getpartyJournalEntryData();
     this.getPaymentListColumnWisetotals();
 
-
-    const keepLedgerId = ctrl.get('pledgerid')?.value;
+    // ── Preserve ledger/subledger names for display after reset ──
     const keepLedgerName = ctrl.get('pledgername')?.value;
-    const keepSubId = ctrl.get('psubledgerid')?.value;
     const keepSubName = ctrl.get('psubledgername')?.value;
 
     ctrl.patchValue({
-      // pledgerid: keepLedgerId,psubledgerid: keepSubId,
       ppartyid: null, ppartyname: '', pledgerid: '', psubledgerid: '',
       pactualpaidamount: '',
       ptdsamount: 0, pamount: '', ptotalamount: '', pgstamount: 0,
@@ -2526,7 +2717,6 @@ export class PettyCash implements OnInit {
       pledgername: keepLedgerName,
       psubledgername: keepSubName,
     });
-
 
     const amtEl = document.getElementById('pactualpaidamount') as HTMLInputElement;
     if (amtEl) amtEl.value = '';
@@ -2647,6 +2837,7 @@ export class PettyCash implements OnInit {
   }
 
   getpartyJournalEntryData(): void {
+    debugger
     try {
       const tdsEntries: any[] = [];
       const entries: any[] = [];
@@ -2654,10 +2845,16 @@ export class PettyCash implements OnInit {
       const ledgers = [...new Set(this.paymentslist.map((p: any) => p.pledgername))];
       ledgers.forEach((ledger: any) => {
         const rows = this.paymentslist.filter((p: any) => p.pledgername === ledger);
+        // const debit = rows.reduce((s, p: any) => {
+        //   const amt = parseFloat(this.commonService.removeCommasInAmount((p.pamount || '0').toString())) || 0;
+        //   const tds = parseFloat(this.commonService.removeCommasInAmount((p.ptdsamount || '0').toString())) || 0;
+        //   return s + (amt - tds);
+        // }, 0);
+
+        // CORRECT — pamount already reflects net after GST/TDS calculation
         const debit = rows.reduce((s, p: any) => {
           const amt = parseFloat(this.commonService.removeCommasInAmount((p.pamount || '0').toString())) || 0;
-          const tds = parseFloat(this.commonService.removeCommasInAmount((p.ptdsamount || '0').toString())) || 0;
-          return s + (amt - tds);
+          return s + amt;
         }, 0);
 
         if (debit > 0) entries.push({ accountname: ledger, debitamount: parseFloat(debit.toFixed(2)), creditamount: '' });
@@ -2789,6 +2986,7 @@ export class PettyCash implements OnInit {
       ) || '';
 
       const payload = {
+
         pRecordid: '',
         global_schema: this.commonService.getschemaname() || '',
         branch_schema: this.commonService.getbranchname() || '',
@@ -2937,8 +3135,8 @@ export class PettyCash implements OnInit {
         //   } else {
 
         next: (res: any) => {
-          console.log(res,'res');
-          
+          console.log(res, 'res');
+
           if (res?.success) {
             // this.commonService.showInfoMessage('Saved Successfully');
             this.commonService.showSuccessMessage();
@@ -2951,7 +3149,7 @@ export class PettyCash implements OnInit {
           } else {
             this.commonService.showErrorMessage(res?.message || 'Save failed');
           }
-          this.disablesavebutton.set(false);  
+          this.disablesavebutton.set(false);
           this.cdr.markForCheck();
         },
         error: (err: any) => {

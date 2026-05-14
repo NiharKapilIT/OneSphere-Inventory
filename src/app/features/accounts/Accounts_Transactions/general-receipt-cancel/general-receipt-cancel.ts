@@ -365,12 +365,14 @@ export class GeneralReceiptCancel implements OnInit {
 
     this.receiptCancelService.SaveGeneralReceiptCancel(payload).subscribe({
       next: (res: any) => {
-        if (res) {
-          this.commonService.showSuccessMsg('Cancelled Successfully');
+        if (res.success) {
+          this.commonService.showSuccessMsg(res.message);
           this.show.set(false);
           this.loadReceiptNumbers();
           this.clearReceiptFields();
           this.GeneralReceiptCancelForm.patchValue({ receiptid: null });
+        }else{
+          this.commonService.showErrorMessage(res.message);
         }
       },
       error: (err: any) => {
