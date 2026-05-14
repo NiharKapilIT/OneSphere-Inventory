@@ -1,0 +1,239 @@
+<div class="module-page inventory-page inventory-report-page">
+  <div class="inventory-shell">
+    <div class="inventory-header inventory-report-header">
+      <div>
+        <span class="inventory-kicker">Inventory interactive reports</span>
+        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
+        <p>{{ config.subtitle }}</p>
+      </div>
+      <div class="inventory-report-header-actions">
+        <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
+        <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="printReport()"><i class="pi pi-print"></i></button>
+        <button type="button" class="erp-btn btn-primary btn-sm" title="Export CSV" (click)="exportCsv()"><i class="pi pi-file-excel"></i> Export</button>
+      </div>
+    </div>
+
+    <section class="inventory-report-filter-band">
+      <div class="inventory-report-filter">
+        <label>Segment</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [clearable]="false" [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"></ng-select>
+      </div>
+      <div class="inventory-report-filter">
+        <label>Source</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="sourceOptions" [clearable]="false" [ngModel]="selectedSource()" (ngModelChange)="selectedSource.set($event)"></ng-select>
+      </div>
+      <div class="inventory-report-filter">
+        <label>Status</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="statusOptions" [clearable]="false" [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)"></ng-select>
+      </div>
+      <div class="inventory-report-filter search">
+        <label>Lookup</label>
+        <div class="inventory-report-search">
+          <i class="pi pi-search"></i>
+          <input class="erp-input" type="text" placeholder="Search masters, transactions, product, screen" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" />
+        </div>
+      </div>
+      <button type="button" class="erp-btn btn-white btn-sm" title="Reset filters" (click)="resetFilters()"><i class="pi pi-refresh"></i> Reset</button>
+    </section>
+
+    <section class="inventory-report-board-strip" aria-label="Report sections">
+      @for (block of reportBlocks(); track block.id) {
+        <button
+          type="button"
+          class="inventory-report-board-chip"
+          draggable="true"
+          (dragstart)="dragStart(block.id)"
+          (dragover)="$event.preventDefault()"
+          (drop)="dropOn(block.id)"
+          [attr.aria-label]="'Move ' + block.title">
+          <i class="pi pi-bars"></i>
+          <span><i [class]="block.icon"></i> {{ block.title }}</span>
+        </button>
+      }
+    </section>
+
+    @for (block of reportBlocks(); track block.id) {
+      @if (block.id === 'summary') {
+        <section class="inventory-section inventory-report-section">
+          <div class="inventory-section-title">
+            <div>
+              <h3>Group-wise Report Summary</h3>
+              <p>Segment-wise report cards built from master setup and posted transactions.</p>
+            </div>
+            <span class="erp-badge badge-info">{{ filteredRows().length }} lookup rows</span>
+          </div>
+
+          <div class="inventory-report-summary-grid">
+            @for (card of summaryCards(); track card.group) {
+              <article class="inventory-report-summary-card" [class.active]="activeGroup() === card.group" (click)="activeGroup.set(card.group)">
+                <div class="inventory-report-card-head">
+                  <span><i class="pi pi-folder"></i></span>
+                  <strong>{{ card.group }}</strong>
+                </div>
+                <div class="inventory-report-card-metrics">
+                  <span><b>{{ card.records }}</b> records</span>
+                  <span><b>{{ card.transactions }}</b> txns</span>
+                  <span><b>{{ card.masters }}</b> masters</span>
+                </div>
+                <div class="inventory-report-card-foot" [class.warn]="card.critical > 0">
+                  {{ card.critical }} watch items
+                </div>
+              </article>
+            }
+          </div>
+
+          <div class="inventory-report-group-filter">
+            @for (group of groupNames(); track group) {
+              <button type="button" [class.active]="activeGroup() === group" (click)="activeGroup.set(group)">{{ group }}</button>
+            }
+          </div>
+        </section>
+      }
+
+      @if (block.id === 'lookup') {
+        <section class="inventory-section inventory-report-section">
+          <div class="inventory-section-title">
+            <div>
+              <h3>All Masters and Transactions Lookup</h3>
+              <p>One searchable register for stock, sales, purchase, HSN/SAC, product, UOM and location audit.</p>
+            </div>
+          </div>
+
+          <div class="tbl-wrap">
+            <table class="erp-table compact inventory-report-table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th><button type="button" class="inventory-sort-btn" (click)="setSort('segment')">Segment <i [class]="sortIcon('segment')"></i></button></th>
+                  <th><button type="button" class="inventory-sort-btn" (click)="setSort('group')">Group <i [class]="sortIcon('group')"></i></button></th>
+                  <th><button type="button" class="inventory-sort-btn" (click)="setSort('source')">Source <i [class]="sortIcon('source')"></i></button></th>
+                  <th><button type="button" class="inventory-sort-btn" (click)="setSort('screen')">Screen <i [class]="sortIcon('screen')"></i></button></th>
+                  <th>Document</th>
+                  <th>Product / Service / Unit</th>
+                  <th>Location</th>
+                  <th>Qty</th>
+                  <th>Value / Tax</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of filteredRows(); track row.document + row.screen) {
+                  <tr [class]="'risk-' + row.risk.toLowerCase()">
+                    <td>
+                      <div class="inventory-row-actions">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Drill down" (click)="openRow(row)"><i class="pi pi-eye"></i></button>
+                        <a class="erp-btn btn-white btn-icon btn-sm" title="Open screen" [routerLink]="row.route"><i class="pi pi-external-link"></i></a>
+                      </div>
+                    </td>
+                    <td>{{ row.segment }}</td>
+                    <td>{{ row.group }}</td>
+                    <td><span class="inventory-report-source source-{{ row.source.toLowerCase() }}">{{ row.source }}</span></td>
+                    <td>{{ row.screen }}</td>
+                    <td><strong>{{ row.document }}</strong></td>
+                    <td>{{ row.product }}</td>
+                    <td>{{ row.location }}</td>
+                    <td>{{ row.qty }}</td>
+                    <td>{{ row.value }}</td>
+                    <td><span class="inventory-report-status">{{ row.status }}</span></td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="11" class="text-center p-4">No report rows match the selected filters.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      @if (block.id === 'drilldown') {
+        <section class="inventory-section inventory-report-section">
+          <div class="inventory-section-title">
+            <div>
+              <h3>Interactive Drill Down</h3>
+              <p>Click any row to see source screen, ERP effect, and next operational action.</p>
+            </div>
+          </div>
+
+          <div class="inventory-report-drill-grid">
+            @for (row of filteredRows().slice(0, 6); track row.document + row.product) {
+              <button type="button" class="inventory-report-drill-card" (click)="openRow(row)">
+                <span class="inventory-report-drill-icon"><i [class]="row.source === 'Master' ? 'pi pi-database' : 'pi pi-receipt'"></i></span>
+                <strong>{{ row.document }}</strong>
+                <small>{{ row.screen }}</small>
+                <em>{{ row.segment }} / {{ row.group }}</em>
+              </button>
+            }
+          </div>
+        </section>
+      }
+
+      @if (block.id === 'actions') {
+        <section class="inventory-section inventory-report-section">
+          <div class="inventory-section-title">
+            <div>
+              <h3>Critical Actions</h3>
+              <p>Operational report exceptions that should become PR, approval, transfer, QC or correction work.</p>
+            </div>
+          </div>
+
+          <div class="inventory-report-action-list">
+            @for (row of criticalRows(); track row.document) {
+              <article class="inventory-report-action">
+                <span class="risk-dot risk-{{ row.risk.toLowerCase() }}"></span>
+                <div>
+                  <strong>{{ row.product }} / {{ row.document }}</strong>
+                  <p>{{ row.segment }} at {{ row.location }} is marked {{ row.risk }} with status {{ row.status }}.</p>
+                </div>
+                <a class="erp-btn btn-white btn-sm" [routerLink]="row.route"><i class="pi pi-arrow-right"></i> Open</a>
+              </article>
+            } @empty {
+              <article class="inventory-report-action empty">
+                <span class="risk-dot risk-good"></span>
+                <div>
+                  <strong>No critical report exceptions</strong>
+                  <p>The current filter set has no watch or critical rows.</p>
+                </div>
+              </article>
+            }
+          </div>
+        </section>
+      }
+    }
+  </div>
+</div>
+
+@if (activeRow(); as row) {
+  <div class="inventory-modal-backdrop" (click)="closeRow()">
+    <div class="inventory-card inventory-modal inventory-report-modal" (click)="$event.stopPropagation()">
+      <div class="inventory-modal-header">
+        <div>
+          <h3>{{ row.document }} Drill Down</h3>
+          <p>{{ row.screen }} / {{ row.segment }} / {{ row.group }}</p>
+        </div>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" (click)="closeRow()"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="inventory-report-modal-grid">
+        <div><span>Source</span><strong>{{ row.source }}</strong></div>
+        <div><span>Product</span><strong>{{ row.product }}</strong></div>
+        <div><span>Location</span><strong>{{ row.location }}</strong></div>
+        <div><span>Qty / Capacity</span><strong>{{ row.qty }}</strong></div>
+        <div><span>Value / Tax</span><strong>{{ row.value }}</strong></div>
+        <div><span>Status</span><strong>{{ row.status }}</strong></div>
+        <div><span>Risk</span><strong>{{ row.risk }}</strong></div>
+        <div><span>Updated</span><strong>{{ row.updated }}</strong></div>
+      </div>
+
+      <div class="inventory-report-impact">
+        <strong>Functional logic</strong>
+        <p>This drill down links the report row back to the exact master or transaction screen, so users can audit setup, verify movement, and take action without leaving the inventory report workflow.</p>
+      </div>
+
+      <div class="inventory-form-actions">
+        <a class="erp-btn btn-primary" [routerLink]="row.route" (click)="closeRow()"><i class="pi pi-external-link"></i> Open Source Screen</a>
+      </div>
+    </div>
+  </div>
+}
