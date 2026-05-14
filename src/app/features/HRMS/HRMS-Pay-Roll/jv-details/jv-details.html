@@ -159,12 +159,14 @@
         </div>
       </div>
 
-      <div class="col-md-2">
-        <button type="button" class="btn btn-b-icon" (click)="getjvdetails()" [disabled]="loadingShow()">
+      <div class="col-md-auto">
+        <button type="button" class="erp-btn btn-primary" (click)="getjvdetails()" [disabled]="loadingShow()">
           @if (loadingShow()) {
-            <i class="fa fa-spin fa-spinner"></i>
+            <i class="pi pi-spin pi-spinner"></i>
+          } @else {
+            <i class="pi pi-search"></i>
           }
-          {{ showButtonLabel }}
+          {{ loadingShow() ? 'Generating' : 'Generate' }}
         </button>
       </div>
     </div>

@@ -203,7 +203,11 @@ export class TdsReport implements OnInit {
         this.commonService.getCompanyCode(),
         this.commonService.getBranchCode()
       )
-      .subscribe((res: any[]) => this.tdsSectionData.set(res ?? []));
+       .subscribe((res: any[]) => this.tdsSectionData.set(res ?? []));
+      // .subscribe((res: any[]) => {
+      //   const allOption = { tdsId: 'ALL', sectionId: 'ALL', sectionName: 'ALL' };
+      //   this.tdsSectionData.set([allOption, ...(res ?? [])]);
+      // });
   }
 
   onSectionChange(event: any): void {

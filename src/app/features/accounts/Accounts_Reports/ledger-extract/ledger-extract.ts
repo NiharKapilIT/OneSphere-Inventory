@@ -354,18 +354,18 @@ export class LedgerExtract implements OnInit {
 
   // ── Date / number formatters ───────────────────────────────────────────────
   private formatDateForApi(date: Date): string {
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${d.getFullYear()}-${month}-${day}`;
-  }
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en-US', { month: 'short' }); 
+  return `${day}-${month}-${d.getFullYear()}`;
+}
 
-  private formatDate(date: Date): string {
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${day}/${month}/${d.getFullYear()}`;
-  }
+private formatDate(date: Date): string {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  return `${day}-${month}-${d.getFullYear()}`;
+}
 
   private formatDisplayDate(dateStr: string): string {
     if (!dateStr) return '';

@@ -1,0 +1,220 @@
+<div class="module-page inventory-page inventory-report-page inventory-generic-report-page">
+  <div class="inventory-shell">
+    <div class="inventory-header inventory-report-header">
+      <div>
+        <span class="inventory-kicker"><i [class]="groupIcon()"></i> {{ groupTitle() }}</span>
+        <h2><i [class]="report().icon"></i> {{ report().title }}</h2>
+        <p>{{ report().purpose }}</p>
+      </div>
+      <div class="inventory-report-header-actions">
+        <span class="erp-badge badge-info">Phase {{ report().phase }}</span>
+        <span class="erp-badge" [class.badge-success]="loadedFromApi()" [class.badge-warning]="!loadedFromApi()">
+          {{ loadedFromApi() ? 'API data' : 'Preview data' }}
+        </span>
+        <button type="button" class="erp-btn btn-primary btn-sm" (click)="generateReport()"><i class="pi pi-search"></i> Generate</button>
+        <button type="button" class="erp-btn btn-white btn-sm" (click)="resetFilters()"><i class="pi pi-refresh"></i> Reset</button>
+      </div>
+    </div>
+
+    <section class="inventory-report-filter-band inventory-report-filter-band--wide">
+      @for (filter of primaryFilterDefinitions(); track filterTrack($index, filter)) {
+        <div class="inventory-report-filter">
+          <label>{{ filter.label }}</label>
+          @if (filter.type === 'multiselect') {
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+          } @else if (filter.type === 'select') {
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+          } @else if (filter.type === 'date') {
+            <div class="inventory-date-wrap">
+              <p-datepicker [ngModel]="filterDateValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
+              <i class="pi pi-calendar inventory-date-icon"></i>
+            </div>
+          } @else {
+            <input class="erp-input" type="text" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" />
+          }
+        </div>
+      }
+      <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleAdvancedFilters()">
+        <i class="pi" [class.pi-angle-down]="!showAdvancedFilters()" [class.pi-angle-up]="showAdvancedFilters()"></i>
+        More Filters
+      </button>
+    </section>
+
+    @if (showAdvancedFilters()) {
+      <section class="inventory-report-filter-band inventory-report-filter-band--wide inventory-report-advanced">
+        @for (filter of advancedFilterDefinitions(); track filterTrack($index, filter)) {
+          <div class="inventory-report-filter">
+            <label>{{ filter.label }}</label>
+            @if (filter.type === 'multiselect') {
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+            } @else if (filter.type === 'select') {
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+            } @else if (filter.type === 'date') {
+              <div class="inventory-date-wrap">
+                <p-datepicker [ngModel]="filterDateValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
+                <i class="pi pi-calendar inventory-date-icon"></i>
+              </div>
+            } @else {
+              <input class="erp-input" type="text" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" />
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (summaryCards().length) {
+      <section class="inventory-report-summary-grid inventory-report-summary-grid--owner">
+        @for (card of summaryCards(); track card.label) {
+          <article class="inventory-report-summary-card tone-{{ card.tone ?? 'blue' }}">
+            <div class="inventory-report-card-head">
+              <span><i [class]="card.icon"></i></span>
+              <strong>{{ card.label }}</strong>
+            </div>
+            <div class="inventory-report-card-value">{{ card.value }}</div>
+          </article>
+        }
+      </section>
+    }
+
+    <section class="inventory-section inventory-report-section">
+      <div class="inventory-section-title inventory-report-grid-title">
+        <div>
+          <h3>Report Grid</h3>
+          <p>{{ report().audience.join(', ') }} / GET /api/reports/{{ report().endpoint }}</p>
+        </div>
+        <div class="inventory-report-grid-actions">
+          <div class="inventory-report-search">
+            <i class="pi pi-search"></i>
+            <input class="erp-input" type="text" placeholder="Search grid" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" />
+          </div>
+          <ng-select class="erp-ng-select inventory-ng-select inventory-report-group-select" appendTo="body" [items]="groupByOptions()" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="groupBy()" (ngModelChange)="groupBy.set($event ?? '')"></ng-select>
+          <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleColumnChooser()"><i class="pi pi-sliders-h"></i> Columns</button>
+          <button type="button" class="erp-btn btn-white btn-sm" (click)="exportExcel()"><i class="pi pi-file-excel"></i> Excel</button>
+          <button type="button" class="erp-btn btn-white btn-sm" (click)="exportPdf()"><i class="pi pi-file-pdf"></i> PDF</button>
+          <button type="button" class="erp-btn btn-white btn-sm" (click)="printReport()"><i class="pi pi-print"></i> Print</button>
+        </div>
+      </div>
+
+      @if (showColumnChooser()) {
+        <div class="inventory-report-column-chooser">
+          @for (column of report().columns; track column.key) {
+            <label>
+              <input type="checkbox" [checked]="isColumnVisible(column.key)" (change)="toggleColumn(column.key, $any($event.target).checked)" />
+              {{ column.label }}
+            </label>
+          }
+        </div>
+      }
+
+      @if (infoMessage()) {
+        <div class="inventory-report-message info"><i class="pi pi-info-circle"></i> {{ infoMessage() }}</div>
+      }
+
+      @if (errorMessage()) {
+        <div class="inventory-report-message error"><i class="pi pi-exclamation-triangle"></i> {{ errorMessage() }}</div>
+      }
+
+      <div class="tbl-wrap">
+        <table class="erp-table compact inventory-report-table inventory-report-table--generic">
+          <thead>
+            <tr>
+              @for (column of visibleColumns(); track column.key) {
+                <th>
+                  <button type="button" class="inventory-sort-btn" (click)="setSort(column.key)">
+                    {{ column.label }} <i [class]="sortIcon(column.key)"></i>
+                  </button>
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @if (loading()) {
+              <tr>
+                <td [attr.colspan]="visibleColumns().length || 1" class="text-center p-4">
+                  <i class="pi pi-spin pi-spinner"></i> Loading report data...
+                </td>
+              </tr>
+            } @else {
+              @for (group of groupedRows(); track group.label) {
+                @if (groupBy()) {
+                  <tr class="inventory-report-group-row">
+                    <td [attr.colspan]="visibleColumns().length || 1">{{ group.label }} <span>{{ group.rows.length }} rows</span></td>
+                  </tr>
+                }
+                @for (row of group.rows; track $index) {
+                  <tr (click)="openRow(row)">
+                    @for (column of visibleColumns(); track column.key) {
+                      <td>
+                        @if (column.type === 'status') {
+                          <span class="inventory-report-status">{{ formatCell(row[column.key], column) }}</span>
+                        } @else {
+                          {{ formatCell(row[column.key], column) }}
+                        }
+                      </td>
+                    }
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td [attr.colspan]="visibleColumns().length || 1" class="text-center p-4">No records found for the selected filters.</td>
+                  </tr>
+                }
+              }
+            }
+          </tbody>
+          @if (sortedRows().length) {
+            <tfoot>
+              <tr>
+                @for (column of visibleColumns(); track column.key; let first = $first) {
+                  <td>
+                    @if (first) {
+                      <strong>Grand Total</strong>
+                    } @else if (column.total) {
+                      <strong>{{ totals()[column.key] }}</strong>
+                    }
+                  </td>
+                }
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+
+      <div class="inventory-report-footer">
+        <span>Showing {{ rowStart() }}-{{ rowEnd() }} of {{ totalRecords() }}</span>
+        <div>
+          <ng-select class="erp-ng-select inventory-ng-select inventory-report-page-size" appendTo="body" [items]="pageSizeOptions" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="pageSize()" (ngModelChange)="changePageSize($event)"></ng-select>
+          <button type="button" class="erp-btn btn-white btn-sm" [disabled]="!canMovePrevious()" (click)="changePage(-1)"><i class="pi pi-angle-left"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" [disabled]="!canMoveNext()" (click)="changePage(1)"><i class="pi pi-angle-right"></i></button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+@if (activeRow(); as row) {
+  <div class="inventory-modal-backdrop" (click)="closeRow()">
+    <div class="inventory-card inventory-modal inventory-report-modal" (click)="$event.stopPropagation()">
+      <div class="inventory-modal-header">
+        <div>
+          <h3>{{ report().title }} Drill Down</h3>
+          <p>{{ groupTitle() }} / {{ loadedFromApi() ? 'API data' : 'Preview data' }}</p>
+        </div>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" (click)="closeRow()"><i class="pi pi-times"></i></button>
+      </div>
+
+      <div class="inventory-report-modal-grid">
+        @for (entry of rowEntries(row); track entry.label) {
+          <div>
+            <span>{{ entry.label }}</span>
+            <strong>{{ entry.value }}</strong>
+          </div>
+        }
+      </div>
+
+      <div class="inventory-report-impact">
+        <strong>Drill-down purpose</strong>
+        <p>This row is kept in a standard report shape so the backend can attach document links, permissions, audit data and source transaction details without changing the report page.</p>
+      </div>
+    </div>
+  </div>
+}
