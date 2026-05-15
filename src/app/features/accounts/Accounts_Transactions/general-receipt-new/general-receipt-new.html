@@ -59,7 +59,6 @@
         <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
           getValidationMsg('pmodofreceipt') }}</div>
         }
-
         <!-- Wallet -->
         @if (walletshowhide()) {
         <div class="mt-2">
@@ -95,8 +94,6 @@
         </div>
         }
       </div>
-
-
       <!-- ── BANK DETAILS ── -->
       @if (bankshowhide()) {
       <div class="p-4">
@@ -565,10 +562,6 @@
 
           </div>
         </div>
-
-
-
-
         <!-- ── GST DETAILS ── -->
         @if (showgst()) {
         <div formGroupName="preceiptslist">
@@ -618,10 +611,7 @@
                 }
               </div>
             </div>
-
           </div>
-
-          <!-- GST Breakdown -->
 
           <!-- GST Breakdown -->
           <div class="row mt-2">
@@ -723,11 +713,9 @@
         </div>
         }
 
-
-
         <!-- Add / Clear -->
         <div class="d-flex gap-2 mt-2">
-          <!-- <button class="erp-btn btn-secondary" type="button" (click)="clearPaymentDetails()">Clear</button> -->
+
           <button class="erp-btn btn-secondary" type="button"
             (click)="clearPaymentDetails(); clearParty()">Clear</button>
           <button class="erp-btn btn-primary" type="button" (click)="addPaymentDetails()">+ Add</button>
@@ -736,7 +724,7 @@
         <!-- Payments Grid -->
         @if (gridshowhide()) {
         <hr class="erp-section-divider">
-        <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
+        <!-- <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
           sortMode="single" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
           <ng-template pTemplate="header">
@@ -786,9 +774,7 @@
           <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
             <tr>
               <td class="text-center">
-                <!-- <button pButton type="button" icon="pi pi-trash" class="p-button-text p-button-sm p-button-danger"
-                  (click)="deleteRow(rowIndex)">
-                </button> -->
+             
                 <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
                   (click)="deleteRow(rowIndex)">
                   <i class="pi pi-trash"></i>
@@ -796,7 +782,7 @@
               </td>
               <td>{{ row.pledgername }}</td>
               <td>{{ row.psubledgername }}</td>
-              <!-- <td class="text-end">{{ currencySymbol }} {{ (row.pamount || 0) | number:'1.0-0' }}</td> -->
+             
               <td class="td-right">
                 <div class="amount-cell">
                   <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
@@ -829,9 +815,7 @@
                 <span class="grn-na">-- NA --</span>
                 }
               </td>
-              <!-- <td class="grn-td grn-td--right grn-td--bold">
-                {{ currencySymbol }} {{ (row.ptotalamount || 0) | number:'1.0-0' }}
-              </td> -->
+             
               <td class="td-right">
                 <div class="amount-cell">
                   <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span>
@@ -845,16 +829,286 @@
               <td colspan="12" class="grn-table-empty">No Data To Display</td>
             </tr>
           </ng-template>
+        </p-table> -->
+        <p-table [value]="paymentslist()" [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" responsiveLayout="scroll"
+          sortMode="single" styleClass="p-datatable-sm p-datatable-gridlines gr-table">
+
+          <!-- Header -->
+          <ng-template pTemplate="header">
+            <tr>
+
+              <th class="text-center">Actions</th>
+
+              <!-- Ledger -->
+              <th pSortableColumn="pledgername">
+                <div class="th-cell">
+                  Ledger Name
+                  <p-sortIcon field="pledgername"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- Sub Ledger -->
+              <th pSortableColumn="psubledgername">
+                <div class="th-cell">
+                  Sub Ledger Name
+                  <p-sortIcon field="psubledgername"></p-sortIcon>
+                </div>
+              </th>
+              <!-- Party Name -->
+              <th pSortableColumn="ppartyname">
+                <div class="th-cell">
+                  Party Name
+                  <p-sortIcon field="ppartyname"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- Taxable Amount -->
+              <th pSortableColumn="ptaxableamount" class="text-end">
+                <div class="th-cell justify-content-end">
+                  Taxable Amount
+                  <p-sortIcon field="ptaxableamount"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- Paid Amount -->
+              <th pSortableColumn="pamount" class="text-end">
+                <div class="th-cell justify-content-end">
+                  Paid Amount
+                  <p-sortIcon field="pamount"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- GST Calc Type -->
+              <th pSortableColumn="pgstcalculationtype" class="text-center">
+                <div class="th-cell justify-content-center">
+                  GST Calc Type
+                  <p-sortIcon field="pgstcalculationtype"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- GST Type -->
+              <th pSortableColumn="pgsttype" class="text-center">
+                <div class="th-cell justify-content-center">
+                  GST Type
+                  <p-sortIcon field="pgsttype"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- GST % -->
+              <th pSortableColumn="pgstpercentage" class="text-center">
+                <div class="th-cell justify-content-center">
+                  GST(%)
+                  <p-sortIcon field="pgstpercentage"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- GST Amount -->
+              <th pSortableColumn="pgstamount" class="text-end">
+                <div class="th-cell justify-content-end">
+                  GST Amount
+                  <p-sortIcon field="pgstamount"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- TDS Section -->
+              <th pSortableColumn="pTdsSection" class="text-center">
+                <div class="th-cell justify-content-center">
+                  TDS Section
+                  <p-sortIcon field="pTdsSection"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- TDS % -->
+              <th pSortableColumn="pTdsPercentage" class="text-center">
+                <div class="th-cell justify-content-center">
+                  TDS(%)
+                  <p-sortIcon field="pTdsPercentage"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- TDS Amount -->
+              <th pSortableColumn="ptdsamountindividual" class="text-end">
+                <div class="th-cell justify-content-end">
+                  TDS Amount
+                  <p-sortIcon field="ptdsamountindividual"></p-sortIcon>
+                </div>
+              </th>
+
+              <!-- Amount -->
+              <th pSortableColumn="ptotalamount" class="text-end">
+                <div class="th-cell justify-content-end">
+                  Amount
+                  <p-sortIcon field="ptotalamount"></p-sortIcon>
+                </div>
+              </th>
+
+            </tr>
+          </ng-template>
+
+          <!-- Body -->
+          <ng-template pTemplate="body" let-row let-rowIndex="rowIndex">
+            <tr>
+
+              <!-- Actions -->
+              <td class="text-center">
+                <button type="button" class="erp-btn btn-outline btn-sm btn-icon" title="Delete"
+                  (click)="deleteRow(rowIndex)">
+
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+
+              <!-- Ledger -->
+
+              <!-- Ledger -->
+              <td>{{ row.pledgername }}</td>
+
+              <!-- Sub Ledger -->
+              <td>{{ row.psubledgername }}</td>
+
+              <!-- Party Name -->
+              <td>{{ row.ppartyname }}</td>
+
+              <!-- Taxable Amount -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">
+                    {{ currencyCode === 'INR' ? '₹' : currencyCode }}
+                  </span>
+                  <span class="amt-num">
+                    {{ row.ptaxableamount | number:'1.2-2' }}
+                  </span>
+                </div>
+              </td>
+
+              <!-- Paid Amount -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">
+                    {{ currencyCode === 'INR' ? '₹' : currencyCode }}
+                  </span>
+                  <span class="amt-num">
+                    {{ row.pamount | number:'1.2-2' }}
+                  </span>
+                </div>
+              </td>
+
+
+              <td class="text-center">
+                {{ row.pisgstapplicable ? row.pgstcalculationtype : '-- NA --' }}
+              </td>
+
+
+              <td class="text-center">
+                {{ row.pisgstapplicable ? row.pgsttype : '-- NA --' }}
+              </td>
+
+
+              <td class="text-center">
+                {{ row.pisgstapplicable ? row.pgstpercentage : '-- NA --' }}
+              </td>
+              <!-- GST Amount -->
+              <td class="td-right">
+                <div class="amount-cell">
+                  <span class="amt-sym">
+                    {{ currencyCode === 'INR' ? '₹' : currencyCode }}
+                  </span>
+                  <span class="amt-num">
+                    {{ (row.pgstamount || 0) | number:'1.2-2' }}
+                  </span>
+                </div>
+              </td>
+              <td class="text-center">
+
+                @if (row.pistdsapplicable && row.pTdsSection) {
+
+                <span class="grn-tds-badge">
+                  {{ row.pTdsSection }}
+                </span>
+
+                } @else {
+
+                <span class="grn-na">-- NA --</span>
+
+                }
+              </td>
+
+
+              <td class="text-center">
+
+                @if (row.pistdsapplicable && row.pTdsPercentage) {
+
+                {{ row.pTdsPercentage }}
+
+                } @else {
+
+                <span class="grn-na">-- NA --</span>
+
+                }
+
+              </td>
+
+              <!-- TDS Amount -->
+              <td class="text-end">
+
+                @if (row.pistdsapplicable && row.ptdsamountindividual) {
+
+                <div class="amount-cell">
+                  <span class="amt-sym">
+                    {{ currencyCode === 'INR' ? '₹' : currencyCode }}
+                  </span>
+                  <span class="amt-num">
+                    {{ (row.ptdsamountindividual || 0) | number:'1.2-2' }}
+                  </span>
+                </div>
+
+                } @else {
+
+                <span class="grn-na">-- NA --</span>
+
+                }
+
+              </td>
+
+              <!-- Amount -->
+              <td class="td-right">
+                <div class="amount-cell">
+
+                  <span class="amt-sym">
+                    {{ currencyCode === 'INR' ? '₹' : currencyCode }}
+                  </span>
+
+                  <span class="amt-num">
+                    {{ row.ptotalamount | number:'1.2-2' }}
+                  </span>
+
+                </div>
+              </td>
+
+            </tr>
+          </ng-template>
+
+          <!-- Empty -->
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="12" class="grn-table-empty">
+                No Data To Display
+              </td>
+            </tr>
+          </ng-template>
+
         </p-table>
+
         <div class="grn-table-count">{{ paymentslist().length }} total</div>
         }
       </div>
 
-      <!-- ── JOURNAL + NARRATION  ATTACHMENT ── -->
+
       <div class="p-4">
         <div class="row g-2">
 
-          <!-- Journal Entry -->
+
           <div class="col-12 col-md-6">
             @if (gridshowhide()) {
             <div class="grn-journal-wrapper">
@@ -876,17 +1130,14 @@
                 <ng-template pTemplate="body" let-row>
                   <tr>
                     <td>{{ row.accountname || '' }}</td>
-                    <!-- <td class="text-end">{{ row.debitamount ? (row.debitamount | number:'1.0-0') : '' }}</td>
-                    <td class="text-end">{{ row.creditamount ? (row.creditamount | number:'1.0-0') : '' }}</td> -->
+
                     <td class="td-right">
                       <div class="amount-cell">
-                        <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
                         <span class="amt-num">{{ row.debitamount | number:'1.2-2' }}</span>
                       </div>
                     </td>
                     <td class="td-right">
                       <div class="amount-cell">
-                        <!-- <span class="amt-sym">{{ currencyCode === 'INR' ? '₹' : currencyCode }}</span> -->
                         <span class="amt-num">{{ row.creditamount | number:'1.2-2' }}</span>
                       </div>
                     </td>
@@ -929,8 +1180,6 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Upload Attachment</label>
                   <div class="erp-file-upload">
-                    <!-- <input type="text" class="erp-input erp-file-input" formControlName="pFilename"
-                      [value]="imageResponse()?.name" readonly placeholder="No file selected"> -->
                     <input type="text" class="erp-input erp-file-input"
                       [value]="uploadedFileName() || imageResponse()?.name || ''" readonly
                       placeholder="No file selected">
