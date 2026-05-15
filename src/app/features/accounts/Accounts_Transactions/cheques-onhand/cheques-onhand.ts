@@ -1412,7 +1412,7 @@ export class ChequesOnhand implements OnInit {
         .DataFromBrsDatesChequesOnHand(
           this.fromdate, this.todate, this.bankid,
           mode,
-          searchText || '0',
+          searchText || '',
           0, 99999
         )
         .subscribe({
@@ -2080,6 +2080,7 @@ export class ChequesOnhand implements OnInit {
 
 
   ShowBrsDeposit() {
+    debugger
     this.gridData.set([]);
     this._searchText = '';
     this.deposited.set(0);
@@ -2129,9 +2130,10 @@ export class ChequesOnhand implements OnInit {
   }
 
   GetDataOnBrsDates(frombrsdate: any, tobrsdate: any, bankid: any) {
+    debugger
     this.showicons.set(false);
     this.ChequesClearReturnDataBasedOnBrs = [];
-    const searchtext = this._searchText || '0';
+    const searchtext = this._searchText ;
     let modeofreceipt = 'ALL';
     const s = this.status();
     if (s === 'deposited') modeofreceipt = 'DEPOSITED';
@@ -2141,6 +2143,7 @@ export class ChequesOnhand implements OnInit {
       this._accountingtransaction.DataFromBrsDatesChequesOnHand(frombrsdate, tobrsdate, bankid, modeofreceipt, searchtext, 0, 99999)
     ]).subscribe({
       next: ([clearreturndata]: [any]) => {
+        console.log('GetDataOnBrsDates response:', clearreturndata);
         let allData: any[] = clearreturndata['pchequesclearreturnlist'] ?? [];
         if (s === 'cancelled') allData = allData.filter((x: any) => x.pchequestatus === 'C');
         else if (s === 'deposited') {

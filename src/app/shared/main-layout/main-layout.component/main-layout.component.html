@@ -343,25 +343,64 @@
       </div>
 
       <div class="fp-items">
-        <button
-          *ngFor="let screen of filteredFlyoutScreens"
-          class="fp-item"
-          [class.active]="selectedScreen?.id === screen.id"
-          [attr.title]="screen.name"
-          (click)="navigateToScreen(screen); $event.stopPropagation()">
-          <span class="fp-screen-icon">
-            <i [class]="getScreenIcon(screen.name)"></i>
-          </span>
+        <ng-container *ngIf="hasGroupedFlyoutScreens; else flatFlyoutItems">
+          <div
+            class="fp-group"
+            *ngFor="let group of groupedFlyoutScreens"
+            [class.open]="isFlyoutGroupExpanded(group.name)"
+            [class.active]="isFlyoutGroupActive(group)">
+            <button
+              type="button"
+              class="fp-group-header"
+              (click)="toggleFlyoutGroup(group.name); $event.stopPropagation()"
+              [attr.aria-expanded]="isFlyoutGroupExpanded(group.name)">
+              <span class="fp-group-title">{{ group.name }}</span>
+              <span class="fp-group-meta">{{ group.screens.length }}</span>
+              <i class="pi pi-chevron-down fp-group-arrow"></i>
+            </button>
 
-          <div class="fp-name-wrap">
-            <span class="fp-name" [attr.title]="screen.name">{{ screen.name }}</span>
-            <span class="fp-sub-name" *ngIf="flyoutSearchQuery && screen.isFromOtherSubModule" [attr.title]="screen.subModule?.name">
-              {{ screen.subModule?.name }}
-            </span>
+            <div class="fp-group-items" *ngIf="isFlyoutGroupExpanded(group.name)">
+              <button
+                *ngFor="let screen of group.screens"
+                class="fp-item"
+                [class.active]="selectedScreen?.id === screen.id"
+                [attr.title]="screen.name"
+                (click)="navigateToScreen(screen); $event.stopPropagation()">
+                <span class="fp-screen-icon">
+                  <i [class]="getScreenIcon(screen.name)"></i>
+                </span>
+
+                <div class="fp-name-wrap">
+                  <span class="fp-name" [attr.title]="screen.name">{{ screen.name }}</span>
+                </div>
+
+                <i class="pi pi-check fp-check" *ngIf="selectedScreen?.id === screen.id"></i>
+              </button>
+            </div>
           </div>
+        </ng-container>
 
-          <i class="pi pi-check fp-check" *ngIf="selectedScreen?.id === screen.id"></i>
-        </button>
+        <ng-template #flatFlyoutItems>
+          <button
+            *ngFor="let screen of filteredFlyoutScreens"
+            class="fp-item"
+            [class.active]="selectedScreen?.id === screen.id"
+            [attr.title]="screen.name"
+            (click)="navigateToScreen(screen); $event.stopPropagation()">
+            <span class="fp-screen-icon">
+              <i [class]="getScreenIcon(screen.name)"></i>
+            </span>
+
+            <div class="fp-name-wrap">
+              <span class="fp-name" [attr.title]="screen.name">{{ screen.name }}</span>
+              <span class="fp-sub-name" *ngIf="flyoutSearchQuery && screen.isFromOtherSubModule" [attr.title]="screen.subModule?.name">
+                {{ screen.subModule?.name }}
+              </span>
+            </div>
+
+            <i class="pi pi-check fp-check" *ngIf="selectedScreen?.id === screen.id"></i>
+          </button>
+        </ng-template>
 
         <div class="fp-empty" *ngIf="filteredFlyoutScreens.length === 0">
           <i class="pi pi-search"></i>
@@ -370,7 +409,7 @@
       </div>
     </div>
 
-    <main class="content-area" role="main">
+    <main #contentArea class="content-area" role="main">
       <nav class="breadcrumb-bar" *ngIf="breadcrumbPath.screen" aria-label="Breadcrumb">
         <div class="bc-inner">
           <button class="bc-item bc-link" (click)="selectModule(breadcrumbPath.module!)" [attr.title]="breadcrumbPath.module?.name">
@@ -418,6 +457,8 @@
 
         <router-outlet></router-outlet>
       </div>
+
+      <app-reference-data-tray [config]="referenceTrayConfig"></app-reference-data-tray>
     </main>
   </div>
 

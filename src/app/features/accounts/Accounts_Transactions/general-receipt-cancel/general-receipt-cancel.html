@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page accounts-entry-page">
 
   <!-- Main Card -->
   <div class="erp-card">
@@ -48,17 +48,17 @@
 
                     <div class="erp-input-wrap erp-date-wrap">
                       <i class="pi pi-calendar erp-input-icon"></i>
-                      <p-datepicker   id="ppaymentdate" formControlName="ppaymentdate"
-                        dateFormat="dd-M-yy" [readonlyInput]="true" [disabled]="true" appendTo="body" styleClass="w-100"
+                      <p-datepicker id="ppaymentdate" formControlName="ppaymentdate" dateFormat="dd-M-yy"
+                        [readonlyInput]="true" [disabled]="true" appendTo="body" styleClass="w-100"
                         inputStyleClass="erp-input icon-pad w-100">
                       </p-datepicker>
                     </div>
                   </div>
                 </div>
-  <div class="col-12 col-md-2 d-flex align-items-center">
-                <button type="button" (click)="Show()" class="erp-btn btn-primary btn-md">
-                  <i class="pi pi-search"></i> Show
-                </button>
+                <div class="col-12 col-md-2 d-flex align-items-center">
+                  <button type="button" (click)="Show()" class="erp-btn btn-primary btn-md">
+                    <i class="pi pi-search"></i> Show
+                  </button>
                 </div>
               </div>
             </div>
@@ -169,7 +169,7 @@
               </div>
             </div>
 
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6">
               <div class="erp-form-group">
                 <label class="erp-label">
                   Cancelled By <span class="required">*</span>
@@ -177,10 +177,29 @@
                 <div class="pb-3">
                   <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
                     placeholder="Search & Select Cancelled By" bindValue="subintroducedid" [clearable]="true"
-                    formControlName="autorizedcontactid" [typeahead]="contactSearchevent" [class.ng-invalid]=" 
+                    formControlName="autorizedcontactid" (change)="subIntroducedGridRowSelect($event)"
+                    [typeahead]="contactSearchevent" [class.ng-invalid]=" 
               GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&
               GeneralReceiptCancelForm.get('autorizedcontactid')?.touched
             ">
+
+                    <ng-template ng-header-tmp>
+                      <div class="row">
+                        <span class="col-3 erp-label">Code</span>
+                        <span class="col-3 erp-label">Contact Name</span>
+                        <span class="col-3 text-center erp-label">Mobile No.</span>
+                        <span class="col-3 erp-label">Email Id</span>
+                      </div>
+                    </ng-template>
+
+                    <ng-template ng-option-tmp let-item="item">
+                      <div class="row">
+                        <span class="col-3">{{ item.subintroducedcode }}</span>
+                        <span class="col-3">{{ item.subintroducedname }}</span>
+                        <span class="col-3 text-center">{{ item.subintroducedmobilenumber }}</span>
+                        <span class="col-3">{{ item.subintroducedemailid }}</span>
+                      </div>
+                    </ng-template>
                   </ng-select>
 
                   @if (GeneralReceiptCancelForm.get('autorizedcontactid')?.invalid &&

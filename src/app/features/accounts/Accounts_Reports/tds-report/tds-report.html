@@ -1,4 +1,4 @@
-<div class="module-page">
+<div class="module-page accounts-entry-page">
   <div class="erp-card">
 
     <!-- Header -->
@@ -150,12 +150,12 @@
                 title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp">
                 <i class="pi pi-whatsapp"></i>
               </a>
-              <button class="erp-btn btn-white btn-sm" (click)="dt.reset()" title="Clear Filters">
+              <!-- <button class="erp-btn btn-white btn-sm" (click)="dt.reset()" title="Clear Filters">
                 <i class="pi pi-filter-slash"></i>
               </button>
               <button class="erp-btn btn-white btn-sm" (click)="Show()" title="Reload Data">
                 <i class="pi pi-refresh"></i>
-              </button>
+              </button> -->
               <button class="erp-btn btn-white btn-sm" (click)="pdfOrPrint('Pdf')" title="Export PDF">
                 <i class="pi pi-file-pdf"></i>
               </button>
@@ -193,6 +193,7 @@
             <span class="context-text">
               <strong>View:</strong> {{ summary() ? 'Summary' : 'Detail' }}
             </span>
+            
           </div>
 
           <div class="tbl-wrap">
@@ -215,7 +216,7 @@
                     <div class="th-cell">
                       Particulars
                       <p-sortIcon field="paid_to"></p-sortIcon>
-                      <p-columnFilter type="text" field="paid_to" display="menu" class="ms-auto"></p-columnFilter>
+                      <!-- <p-columnFilter type="text" field="paid_to" display="menu" class="ms-auto"></p-columnFilter> -->
                     </div>
                   </th>
                   }
@@ -223,7 +224,7 @@
                     <div class="th-cell">
                       PAN Number
                       <p-sortIcon field="pannumber"></p-sortIcon>
-                      <p-columnFilter type="text" field="pannumber" display="menu" class="ms-auto"></p-columnFilter>
+                      <!-- <p-columnFilter type="text" field="pannumber" display="menu" class="ms-auto"></p-columnFilter> -->
                     </div>
                   </th>
                   @if (!summary()) {
@@ -231,12 +232,12 @@
                     <div class="th-cell">
                       PAN Status
                       <p-sortIcon field="panstatus"></p-sortIcon>
-                      <p-columnFilter field="panstatus" matchMode="equals" display="menu" class="ms-auto">
+                      <!-- <p-columnFilter field="panstatus" matchMode="equals" display="menu" class="ms-auto">
                         <ng-template pTemplate="filter" let-value let-filter="filterCallback">
                           <p-select [ngModel]="value" [options]="['Valid', 'Invalid', 'NA']"
                             (onChange)="filter($event.value)" placeholder="Any"></p-select>
                         </ng-template>
-                      </p-columnFilter>
+                      </p-columnFilter> -->
                     </div>
                   </th>
                   }
@@ -244,14 +245,14 @@
                     <div class="th-cell">
                       Agent Name
                       <p-sortIcon field="agentName"></p-sortIcon>
-                      <p-columnFilter type="text" field="agentName" display="menu" class="ms-auto"></p-columnFilter>
+                      <!-- <p-columnFilter type="text" field="agentName" display="menu" class="ms-auto"></p-columnFilter> -->
                     </div>
                   </th>
                   <th pSortableColumn="referalcode" style="width: 130px;">
                     <div class="th-cell">
                       Agent Code
                       <p-sortIcon field="referalcode"></p-sortIcon>
-                      <p-columnFilter type="text" field="referalcode" display="menu" class="ms-auto"></p-columnFilter>
+                      <!-- <p-columnFilter type="text" field="referalcode" display="menu" class="ms-auto"></p-columnFilter> -->
                     </div>
                   </th>
                   @if (!summary()) {
@@ -259,8 +260,8 @@
                     <div class="th-cell">
                       Trans. Date
                       <p-sortIcon field="transaction_date"></p-sortIcon>
-                      <p-columnFilter type="date" field="transaction_date" display="menu"
-                        class="ms-auto"></p-columnFilter>
+                      <!-- <p-columnFilter type="date" field="transaction_date" display="menu"
+                        class="ms-auto"></p-columnFilter> -->
                     </div>
                   </th>
                   }
@@ -289,12 +290,12 @@
                       <p-sortIcon field="effectedjvid"></p-sortIcon>
                     </div>
                   </th>
-                  <th pSortableColumn="subscriberbranchname" style="width: 180px;">
+                  <!-- <th pSortableColumn="subscriberbranchname" style="width: 180px;">
                     <div class="th-cell">
                       Branch
                       <p-sortIcon field="subscriberbranchname"></p-sortIcon>
                     </div>
-                  </th>
+                  </th> -->
                   }
                 </tr>
               </ng-template>
@@ -326,7 +327,7 @@
                       (row.ledgeramount | number:'1.2-2') }} </td>
                       @if (!summary()) {
                   <td>{{ row.effectedjvid }}</td>
-                  <td>{{ row.subscriberbranchname || '--NA--' }}</td>
+                  <!-- <td>{{ row.subscriberbranchname || '--NA--' }}</td> -->
                   }
                 </tr>
               </ng-template>

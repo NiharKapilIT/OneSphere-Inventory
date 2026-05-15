@@ -1,0 +1,100 @@
+<div class="inventory-shared-guide">
+  <button
+    type="button"
+    class="erp-btn btn-white btn-sm"
+    [class.active]="advicePanelOpen()"
+    title="Screen guide"
+    (click)="toggleAdvicePanel()">
+    <i class="pi pi-info-circle"></i>
+    Guide
+  </button>
+
+  @if (advicePanelOpen()) {
+    <section class="inventory-advice-panel" aria-label="Screen guide">
+      <div class="inventory-advice-head">
+        <div>
+          <span class="inventory-advice-kicker">Screen guide</span>
+          <h3><i class="pi pi-lightbulb"></i> {{ config.title }} Guide</h3>
+          <p>{{ screenUsageLabel() }}</p>
+        </div>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close guide panel" (click)="toggleAdvicePanel()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+
+      <div class="inventory-advice-grid">
+        <article class="inventory-advice-card">
+          <strong>What this screen is for</strong>
+          <span>{{ config.subtitle }}</span>
+          @if (config.screenMode) {
+            <em>{{ config.screenMode }}</em>
+          }
+        </article>
+
+        <article class="inventory-advice-card">
+          <strong>ERP effect</strong>
+          <span>{{ config.outputImpact || 'This screen supports ERP entry, validation, reporting, and downstream workflow.' }}</span>
+        </article>
+
+        <article class="inventory-advice-card">
+          <strong>Before using</strong>
+          @if (config.dependsOn?.length) {
+            <div class="inventory-advice-deps">
+              @for (dependency of config.dependsOn; track dependency.name) {
+                <span class="inventory-dependency-pill" [ngClass]="'status-' + dependency.status.toLowerCase().replace(' ', '-')">
+                  <i class="pi pi-circle-fill"></i>
+                  {{ dependency.name }}
+                  <em>{{ dependency.status }}</em>
+                </span>
+              }
+            </div>
+          } @else {
+            <span>No prerequisite setup is required for this screen.</span>
+          }
+        </article>
+      </div>
+
+      <div class="inventory-guide-procedure">
+        <article class="inventory-guide-block">
+          <strong>How to use this screen</strong>
+          <ol>
+            @for (step of guideProcedureSteps(); track step) {
+              <li>{{ step }}</li>
+            }
+          </ol>
+        </article>
+
+        <article class="inventory-guide-block">
+          <strong>Practical example</strong>
+          <p>{{ guideExampleText() }}</p>
+        </article>
+
+        <article class="inventory-guide-block">
+          <strong>Important ERP impact</strong>
+          <p>{{ guideImpactText() }}</p>
+        </article>
+      </div>
+
+      @if (displayFields().length) {
+        <div class="inventory-field-advice">
+          <div class="inventory-field-advice-title">
+            <strong>Field guide</strong>
+            <span>{{ displayFields().length }} fields in this screen</span>
+          </div>
+
+          <div class="inventory-field-advice-list">
+            @for (field of displayFields(); track field.key) {
+              <article class="inventory-field-advice-item">
+                <div>
+                  <strong>{{ field.label }}</strong>
+                  <span>{{ fieldAdvice(field) }}</span>
+                </div>
+                <p>{{ fieldEffect(field) }}</p>
+              </article>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+</div>

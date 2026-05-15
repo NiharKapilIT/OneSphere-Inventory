@@ -1,4 +1,4 @@
-<div class="module-page no-padding-print">
+<div class="module-page accounts-entry-page no-padding-print">
   <div class="erp-card report-print-card">
 
     <!-- Header / Toolbar (Hidden on Print) -->
@@ -133,11 +133,12 @@
                       @if (subItem?.ptdsamount && subItem?.ptdsamount !== 0) {
                       <tr class="text-danger x-small">
                         <td class="text-center">{{ i + 1 +
-                              (subItem?.state_code?.toString() === Gstinn ?
-                              ((subItem?.pcgstamount && subItem?.pcgstamount !== 0) ? 2 : 0) :
-                              ((subItem?.pigstamount && subItem?.pigstamount !== 0) || (subItem?.pcgstamount && subItem?.pcgstamount
-                              !== 0) ? 1 : 0)
-                              ) + 2 }}</td>
+                          (subItem?.state_code?.toString() === Gstinn ?
+                          ((subItem?.pcgstamount && subItem?.pcgstamount !== 0) ? 2 : 0) :
+                          ((subItem?.pigstamount && subItem?.pigstamount !== 0) || (subItem?.pcgstamount &&
+                          subItem?.pcgstamount
+                          !== 0) ? 2 : 0)
+                          ) + 1 }}</td>
                         <td class="ps-4 italic">TDS ({{paymentData?.ptdspercentage}}% Included)</td>
                         <td class="text-end">({{ currencysymbol }} {{ subItem?.ptdsamount | number:'1.2-2' }})</td>
                       </tr>
@@ -171,16 +172,20 @@
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1 px-2">
                       @if (paymentData?.pmodofPayment?.toUpperCase() === 'CASH') {
                       CASH
+                      } @else if (paymentData?.pmodofPayment?.toUpperCase() === 'BANK' &&
+                      paymentData?.ptypeofpayment?.toUpperCase() !== 'CHEQUE' &&
+                      paymentData?.ptypeofpayment?.toUpperCase() !== 'DEBIT CARD') {
+                      Online({{ paymentData?.ptypeofpayment ?? paymentData?.ptranstype }})
                       } @else {
-                      {{ paymentData?.ptranstype ?? paymentData?.ptypeofpayment ?? paymentData?.pmodofPayment }}
+                      {{ paymentData?.ptypeofpayment ?? paymentData?.ptranstype ?? paymentData?.pmodofPayment }}
                       }
                     </span>
 
-                    @if (paymentData?.reference_number || paymentData?.preferenceno || paymentData?.pChequenumber) {
+                    @if (paymentData?.pChequenumber || paymentData?.reference_number || paymentData?.preferenceno) {
                     <span class="ms-2 text-muted small">
-                      (Ref: {{ paymentData?.reference_number ?? paymentData?.preferenceno ?? paymentData?.pChequenumber
+                      (Ref: {{ paymentData?.pChequenumber ?? paymentData?.reference_number ?? paymentData?.preferenceno
                       }},
-                      Bank: {{ (paymentData?.cheque_bank ?? paymentData?.pbankaccount ?? '').split('@')[0] }})
+                      Bank: {{ (paymentData?.pbankaccount ?? paymentData?.cheque_bank ?? '').split('@')[0] }})
                     </span>
                     }
                   </p>

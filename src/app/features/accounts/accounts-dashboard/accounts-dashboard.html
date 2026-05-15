@@ -364,11 +364,11 @@
 @if (showModal && activeModal) {
 
   <!-- Layer 1: blurred backdrop (click to close) -->
-  <div class="pay-modal-overlay" (click)="closeModal()"></div>
+  <div class="pay-modal-overlay accounts-detail-modal-overlay" (click)="closeModal()"></div>
 
   <!-- Layer 2: viewport-centred wrapper -->
-  <div class="pay-modal-wrap">
-    <section class="pay-modal" (click)="$event.stopPropagation()">
+  <div class="pay-modal-wrap accounts-detail-modal-wrap">
+    <section class="pay-modal accounts-detail-modal" (click)="$event.stopPropagation()">
 
       <!-- Header -->
       <header class="pay-modal-header">
@@ -387,10 +387,10 @@
       </header>
 
       <!-- Body -->
-      <div class="pay-modal-body" style="padding:0;overflow:auto;">
+      <div class="pay-modal-body accounts-detail-modal-body">
 
         <!-- Export toolbar — same as trial-balance / account-ledger -->
-        <div class="erp-table-toolbar tbl-toolbar-flush">
+        <div class="erp-table-toolbar tbl-toolbar-flush accounts-detail-modal-toolbar">
           <div class="tb-left">
             <span class="erp-badge badge-primary badge-dot">
               {{ activeModal.report.rows.length }} records

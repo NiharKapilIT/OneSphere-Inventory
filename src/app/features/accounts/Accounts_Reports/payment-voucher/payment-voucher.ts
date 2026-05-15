@@ -357,15 +357,20 @@ export class PaymentVoucher implements OnInit {
 
     const amountInWords =
       `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
-    const modeOfPayment = first?.pmodofPayment?.toUpperCase() === 'CASH'
-  ? 'CASH'
-  : (first?.ptranstype ?? first?.ptypeofpayment ?? first?.pmodofPayment ?? '');
 
-const refNo = first?.reference_number ?? first?.preferenceno ?? first?.pChequenumber ?? '';
-const bank = (String(first?.cheque_bank ?? first?.pbankaccount ?? '')).split('@')[0];
-const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
+    const rawMode = (first?.pmodofPayment ?? '').toString().toUpperCase().trim();
+    const transType = (first?.ptypeofpayment ?? first?.ptranstype ?? '').toString().trim();
+    const transTypeUpper = transType.toUpperCase();
 
-    
+    const modeOfPayment = rawMode === 'CASH'
+      ? 'CASH'
+      : rawMode === 'BANK' && transTypeUpper !== 'CHEQUE' && transTypeUpper !== 'DEBIT CARD'
+        ? `Online(${transType})`
+        : transType;
+
+    const refNo = first?.reference_number ?? first?.preferenceno ?? first?.pChequenumber ?? '';
+    const bank = (String(first?.cheque_bank ?? first?.pbankaccount ?? '')).split('@')[0];
+    const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
 
 
     this.commonService._downloadGridPdf1(
@@ -387,7 +392,7 @@ const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
       paidTo,
       amountInWords,
       modeOfPayment,
-  referenceInfo
+      referenceInfo
     );
   }
 

@@ -720,10 +720,13 @@ this.bankmasterform.get('upiname')?.markAsUntouched();
     const pUpiid  = this.bankmasterform.value.pUpiid;
     const upiname = this.bankmasterform.value.upiname;
 
-    if (!pUpiid || !upiname) {
-      this._commonService.showWarningMessage('Both UPI ID and UPI Link must be provided.');
+    // if (!pUpiid || !upiname) {
+      const missingFields = [];
+      if (!pUpiid) missingFields.push('UPI ID');
+      if (!upiname) missingFields.push('UPI Link');
+      this._commonService.showWarningMessage(`Please provide ${missingFields.join(' and ')}.`);
       return false;
-    }
+    // }
     if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+$/.test(pUpiid as string)) {
       this._commonService.showWarningMessage('Please enter a valid UPI ID (example: john.doe@sbi).');
       return false;

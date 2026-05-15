@@ -398,6 +398,14 @@ export class JvList implements OnInit {
     const groupedData = this.commonService._MultipleGroupingGridExportData(
       this.jvlistData, 'ptransactiondate', true
     );
+    const transGroupMap = new Map<string, any[]>();
+groupedData.forEach((element: any) => {
+  if (element.ptransactionno !== undefined) {
+    const key = element.ptransactionno;
+    if (!transGroupMap.has(key)) transGroupMap.set(key, []);
+    transGroupMap.get(key)!.push(element);
+  }
+});
 
     groupedData.forEach((element: any) => {
       if (element.ptransactionno === undefined) {
@@ -417,6 +425,22 @@ export class JvList implements OnInit {
           element.pdebitamount > 0 ? String(element.pdebitamount) : '',
           element.pcreditamount > 0 ? String(element.pcreditamount) : ''
         ]);
+        const groupItems = transGroupMap.get(element.ptransactionno) ?? [];
+    const isLastInGroup = groupItems[groupItems.length - 1] === element;
+    if (isLastInGroup && element.pdescription) {
+      rows.push([{
+        content: `Narration: ${element.pdescription}`,
+        colSpan: 3,
+        styles: {
+          halign: 'left',
+          fontStyle: 'italic',
+          fillColor: [255, 255, 255],
+          textColor: [100, 100, 100],
+          cellPadding: { top: 1, bottom: 1, left: 6, right: 2 },
+          fontSize: 10
+        }
+      }]);
+    }
       }
     });
 
