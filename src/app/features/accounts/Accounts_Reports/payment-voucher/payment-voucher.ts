@@ -357,9 +357,16 @@ export class PaymentVoucher implements OnInit {
 
     const amountInWords =
       `Rupees ${this.numberToWords.transform(grandTotal)} Only`;
-    const modeOfPayment = first?.pmodofPayment?.toUpperCase() === 'CASH'
+
+    const rawMode = (first?.pmodofPayment ?? '').toString().toUpperCase().trim();
+    const transType = (first?.ptypeofpayment ?? first?.ptranstype ?? '').toString().trim();
+    const transTypeUpper = transType.toUpperCase();
+
+    const modeOfPayment = rawMode === 'CASH'
       ? 'CASH'
-      : (first?.ptranstype ?? first?.ptypeofpayment ?? first?.pmodofPayment ?? '');
+      : rawMode === 'BANK' && transTypeUpper !== 'CHEQUE' && transTypeUpper !== 'DEBIT CARD'
+        ? `Online(${transType})`
+        : transType;
 
     const refNo = first?.reference_number ?? first?.preferenceno ?? first?.pChequenumber ?? '';
     const bank = (String(first?.cheque_bank ?? first?.pbankaccount ?? '')).split('@')[0];
