@@ -346,7 +346,7 @@ export class TdsReport implements OnInit {
     const gridheaders = isSummary
       ? ['Agent Name', 'Agent Code', 'Pan Number', 'Paid Amount', 'TDS Calculated Amount', 'Amount']
       : ['Particulars', 'Pan Number', 'PAN Status', 'Agent Name', 'Agent Code', 'Transaction Date',
-        'Paid Amount', 'TDS Calculated Amount', 'Amount', 'Effective JV', 'Subscriber Branch'];
+        'Paid Amount', 'TDS Calculated Amount', 'Amount', 'Effective JV'];
 
     const colWidthHeight = isSummary
       ? {
@@ -366,7 +366,6 @@ export class TdsReport implements OnInit {
     const rows = data.map(e => {
       const paidTo = e.paid_to && Object.keys(e.paid_to).length ? JSON.stringify(e.paid_to) : '';
       const pan = e.pannumber ?? '--NA--';
-      const branch = e.subscriberbranchname ?? '--NA--';
       const panSt = e.panstatus ?? '--NA--';
       const txDate = e.transaction_date ? this.datepipe.transform(e.transaction_date, 'dd-MMM-yyyy') : '';
       const ledger = this.commonService.convertAmountToPdfFormat(e.ledgeramount ?? 0);
@@ -374,7 +373,7 @@ export class TdsReport implements OnInit {
       const paid = this.commonService.convertAmountToPdfFormat(e.paidamount ?? 0);
       return isSummary
         ? [e.agentName, e.referalcode, pan, paid, tds, ledger]
-        : [paidTo, pan, panSt, e.agentName, e.referalcode, txDate, paid, tds, ledger, e.effectedjvid, branch];
+        : [paidTo, pan, panSt, e.agentName, e.referalcode, txDate, paid, tds, ledger, e.effectedjvid];
     });
 
     const fmt = (n: number) => this.commonService.convertAmountToPdfFormat(n);

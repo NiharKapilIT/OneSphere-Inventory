@@ -53,6 +53,7 @@ function percentageValidator(c: AbstractControl): ValidationErrors | null {
 
 
 
+
 @Component({
   selector: 'app-general-receipt-new',
   standalone: true,
@@ -331,8 +332,11 @@ export class GeneralReceiptNew implements OnInit {
       pcgstpercentage: [''],
       psgstpercentage: [''],
       putgstpercentage: [''],
+      // pactualpaidamount: ['', [Validators.required, positiveAmountValidator, Validators.pattern(/^[0-9,]+(\.[0-9]{1,2})?$/)]],
       pactualpaidamount: ['', [Validators.required, positiveAmountValidator, Validators.pattern(/^[0-9,]+(\.[0-9]{1,2})?$/)]],
       ptotalamount: ['']
+      //  ptaxableamount: [''],
+
     });
   }
 
@@ -463,9 +467,6 @@ export class GeneralReceiptNew implements OnInit {
 
       return this.formValidationMessages[key] || '';
     }
-
-
-
     // formValidationMessages set by save/add button — takes priority
     if (this.formValidationMessages[key]) {
       return this.formValidationMessages[key];
@@ -673,15 +674,10 @@ export class GeneralReceiptNew implements OnInit {
     this.GeneralReceiptForm.get('pUpiid')?.setValue('');
 
     this.setBalances('BANKBOOK', 0);
-    this.setBalances('PASSBOOK', 0);
-
-    // if (type === 'Online') {
-    //   this.GeneralReceiptForm.controls['ptypeofpayment'].setValue('');
-    //   this.GeneralReceiptForm.get('pChequenumber')?.disable();
-    // } 
+    this.setBalances('PASSBOOK', 0); 
 
     if (type === 'Online') {
-      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  // ← null instead of ''
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  
       this.GeneralReceiptForm.get('pChequenumber')?.disable();
     }
 
@@ -697,8 +693,6 @@ export class GeneralReceiptNew implements OnInit {
   checkDepositBankEnable(): void {
     this.GeneralReceiptForm.get('pdepositbankid')?.enable();
   }
-
-
 
   toggleReferenceNo(value: any): void {
     const refCtrl = this.GeneralReceiptForm.get('pChequenumber');
@@ -776,8 +770,6 @@ export class GeneralReceiptNew implements OnInit {
     ctrl?.markAsTouched();
     this.recalculateAll();
   }
-
-
   pamount_change(event: any): void {
     debugger
     const input = event?.target as HTMLInputElement;
@@ -837,54 +829,66 @@ export class GeneralReceiptNew implements OnInit {
       let utgstamt = 0;
       let tdsAmount = 0;
 
-      // Back-calculate taxable from gross entered amount
       taxable =
         gstRate > 0 || tdsRate > 0
-          ? Math.round((amountReceived * 100) / (100 + gstRate - tdsRate))
+          ? (amountReceived * 100) / (100 + gstRate - tdsRate)
           : amountReceived;
 
       // GST breakdown
       if (isgst && gstRate > 0) {
-        gstAmt = Math.round((taxable * gstRate) / 100);
-
+      
+        gstAmt = (taxable * gstRate) / 100;
+      
         if (gsttype === 'IGST') {
+
           igstamt = gstAmt;
 
         } else if (gsttype === 'CGST,SGST') {
-          cgstamt = Math.round(gstAmt / 2);
-          sgstamt = Math.round(gstAmt / 2);
+
+          cgstamt = gstAmt / 2;
+          sgstamt = gstAmt / 2;
 
         } else if (gsttype === 'CGST,UTGST') {
-          cgstamt = Math.round(gstAmt / 2);
-          utgstamt = Math.round(gstAmt / 2);
+
+          cgstamt = gstAmt / 2;
+          utgstamt = gstAmt / 2;
         }
       }
 
-      // TDS on taxable
       if (isTds && tdsRate > 0) {
-        tdsAmount = Math.round((taxable * tdsRate) / 100);
+        tdsAmount = (taxable * tdsRate) / 100;
       }
+ 
+      const roundedTaxable = Math.floor(taxable); // floor to avoid rounding up      
+      const roundedGst = this._round((roundedTaxable * gstRate) / 100);
+      const roundedIgst2 = gsttype === 'IGST' ? roundedGst : 0;
+      const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? this._round(roundedGst / 2) : 0;
+      const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst - roundedCgst2 : 0;
+      const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst - roundedCgst2 : 0; 
+      const roundedTds = this._round((roundedTaxable * tdsRate) / 100);
+      const roundedNet = this._round(amountReceived) - roundedGst; // 125000 - 19396 = 105604
+      const roundedTotal = this._round(amountReceived);
 
-      const totalAmount = Math.round(taxable + gstAmt);             // gross before TDS
-      const netAmount = Math.round(taxable + gstAmt - tdsAmount); // net received
-
-      // ── Patch form ──
       rg.patchValue({
-        pamount: netAmount,
-        pgstamount: gstAmt,
-        pigstamount: igstamt,
-        pcgstamount: cgstamt,
-        psgstamount: sgstamt,
-        putgstamount: utgstamt,
-        ptotalamount: totalAmount,
+        pamount: roundedNet,
+        pgstamount: roundedGst,
+        pigstamount: roundedIgst2,
+        pcgstamount: roundedCgst2,
+        psgstamount: roundedSgst2,
+        putgstamount: roundedUtgst2,
+        ptotalamount: roundedTotal,
       }, { emitEvent: false });
 
       this.GeneralReceiptForm.get('ptdsamount')
-        ?.setValue(tdsAmount, { emitEvent: false });
+        ?.setValue(roundedTds, { emitEvent: false });
 
     } catch (e) {
       this.cs.showErrorMessage(e);
     }
+  }
+  private _round(value: number): number {
+    const decimal = value - Math.floor(value);
+    return decimal >= 0.5 ? Math.ceil(value) : Math.floor(value);
   }
   private _getTdsPercentageValue(): number {
     const raw = this.GeneralReceiptForm.get('pTdsPercentage')?.value;
@@ -892,7 +896,6 @@ export class GeneralReceiptNew implements OnInit {
     if (typeof raw === 'object' && 'pTdsPercentage' in raw) return Number(raw.pTdsPercentage) || 0;
     return Number(raw) || 0;
   }
-
 
   // ── Party  
   partyName_Change($event: any): void {
@@ -992,7 +995,6 @@ export class GeneralReceiptNew implements OnInit {
       });
   }
 
-
   // ── Ledger / SubLedger  
   ledgerName_Change($event: any): void {
     this.formValidationMessages['pledgerid'] = '';
@@ -1058,7 +1060,6 @@ export class GeneralReceiptNew implements OnInit {
       });
   }
 
-
   // ── GST  
   isgstapplicableChange(): void {
     const on = this.GeneralReceiptForm.get('preceiptslist.pisgstapplicable')?.value;
@@ -1106,27 +1107,7 @@ export class GeneralReceiptNew implements OnInit {
     gstCtrls.get('pStateId')?.markAsUntouched();
     gstCtrls.get('pStateId')?.markAsPristine();
   }
-
-  // gst_Change($event: any): void {
-  //   if (!$event) {
-  //     this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
-  //     ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
-  //       'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
-  //       .forEach(k => this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0));
-  //     this.recalculateAll();
-  //     return;
-  //   }
-  //   const pct = $event.pgstpercentage ?? $event;
-  //   ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage'].forEach(k =>
-  //     this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue('')
-  //   );
-  //   ['pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount'].forEach(k =>
-  //     this.GeneralReceiptForm.get(`preceiptslist.${k}`)?.setValue(0)
-  //   );
-  //   if (pct) this._applyGstPercentage(pct);
-  //   this.gstPercentageSelected = true;
-  //   this.recalculateAll();
-  // }
+ 
   gst_Change($event: any): void {
     if (!$event) {
       this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
@@ -1238,7 +1219,6 @@ export class GeneralReceiptNew implements OnInit {
     // this.formValidationMessages = {};
   }
 
-
   // ── TDS  
   istdsapplicableChange(): void {
     const on = this.GeneralReceiptForm.get('pistdsapplicable')?.value;
@@ -1250,7 +1230,6 @@ export class GeneralReceiptNew implements OnInit {
       this.GeneralReceiptForm.controls['ptdsamount'].setValue(0);
     } else {
       this.showtds.set(false);
-
 
       ['ptdscalculationtype', 'pTdsSection', 'pTdsPercentage'].forEach(f =>
         this.GeneralReceiptForm.controls[f].setValue(null)
@@ -1340,7 +1319,6 @@ export class GeneralReceiptNew implements OnInit {
               pModifiedby: this.cs.pCreatedby
             });
 
-
             const rawForm = this.GeneralReceiptForm.getRawValue();
             const fv = ctrl.value; // preceiptslist values (none are disabled here)
 
@@ -1354,10 +1332,21 @@ export class GeneralReceiptNew implements OnInit {
                 fv.pgstamount?.toString() || '0'
               ))).toFixed(2)
             );
-            const ptotal = parseFloat((pamount + pgst).toFixed(2));
+            // ptotal = actual amount received (not pamount+pgst which loses TDS)
+            const ptotal = parseFloat(
+              (Number(this.cs.removeCommasInAmount(
+                fv.ptotalamount?.toString() || '0'
+              ))).toFixed(2)
+            );
 
-
-
+            // ── calculate ptaxableamount directly = pamount + TDS ──
+            const ptaxableamount = parseFloat(
+              (
+                pamount +
+                (Number(this.GeneralReceiptForm.get('ptdsamount')?.value) || 0)
+              ).toFixed(2)
+            );
+ 
             const entry = {
               // ── Party fields — capture before clearPaymentDetails1() clears them ──
               ppartyid: this.GeneralReceiptForm.get('ppartyid')?.value || 0,
@@ -1365,16 +1354,14 @@ export class GeneralReceiptNew implements OnInit {
               ppartypannumber: this.GeneralReceiptForm.get('ppartypannumber')?.value || '',
               ppartyreftype: this.GeneralReceiptForm.get('ppartyreftype')?.value || '',
               ppartyreferenceid: this.GeneralReceiptForm.get('ppartyreferenceid')?.value || '',
-
-              // ── preceiptslist fields ──
+ 
               ...fv,
               pamount,
               pgstamount: pgst,
               ptotalamount: ptotal,
+              ptaxableamount,
               pgstpercentage: Number(fv.pgstpercentage) || 0,
-              pisgstapplicable: fv.pisgstapplicable === true,
-
-              // ── TDS from root form ──
+              pisgstapplicable: fv.pisgstapplicable === true,            
               pistdsapplicable: this.GeneralReceiptForm.get('pistdsapplicable')?.value,
               pTdsSection: this.GeneralReceiptForm.get('pTdsSection')?.value || '',
               pTdsPercentage: this._getTdsPercentageValue(),
@@ -1549,7 +1536,7 @@ export class GeneralReceiptNew implements OnInit {
           entries.push({ accountname: n, debitamount: parseFloat(amt.toFixed(2)), creditamount: '' });
         }
       });
-
+ 
       const total = list.reduce(
         (s: number, c: any) => s + Number(this.cs.removeCommasInAmount(c.ptotalamount || 0)), 0
       );
@@ -1560,6 +1547,19 @@ export class GeneralReceiptNew implements OnInit {
           : 'BANK';
         entries.push({ accountname: acc, debitamount: '', creditamount: parseFloat(total.toFixed(2)) });
       }
+
+      // ── TDS PAYABLE Dr entry — shown AFTER CASH ON HAND  
+      // const totalTds = list.reduce(
+      //   (s: number, c: any) => s + (Number(c.ptdsamountindividual) || 0), 0
+      // );
+      // if (totalTds > 0) {
+      //   entries.push({
+      //     accountname: 'TDS PAYABLE',
+      //     debitamount: parseFloat(totalTds.toFixed(2)),
+      //     creditamount: ''
+      //   });
+      // }
+
 
       this.partyjournalentrylist.set(entries);
     } catch (e) {
@@ -1690,9 +1690,7 @@ export class GeneralReceiptNew implements OnInit {
     this.subledgerBalance.set(`${this.currencySymbol} 0 Dr`);
     this.formValidationMessages = {};
     this.gstPercentageSelected = false;
-
-    // ── Final safety — clear party message and state after all cycles 
-    // ── Final safety — clear party message and state after all cycles  
+ 
     setTimeout(() => {
       this.formValidationMessages['ppartyid'] = '';
       this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
@@ -1824,7 +1822,6 @@ export class GeneralReceiptNew implements OnInit {
     this.checkDepositBankEnable();
   }
 
-
   // ── Validation  
   validation(type: string): void {
     // this.formValidationMessages = {};
@@ -1894,8 +1891,6 @@ export class GeneralReceiptNew implements OnInit {
     event.preventDefault();
     return false;
   }
-
-
   branchNameChange(event: any): void {
     let v = event.target.value.replace(/[^a-zA-Z ]/g, '').substring(0, 40);
     v = v.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
@@ -1907,8 +1902,6 @@ export class GeneralReceiptNew implements OnInit {
       this.formValidationMessages['pbranchname'] = '';
     }
   }
-
-
   pAccountnumber_change(): void {
     const ctrl = this.GeneralReceiptForm.get('pAccountnumber');
     if (ctrl?.value) {
@@ -1922,7 +1915,6 @@ export class GeneralReceiptNew implements OnInit {
       this.formValidationMessages['pAccountnumber'] = '';
     }
   }
-
 
   BankNameChange(): void {
     const ctrl = this.GeneralReceiptForm.get('pbankname');
@@ -2001,9 +1993,6 @@ export class GeneralReceiptNew implements OnInit {
   getStateName(s: any): string {
     return s.pState || s.pStatename || s.stateName || '';
   }
-
-
-
   saveGeneralReceipt(): void {
     debugger
 
@@ -2013,20 +2002,7 @@ export class GeneralReceiptNew implements OnInit {
     this.formValidationMessages = {};
 
     let hasError = false;
-
-    //   if (this.paymentslist().length === 0) {
-    //     if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
-    //       this.formValidationMessages['ppartyid'] = 'Party Is Required';
-    //       hasError = true;
-    //     }
-    //   } else {
-    //   // ── Grid has items — clear party validation completely ──
-    //   this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
-    //   this.GeneralReceiptForm.get('ppartyid')?.markAsPristine();
-    //   this.GeneralReceiptForm.get('ppartyid')?.clearValidators();
-    //   this.GeneralReceiptForm.get('ppartyid')?.updateValueAndValidity();
-    //   this.formValidationMessages['ppartyid'] = '';
-    // }
+ 
     if (this.paymentslist().length === 0) {
       if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
         this.formValidationMessages['ppartyid'] = 'Party Is Required';
@@ -2066,7 +2042,6 @@ export class GeneralReceiptNew implements OnInit {
           this.formValidationMessages['pchequedate'] = 'Please Select Cheque Date';
           hasError = true;
         }
-
 
       } else if (this.Transtype === 'Online') {
         if (!this.GeneralReceiptForm.get('pbankid')?.value) {
@@ -2193,8 +2168,6 @@ export class GeneralReceiptNew implements OnInit {
         return;
       }
     }
-
-
     const chequeDate = this.datepipe.transform(
       this.chequeDateValue, 'dd-MM-yyyy'
     );
@@ -2338,10 +2311,18 @@ export class GeneralReceiptNew implements OnInit {
               let cgstAmount = 0;
               let sgstAmount = 0;
 
-              if (x.pgsttype?.includes('CGST') && x.pgsttype?.includes('SGST')) {
+              // if (x.pgsttype?.includes('CGST') && x.pgsttype?.includes('SGST')) {
 
-                // split without rounding issue
-                cgstAmount = Math.floor(totalGST / 2);
+              //   // split without rounding issue
+              //   // cgstAmount = Math.floor(totalGST / 2);
+              //   // sgstAmount = totalGST - cgstAmount;
+
+              // }
+              if (x.pgsttype?.includes('CGST') && x.pgsttype?.includes('SGST')) {
+                cgstAmount = this._round(totalGST / 2);
+                sgstAmount = totalGST - cgstAmount;
+              } else if (x.pgsttype?.includes('CGST') && x.pgsttype?.includes('UTGST')) {
+                cgstAmount = this._round(totalGST / 2);
                 sgstAmount = totalGST - cgstAmount;
               }
 
@@ -2414,14 +2395,9 @@ export class GeneralReceiptNew implements OnInit {
 
                 pTdsPercentage:
                   Number(x.pTdsPercentage) || 0,
-
+ 
                 ptdsamountindividual: parseFloat(
-                  (
-                    (
-                      Math.round(Number(x.pamount)) *
-                      (Number(x.pTdsPercentage) || 0)
-                    ) / 100
-                  ).toFixed(2)
+                  (Number(this.GeneralReceiptForm.get('ptdsamount')?.value) || 0).toFixed(2)
                 ),
 
                 ptotalamount: parseFloat(
@@ -2448,20 +2424,12 @@ export class GeneralReceiptNew implements OnInit {
                 console.log('Save response:', res);
                 if (res?.success) {
                   this.cs.showSuccessMessage();
-                  this.ClearGenerealReceipt();
-                  // this.router.navigate([
-                  //   '/general-receipt',
-                  //   btoa(`${res.receipt_number},General Receipt`)
-                  // ]);
-
-
-
+                  this.ClearGenerealReceipt();                 
                   const receipt = btoa(res.receipt_number + ',' + 'General Receipt');
                   const url = this.router.serializeUrl(
                     this.router.createUrlTree(['/general-receipt', receipt])
                   );
                   window.open(url, '_blank');
-
 
                 }
                 this.disablesavebutton.set(false);
@@ -2532,57 +2500,9 @@ export class GeneralReceiptNew implements OnInit {
     this.uploadedFileFormat.set('');
     this.GeneralReceiptForm.markAsUntouched();
     this.GeneralReceiptForm.markAsPristine();
-  }
-
-  // uploadAndProgress(event: any): void {
-  //   const ext = event.target.value
-  //     .substring(event.target.value.lastIndexOf('.') + 1)
-  //     .toLowerCase();
-  //   if (!['jpg', 'png', 'pdf'].includes(ext)) {
-  //     this.cs.showWarningMessage('Upload jpg, png or pdf files');
-  //     return;
-  //   }
-  //   const file = event.target.files[0];
-  //   if (!file) return;
-
-  //   const reader = new FileReader();
-  //   reader.readAsDataURL(file);
-  //   reader.onload = () =>
-  //     this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
-
-  //   const fd = new FormData();
-  //   fd.append(file.name, file);
-  //   fd.append('NewFileName', `General Receipt.${file.name.split('.').pop()}`);
-
-  //   // this.cs.fileUploadS3('Account', fd)
-  //   //   .pipe(takeUntilDestroyed(this.destroyRef))
-  //   //   .subscribe((data: any) => {
-  //   //     this.imageResponse.update(r => ({ ...r, name: data[0] }));
-  //   //     this.GeneralReceiptForm.controls['pFilename'].setValue(data[0]);
-  //   //   });
-  //   this.cs.fileUploadS3('Account', fd)
-  // .pipe(takeUntilDestroyed(this.destroyRef))
-  // .subscribe((data: any) => {
-  //   const uploadedFileName = data[0] || data?.fileName || data?.filePath || data;
-  //   const uploadedFilePath = data[1] || data?.filePath || uploadedFileName;
-
-  //   this.imageResponse.update(r => ({ ...r, name: uploadedFileName }));
-
-  //   this.GeneralReceiptForm.controls['pFilename'].setValue(uploadedFileName);
-  //   this.GeneralReceiptForm.controls['pFilepath'].setValue(uploadedFilePath);
-  //   this.GeneralReceiptForm.controls['pFileformat'].setValue(
-  //     uploadedFileName?.split('.')?.pop()?.toLowerCase() || ''
-  //   );
-  // });
-  // }
-
-
-  // ── Validation helpers  
-
+  } 
   uploadAndProgress(event: any): void {
-    // const ext = event.target.value
-    //   .substring(event.target.value.lastIndexOf('.') + 1)
-    //   .toLowerCase();
+     
     const ext = event.target.files[0]?.name
       .substring(event.target.files[0]?.name.lastIndexOf('.') + 1)
       .toLowerCase() || '';
@@ -2596,10 +2516,7 @@ export class GeneralReceiptNew implements OnInit {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.readAsDataURL(file);
-    // reader.onload = () =>
-    //   this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
-
+    reader.readAsDataURL(file);     
     reader.onload = () => {
       this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
       this.uploadedFileName.set(file.name); // show file name immediately before API responds
@@ -2616,14 +2533,9 @@ export class GeneralReceiptNew implements OnInit {
 
         const fileName = Array.isArray(data)
           ? data[0]
-          : (data?.fileName || data?.name || data?.filePath || '');
-
-        // const filePath = Array.isArray(data)
-        //   ? (data[1] || data[0])
-        //   : (data?.filePath || data?.path || fileName);
+          : (data?.fileName || data?.name || data?.filePath || ''); 
         const filePath = fileName;
         const fileFormat = ext;
-
         this.uploadedFileName.set(fileName);
         // this.uploadedFilePath.set(filePath);
         this.uploadedFilePath.set(filePath || fileName);
@@ -2632,7 +2544,6 @@ export class GeneralReceiptNew implements OnInit {
         this.imageResponse.update(r => ({ ...r, name: fileName }));
       });
   }
-
 
   checkValidations(group: FormGroup, isValid: boolean): boolean {
     Object.keys(group.controls).forEach(key => {
@@ -2651,9 +2562,7 @@ export class GeneralReceiptNew implements OnInit {
       } else if (ctrl.validator) {
         this.formValidationMessages[key] = '';
         if ((ctrl.touched || ctrl.dirty) && (ctrl.errors || ctrl.invalid)) {
-
           isValid = false;
-
         }
       }
     } catch { }
@@ -2689,3 +2598,4 @@ export class GeneralReceiptNew implements OnInit {
     );
   }
 }
+ 
