@@ -166,7 +166,7 @@ export class InventoryReportPageComponent implements OnInit {
     this.route.paramMap.subscribe(params => {
       const definition = findInventoryReport(params.get('reportKey'));
       this.setReport(definition);
-      this.generateReport(false);
+      // this.generateReport(false);
     });
   }
 
