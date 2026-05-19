@@ -370,15 +370,19 @@ export class AccountLedger implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  formatDate(date: Date | string | null): string {
-    if (!date) return '';
-    if (typeof date === 'string') {
-    const [day, month, year] = date.split('/');
-    date = new Date(+year, +month - 1, +day);
+formatDate(date: Date | string | null): string {
+  if (!date) return '';
+  if (typeof date === 'string') {
+    if (date.includes('/')) {
+      const [day, month, year] = date.split('/');
+      date = new Date(+year, +month - 1, +day);
+    } else {
+      date = new Date(date);
+    }
   }
-    return this.datePipe.transform(date, 'dd-MMM-yyyy') ?? '';
-  }
-
+  if (isNaN((date as Date).getTime())) return '';
+  return this.datePipe.transform(date, 'dd-MMM-yyyy') ?? '';
+}
   onNarrationChange(event: Event): void {
     this.isNarrationChecked.set((event.target as HTMLInputElement).checked);
   }

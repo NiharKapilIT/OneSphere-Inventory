@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import jsPDF from 'jspdf';
@@ -36,6 +37,7 @@ import { InventoryReportsService } from '../shared/inventory-reports.service';
 export class InventoryReportPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly reportsService = inject(InventoryReportsService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly pageSizes = [10, 25, 50, 100];
   readonly pageSizeOptions = this.pageSizes.map(size => ({ label: `${size} rows`, value: size }));
@@ -163,11 +165,19 @@ export class InventoryReportPageComponent implements OnInit {
   readonly canMoveNext = computed(() => this.page() * this.pageSize() < this.totalRecords());
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      const definition = findInventoryReport(params.get('reportKey'));
-      this.setReport(definition);
-      this.generateReport(false);
-    });
+    this.route.paramMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        const reportKey = params.get('reportKey');
+        if (!reportKey) {
+          // Use first report as default if no reportKey is provided
+          this.setReport(INVENTORY_REPORTS[0]);
+        } else {
+          const definition = findInventoryReport(reportKey);
+          this.setReport(definition);
+        }
+        // this.generateReport(false);
+      });
   }
 
   filterValue(key: InventoryReportFilterKey): InventoryReportFilterValue {
