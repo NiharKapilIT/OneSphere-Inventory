@@ -510,8 +510,10 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Country <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="countries" [(ngModel)]="currentAddress.country"
-              [ngModelOptions]="{standalone:true}" placeholder="Select Country" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name"
+              [(ngModel)]="currentAddress.country" [ngModelOptions]="{standalone:true}"
+              placeholder="Select Country" [searchable]="true" [clearable]="true"
+              (change)="onCountryChange($event)">
             </ng-select>
           </div>
         </div>
@@ -519,8 +521,10 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>State <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="states" [(ngModel)]="currentAddress.state"
-              [ngModelOptions]="{standalone:true}" placeholder="Select State" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="states" bindLabel="state_name" bindValue="state_name"
+              [(ngModel)]="currentAddress.state" [ngModelOptions]="{standalone:true}"
+              placeholder="Select State" [searchable]="true" [clearable]="true"
+              (change)="onStateChange($event)">
             </ng-select>
           </div>
         </div>
@@ -528,8 +532,10 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>District <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="districts" [(ngModel)]="currentAddress.district"
-              [ngModelOptions]="{standalone:true}" placeholder="Select District" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="districts" bindLabel="district_name" bindValue="district_name"
+              [(ngModel)]="currentAddress.district" [ngModelOptions]="{standalone:true}"
+              placeholder="Select District" [searchable]="true" [clearable]="true"
+              (change)="onDistrictChange($event)">
             </ng-select>
           </div>
         </div>

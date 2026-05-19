@@ -71,16 +71,16 @@ export class Address implements OnInit {
     this.setOrClearControl('pcity', d.city);
 
     if (d.country_id !== 0) {
-      this.contactMasterService
-        .getstates(this.commonService.getschemaname(), d.country_id)
+      this.commonService
+        .getStates(d.country_id)
         .subscribe((json: any) => this.stateDetails.set(json));
     } else {
       this.clearControl('pState');
     }
 
     if (d.state_id !== 0) {
-      this.contactMasterService
-        .getDistrict(this.commonService.getschemaname(), d.state_id)
+      this.commonService
+        .getDistricts(d.state_id)
         .subscribe((json: any) => this.districtDetails.set(json));
     } else {
       this.clearControl('pDistrict');
@@ -107,8 +107,8 @@ export class Address implements OnInit {
     this.setOrClearControl('pcity', d.city);
 
     if (d.country_id !== 0) {
-      this.contactMasterService
-        .getstates(this.commonService.getschemaname(), d.country_id)
+      this.commonService
+        .getStates(d.country_id)
         .subscribe((json: any) => this.stateDetails.set(json));
     } else {
       this.clearControl('pState');
@@ -123,8 +123,8 @@ export class Address implements OnInit {
     }
 
     if (d.state_id !== 0) {
-      this.contactMasterService
-        .getDistrict(this.commonService.getschemaname(), d.state_id)
+      this.commonService
+        .getDistricts(d.state_id)
         .subscribe((json: any) => this.districtDetails.set(json));
     } else {
       this.clearControl('pDistrict');
@@ -209,21 +209,17 @@ export class Address implements OnInit {
   }
 
   getSateDetails(countryId: any): void {
-    this.contactMasterService
-      .getstates(this.commonService.getschemaname(), countryId)
-      .subscribe({
-        next: (res: any) => this.stateDetails.set(res),
-        error: (err: any) => this.commonService.showErrorMessage(err),
-      });
+    this.commonService.getStates(countryId).subscribe({
+      next: (res: any) => this.stateDetails.set(res),
+      error: (err: any) => this.commonService.showErrorMessage(err),
+    });
   }
 
   getDistrictDetails(stateId: any): void {
-    this.contactMasterService
-      .getDistrict(this.commonService.getschemaname(), stateId)
-      .subscribe({
-        next: (res: any) => this.districtDetails.set(res),
-        error: (err: any) => this.commonService.showErrorMessage(err),
-      });
+    this.commonService.getDistricts(stateId).subscribe({
+      next: (res: any) => this.districtDetails.set(res),
+      error: (err: any) => this.commonService.showErrorMessage(err),
+    });
   }
 
   // ── Validation ──────────────────────────────────────────────────────
