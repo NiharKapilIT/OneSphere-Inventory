@@ -1199,7 +1199,7 @@ export class JournalVoucher implements OnInit {
           pFilename: '', agentcode: '', ticketno: '',
           chitgroupid: '1', schemesubscriberid: '1',
           interbranchsubledgerid: '1', interbranchid: '2',
-          pformname: 'LEGAL EXPENSES JV',
+          pformname: 'JOURNAL VOUCHER',
           pgstvoucherno: '', pChequenumber: '',
         })),
       };

@@ -771,7 +771,7 @@ export class GeneralReceiptNew implements OnInit {
     this.recalculateAll();
   }
   pamount_change(event: any): void {
-    debugger
+    
     const input = event?.target as HTMLInputElement;
     if (input) {
       const raw = this.GeneralReceiptForm.get('preceiptslist.pactualpaidamount')?.value;
@@ -783,7 +783,7 @@ export class GeneralReceiptNew implements OnInit {
     this.recalculateAll();
   }
 
-  recalculateAll(): void {
+  recalculateAll(): void { 
     try {
       const rg = this.GeneralReceiptForm.get('preceiptslist') as FormGroup;
 
@@ -862,9 +862,12 @@ export class GeneralReceiptNew implements OnInit {
       const roundedTaxable = Math.floor(taxable); // floor to avoid rounding up      
       const roundedGst = this._round((roundedTaxable * gstRate) / 100);
       const roundedIgst2 = gsttype === 'IGST' ? roundedGst : 0;
-      const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? this._round(roundedGst / 2) : 0;
-      const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst - roundedCgst2 : 0;
-      const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst - roundedCgst2 : 0; 
+      // const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? roundedGst / 2 : 0;
+      // const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst - roundedCgst2 : 0;
+      // const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst - roundedCgst2 : 0; 
+      const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? roundedGst / 2 : 0;
+const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst / 2 : 0;
+const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst / 2 : 0;
       const roundedTds = this._round((roundedTaxable * tdsRate) / 100);
       const roundedNet = this._round(amountReceived) - roundedGst; // 125000 - 19396 = 105604
       const roundedTotal = this._round(amountReceived);
@@ -1109,7 +1112,7 @@ export class GeneralReceiptNew implements OnInit {
   }
  
   gst_Change($event: any): void {
-    if (!$event) {
+    if (!$event) {debugger
       this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
       ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
         'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
@@ -1514,7 +1517,7 @@ export class GeneralReceiptNew implements OnInit {
       const entries: any[] = [];
       const uniqueLedgers = [...new Set(list.map((i: any) => i.pledgername).filter(Boolean))];
 
-      uniqueLedgers.forEach(ledger => {
+      uniqueLedgers.forEach(ledger => { 
         const amt = list
           .filter((c: any) => c.pledgername === ledger)
           .reduce((s: number, c: any) => s + Number(this.cs.removeCommasInAmount(c.pamount || 0)), 0);
@@ -1528,7 +1531,7 @@ export class GeneralReceiptNew implements OnInit {
         { f: 'pcgstamount', n: 'C-CGST' },
         { f: 'psgstamount', n: 'C-SGST' },
         { f: 'putgstamount', n: 'C-UTGST' }
-      ].forEach(({ f, n }) => {
+      ].forEach(({ f, n }) => { 
         const amt = list.reduce(
           (s: number, c: any) => s + Number(this.cs.removeCommasInAmount(c[f] || 0)), 0
         );
@@ -1994,7 +1997,7 @@ export class GeneralReceiptNew implements OnInit {
     return s.pState || s.pStatename || s.stateName || '';
   }
   saveGeneralReceipt(): void {
-    debugger
+    
 
     this.submitted.set(true);
     this.showCashWarning.set(false);
