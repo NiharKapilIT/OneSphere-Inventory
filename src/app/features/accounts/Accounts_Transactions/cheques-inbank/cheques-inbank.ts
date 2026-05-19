@@ -1497,7 +1497,9 @@ export class ChequesInbank implements OnInit {
 
   private _prepareSaveItems(items: any[], isAuto: boolean) {
     for (const item of items) {
-      item.pCreatedby = '1';
+      //item.pCreatedby = '1';
+      
+      item.pCreatedby = sessionStorage.getItem('userId');
       item.pdepositeddate = this._commonService.getFormatDateNormal(
         this._commonService.getDateObjectFromDataBase(item.pdepositeddate));
       item.preceiptdate = this._commonService.getFormatDateNormal(

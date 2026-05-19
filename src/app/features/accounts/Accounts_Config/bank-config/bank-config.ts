@@ -716,23 +716,58 @@ this.bankmasterform.get('upiname')?.markAsPristine();
 this.bankmasterform.get('upiname')?.markAsUntouched();
   }
 
-  validateupi(): boolean {
-    const pUpiid  = this.bankmasterform.value.pUpiid;
-    const upiname = this.bankmasterform.value.upiname;
+  // validateupi(): boolean {
+  //   const pUpiid  = this.bankmasterform.value.pUpiid;
+  //   const upiname = this.bankmasterform.value.upiname;
 
-    // if (!pUpiid || !upiname) {
-      const missingFields = [];
-      if (!pUpiid) missingFields.push('UPI ID');
-      if (!upiname) missingFields.push('UPI Link');
-      this._commonService.showWarningMessage(`Please provide ${missingFields.join(' and ')}.`);
-      return false;
-    // }
-    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+$/.test(pUpiid as string)) {
-      this._commonService.showWarningMessage('Please enter a valid UPI ID (example: john.doe@sbi).');
-      return false;
+  //   // if (!pUpiid || !upiname) {
+  //     const missingFields = [];
+  //     if (!pUpiid) missingFields.push('UPI ID');
+  //     if (!upiname) missingFields.push('UPI Link');
+  //     this._commonService.showWarningMessage(`Please provide ${missingFields.join(' and ')}.`);
+  //     return false;
+  //   // }
+  //   if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+$/.test(pUpiid as string)) {
+  //     this._commonService.showWarningMessage('Please enter a valid UPI ID (example: john.doe@sbi).');
+  //     return false;
+  //   }
+  //   return true;
+  // }
+
+    validateupi(): boolean {
+  const pUpiid  = this.bankmasterform.value.pUpiid;
+  const upiname = this.bankmasterform.value.upiname;
+
+  if (!pUpiid || !upiname) {
+
+    const missingFields = [];
+
+    if (!pUpiid) {
+      missingFields.push('UPI ID');
     }
-    return true;
+
+    if (!upiname) {
+      missingFields.push('UPI Link');
+    }
+
+    this._commonService.showWarningMessage(
+      `Please provide ${missingFields.join(' and ')}.`
+    );
+
+    return false;
   }
+
+  if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+$/.test(pUpiid as string)) {
+    this._commonService.showWarningMessage(
+      'Please enter a valid UPI ID (example: john@sbi).'
+    );
+
+    return false;
+  }
+
+  return true;
+}
+
 
   removeHandler(_row: any, rowIndex: number): void {
     this.gridData = this.gridData.filter((_, i) => i !== rowIndex);
