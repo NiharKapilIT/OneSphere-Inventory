@@ -1163,46 +1163,46 @@ export class ChequesInbank implements OnInit {
 
   CheckedReturn(event: Event, data: any): void {
 
-  const checked = (event.target as HTMLInputElement).checked;
+    const checked = (event.target as HTMLInputElement).checked;
 
-  this.gridData = this.gridData.map((row: any) => {
+    this.gridData = this.gridData.map((row: any) => {
 
-    const isSameCheque =
-      row?.pChequenumber === data?.pChequenumber &&
-      row?.cheque_bank === data?.cheque_bank &&
-      row?.receipt_branch_name === data?.receipt_branch_name;
+      const isSameCheque =
+        row?.pChequenumber === data?.pChequenumber &&
+        row?.cheque_bank === data?.cheque_bank &&
+        row?.receipt_branch_name === data?.receipt_branch_name;
 
-    if (!isSameCheque) {
-      return row;
+      if (!isSameCheque) {
+        return row;
+      }
+
+      return {
+        ...row,
+        preturnstatus: checked,
+        pdepositstatus: false,
+        pchequestatus: checked ? 'R' : 'N'
+      };
+    });
+
+    if (checked) {
+
+      this.PopupData = data;
+      this.returnChargesError = false;
+      this.chequenumber = data?.pChequenumber;
+
+      this.showReturnModal = true;
     }
 
-    return {
-      ...row,
-      preturnstatus: checked,
-      pdepositstatus: false,
-      pchequestatus: checked ? 'R' : 'N'
-    };
-  });
+    this.selectedamt = this.gridData.reduce(
+      (sum: number, el: any) =>
+        el?.pdepositstatus
+          ? sum + (el?.ptotalreceivedamount || 0)
+          : sum,
+      0
+    );
 
-  if (checked) {
-
-    this.PopupData = data;
-    this.returnChargesError = false;
-    this.chequenumber = data?.pChequenumber;
-
-    this.showReturnModal = true;
+    this.cdr.detectChanges();
   }
-
-  this.selectedamt = this.gridData.reduce(
-    (sum: number, el: any) =>
-      el?.pdepositstatus
-        ? sum + (el?.ptotalreceivedamount || 0)
-        : sum,
-    0
-  );
-
-  this.cdr.detectChanges();
-}
 
   selectAllClear(eve: any) {
     this.preferdrows = eve.target.checked;
@@ -1490,7 +1490,7 @@ export class ChequesInbank implements OnInit {
   private _prepareSaveItems(items: any[], isAuto: boolean) {
     for (const item of items) {
       //item.pCreatedby = '1';
-      
+
       item.pCreatedby = sessionStorage.getItem('userId');
       item.pdepositeddate = this._commonService.getFormatDateNormal(
         this._commonService.getDateObjectFromDataBase(item.pdepositeddate));
@@ -1730,10 +1730,10 @@ export class ChequesInbank implements OnInit {
       data.push([
         e?.pChequenumber || '', e?.pbranchname || '',
         this._commonService.convertAmountToPdfFormat(amt), e?.preceiptid || '',
-        e?.preceiptdate ? this.datepipe.transform(e.preceiptdate,'dd-MMM-yyyy') : '',
-        e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate,'dd-MMM-yyyy') : '',
+        e?.preceiptdate ? this.datepipe.transform(e.preceiptdate, 'dd-MMM-yyyy') : '',
+        e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate, 'dd-MMM-yyyy') : '',
         ...(hasDateCol
-          ? [e?.pCleardate ? this.datepipe.transform(e.pCleardate,'dd-MMM-yyyy') : ''] : []),
+          ? [e?.pCleardate ? this.datepipe.transform(e.pCleardate, 'dd-MMM-yyyy') : ''] : []),
         //   e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '',
         // e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '',
         // ...(hasDateCol
