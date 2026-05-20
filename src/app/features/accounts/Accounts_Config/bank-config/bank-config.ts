@@ -308,8 +308,8 @@ export class BankConfig implements OnInit {
         error: () => alert('Failed to load UPI details'),
       });
 
-    this._accountingMasterSvc
-      .GetGlobalBanks(this._commonService.getschemaname())
+    this._commonService
+      .getGlobalBanks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res: any) => (this.banksList = res),

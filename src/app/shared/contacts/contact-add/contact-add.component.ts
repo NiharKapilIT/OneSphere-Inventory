@@ -68,19 +68,45 @@ export class ContactAddComponent implements OnInit, OnChanges {
   kycDocumentTypes = ['PAN Card', 'Aadhar Card', 'Passport', 'Voter ID', 'Driving License', 'GST Certificate'];
   kycStatuses = ['Pending', 'Verified', 'Rejected'];
   bankAccountTypes = ['Savings', 'Current', 'Cash Credit', 'Overdraft', 'NRE', 'NRO'];
-  salutations = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
+  salutations: any[] = [];
   addressTypes = ['Home', 'Office', 'Permanent', 'Temporary', 'Other'];
   enterpriseTypes = ['Private Limited', 'Public Limited', 'Partnership', 'LLP', 'Proprietorship', 'Trust', 'Society'];
   businessNatures = ['Manufacturing', 'Trading', 'Services', 'Agriculture', 'Retail', 'Wholesale', 'Other'];
   countries: any[] = [];
   states: any[] = [];
   districts: any[] = [];
+  banks: any[] = [];
+  relationTitles: any[] = [];
 
   constructor(private fb: FormBuilder, private commonService: CommonService) { }
 
   ngOnInit() {
     this.buildForm();
     this.loadCountries();
+    this.loadContactTitles();
+    this.loadBanks();
+    this.loadRelationTitles();
+  }
+
+  loadContactTitles() {
+    this.commonService.getContactTitles().subscribe({
+      next: (data) => { this.salutations = data; },
+      error: () => { this.salutations = []; }
+    });
+  }
+
+  loadBanks() {
+    this.commonService.getGlobalBanks().subscribe({
+      next: (data) => { this.banks = data; },
+      error: () => { this.banks = []; }
+    });
+  }
+
+  loadRelationTitles() {
+    this.commonService.getRelationTitles().subscribe({
+      next: (data) => { this.relationTitles = data; },
+      error: () => { this.relationTitles = []; }
+    });
   }
 
   loadCountries() {
@@ -130,12 +156,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
   buildForm() {
     this.form = this.fb.group({
       // Individual
-      salutation: ['Mr.'],
+      salutation: [''],
       firstName: ['', Validators.required],
       surName: [''],
       mailingName: [''],
       gender: ['Male', Validators.required],
-      fatherSalutation: ['Mr.'],
+      fatherSalutation: [''],
       fatherName: ['', Validators.required],
       dob: [null],
       age: [''],

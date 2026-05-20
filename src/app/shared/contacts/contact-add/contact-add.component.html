@@ -84,7 +84,7 @@
           <div class="erp-form-group">
             <label>Name <span class="required">*</span></label>
             <div style="display:flex; gap:8px;">
-              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations" formControlName="salutation"
+              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations" bindLabel="title_name" bindValue="title_name" formControlName="salutation"
                 placeholder="Select Salutation" [searchable]="true" [clearable]="false">
               </ng-select>
               <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
@@ -132,8 +132,8 @@
           <div class="erp-form-group">
             <label>Father Name <span class="required">*</span></label>
             <div style="display:flex; gap:8px;">
-              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations"
-                formControlName="fatherSalutation" placeholder="Select Salutation" [searchable]="true"
+              <ng-select class="contact-select-sm" appendTo="body" [items]="relationTitles" bindLabel="relation_title_name" bindValue="relation_title_name"
+                formControlName="fatherSalutation" placeholder="Select" [searchable]="true"
                 [clearable]="false">
               </ng-select>
               <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
@@ -714,10 +714,9 @@
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Bank Name</label>
-            <div class="erp-input-wrap">
-              <i class="pi pi-building-columns erp-input-icon"></i>
-              <input type="text" class="erp-input icon-pad" formControlName="bankName" placeholder="Bank name" />
-            </div>
+            <ng-select appendTo="body" [items]="banks" bindLabel="bankName" formControlName="bankName"
+              placeholder="Select bank" [searchable]="true" [clearable]="true">
+            </ng-select>
           </div>
         </div>
 
