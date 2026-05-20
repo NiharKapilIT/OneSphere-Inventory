@@ -7,6 +7,7 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, F
 import { Contact } from '../contacts-list/contacts-list.component';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
+import { CommonService } from '../../../core/services/Common/common.service';
 
 export type ContactType = 'Individual' | 'Business Entity';
 export type Gender = 'Male' | 'Female' | 'Third Gender';
@@ -19,8 +20,11 @@ interface Address {
   area: string;
   city: string;
   country: string;
+  countryId: any;
   state: string;
+  stateId: any;
   district: string;
+  districtId: any;
   pincode: string;
   longitude: string;
   latitude: string;
@@ -68,14 +72,49 @@ export class ContactAddComponent implements OnInit, OnChanges {
   addressTypes = ['Home', 'Office', 'Permanent', 'Temporary', 'Other'];
   enterpriseTypes = ['Private Limited', 'Public Limited', 'Partnership', 'LLP', 'Proprietorship', 'Trust', 'Society'];
   businessNatures = ['Manufacturing', 'Trading', 'Services', 'Agriculture', 'Retail', 'Wholesale', 'Other'];
-  countries = ['India', 'USA', 'UK', 'UAE', 'Australia'];
-  states = ['Telangana', 'Andhra Pradesh', 'Karnataka', 'Tamil Nadu', 'Maharashtra'];
-  districts = ['Hyderabad', 'Rangareddy', 'Medchal', 'Sangareddy', 'Nalgonda'];
+  countries: any[] = [];
+  states: any[] = [];
+  districts: any[] = [];
 
-  constructor(private fb: FormBuilder) { }
+  constructor(private fb: FormBuilder, private commonService: CommonService) { }
 
   ngOnInit() {
     this.buildForm();
+    this.loadCountries();
+  }
+
+  loadCountries() {
+    this.commonService.getCountries().subscribe({
+      next: (data) => { this.countries = data; },
+      error: () => { this.countries = []; }
+    });
+  }
+
+  onCountryChange(country: any) {
+    this.states = [];
+    this.districts = [];
+    this.currentAddress.countryId = country?.tbl_mst_country_id ?? null;
+    if (country) {
+      this.commonService.getStates(country.tbl_mst_country_id).subscribe({
+        next: (data) => { this.states = data; },
+        error: () => { this.states = []; }
+      });
+    }
+  }
+
+  onStateChange(state: any) {
+    this.districts = [];
+    this.currentAddress.stateId = state?.tbl_mst_state_id ?? null;
+    if (state) {
+      this.commonService.getDistricts(state.tbl_mst_state_id).subscribe({
+        next: (data) => { this.districts = data; },
+        error: () => { this.districts = []; }
+      });
+    }
+  }
+
+  onDistrictChange(district: any) {
+    this.currentAddress.districtId = district?.tbl_mst_district_id ?? null;
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -161,8 +200,8 @@ export class ContactAddComponent implements OnInit, OnChanges {
   emptyAddress(): Address {
     return {
       isPrimary: false, type: '', addressLine: '', area: '',
-      city: '', country: '', state: '', district: '',
-      pincode: '', longitude: '', latitude: ''
+      city: '', country: '', countryId: null, state: '', stateId: null,
+      district: '', districtId: null, pincode: '', longitude: '', latitude: ''
     };
   }
 
@@ -173,6 +212,8 @@ export class ContactAddComponent implements OnInit, OnChanges {
     if (rows.length === 0) newAddr.isPrimary = true;
     this.addressRows.update(list => [...list, newAddr]);
     this.currentAddress = this.emptyAddress();
+    this.states = [];
+    this.districts = [];
   }
 
   removeAddress(idx: number) {

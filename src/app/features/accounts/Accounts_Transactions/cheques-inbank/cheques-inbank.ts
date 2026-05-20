@@ -1327,6 +1327,7 @@ export class ChequesInbank implements OnInit {
 
 
   Save() {
+    debugger;
     console.log('Save called, status:', this.status);
     this.DataForSaving = [];
 
