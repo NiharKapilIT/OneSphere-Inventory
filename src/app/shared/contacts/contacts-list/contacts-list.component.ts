@@ -7,6 +7,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { SubscriberDetailsComponent } from '../subscriber-details/subscriber-details.component';
 import { EmployeeDetailsComponent } from '../employee-details/employee-details.component';
 import { ChannelPartnerDetailsComponent } from '../channel-partner-details/channel-partner-details.component';
+import { ContactMasterService } from '../../../core/services/contacts/contact-master.service';
 
 export type ContactRole = 'Subscriber / Customer' | 'Employee' | 'Supplier / Vendor' | 'Advocate' | 'Channel Partner' | 'Freelancer';
 export type ContactTab = 'Contacts' | ContactRole;
@@ -56,17 +57,9 @@ export class ContactsListComponent implements OnInit {
   roleModalContact = signal<Contact | null>(null);
   roleModalRole = signal<ContactRole | null>(null);
 
-  allContacts = signal<Contact[]>([
-    { id: '1', uid: 'CNT2560669', name: 'Uatuser', relation: '', phone: '8466999824', address: '', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
-    { id: '2', uid: 'CNT2560668', name: 'Test Jag Test', relation: 'S/o - Test', phone: '9290218040', address: 'Test,Boduppal,Boduppal,Hyderabad,Telangana', status: 'Active', panNo: 'BDOPK4384D', type: 'Contacts', roles: ['Subscriber / Customer'] },
-    { id: '3', uid: 'CNT2560667', name: 'Sdfsdfs', relation: 'S/o - Fsdfs', phone: '1313213213', address: 'Dsfgsd,Gsfd,Sfgdgs,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
-    { id: '4', uid: 'CNT2560666', name: 'Abc', relation: 'S/o - Fdgfg', phone: '5465465465', address: 'Fdgd,Fdgdf,Sfgdgd,Ambedkar Konaseema', status: 'Active', type: 'Contacts', roles: ['Subscriber / Customer'] },
-    { id: '5', uid: 'EMP1000001', name: 'Ravi Kumar', relation: 'S/o - Suresh Kumar', phone: '9876543210', address: 'Hyderabad, Telangana', status: 'Active', type: 'Contacts', roles: ['Employee'] },
-    { id: '6', uid: 'SUP2000001', name: 'Lakshmi Enterprises', relation: '', phone: '8800112233', address: 'Vijayawada, Andhra Pradesh', status: 'Active', type: 'Contacts', roles: ['Supplier / Vendor'] },
-    { id: '7', uid: 'CHP3000001', name: 'Prasad Rao', relation: 'S/o - Rao', phone: '9911223344', address: 'Warangal, Telangana', status: 'Active', type: 'Contacts', roles: ['Channel Partner'] },
-    { id: '8', uid: 'ADV4000001', name: 'Mohan Gandavarapu', relation: '', phone: '8885220886', address: 'Pallipalem,Sangam,Duvvur,Nellore,AP', status: 'Active', type: 'Contacts', roles: ['Advocate'] },
-    { id: '9', uid: 'FRL5000001', name: 'Priya Sharma', relation: 'D/o - Sharma', phone: '7788996655', address: 'Secunderabad, Telangana', status: 'Active', type: 'Contacts', roles: ['Freelancer'] },
-  ]);
+  allContacts = signal<Contact[]>([]);
+  loading = signal(false);
+  hasMore = signal(false);
 
   filteredContacts = computed(() => {
     const q = this.normalize(this.searchQuery());
@@ -87,11 +80,12 @@ export class ContactsListComponent implements OnInit {
     );
   });
 
+  pagedContacts = computed(() => this.filteredContacts());
   totalItems = computed(() => this.filteredContacts().length);
-  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
-  pageNumbers = computed(() => Array.from({ length: this.totalPages() }, (_, index) => index + 1));
-  rangeStart = computed(() => this.totalItems() === 0 ? 0 : ((this.currentPage() - 1) * this.pageSize()) + 1);
-  rangeEnd = computed(() => Math.min(this.currentPage() * this.pageSize(), this.totalItems()));
+  totalPages = computed(() => this.currentPage() + (this.hasMore() ? 1 : 0));
+  pageNumbers = computed(() => Array.from({ length: this.totalPages() }, (_, i) => i + 1));
+  rangeStart = computed(() => this.totalItems() === 0 ? 0 : (this.currentPage() - 1) * this.pageSize() + 1);
+  rangeEnd = computed(() => (this.currentPage() - 1) * this.pageSize() + this.totalItems());
   activeFilterCount = computed(() => {
     const filters = [
       this.searchQuery(),
@@ -105,16 +99,61 @@ export class ContactsListComponent implements OnInit {
     return filters.filter(value => String(value).trim().length > 0).length;
   });
 
-  pagedContacts = computed(() => {
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return this.filteredContacts().slice(start, start + this.pageSize());
-  });
 
-  ngOnInit() {}
+  constructor(private contactMasterService: ContactMasterService) { }
+
+  ngOnInit() {
+    this.loadContacts();
+  }
+
+  loadContacts() {
+    this.loading.set(true);
+    const endindex = (this.currentPage() - 1) * this.pageSize();
+    this.contactMasterService.getContactViewByName(this.activeTab(), endindex).subscribe({
+      next: (data) => {
+        this.allContacts.set(this.mapContacts(data));
+        this.hasMore.set(data.length >= this.pageSize());
+        this.loading.set(false);
+      },
+      error: () => {
+        this.allContacts.set([]);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  private mapContacts(data: any[]): Contact[] {
+    return data.map(dto => {
+      const roles: ContactRole[] = [];
+      if (dto.pisemployee) roles.push('Employee');
+      if (dto.pissupplier) roles.push('Supplier / Vendor');
+      if (dto.pisadvocate) roles.push('Advocate');
+      if (dto.pisfreelancer) roles.push('Freelancer');
+      if (Number(dto.subscribercount) > 0) roles.push('Subscriber / Customer');
+      if (dto.pisreferral) roles.push('Channel Partner');
+
+      const name = [dto.pContactName, dto.pContactsurname].filter(Boolean).join(' ').trim();
+      const relation = [dto.pRelationtitlename, dto.pFatherName].filter(Boolean).join(' ').trim();
+
+      return {
+        id: String(dto.pContactdId ?? ''),
+        uid: String(dto.pRefNo ?? ''),
+        name,
+        relation,
+        phone: String(dto.pContactNumber ?? ''),
+        address: String(dto.pAddresDetails ?? ''),
+        status: String(dto.pStatus ?? '') === 'Active' ? 'Active' : 'Inactive',
+        photo: dto.pImage ? String(dto.pImage) : undefined,
+        type: 'Contacts' as ContactTab,
+        roles,
+      };
+    });
+  }
 
   switchTab(tab: ContactTab) {
     this.activeTab.set(tab);
     this.currentPage.set(1);
+    this.loadContacts();
   }
 
   onSearch() {
@@ -140,11 +179,16 @@ export class ContactsListComponent implements OnInit {
     if (!Number.isNaN(nextSize) && nextSize > 0) {
       this.pageSize.set(nextSize);
       this.currentPage.set(1);
+      this.loadContacts();
     }
   }
 
   goToPage(page: number) {
-    this.currentPage.set(Math.min(Math.max(page, 1), this.totalPages()));
+    const target = Math.min(Math.max(page, 1), this.totalPages());
+    if (target !== this.currentPage()) {
+      this.currentPage.set(target);
+      this.loadContacts();
+    }
   }
 
   getTabCount(tab: ContactTab) {
@@ -162,11 +206,17 @@ export class ContactsListComponent implements OnInit {
   }
 
   prevPage() {
-    if (this.currentPage() > 1) this.currentPage.update(p => p - 1);
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
+      this.loadContacts();
+    }
   }
 
   nextPage() {
-    if (this.currentPage() < this.totalPages()) this.currentPage.update(p => p + 1);
+    if (this.hasMore()) {
+      this.currentPage.update(p => p + 1);
+      this.loadContacts();
+    }
   }
 
   openAddForm() {

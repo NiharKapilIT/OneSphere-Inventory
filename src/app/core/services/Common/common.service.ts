@@ -6115,6 +6115,22 @@ export class CommonService {
     return this.getAPI('/Common/GetRelationTitles', '', 'NO');
   }
 
+  getAddressType(contactType: string): Observable<any[]> {
+    return this.getAPI('/Common/GetAddressType', 'GlobalSchema=' + this.getschemaname() + '&contactType=' + contactType, 'YES');
+  }
+
+  getDocumentGroupNames(): Observable<any[]> {
+    return this.getAPI('/Common/GetDocumentGroupNames', '', 'NO');
+  }
+
+  getEnterpriseType(): Observable<any[]> {
+    return this.getAPI('/Common/GetEnterpriseType', '', 'NO');
+  }
+
+  getBusinessTypes(): Observable<any[]> {
+    return this.getAPI('/Common/GetBusinessTypes', '', 'NO');
+  }
+
 
 
 
