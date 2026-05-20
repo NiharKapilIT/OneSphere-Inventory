@@ -6089,7 +6089,18 @@ export class CommonService {
 
   GetDesignations(): Observable<any> {
     return this.getAPI('/Common/GetDesignations', '', 'NO');
+  }
 
+  getCountries(): Observable<any[]> {
+    return this.getAPI('/Common/getCountry', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getStates(countryId: any): Observable<any[]> {
+    return this.getAPI('/Common/getstate', 'GlobalSchema=' + this.getschemaname() + '&id=' + countryId, 'YES');
+  }
+
+  getDistricts(stateId: any): Observable<any[]> {
+    return this.getAPI('/Common/getDistrict', 'GlobalSchema=' + this.getschemaname() + '&id=' + stateId, 'YES');
   }
 
 
