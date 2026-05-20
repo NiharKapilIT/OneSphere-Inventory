@@ -6103,6 +6103,18 @@ export class CommonService {
     return this.getAPI('/Common/getDistrict', 'GlobalSchema=' + this.getschemaname() + '&id=' + stateId, 'YES');
   }
 
+  getContactTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetContactTitles', '', 'NO');
+  }
+
+  getGlobalBanks(): Observable<any[]> {
+    return this.getAPI('/Common/GetGlobalBanks', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getRelationTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetRelationTitles', '', 'NO');
+  }
+
 
 
 
