@@ -9,7 +9,7 @@
         <h2 class="card-title"><i class="pi pi-times-circle"></i> Petty Cash Receipt Cancel</h2>
         <p class="card-subtitle">Void or Petty Cash Receipt Cancel transactions and reverse entries</p>
       </div>
-      <span class="erp-spacer"></span>
+      <span class="erp-spacer"></span>p
 
     </div>
 
@@ -60,10 +60,10 @@
                     </div>
                   </div>
                 </div>
-                 <div class="col-12 col-md-2 d-flex align-items-center">
-                <button type="button" (click)="showdata()" class="erp-btn btn-primary btn-md">
-                  <i class="pi pi-search"></i> Show
-                </button>
+                <div class="col-12 col-md-2 d-flex align-items-center">
+                  <button type="button" (click)="showdata()" class="erp-btn btn-primary btn-md">
+                    <i class="pi pi-search"></i> Show
+                  </button>
                 </div>
               </div>
             </div>
@@ -199,7 +199,7 @@
                 <ng-select [items]="(authorizedbylist$ | async) ?? []" bindLabel="subintroducedname"
                   bindValue="subintroducedid" formControlName="autorizedcontactid" [typeahead]="contactSearchevent"
                   [multiple]="false" [searchable]="true" [clearable]="true" aria-placeholder="Select Authorised By"
-                  (change)="subIntroducedGridRowSelect($event)"  [class.ng-invalid]="
+                  (change)="subIntroducedGridRowSelect($event)" [class.ng-invalid]="
             PettyCashCancel.get('autorizedcontactid')?.invalid &&
             PettyCashCancel.get('autorizedcontactid')?.touched
           ">

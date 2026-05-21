@@ -552,8 +552,8 @@
                 <div class="col-12 col-md-6">
                   <div class="erp-form-group">
                     <label class="erp-label">Section <span class="required">*</span></label>
-                    <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection" bindValue="pTdsSection"
-                      formControlName="pTdsSection" (change)="tdsSection_Change($event)"
+                    <ng-select appendTo="body" [items]="tdssectionlist()" bindLabel="pTdsSection"
+                      bindValue="pTdsSection" formControlName="pTdsSection" (change)="tdsSection_Change($event)"
                       (close)="GeneralReceiptForm.get('pTdsSection')?.markAsTouched()" [clearable]="true"
                       placeholder="Select Section" [searchable]="false" [trackByFn]="trackByFn"
                       [ngClass]="{'ng-invalid': getValidationMsg('pTdsSection')}">
@@ -568,12 +568,13 @@
                   <div class="erp-form-group">
                     <label class="erp-label">Percentage <span class="required">*</span></label>
                     <ng-select appendTo="body" [items]="tdspercentagelist()" bindLabel="pTdsPercentage"
-                      bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false" [searchable]="false"
-                      placeholder="Select" [trackByFn]="trackByFn" (change)="tdsPercentage_Change()"
-                      [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
+                      bindValue="pTdsPercentage" formControlName="pTdsPercentage" [clearable]="false"
+                      [searchable]="false" placeholder="Select" [trackByFn]="trackByFn"
+                      (change)="tdsPercentage_Change()" [ngClass]="{'ng-invalid': getValidationMsg('pTdsPercentage')}">
                     </ng-select>
                     @if (getValidationMsg('pTdsPercentage')) {
-                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is Required</div>
+                    <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">Percentage Is
+                      Required</div>
                     }
                   </div>
                 </div>
@@ -581,7 +582,8 @@
                   <div class="erp-form-group">
                     <label class="erp-label">TDS Amount</label>
                     <div class="erp-value-pill">
-                      <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0' }}</span>
+                      <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('ptdsamount')?.value | number:'1.0-0'
+                        }}</span>
                     </div>
                   </div>
                 </div>
@@ -606,104 +608,108 @@
             @if (showgst()) {
             <div class="account-tax-group-body">
               <div class="row g-2 mb-2">
-            <div class="col-12 col-md-6">
-              <label class="erp-label">State <span class="required">*</span></label>
-              @if (statelist().length === 1) {
-              <input type="text" class="erp-input" [value]="getStateName(statelist()[0])" readonly>
-              } @else {
-              <ng-select appendTo="body" [items]="statelist()" bindValue="pStateId" formControlName="pStateId"
-                placeholder="Select State" (change)="state_change($event)"
-                (close)="GeneralReceiptForm.get('preceiptslist.pStateId')?.markAsTouched()"
-                [ngClass]="{'ng-invalid': getValidationMsg('pStateId')}">
-                <ng-template ng-label-tmp let-item="item">{{ getStateName(item) }}</ng-template>
-                <ng-template ng-option-tmp let-item="item">{{ getStateName(item) }}</ng-template>
-              </ng-select>
-              @if (getValidationMsg('pStateId')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                getValidationMsg('pStateId') }}</div>
-              }
-              }
-            </div>
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">State <span class="required">*</span></label>
+                  @if (statelist().length === 1) {
+                  <input type="text" class="erp-input" [value]="getStateName(statelist()[0])" readonly>
+                  } @else {
+                  <ng-select appendTo="body" [items]="statelist()" bindValue="pStateId" formControlName="pStateId"
+                    placeholder="Select State" (change)="state_change($event)"
+                    (close)="GeneralReceiptForm.get('preceiptslist.pStateId')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': getValidationMsg('pStateId')}">
+                    <ng-template ng-label-tmp let-item="item">{{ getStateName(item) }}</ng-template>
+                    <ng-template ng-option-tmp let-item="item">{{ getStateName(item) }}</ng-template>
+                  </ng-select>
+                  @if (getValidationMsg('pStateId')) {
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                    getValidationMsg('pStateId') }}</div>
+                  }
+                  }
+                </div>
 
-            @if (showgstno()) {
-            <div class="col-12 col-md-6">
-              <label class="erp-label">GST No.</label>
-              <input type="text" class="erp-input" formControlName="pgstno" (blur)="gstno_change()"
-                [ngClass]="{'ng-invalid': getValidationMsg('pgstno')}" readonly>
-              @if (getValidationMsg('pgstno')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                getValidationMsg('pgstno') }}</div>
-              }
-            </div>
-            }
+                @if (showgstno()) {
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">GST No.</label>
+                  <input type="text" class="erp-input" formControlName="pgstno" (blur)="gstno_change()"
+                    [ngClass]="{'ng-invalid': getValidationMsg('pgstno')}" readonly>
+                  @if (getValidationMsg('pgstno')) {
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                    getValidationMsg('pgstno') }}</div>
+                  }
+                </div>
+                }
 
-            <div class="col-12 col-md-6">
-              <label class="erp-label">GST (%) <span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
-                formControlName="pgstpercentage" placeholder="Select GST %" [searchable]="false"
-                (change)="gst_Change($event)"
-                (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
-                [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
-              </ng-select>
-           
-              @if (getValidationMsg('pgstpercentage')) {
-              <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
-                getValidationMsg('pgstpercentage') }}</div>
-              }
-            </div>
-          </div>
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">GST (%) <span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="gstlist()" bindLabel="pgstpercentage" bindValue="pgstpercentage"
+                    formControlName="pgstpercentage" placeholder="Select GST %" [searchable]="false"
+                    (change)="gst_Change($event)"
+                    (close)="GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': getValidationMsg('pgstpercentage')}">
+                  </ng-select>
 
-          <!-- GST Breakdown -->
+                  @if (getValidationMsg('pgstpercentage')) {
+                  <div class="erp-field-error" style="color:#dc3545;font-size:12px;margin-top:4px;">{{
+                    getValidationMsg('pgstpercentage') }}</div>
+                  }
+                </div>
+              </div>
+
+              <!-- GST Breakdown -->
               <div class="row mt-2">
-            @if (showgstamount()) {
-            <div class="col-md-6 mb-2">
-              <label class="erp-label">GST Amount</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
-              </div>
-            </div>
-            }
-            @if (showigst()) {
-            <div class="col-md-6 mb-2">
-              <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value
-                }}%)</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
-              </div>
-            </div>
-            }
-            @if (showcgst()) {
-            <div class="col-md-6 mb-2">
-              <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value
-                }}%)</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
-              </div>
-            </div>
-            }
-            @if (showsgst()) {
-            <div class="col-md-6 mb-2">
-              <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value
-                }}%)</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
-              </div>
-            </div>
-            }
-            @if (showutgst()) {
-            <div class="col-md-6 mb-2">
-              <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value
-                }}%)</label>
-              <div class="erp-value-pill">
-                <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 |
-                  number:'1.0-0' }}</span>
-              </div>
-            </div>
-            }
+                @if (showgstamount()) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">GST Amount</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pgstamount')?.value || 0 |
+                      number:'1.0-0' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showigst()) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">IGST ({{ GeneralReceiptForm.get('preceiptslist.pigstpercentage')?.value
+                    }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pigstamount')?.value || 0 |
+                      number:'1.0-0' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showcgst()) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">CGST ({{ GeneralReceiptForm.get('preceiptslist.pcgstpercentage')?.value
+                    }}%)</label>
+                  <div class="erp-value-pill">
+                    <!-- <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span> -->
+                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.pcgstamount')?.value || 0 |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showsgst()) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">SGST ({{ GeneralReceiptForm.get('preceiptslist.psgstpercentage')?.value
+                    }}%)</label>
+                  <div class="erp-value-pill">
+                    <!-- <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
+                  number:'1.0-0' }}</span> -->
+                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.psgstamount')?.value || 0 |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showutgst()) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">UTGST ({{ GeneralReceiptForm.get('preceiptslist.putgstpercentage')?.value
+                    }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencySymbol }} {{ GeneralReceiptForm.get('preceiptslist.putgstamount')?.value || 0 |
+                      number:'1.0-0' }}</span>
+                  </div>
+                </div>
+                }
               </div>
             </div>
             }

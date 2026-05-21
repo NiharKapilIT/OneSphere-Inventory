@@ -1882,14 +1882,14 @@ export class CommonService {
             ? [6, 7, 8]
             : [3, 4, 5];
 
-            if (
+        if (
           (data.column.index === 6 || data.column.index === 7 || data.column.index === 8) &&
           data.section === 'body'
         ) {
           if (this.currencysymbol === '₹') {
             const x = data.cell.x + 2;
             const y = data.cell.y + data.cell.height / 2;
-            doc.addImage(rupeeImage, x, y-1.5, 1.5, 1.5);
+            doc.addImage(rupeeImage, x, y - 1.5, 1.5, 1.5);
           }
         }
 
@@ -5229,8 +5229,8 @@ export class CommonService {
     postedby: any,
     paidTo: any,
     amountInWords: any,
-     modeOfPayment?: string,      
-  referenceInfo?: string 
+    modeOfPayment?: string,
+    referenceInfo?: string
   ) {
 
     const address = this.getcompanyaddress();
@@ -5418,11 +5418,11 @@ export class CommonService {
                 50
               );
             }
-//             if (modeOfPayment && reportName !== 'Journal Voucher') {
-//   const mopLabel = 'Mode of Payment : ' + modeOfPayment.toUpperCase();
-//   const refPart = referenceInfo ? '  (' + referenceInfo + ')' : '';
-//   doc.text(mopLabel + refPart, 15, 55);
-// }
+            //             if (modeOfPayment && reportName !== 'Journal Voucher') {
+            //   const mopLabel = 'Mode of Payment : ' + modeOfPayment.toUpperCase();
+            //   const refPart = referenceInfo ? '  (' + referenceInfo + ')' : '';
+            //   doc.text(mopLabel + refPart, 15, 55);
+            // }
 
             doc.text(
               'Date : ' + Jvdate,
@@ -5585,16 +5585,16 @@ export class CommonService {
     const narrationText = String(Narration ?? '');
     const narrationLines = doc.splitTextToSize(narrationText, 140);
     doc.text(narrationLines, 45, narrationY);
-     const narrationEndY = narrationY + (narrationLines.length * 5);
-if (modeOfPayment && reportName !== 'Journal Voucher') {
+    const narrationEndY = narrationY + (narrationLines.length * 5);
+    if (modeOfPayment && reportName !== 'Journal Voucher') {
       const mopLabel = 'Mode of Payment : ' + modeOfPayment.toUpperCase();
       const refPart = referenceInfo ? '  (' + referenceInfo + ')' : '';
       doc.text(mopLabel + refPart, 15, narrationEndY + 5);
     }
-const sigY = narrationEndY + 15;
-if (sigY + 20 > pageHeight) {
-  doc.addPage();
-}
+    const sigY = narrationEndY + 15;
+    if (sigY + 20 > pageHeight) {
+      doc.addPage();
+    }
 
     // this.addWrappedText({
     //   text: P1Lines,
@@ -6089,7 +6089,46 @@ if (sigY + 20 > pageHeight) {
 
   GetDesignations(): Observable<any> {
     return this.getAPI('/Common/GetDesignations', '', 'NO');
+  }
 
+  getCountries(): Observable<any[]> {
+    return this.getAPI('/Common/getCountry', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getStates(countryId: any): Observable<any[]> {
+    return this.getAPI('/Common/getstate', 'GlobalSchema=' + this.getschemaname() + '&id=' + countryId, 'YES');
+  }
+
+  getDistricts(stateId: any): Observable<any[]> {
+    return this.getAPI('/Common/getDistrict', 'GlobalSchema=' + this.getschemaname() + '&id=' + stateId, 'YES');
+  }
+
+  getContactTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetContactTitles', '', 'NO');
+  }
+
+  getGlobalBanks(): Observable<any[]> {
+    return this.getAPI('/Common/GetGlobalBanks', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getRelationTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetRelationTitles', '', 'NO');
+  }
+
+  getAddressType(contactType: string): Observable<any[]> {
+    return this.getAPI('/Common/GetAddressType', 'GlobalSchema=' + this.getschemaname() + '&contactType=' + contactType, 'YES');
+  }
+
+  getDocumentGroupNames(): Observable<any[]> {
+    return this.getAPI('/Common/GetDocumentGroupNames', '', 'NO');
+  }
+
+  getEnterpriseType(): Observable<any[]> {
+    return this.getAPI('/Common/GetEnterpriseType', '', 'NO');
+  }
+
+  getBusinessTypes(): Observable<any[]> {
+    return this.getAPI('/Common/GetBusinessTypes', '', 'NO');
   }
 
 

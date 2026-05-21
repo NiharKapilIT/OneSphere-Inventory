@@ -367,7 +367,7 @@ export class GeneralReceiptNew implements OnInit {
   }
 
   private _loadInitialData(): void {
-    this.svc.GetGlobalBanks('global')
+    this.cs.getGlobalBanks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res => this.banklist.set(res),
@@ -674,10 +674,10 @@ export class GeneralReceiptNew implements OnInit {
     this.GeneralReceiptForm.get('pUpiid')?.setValue('');
 
     this.setBalances('BANKBOOK', 0);
-    this.setBalances('PASSBOOK', 0); 
+    this.setBalances('PASSBOOK', 0);
 
     if (type === 'Online') {
-      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);  
+      this.GeneralReceiptForm.controls['ptypeofpayment'].setValue(null);
       this.GeneralReceiptForm.get('pChequenumber')?.disable();
     }
 
@@ -771,7 +771,7 @@ export class GeneralReceiptNew implements OnInit {
     this.recalculateAll();
   }
   pamount_change(event: any): void {
-    debugger
+
     const input = event?.target as HTMLInputElement;
     if (input) {
       const raw = this.GeneralReceiptForm.get('preceiptslist.pactualpaidamount')?.value;
@@ -836,9 +836,9 @@ export class GeneralReceiptNew implements OnInit {
 
       // GST breakdown
       if (isgst && gstRate > 0) {
-      
+
         gstAmt = (taxable * gstRate) / 100;
-      
+
         if (gsttype === 'IGST') {
 
           igstamt = gstAmt;
@@ -858,13 +858,16 @@ export class GeneralReceiptNew implements OnInit {
       if (isTds && tdsRate > 0) {
         tdsAmount = (taxable * tdsRate) / 100;
       }
- 
+
       const roundedTaxable = Math.floor(taxable); // floor to avoid rounding up      
       const roundedGst = this._round((roundedTaxable * gstRate) / 100);
       const roundedIgst2 = gsttype === 'IGST' ? roundedGst : 0;
-      const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? this._round(roundedGst / 2) : 0;
-      const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst - roundedCgst2 : 0;
-      const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst - roundedCgst2 : 0; 
+      // const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? roundedGst / 2 : 0;
+      // const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst - roundedCgst2 : 0;
+      // const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst - roundedCgst2 : 0; 
+      const roundedCgst2 = (gsttype === 'CGST,SGST' || gsttype === 'CGST,UTGST') ? roundedGst / 2 : 0;
+      const roundedSgst2 = gsttype === 'CGST,SGST' ? roundedGst / 2 : 0;
+      const roundedUtgst2 = gsttype === 'CGST,UTGST' ? roundedGst / 2 : 0;
       const roundedTds = this._round((roundedTaxable * tdsRate) / 100);
       const roundedNet = this._round(amountReceived) - roundedGst; // 125000 - 19396 = 105604
       const roundedTotal = this._round(amountReceived);
@@ -1107,9 +1110,10 @@ export class GeneralReceiptNew implements OnInit {
     gstCtrls.get('pStateId')?.markAsUntouched();
     gstCtrls.get('pStateId')?.markAsPristine();
   }
- 
+
   gst_Change($event: any): void {
     if (!$event) {
+      debugger
       this.GeneralReceiptForm.get('preceiptslist.pgstpercentage')?.setValue(null);
       ['pigstpercentage', 'pcgstpercentage', 'psgstpercentage', 'putgstpercentage',
         'pgstamount', 'pigstamount', 'pcgstamount', 'psgstamount', 'putgstamount']
@@ -1346,7 +1350,7 @@ export class GeneralReceiptNew implements OnInit {
                 (Number(this.GeneralReceiptForm.get('ptdsamount')?.value) || 0)
               ).toFixed(2)
             );
- 
+
             const entry = {
               // ── Party fields — capture before clearPaymentDetails1() clears them ──
               ppartyid: this.GeneralReceiptForm.get('ppartyid')?.value || 0,
@@ -1354,14 +1358,14 @@ export class GeneralReceiptNew implements OnInit {
               ppartypannumber: this.GeneralReceiptForm.get('ppartypannumber')?.value || '',
               ppartyreftype: this.GeneralReceiptForm.get('ppartyreftype')?.value || '',
               ppartyreferenceid: this.GeneralReceiptForm.get('ppartyreferenceid')?.value || '',
- 
+
               ...fv,
               pamount,
               pgstamount: pgst,
               ptotalamount: ptotal,
               ptaxableamount,
               pgstpercentage: Number(fv.pgstpercentage) || 0,
-              pisgstapplicable: fv.pisgstapplicable === true,            
+              pisgstapplicable: fv.pisgstapplicable === true,
               pistdsapplicable: this.GeneralReceiptForm.get('pistdsapplicable')?.value,
               pTdsSection: this.GeneralReceiptForm.get('pTdsSection')?.value || '',
               pTdsPercentage: this._getTdsPercentageValue(),
@@ -1536,7 +1540,7 @@ export class GeneralReceiptNew implements OnInit {
           entries.push({ accountname: n, debitamount: parseFloat(amt.toFixed(2)), creditamount: '' });
         }
       });
- 
+
       const total = list.reduce(
         (s: number, c: any) => s + Number(this.cs.removeCommasInAmount(c.ptotalamount || 0)), 0
       );
@@ -1690,7 +1694,7 @@ export class GeneralReceiptNew implements OnInit {
     this.subledgerBalance.set(`${this.currencySymbol} 0 Dr`);
     this.formValidationMessages = {};
     this.gstPercentageSelected = false;
- 
+
     setTimeout(() => {
       this.formValidationMessages['ppartyid'] = '';
       this.GeneralReceiptForm.get('ppartyid')?.markAsUntouched();
@@ -1994,7 +1998,7 @@ export class GeneralReceiptNew implements OnInit {
     return s.pState || s.pStatename || s.stateName || '';
   }
   saveGeneralReceipt(): void {
-    debugger
+
 
     this.submitted.set(true);
     this.showCashWarning.set(false);
@@ -2002,7 +2006,7 @@ export class GeneralReceiptNew implements OnInit {
     this.formValidationMessages = {};
 
     let hasError = false;
- 
+
     if (this.paymentslist().length === 0) {
       if (!this.GeneralReceiptForm.get('ppartyid')?.value) {
         this.formValidationMessages['ppartyid'] = 'Party Is Required';
@@ -2395,7 +2399,7 @@ export class GeneralReceiptNew implements OnInit {
 
                 pTdsPercentage:
                   Number(x.pTdsPercentage) || 0,
- 
+
                 ptdsamountindividual: parseFloat(
                   (Number(this.GeneralReceiptForm.get('ptdsamount')?.value) || 0).toFixed(2)
                 ),
@@ -2424,7 +2428,7 @@ export class GeneralReceiptNew implements OnInit {
                 console.log('Save response:', res);
                 if (res?.success) {
                   this.cs.showSuccessMessage();
-                  this.ClearGenerealReceipt();                 
+                  this.ClearGenerealReceipt();
                   const receipt = btoa(res.receipt_number + ',' + 'General Receipt');
                   const url = this.router.serializeUrl(
                     this.router.createUrlTree(['/general-receipt', receipt])
@@ -2500,9 +2504,9 @@ export class GeneralReceiptNew implements OnInit {
     this.uploadedFileFormat.set('');
     this.GeneralReceiptForm.markAsUntouched();
     this.GeneralReceiptForm.markAsPristine();
-  } 
+  }
   uploadAndProgress(event: any): void {
-     
+
     const ext = event.target.files[0]?.name
       .substring(event.target.files[0]?.name.lastIndexOf('.') + 1)
       .toLowerCase() || '';
@@ -2516,7 +2520,7 @@ export class GeneralReceiptNew implements OnInit {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.readAsDataURL(file);     
+    reader.readAsDataURL(file);
     reader.onload = () => {
       this.imageResponse.set({ name: file.name, contentType: file.type, size: file.size });
       this.uploadedFileName.set(file.name); // show file name immediately before API responds
@@ -2533,7 +2537,7 @@ export class GeneralReceiptNew implements OnInit {
 
         const fileName = Array.isArray(data)
           ? data[0]
-          : (data?.fileName || data?.name || data?.filePath || ''); 
+          : (data?.fileName || data?.name || data?.filePath || '');
         const filePath = fileName;
         const fileFormat = ext;
         this.uploadedFileName.set(fileName);
@@ -2598,4 +2602,3 @@ export class GeneralReceiptNew implements OnInit {
     );
   }
 }
- 
