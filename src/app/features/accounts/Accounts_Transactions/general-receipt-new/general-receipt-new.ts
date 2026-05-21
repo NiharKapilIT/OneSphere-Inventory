@@ -367,7 +367,7 @@ export class GeneralReceiptNew implements OnInit {
   }
 
   private _loadInitialData(): void {
-    this.svc.GetGlobalBanks('global')
+    this.cs.getGlobalBanks()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res => this.banklist.set(res),

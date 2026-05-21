@@ -65,22 +65,80 @@ export class ContactAddComponent implements OnInit, OnChanges {
   pDatepickerMaxDate: Date = new Date();
 
   genders: Gender[] = ['Male', 'Female', 'Third Gender'];
-  kycDocumentTypes = ['PAN Card', 'Aadhar Card', 'Passport', 'Voter ID', 'Driving License', 'GST Certificate'];
+  kycDocumentTypes: any[] = [];
   kycStatuses = ['Pending', 'Verified', 'Rejected'];
   bankAccountTypes = ['Savings', 'Current', 'Cash Credit', 'Overdraft', 'NRE', 'NRO'];
-  salutations = ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
-  addressTypes = ['Home', 'Office', 'Permanent', 'Temporary', 'Other'];
-  enterpriseTypes = ['Private Limited', 'Public Limited', 'Partnership', 'LLP', 'Proprietorship', 'Trust', 'Society'];
-  businessNatures = ['Manufacturing', 'Trading', 'Services', 'Agriculture', 'Retail', 'Wholesale', 'Other'];
+  salutations: any[] = [];
+  addressTypes: any[] = [];
+  enterpriseTypes: any[] = [];
+  businessNatures: any[] = [];
   countries: any[] = [];
   states: any[] = [];
   districts: any[] = [];
+  banks: any[] = [];
+  relationTitles: any[] = [];
 
   constructor(private fb: FormBuilder, private commonService: CommonService) { }
 
   ngOnInit() {
     this.buildForm();
     this.loadCountries();
+    this.loadContactTitles();
+    this.loadBanks();
+    this.loadRelationTitles();
+    this.loadAddressTypes(this.contactType());
+    this.loadKycDocumentTypes();
+    this.loadEnterpriseTypes();
+    this.loadBusinessNatures();
+  }
+
+  loadContactTitles() {
+    this.commonService.getContactTitles().subscribe({
+      next: (data) => { this.salutations = data; },
+      error: () => { this.salutations = []; }
+    });
+  }
+
+  loadBanks() {
+    this.commonService.getGlobalBanks().subscribe({
+      next: (data) => { this.banks = data; },
+      error: () => { this.banks = []; }
+    });
+  }
+
+  loadRelationTitles() {
+    this.commonService.getRelationTitles().subscribe({
+      next: (data) => { this.relationTitles = data; },
+      error: () => { this.relationTitles = []; }
+    });
+  }
+
+  loadAddressTypes(contactType: string) {
+    this.commonService.getAddressType(contactType).subscribe({
+      next: (data) => { this.addressTypes = data; },
+      error: () => { this.addressTypes = []; }
+    });
+  }
+
+  loadKycDocumentTypes() {
+    this.commonService.getDocumentGroupNames().subscribe({
+      next: (data) => { this.kycDocumentTypes = data; },
+      error: () => { this.kycDocumentTypes = []; }
+    });
+  }
+
+  loadEnterpriseTypes() {
+    this.commonService.getEnterpriseType().subscribe({
+      next: (data) => { this.enterpriseTypes = data; },
+      error: () => { this.enterpriseTypes = []; }
+    });
+  }
+
+  loadBusinessNatures() {
+    this.commonService.getBusinessTypes().subscribe({
+      next: (data) => { this.businessNatures = data; },
+      error: () => { this.businessNatures = []; }
+    });
   }
 
   loadCountries() {
@@ -130,12 +188,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
   buildForm() {
     this.form = this.fb.group({
       // Individual
-      salutation: ['Mr.'],
+      salutation: [''],
       firstName: ['', Validators.required],
       surName: [''],
       mailingName: [''],
       gender: ['Male', Validators.required],
-      fatherSalutation: ['Mr.'],
+      fatherSalutation: [''],
       fatherName: ['', Validators.required],
       dob: [null],
       age: [''],
@@ -186,6 +244,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   setContactType(type: ContactType) {
     this.contactType.set(type);
+    this.loadAddressTypes(type);
   }
 
   goNextSection() {
