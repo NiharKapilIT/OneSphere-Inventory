@@ -65,13 +65,13 @@ export class ContactAddComponent implements OnInit, OnChanges {
   pDatepickerMaxDate: Date = new Date();
 
   genders: Gender[] = ['Male', 'Female', 'Third Gender'];
-  kycDocumentTypes = ['PAN Card', 'Aadhar Card', 'Passport', 'Voter ID', 'Driving License', 'GST Certificate'];
+  kycDocumentTypes: any[] = [];
   kycStatuses = ['Pending', 'Verified', 'Rejected'];
   bankAccountTypes = ['Savings', 'Current', 'Cash Credit', 'Overdraft', 'NRE', 'NRO'];
   salutations: any[] = [];
-  addressTypes = ['Home', 'Office', 'Permanent', 'Temporary', 'Other'];
-  enterpriseTypes = ['Private Limited', 'Public Limited', 'Partnership', 'LLP', 'Proprietorship', 'Trust', 'Society'];
-  businessNatures = ['Manufacturing', 'Trading', 'Services', 'Agriculture', 'Retail', 'Wholesale', 'Other'];
+  addressTypes: any[] = [];
+  enterpriseTypes: any[] = [];
+  businessNatures: any[] = [];
   countries: any[] = [];
   states: any[] = [];
   districts: any[] = [];
@@ -86,6 +86,10 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.loadContactTitles();
     this.loadBanks();
     this.loadRelationTitles();
+    this.loadAddressTypes(this.contactType());
+    this.loadKycDocumentTypes();
+    this.loadEnterpriseTypes();
+    this.loadBusinessNatures();
   }
 
   loadContactTitles() {
@@ -106,6 +110,34 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.commonService.getRelationTitles().subscribe({
       next: (data) => { this.relationTitles = data; },
       error: () => { this.relationTitles = []; }
+    });
+  }
+
+  loadAddressTypes(contactType: string) {
+    this.commonService.getAddressType(contactType).subscribe({
+      next: (data) => { this.addressTypes = data; },
+      error: () => { this.addressTypes = []; }
+    });
+  }
+
+  loadKycDocumentTypes() {
+    this.commonService.getDocumentGroupNames().subscribe({
+      next: (data) => { this.kycDocumentTypes = data; },
+      error: () => { this.kycDocumentTypes = []; }
+    });
+  }
+
+  loadEnterpriseTypes() {
+    this.commonService.getEnterpriseType().subscribe({
+      next: (data) => { this.enterpriseTypes = data; },
+      error: () => { this.enterpriseTypes = []; }
+    });
+  }
+
+  loadBusinessNatures() {
+    this.commonService.getBusinessTypes().subscribe({
+      next: (data) => { this.businessNatures = data; },
+      error: () => { this.businessNatures = []; }
     });
   }
 
@@ -212,6 +244,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   setContactType(type: ContactType) {
     this.contactType.set(type);
+    this.loadAddressTypes(type);
   }
 
   goNextSection() {

@@ -317,8 +317,8 @@
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Type of Enterprise</label>
-            <ng-select appendTo="body" [items]="enterpriseTypes" formControlName="enterpriseType"
-              placeholder="Select Type of Enterprise" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="enterpriseTypes" bindLabel="pEnterpriseType" bindValue="pEnterpriseType"
+              formControlName="enterpriseType" placeholder="Select Type of Enterprise" [searchable]="true" [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -327,8 +327,8 @@
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Nature of Business</label>
-            <ng-select appendTo="body" [items]="businessNatures" formControlName="businessNature"
-              placeholder="Select Nature of Business" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="businessNatures" bindLabel="pBusinesstype" bindValue="pBusinesstype"
+              formControlName="businessNature" placeholder="Select Nature of Business" [searchable]="true" [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -500,9 +500,9 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Address Type</label>
-            <ng-select appendTo="body" [items]="addressTypes" [(ngModel)]="currentAddress.type"
-              [ngModelOptions]="{standalone:true}" placeholder="Select Address Type" [searchable]="true"
-              [clearable]="true">
+            <ng-select appendTo="body" [items]="addressTypes" bindLabel="pAddressType" bindValue="pAddressType"
+              [(ngModel)]="currentAddress.type" [ngModelOptions]="{standalone:true}"
+              placeholder="Select Address Type" [searchable]="true" [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -632,8 +632,8 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>KYC Document Type</label>
-            <ng-select appendTo="body" [items]="kycDocumentTypes" formControlName="kycDocumentType"
-              placeholder="Select document" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="kycDocumentTypes" bindLabel="pDocumentGroup" bindValue="pDocumentGroup"
+              formControlName="kycDocumentType" placeholder="Select document" [searchable]="true" [clearable]="true">
             </ng-select>
           </div>
         </div>
