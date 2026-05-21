@@ -6089,7 +6089,46 @@ export class CommonService {
 
   GetDesignations(): Observable<any> {
     return this.getAPI('/Common/GetDesignations', '', 'NO');
+  }
 
+  getCountries(): Observable<any[]> {
+    return this.getAPI('/Common/getCountry', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getStates(countryId: any): Observable<any[]> {
+    return this.getAPI('/Common/getstate', 'GlobalSchema=' + this.getschemaname() + '&id=' + countryId, 'YES');
+  }
+
+  getDistricts(stateId: any): Observable<any[]> {
+    return this.getAPI('/Common/getDistrict', 'GlobalSchema=' + this.getschemaname() + '&id=' + stateId, 'YES');
+  }
+
+  getContactTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetContactTitles', '', 'NO');
+  }
+
+  getGlobalBanks(): Observable<any[]> {
+    return this.getAPI('/Common/GetGlobalBanks', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getRelationTitles(): Observable<any[]> {
+    return this.getAPI('/Common/GetRelationTitles', '', 'NO');
+  }
+
+  getAddressType(contactType: string): Observable<any[]> {
+    return this.getAPI('/Common/GetAddressType', 'GlobalSchema=' + this.getschemaname() + '&contactType=' + contactType, 'YES');
+  }
+
+  getDocumentGroupNames(): Observable<any[]> {
+    return this.getAPI('/Common/GetDocumentGroupNames', '', 'NO');
+  }
+
+  getEnterpriseType(): Observable<any[]> {
+    return this.getAPI('/Common/GetEnterpriseType', '', 'NO');
+  }
+
+  getBusinessTypes(): Observable<any[]> {
+    return this.getAPI('/Common/GetBusinessTypes', '', 'NO');
   }
 
 

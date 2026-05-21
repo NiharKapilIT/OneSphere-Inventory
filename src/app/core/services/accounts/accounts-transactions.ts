@@ -1393,7 +1393,7 @@ export class AccountsTransactions {
   getcountrys(GlobalSchema:any): Observable<any> {
        ;
     const params = new HttpParams().set('GlobalSchema', GlobalSchema);
-    return this._CommonService.getAPI('/Accounts/getCountry', params, 'YES');
+    return this._CommonService.getAPI('/Common/getCountry', params, 'YES');
   }
 
 getstates(GlobalSchema:any,id:any): Observable<any> {
