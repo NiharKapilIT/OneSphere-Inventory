@@ -107,7 +107,7 @@ export class PettyCashView implements OnInit, OnDestroy {
   private setPageModel(): void {
     this.rowsPerPageOptions = this.commonService.setPageModel(
       this.pageCriteria,
-      this.gridView().length 
+      this.gridView().length
     );
   }
 
