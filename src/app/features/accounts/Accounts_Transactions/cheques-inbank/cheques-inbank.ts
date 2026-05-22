@@ -224,13 +224,21 @@ export class ChequesInbank implements OnInit {
       this.activeTab = 'cheques';
       this.modeofreceipt = 'ALL';
       this.status = 'all';
+      // } else {
+      //   this.tabsShowOrHideBasedOnfromFormName = true;
+      //   this.displayGridBasedOnFormName = true;
+      //   this.activeTab = 'onlinereceipts';
+      //   this.status = 'onlinereceipts';
+      //   this.modeofreceipt = 'ALL';
+      //   this.selectedTab = 'onlinereceipts';
+      // }
     } else {
       this.tabsShowOrHideBasedOnfromFormName = true;
       this.displayGridBasedOnFormName = true;
-      this.activeTab = 'onlinereceipts';
-      this.status = 'onlinereceipts';
+      this.activeTab = 'all';
+      this.status = 'all';
       this.modeofreceipt = 'ALL';
-      this.selectedTab = 'onlinereceipts';
+      this.selectedTab = 'all';
     }
 
     this.GetBankList();
@@ -470,7 +478,7 @@ export class ChequesInbank implements OnInit {
     this.status = 'all'; this.pdfstatus = 'All'; this.modeofreceipt = 'ALL';
     const grid = this.bankid == 0
       ? [...this.ChequesInBankData]
-      : this.ChequesInBankData.filter((d: any) => d?.pdepositbankid == this.bankid);
+      : this.ChequesInBankData.filter((d: any) => d?.pdepositbankid == this.bankid)
     this.gridData = JSON.parse(JSON.stringify(grid));
     this.gridDatatemp = [...this.gridData];
     this.showicons = this.gridData.length > 0;
@@ -1562,8 +1570,12 @@ export class ChequesInbank implements OnInit {
 
     this.gridData = []; this.gridDatatemp = [];
     this.ChequesInBankData = []; this.ChequesClearReturnData = [];
-    this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
-    this.selectedTab = 'onlinereceipts';
+    // this.modeofreceipt = 'ALL'; 
+    // this.status = 'onlinereceipts';
+    // this.selectedTab = 'onlinereceipts';
+    this.modeofreceipt = 'ALL';
+    this.status = 'all';
+    this.selectedTab = 'all';
     this._searchText = ''; this.fromdate = ''; this.todate = '';
     this.preferdrows = false;
     this.amounttotal = 0; this.selectedamt = 0;

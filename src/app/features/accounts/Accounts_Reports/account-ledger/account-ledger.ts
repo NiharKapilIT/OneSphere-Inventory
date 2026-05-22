@@ -99,7 +99,7 @@ export class AccountLedger implements OnInit {
   isGroupCollapsed(status: string): boolean {
     return this.collapsedGroups().has(status);
   }
-  
+
 
   // ── Computed Signals ──────────────────────────────────────────────────────
 
@@ -161,15 +161,15 @@ export class AccountLedger implements OnInit {
     this.initForm();
     this.loadLedgers();
     const initialFrom = this.form.get('fromDate')?.value;
-  this.toDateMinDate = initialFrom ?? null;
+    this.toDateMinDate = initialFrom ?? null;
 
-  this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
-    this.toDateMinDate = val ?? null;
-    const toDate = this.form.get('toDate')?.value;
-    if (toDate && val && toDate < val) {
-      this.form.get('toDate')?.setValue(null as unknown as Date);
-    }
-  });
+    this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+      this.toDateMinDate = val ?? null;
+      const toDate = this.form.get('toDate')?.value;
+      if (toDate && val && toDate < val) {
+        this.form.get('toDate')?.setValue(null as unknown as Date);
+      }
+    });
   }
 
   private initDatepickers(): void {

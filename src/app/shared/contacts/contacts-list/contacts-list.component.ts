@@ -61,6 +61,32 @@ export class ContactsListComponent implements OnInit {
   loading = signal(false);
   hasMore = signal(false);
 
+
+  tabCounts = signal<Record<string, number>>({});
+
+ 
+ loadTabCount(tab: ContactTab) {
+  const tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',  // ← was 'Referrals', now 'Freelancer'
+  };
+
+  this.contactMasterService.getNoOfRecords(tabMap[tab]).subscribe({
+    next: (count) => {
+      this.tabCounts.update(current => ({ ...current, [tab]: count }));
+    },
+    error: () => {}
+  });
+}
+
+
+
+
   filteredContacts = computed(() => {
     const q = this.normalize(this.searchQuery());
     const uid = this.normalize(this.uidFilter());
@@ -102,25 +128,40 @@ export class ContactsListComponent implements OnInit {
 
   constructor(private contactMasterService: ContactMasterService) { }
 
+  
   ngOnInit() {
-    this.loadContacts();
-  }
+  this.loadContacts();
+  this.loadTabCount('Contacts');
+}
 
-  loadContacts() {
-    this.loading.set(true);
-    const endindex = (this.currentPage() - 1) * this.pageSize();
-    this.contactMasterService.getContactViewByName(this.activeTab(), endindex).subscribe({
-      next: (data) => {
-        this.allContacts.set(this.mapContacts(data));
-        this.hasMore.set(data.length >= this.pageSize());
-        this.loading.set(false);
-      },
-      error: () => {
-        this.allContacts.set([]);
-        this.loading.set(false);
-      }
-    });
-  }
+  
+ 
+loadContacts() {
+  this.loading.set(true);
+  const endindex = (this.currentPage() - 1) * this.pageSize();
+  
+  const tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',
+  };
+
+  this.contactMasterService.getContactViewByName(tabMap[this.activeTab()], endindex).subscribe({
+    next: (data) => {
+      this.allContacts.set(this.mapContacts(data));
+      this.hasMore.set(data.length >= this.pageSize());
+      this.loading.set(false);
+    },
+    error: () => {
+      this.allContacts.set([]);
+      this.loading.set(false);
+    }
+  });
+}
 
   private mapContacts(data: any[]): Contact[] {
     return data.map(dto => {
@@ -143,19 +184,20 @@ export class ContactsListComponent implements OnInit {
         phone: String(dto.pContactNumber ?? ''),
         address: String(dto.pAddresDetails ?? ''),
         status: String(dto.pStatus ?? '') === 'Active' ? 'Active' : 'Inactive',
-        photo: dto.pImage ? String(dto.pImage) : undefined,
+        photo: dto.pImagePath  ? String(dto.pImage) : undefined,
         type: 'Contacts' as ContactTab,
         roles,
       };
     });
   }
 
-  switchTab(tab: ContactTab) {
-    this.activeTab.set(tab);
-    this.currentPage.set(1);
-    this.loadContacts();
-  }
-
+switchTab(tab: ContactTab) {
+  this.activeTab.set(tab);
+  this.currentPage.set(1);
+   this.tabCounts.set({}); 
+  this.loadContacts();
+  this.loadTabCount(tab);
+}
   onSearch() {
     this.currentPage.set(1);
   }
@@ -190,11 +232,13 @@ export class ContactsListComponent implements OnInit {
       this.loadContacts();
     }
   }
+ 
 
-  getTabCount(tab: ContactTab) {
-    if (tab === 'Contacts') return this.allContacts().length;
-    return this.allContacts().filter(contact => this.hasRole(contact, tab)).length;
-  }
+  getTabCount(tab: ContactTab): number {
+  return this.tabCounts()[tab] ?? 0;
+}
+
+
 
   getContactInitials(contact: Contact) {
     return contact.name
@@ -274,20 +318,105 @@ export class ContactsListComponent implements OnInit {
     this.roleModalRole.set(null);
   }
 
-  saveRoleForm() {
-    const contact = this.roleModalContact();
-    const role = this.roleModalRole();
-    if (!contact || !role) return;
+  
+ saveRoleForm() {
+  const contact = this.roleModalContact();
+  const role = this.roleModalRole();
 
+  if (!contact || !role) {
+    return;
+  }
+
+  // Supplier API call
+  // if (role === 'Supplier / Vendor') {
+
+  //   this.contactMasterService
+  //     .saveContactSupplier(contact.id, true)
+  //     .subscribe({
+
+  //       next: (res: any) => {
+
+  //         this.allContacts.update(list =>
+  //           list.map(item =>
+  //             item.id === contact.id
+  //               ? {
+  //                   ...item,
+  //                   roles: Array.from(
+  //                     new Set([...(item.roles || []), role])
+  //                   )
+  //                 }
+  //               : item
+  //           )
+  //         );
+
+  //         this.closeRoleForm();
+  //       },
+
+  //       error: (err) => {
+  //         console.error('Supplier save failed', err);
+  //       }
+
+  //     });
+
+  // } else {
+    if (role === 'Supplier / Vendor') {
+
+  this.contactMasterService
+    .saveContactSupplier(contact.id, true)
+    .subscribe({
+
+      next: (res: any) => {
+
+        if (res === true) {
+
+          alert('Supplier saved successfully');
+
+          this.allContacts.update(list =>
+            list.map(item =>
+              item.id === contact.id
+                ? {
+                    ...item,
+                    roles: Array.from(
+                      new Set([...(item.roles || []), role])
+                    )
+                  }
+                : item
+            )
+          );
+
+          this.closeRoleForm();
+
+        } else {
+          alert('Save failed');
+        }
+      },
+
+      error: (err) => {
+        console.error('Supplier save failed', err);
+        alert('API Error');
+      }
+
+    });
+
+} else {
+
+    // Local update for other roles
     this.allContacts.update(list =>
       list.map(item =>
         item.id === contact.id
-          ? { ...item, roles: Array.from(new Set([...(item.roles || []), role])) }
+          ? {
+              ...item,
+              roles: Array.from(
+                new Set([...(item.roles || []), role])
+              )
+            }
           : item
       )
     );
+
     this.closeRoleForm();
   }
+}
 
   hasRole(contact: Contact, role: ContactRole) {
     return (contact.roles || []).includes(role);
