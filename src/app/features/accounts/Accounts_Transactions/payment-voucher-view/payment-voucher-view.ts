@@ -2649,7 +2649,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       branchid: str(this.commonService.getbrachid()),
 
       // ── User/System ────────────────────────
-      pCreatedby: 9,
+
+      //pCreatedby: 9,
+      pCreatedby: Number(sessionStorage.getItem('userId') || 0),
       pipaddress: safe(formVal.pipaddress),
 
       // ── File ──────────────────────────────
