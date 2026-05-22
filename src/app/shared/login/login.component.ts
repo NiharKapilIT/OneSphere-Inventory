@@ -464,7 +464,8 @@ export class LoginComponent implements OnInit {
     this.setAuthMode('login');
   }
 
-  // ── Login POST ───────────────────────────────────────────────────
+
+  
   async onLogin(): Promise<void> {
     this.errorMessage.set('');
     if (!this.username().trim()) {
@@ -490,16 +491,17 @@ export class LoginComponent implements OnInit {
       const resolvedUsername =
         (response as any).user_name ?? response.username ?? this.username().trim();
 
-      this.authService.setSession(
-        response.token || '',
-        resolvedUsername,
-        this.selectedCompanyCode(),
-        this.selectedBranchCode(),
-        response.userId,
-        response.branchId,
-        response.ipAddress,
-      );
 
+        this.authService.setSession(
+  response.accessToken  || response.token || '',
+  response.refreshToken || '',
+  resolvedUsername,
+  this.selectedCompanyCode(),
+  this.selectedBranchCode(),
+  response.userId,
+  response.branchId,
+  response.IPAddress    || response.ipAddress || '',
+);
       // store company details (fire-and-forget, non-blocking)
       this.companyService.GetCompanyData().subscribe({
         next: (d: any) => {
