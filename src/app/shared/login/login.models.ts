@@ -10,15 +10,10 @@ export interface BranchCode {
 }
 
 export interface LoginResponse {
-  accessToken:  string;     
-  refreshToken: string;     
-  token:        string;     
-  username:     string;
-  user_name:    string;
-  userId:       number;
-  branchId:     number;
-  IPAddress:    string;     
-  ipAddress:    string;     
-  companyCode:  string;
-  branchCode:   string;
+  user_name?: string;
+  username?: string;
+  token: string;
+  userId: any;
+  branchId: any;
+  ipAddress: string;
 }
