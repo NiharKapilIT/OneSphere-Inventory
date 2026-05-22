@@ -51,7 +51,7 @@ export class AccountsReports {
       'YES'
     );
   }
-    Getgstvocuherprint(Branchschema: any, Gstvoucherno: any): Observable<any> {
+  Getgstvocuherprint(Branchschema: any, Gstvoucherno: any): Observable<any> {
     const params = new HttpParams().set('branchSchema', Branchschema).set('Gstvoucherno', Gstvoucherno).set('globalSchema', this._CommonService.getschemaname()).set('companyCode', this._CommonService.getCompanyCode()).set('branchCode', this._CommonService.getBranchCode());
     return this._CommonService.getAPI('/Accounts/Getgstvocuherprint', params, 'YES')
   }
@@ -81,15 +81,15 @@ export class AccountsReports {
   }
 
 
-   GetChequesIssuedData(bankid: any, startindex: any, endindex: any, modeofreceipt: any, _searchText: any, GlobalSchema: any,branchcode:any,companycode:any): Observable<any> {
+  GetChequesIssuedData(bankid: any, startindex: any, endindex: any, modeofreceipt: any, _searchText: any, GlobalSchema: any, branchcode: any, companycode: any): Observable<any> {
     const params = new HttpParams().set('_BankId', bankid).set('BranchSchema', this._CommonService.getbranchname()).set('startindex', startindex).set('endindex', endindex).set('modeofreceipt', modeofreceipt).set('searchtext', _searchText).set('GlobalSchema', GlobalSchema).set('branchcode', branchcode).set('companycode', companycode);
     return this._CommonService.getAPI('/Accounts/GetChequesIssued', params, 'YES')
   }
-   GetChequeEnquiryData(bankid: any, startindex: any, endindex: any, modeofreceipt: any, searchtext: any): Observable<any> {
+  GetChequeEnquiryData(bankid: any, startindex: any, endindex: any, modeofreceipt: any, searchtext: any): Observable<any> {
     const params = new HttpParams().set('depositedBankid', bankid).set('BranchSchema', this._CommonService.getbranchname()).set('startindex', startindex).set('endindex', endindex).set('modeofreceipt', modeofreceipt).set('searchtext', searchtext).set('BrsFromDate', '01-01-1991').set('BrsTodate', new Date().toLocaleDateString('en-GB').replace(/\//g, '-')).set('GlobalSchema', this._CommonService.getschemaname()).set('CompanyCode', this._CommonService.getCompanyCode()).set('BranchCode', this._CommonService.getBranchCode());
     return this._CommonService.getAPI('/Accounts/GetChequeEnquiryData', params, 'YES')
   }
-   GetBankBalance(bankid: any) {
+  GetBankBalance(bankid: any) {
     const params = new HttpParams().set('brstodate', String(new Date())).set('_recordid', bankid).set('BranchSchema', this._CommonService.getbranchname()).set('branchCode', this._CommonService.getBranchCode()).set('companyCode', this._CommonService.getCompanyCode());
     return this._CommonService.getAPI('/Accounts/GetBankBalance', params, 'YES');
   }
@@ -152,7 +152,7 @@ export class AccountsReports {
   //   );
   // }
   GetCashBookReportbyDates(fromdate: string, todate: string, transType: string, BranchSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-     ;
+    ;
     const params = new HttpParams()
       .set('fromdate', fromdate)
       .set('todate', todate)
@@ -534,27 +534,27 @@ export class AccountsReports {
   // }
 
   GetJvListReport(
-  fromdate: any,
-  todate: any,
-  pmodeoftransaction: string,
-  BranchSchema: any,
-  CompanyCode: any,
-  BranchCode: any,
-  GlobalSchema: any,
-  formName: string        // 👈 added
-): Observable<any> {
-  const params = new HttpParams()
-    .set('fromdate', fromdate)
-    .set('todate', todate)
-    .set('pmodeoftransaction', pmodeoftransaction)
-    .set('BranchSchema', BranchSchema)
-    .set('CompanyCode', CompanyCode)
-    .set('BranchCode', BranchCode)
-    .set('GlobalSchema', GlobalSchema)
-    .set('tablename', formName);   // 👈 added
+    fromdate: any,
+    todate: any,
+    pmodeoftransaction: string,
+    BranchSchema: any,
+    CompanyCode: any,
+    BranchCode: any,
+    GlobalSchema: any,
+    formName: string        // 👈 added
+  ): Observable<any> {
+    const params = new HttpParams()
+      .set('fromdate', fromdate)
+      .set('todate', todate)
+      .set('pmodeoftransaction', pmodeoftransaction)
+      .set('BranchSchema', BranchSchema)
+      .set('CompanyCode', CompanyCode)
+      .set('BranchCode', BranchCode)
+      .set('GlobalSchema', GlobalSchema)
+      .set('tablename', formName);   // 👈 added
 
-  return this._CommonService.getAPI('/Accounts/GetJvListDetails', params, 'YES');
-}
+    return this._CommonService.getAPI('/Accounts/GetJvListDetails', params, 'YES');
+  }
   GetJvListReportGroup(fromdate: any, todate: any, pmodeoftransaction: string, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
     const params = new HttpParams()
       .set('fromdate', fromdate)
@@ -734,27 +734,27 @@ export class AccountsReports {
     const drawPageHeader = (doc: jsPDF) => {
       const pageWidth = doc.internal.pageSize.getWidth();
       if (doc.getNumberOfPages() === 1) {
-      doc.setFont('helvetica', 'normal');
-      doc.addImage(kapil_logo, 'JPEG', 10, 15, 20, 20);
-      doc.setFontSize(15);
-      doc.setFont('helvetica', 'bold');
-      doc.text(companyName, pageWidth / 2, 15, { align: 'center' });
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      doc.text(companyAddress, pageWidth / 2, 21, { align: 'center' });
-      doc.text(`CIN : ${companyCIN}`, pageWidth / 2, 26, { align: 'center' });
-      doc.setFontSize(14);
-      doc.text(reportName, pageWidth / 2, 36, { align: 'center' });
-      doc.setFontSize(10);
-      doc.text('Branch : ' + companyBranch, pageWidth - 30, 43, { align: 'right' });
-      if (betweenorason === 'Between') {
-        doc.text(`Between : ${fromdate} And ${todate}`, 15, 43);
-      } else if (betweenorason === 'As On' && fromdate) {
-        doc.text(`As on : ${fromdate}`, 15, 43);
-      }
-      doc.line(10, 46, pageWidth - 10, 46);
-    };
-  }
+        doc.setFont('helvetica', 'normal');
+        doc.addImage(kapil_logo, 'JPEG', 10, 15, 20, 20);
+        doc.setFontSize(15);
+        doc.setFont('helvetica', 'bold');
+        doc.text(companyName, pageWidth / 2, 15, { align: 'center' });
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(companyAddress, pageWidth / 2, 21, { align: 'center' });
+        doc.text(`CIN : ${companyCIN}`, pageWidth / 2, 26, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text(reportName, pageWidth / 2, 36, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Branch : ' + companyBranch, pageWidth - 30, 43, { align: 'right' });
+        if (betweenorason === 'Between') {
+          doc.text(`Between : ${fromdate} And ${todate}`, 15, 43);
+        } else if (betweenorason === 'As On' && fromdate) {
+          doc.text(`As on : ${fromdate}`, 15, 43);
+        }
+        doc.line(10, 46, pageWidth - 10, 46);
+      };
+    }
 
     // draw header on first page
     drawPageHeader(doc);
@@ -1183,7 +1183,7 @@ export class AccountsReports {
     printorpdf: string,
     isNarrationChecked: boolean
   ) {
-     
+
     const address = this._CommonService.getcompanyaddress();
     console.log('Session at PDF time:', sessionStorage.getItem('CompanyDetails'));
     const Companyreportdetails = this._CommonService._getCompanyDetails();
@@ -2365,7 +2365,7 @@ export class AccountsReports {
 
 
   GetBankNames(GlobalSchema: any, AccountsSchema: any, CompanyCode: any, BranchCode: any): Observable<any> {
-     ;
+    ;
     const params = new HttpParams()
       .set('GlobalSchema', GlobalSchema)
       .set('AccountsSchema', AccountsSchema)
@@ -2565,7 +2565,7 @@ export class AccountsReports {
     return this._CommonService.getAPI('/ChitTransactions/GetSubscriberJVSubcategory', params, 'YES');
   }
   GetTDSSubcategoryDetails(subcategoryID: any, partyid: any) {
-     ;
+    ;
     const params = new HttpParams().set('BranchSchema', this._CommonService.getschemaname())
       .set('subcategoryId', subcategoryID)
       .set('partyId', partyid);
@@ -2800,7 +2800,7 @@ export class AccountsReports {
 
   updatestatuspatm(transactiondate: any): any {
     try {
-       ;
+      ;
       const params = new HttpParams().set('transactiondate', transactiondate);
       return this._CommonService.getAPI('/ChitTransactions/updatestatuspatm', params, 'YES');
     }
@@ -2813,7 +2813,7 @@ export class AccountsReports {
 
   updatestatusCashfree(transactiondate: any): any {
     try {
-       ;
+      ;
       const params = new HttpParams().set('transactiondate', transactiondate);
       return this._CommonService.getAPI('/ChitTransactions/updatestatuscashfree', params, 'YES');
     }
@@ -2839,7 +2839,7 @@ export class AccountsReports {
 
   getpaytmautoreceipt(fromdate: any, globalschema: any): any {
     try {
-       ;
+      ;
       //let params =this._commonService.getschemaname()
       let params = new HttpParams().set('strdate', fromdate).set('BranchSchema', this._CommonService.getschemaname()).set('GLOBAL', globalschema)
       return this._CommonService.getAPI('/ChitTransactions/paytmautoreceipt', params, 'YES')

@@ -2,7 +2,22 @@
 <div class="modal-overlay" (click)="close()"></div>
 
 <div class="contact-modal-wrap">
-  <div class="contact-modal" (click)="$event.stopPropagation()">
+  <!-- <div class="contact-modal" (click)="$event.stopPropagation()"> -->
+
+    <div class="contact-modal" (click)="$event.stopPropagation()" style="position:relative;">
+
+  <!-- Loading overlay while ViewContact API fetches edit data -->
+  @if (isLoading) {
+    <div style="position:absolute; inset:0; background:rgba(255,255,255,0.75);
+                display:flex; align-items:center; justify-content:center;
+                z-index:10; border-radius:12px;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+        <i class="pi pi-spin pi-spinner" style="font-size:2rem; color:var(--clr-p2);"></i>
+        <span style="font-size:13px; color:#64748b;">Loading contact data...</span>
+      </div>
+    </div>
+  }
+
 
     <!-- ── HEADER ──────────────────────────────────────────────── -->
     <div class="contact-modal-header">
@@ -84,8 +99,9 @@
           <div class="erp-form-group">
             <label>Name <span class="required">*</span></label>
             <div style="display:flex; gap:8px;">
-              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations" bindLabel="title_name" bindValue="title_name" formControlName="salutation"
-                placeholder="Select Salutation" [searchable]="true" [clearable]="false">
+              <ng-select class="contact-select-sm" appendTo="body" [items]="salutations" bindLabel="title_name"
+                bindValue="title_name" formControlName="salutation" placeholder="Select Salutation" [searchable]="true"
+                [clearable]="false">
               </ng-select>
               <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
             </div>
@@ -132,9 +148,9 @@
           <div class="erp-form-group">
             <label>Father Name <span class="required">*</span></label>
             <div style="display:flex; gap:8px;">
-              <ng-select class="contact-select-sm" appendTo="body" [items]="relationTitles" bindLabel="relation_title_name" bindValue="relation_title_name"
-                formControlName="fatherSalutation" placeholder="Select" [searchable]="true"
-                [clearable]="false">
+              <ng-select class="contact-select-sm" appendTo="body" [items]="relationTitles"
+                bindLabel="relation_title_name" bindValue="relation_title_name" formControlName="fatherSalutation"
+                placeholder="Select" [searchable]="true" [clearable]="false">
               </ng-select>
               <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
             </div>
@@ -318,7 +334,8 @@
           <div class="erp-form-group">
             <label>Type of Enterprise</label>
             <ng-select appendTo="body" [items]="enterpriseTypes" bindLabel="pEnterpriseType" bindValue="pEnterpriseType"
-              formControlName="enterpriseType" placeholder="Select Type of Enterprise" [searchable]="true" [clearable]="true">
+              formControlName="enterpriseType" placeholder="Select Type of Enterprise" [searchable]="true"
+              [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -328,7 +345,8 @@
           <div class="erp-form-group">
             <label>Nature of Business</label>
             <ng-select appendTo="body" [items]="businessNatures" bindLabel="pBusinesstype" bindValue="pBusinesstype"
-              formControlName="businessNature" placeholder="Select Nature of Business" [searchable]="true" [clearable]="true">
+              formControlName="businessNature" placeholder="Select Nature of Business" [searchable]="true"
+              [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -503,8 +521,8 @@
           <div class="erp-form-group">
             <label>Address Type</label>
             <ng-select appendTo="body" [items]="addressTypes" bindLabel="pAddressType" bindValue="pAddressType"
-              [(ngModel)]="currentAddress.type" [ngModelOptions]="{standalone:true}"
-              placeholder="Select Address Type" [searchable]="true" [clearable]="true">
+              [(ngModel)]="currentAddress.type" [ngModelOptions]="{standalone:true}" placeholder="Select Address Type"
+              [searchable]="true" [clearable]="true">
             </ng-select>
           </div>
         </div>
@@ -513,9 +531,8 @@
           <div class="erp-form-group">
             <label>Country <span class="required">*</span></label>
             <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name"
-              [(ngModel)]="currentAddress.country" [ngModelOptions]="{standalone:true}"
-              placeholder="Select Country" [searchable]="true" [clearable]="true"
-              (change)="onCountryChange($event)">
+              [(ngModel)]="currentAddress.country" [ngModelOptions]="{standalone:true}" placeholder="Select Country"
+              [searchable]="true" [clearable]="true" (change)="onCountryChange($event)">
             </ng-select>
           </div>
         </div>
@@ -524,9 +541,8 @@
           <div class="erp-form-group">
             <label>State <span class="required">*</span></label>
             <ng-select appendTo="body" [items]="states" bindLabel="state_name" bindValue="state_name"
-              [(ngModel)]="currentAddress.state" [ngModelOptions]="{standalone:true}"
-              placeholder="Select State" [searchable]="true" [clearable]="true"
-              (change)="onStateChange($event)">
+              [(ngModel)]="currentAddress.state" [ngModelOptions]="{standalone:true}" placeholder="Select State"
+              [searchable]="true" [clearable]="true" (change)="onStateChange($event)">
             </ng-select>
           </div>
         </div>
@@ -535,9 +551,8 @@
           <div class="erp-form-group">
             <label>District <span class="required">*</span></label>
             <ng-select appendTo="body" [items]="districts" bindLabel="district_name" bindValue="district_name"
-              [(ngModel)]="currentAddress.district" [ngModelOptions]="{standalone:true}"
-              placeholder="Select District" [searchable]="true" [clearable]="true"
-              (change)="onDistrictChange($event)">
+              [(ngModel)]="currentAddress.district" [ngModelOptions]="{standalone:true}" placeholder="Select District"
+              [searchable]="true" [clearable]="true" (change)="onDistrictChange($event)">
             </ng-select>
           </div>
         </div>

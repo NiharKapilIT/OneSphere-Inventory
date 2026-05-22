@@ -21,4 +21,27 @@ export class ContactMasterService {
   saveContact(data: any): Observable<any> {
     return this.commonService.postAPI('/ContactMaster/SaveContact', data);
   }
+  getNoOfRecords(tab: string): Observable<number> {
+    const params = new HttpParams()
+      .set('globalSchema', this.commonService.getschemaname())
+      .set('companyCode', this.commonService.getCompanyCode())
+      .set('tab', tab);
+    return this.commonService.getAPI('/ContactMaster/Getnoofrecords', params, 'YES');
+  }
+
+saveContactSupplier(contactId: string, isSupplier: boolean): Observable<any> {
+
+  const url =
+    `/ContactMore/SaveContactSupplier` +
+    `?globalSchema=${this.commonService.getschemaname()}` +
+    `&companyCode=${this.commonService.getCompanyCode()}` +
+    `&branchCode=${this.commonService.getBranchCode()}`;
+
+  const body = {
+    pContactId: contactId,
+    pIsSupplier: isSupplier
+  };
+
+  return this.commonService.postAPI(url, body);
+}
 }
