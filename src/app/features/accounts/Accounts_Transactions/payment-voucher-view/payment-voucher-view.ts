@@ -2509,6 +2509,24 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           this.saveButtonLabel.set('Save');
           return;
         }
+        const bankBalanceNum = parseFloat(String(this.bankBalance).replace(/[^\d.-]/g, '') || '0');
+        if(bankBalanceNum == 0){ debugger
+          this.commonService.showWarningMessage(
+            `Bank transactions not allowed as Bank balance is below zero`
+          );
+          this.disableSaveButton.set(false);
+          this.saveButtonLabel.set('Save');
+          return;
+        }
+        const cashBalanceNum = parseFloat(String(this.cashBalance).replace(/[^\d.-]/g, '') || '0');
+        if(cashBalanceNum == 0){
+          this.commonService.showWarningMessage(
+            `Cash transactions not allowed as Cash balance is negative`
+          );
+          this.disableSaveButton.set(false);
+          this.saveButtonLabel.set('Save');
+          return;
+        }
 
         if (!confirm('Do You Want To Save ?')) {
           this.disableSaveButton.set(false);

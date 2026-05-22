@@ -17,4 +17,8 @@ export class ContactMasterService {
       .set('tabname', tabname);
     return this.commonService.getAPI('/ContactMaster/GetcontactviewByName', params, 'YES');
   }
+
+  saveContact(data: any): Observable<any> {
+    return this.commonService.postAPI('/ContactMaster/SaveContact', data);
+  }
 }

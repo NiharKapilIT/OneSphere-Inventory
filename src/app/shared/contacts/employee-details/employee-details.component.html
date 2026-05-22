@@ -6,19 +6,19 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Designation<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="designations" formControlName="designation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="designations" bindLabel="designation_name" bindValue="designation_name" formControlName="designation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Role<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="roles" formControlName="role" placeholder="Select Role" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="roles" bindLabel="role_name" bindValue="role_name" formControlName="role" placeholder="Select Role" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Branch Name<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="branches" formControlName="branch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="branches" bindLabel="branch_name" bindValue="branch_code" formControlName="branch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
@@ -70,7 +70,7 @@
               </div>
               <div class="erp-form-group">
                 <label>Country of Birth</label>
-                <ng-select appendTo="body" [items]="countries" formControlName="countryOfBirth" placeholder="Select Country" [searchable]="true" [clearable]="false"></ng-select>
+                <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name" formControlName="countryOfBirth" placeholder="Select Country" [searchable]="true" [clearable]="false"></ng-select>
               </div>
               <div class="erp-form-group">
                 <label>Nationality/Citizen of</label>
@@ -201,7 +201,7 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Earned Leaves Claim Branch</label>
-              <ng-select appendTo="body" [items]="branches" formControlName="earnedLeavesBranch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="branches" bindLabel="branchName" bindValue="branchName" formControlName="earnedLeavesBranch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -297,7 +297,7 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Education</label>
-              <ng-select appendTo="body" [items]="educationOptions" formControlName="familyEducation" placeholder="Select Education" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="educationOptions" bindLabel="qualificationname" bindValue="qualificationid" formControlName="familyEducation" placeholder="Select Education" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -402,7 +402,7 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Designation</label>
-              <ng-select appendTo="body" [items]="designations" formControlName="expDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="designations" bindLabel="designation_name" bindValue="designation_name" formControlName="expDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -491,7 +491,7 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Designation<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="designations" formControlName="careerDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="designations" bindLabel="designation_name" bindValue="designation_name" formControlName="careerDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -648,13 +648,13 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Document Type<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="documentTypes" formControlName="docType" placeholder="Select Document Type" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="documentTypes" bindLabel="pDocumentGroup" formControlName="docType" placeholder="Select Document Type" [searchable]="true" [clearable]="false" (change)="onDocTypeChange($event)"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Document Name<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="documentNames" formControlName="docName" placeholder="Select Document Name" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="documentNames" bindLabel="pDocumentName" bindValue="pDocumentId" formControlName="docName" placeholder="Select Document Name" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
