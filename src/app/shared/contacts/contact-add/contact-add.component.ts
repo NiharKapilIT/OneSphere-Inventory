@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { Contact } from '../contacts-list/contacts-list.component';
+import { Contact, ContactTab } from '../contacts-list/contacts-list.component';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CommonService } from '../../../core/services/Common/common.service';
@@ -46,8 +46,19 @@ interface ContactPerson {
 })
 export class ContactAddComponent implements OnInit, OnChanges {
   @Input() contact: Contact | null = null;
+  @Input() activeTab: ContactTab = 'Contacts';
   @Output() onClose = new EventEmitter<void>();
   @Output() onSave = new EventEmitter<Contact>();
+
+  private readonly tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',
+  };
 
   contactType = signal<ContactType>('Individual');
   activeSection = signal<ContactSection>('personal');
@@ -528,6 +539,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
     const payload = {
       GlobalSchema: this.commonService.getschemaname(),
       CompanyCode: this.commonService.getCompanyCode(),
+      Tab: this.tabMap[this.activeTab],
       ContactType: this.contactType(),
       // Individual
       Salutation: v.salutation,
