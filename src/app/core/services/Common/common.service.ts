@@ -6132,7 +6132,9 @@ export class CommonService {
   }
 
 
-
+  viewContact(contactId: number): Observable<any> {
+    return this.getAPI('/ContactMaster/ViewContact', 'GlobalSchema=' + this.getschemaname() + '&refernceid=' + contactId, 'YES');
+  }
 
 
   setPageModel(pageCriteria: PageCriteria, total: number): number[] {

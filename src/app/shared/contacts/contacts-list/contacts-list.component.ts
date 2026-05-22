@@ -224,11 +224,20 @@ export class ContactsListComponent implements OnInit {
     this.showAddForm.set(true);
   }
 
+
   openEditForm(contact: Contact) {
-    this.openMenuContactId.set(null);
-    this.editingContact.set(contact);
-    this.showAddForm.set(true);
-  }
+  console.log('1. openEditForm called:', contact);
+  console.log('2. contact.id:', contact.id);
+
+  this.openMenuContactId.set(null);
+  this.editingContact.set(null);
+  this.showAddForm.set(false);
+
+  console.log('3. setting contact:', contact);
+
+  this.editingContact.set({ ...contact });
+  this.showAddForm.set(true);
+}
 
   onFormClose() {
     this.showAddForm.set(false);
