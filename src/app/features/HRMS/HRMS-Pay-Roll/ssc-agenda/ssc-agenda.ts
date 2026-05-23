@@ -1,8 +1,12 @@
- import { Component } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
+import { OnInit, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { CommonService } from '../../../../core/services/Common/common.service';
+import { HrmsPayroll } from '../../../../core/services/hrms/hrms-payroll';
 
 @Component({
   selector: 'app-ssc-agenda',
@@ -10,14 +14,18 @@ import { DatePickerModule } from 'primeng/datepicker';
   imports: [CommonModule, FormsModule, NgSelectModule, DatePickerModule],
   templateUrl: './ssc-agenda.html',
 })
-export class SscAgenda {
+export class SscAgenda implements OnInit {
+  private hrms = inject(HrmsPayroll);
   selectedTab: string = 'Confirmation';
 
   selectedEmployee: string | null = null;
-  selectedDesignation: string | null = null;
-  selectedPromotionDesignation: string | null = null;
+  // selectedDesignation: string | null = null;
+  // selectedPromotionDesignation: string | null = null;
+  selectedDesignation: number | null = null;
+  selectedPromotionDesignation: number | null = null;
+  selectedTransferDesignation: number | null = null;
   selectedBranch: string | null = null;
-  selectedTransferDesignation: string | null = null;
+  // selectedTransferDesignation: string | null = null;
   selectedAuthority: string | null = null;
 
   maxDate: Date = new Date();
@@ -49,18 +57,36 @@ export class SscAgenda {
   submitted: boolean = false;
 
   employeeOptions: string[] = ['Employee 1', 'Employee 2', 'Employee 3'];
-  designationOptions: string[] = ['HR Executive', 'Accounts Officer', 'Software Engineer'];
-  promotionDesignationOptions: string[] = ['Senior HR Executive', 'Assistant Manager', 'Manager'];
+  // designationOptions: string[] = ['HR Executive', 'Accounts Officer', 'Software Engineer'];
+  // promotionDesignationOptions: string[] = ['Senior HR Executive', 'Assistant Manager', 'Manager'];
+  designationOptions: any[] = [];
   branchOptions: string[] = ['Hyderabad', 'Warangal', 'Chennai'];
   authorityOptions: string[] = ['HR Manager', 'Branch Manager', 'Managing Director'];
 
   // onTabChange(): void {
   //   this.clearForm();
   // }
+
+
+  ngOnInit(): void {
+    this.getDesignation();
+  }
+
+  getDesignation(): void {
+    this.hrms.getDesignation().subscribe({
+      next: (response: any[]) => {
+        this.designationOptions = response;
+      },
+      error: (error: any) => {
+        console.error('Error loading designation', error);
+      }
+    });
+  }
+
   onTabChange(): void {
-  this.formValidationMessages = {};
-  this.submitted = false;
-}
+    this.formValidationMessages = {};
+    this.submitted = false;
+  }
 
   getValidationMsg(key: string): string {
     return this.formValidationMessages[key] || '';
@@ -142,33 +168,33 @@ export class SscAgenda {
     this.clearForm();
   }
 
- 
+
   clearForm(): void {
-  this.submitted = false;
-  this.formValidationMessages = {};
-  this.selectedEmployee = null;
-  this.selectedDesignation = null;
-  this.selectedPromotionDesignation = null;
-  this.selectedBranch = null;
-  this.selectedTransferDesignation = null;
-  this.selectedAuthority = null;
+    this.submitted = false;
+    this.formValidationMessages = {};
+    this.selectedEmployee = null;
+    this.selectedDesignation = null;
+    this.selectedPromotionDesignation = null;
+    this.selectedBranch = null;
+    this.selectedTransferDesignation = null;
+    this.selectedAuthority = null;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  this.confirmationDate = new Date(today);
-  this.confirmationMinutesDate = new Date(today);
-  this.confirmationRemarks = '';
-  this.confirmationRefNo = '';
-  this.promotionDate = new Date(today);
-  this.promotionMinutesDate = new Date(today);
-  this.promotionRemarks = '';
-  this.promotionRefNo = '';
-  this.transferDate = new Date(today);
-  this.transferJoiningDate = new Date(today);
-  this.transferReportingDate = new Date(today);
-  this.transferRemarks = '';
-  this.resignationDate = new Date(today);
-  this.resignationRemarks = '';
-}
+    this.confirmationDate = new Date(today);
+    this.confirmationMinutesDate = new Date(today);
+    this.confirmationRemarks = '';
+    this.confirmationRefNo = '';
+    this.promotionDate = new Date(today);
+    this.promotionMinutesDate = new Date(today);
+    this.promotionRemarks = '';
+    this.promotionRefNo = '';
+    this.transferDate = new Date(today);
+    this.transferJoiningDate = new Date(today);
+    this.transferReportingDate = new Date(today);
+    this.transferRemarks = '';
+    this.resignationDate = new Date(today);
+    this.resignationRemarks = '';
+  }
 }

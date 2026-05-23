@@ -241,5 +241,11 @@ doc.addImage(rupeeImage, x - data.cell.contentWidth, y + 0.5, 1.5, 1.5);
   }
 
 
+  getDesignation(): Observable<any[]> {
+  return this._CommonService.getAPI('/Common/GetDesignation?GlobalSchema=global', '', 'NO');
+}
+  
+
+
 
 }

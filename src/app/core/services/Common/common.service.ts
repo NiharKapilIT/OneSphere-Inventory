@@ -6139,6 +6139,7 @@ export class CommonService {
     return this.getAPI('/Common/GetDesignationsALL', '', 'NO');
   }
 
+
   getBranches(): Observable<any[]> {
     return this.getAPI('/Common/GetBranches', 'GlobalSchema=' + this.getschemaname(), 'YES');
   }
@@ -6156,6 +6157,7 @@ export class CommonService {
     return this.getAPI('/ContactMaster/ViewContact', 'GlobalSchema=' + this.getschemaname() + '&refernceid=' + contactId, 'YES');
   }
 
+  
 
   setPageModel(pageCriteria: PageCriteria, total: number): number[] {
     pageCriteria.pageSize = total > 0 && total < 10 ? total : 10;
