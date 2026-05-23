@@ -4,10 +4,11 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { Contact } from '../contacts-list/contacts-list.component';
+import { Contact, ContactTab } from '../contacts-list/contacts-list.component';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CommonService } from '../../../core/services/Common/common.service';
+import { ContactMasterService } from '../../../core/services/contacts/contact-master.service';
 import { forkJoin } from 'rxjs';
 
 export type ContactType = 'Individual' | 'Business Entity';
@@ -45,8 +46,19 @@ interface ContactPerson {
 })
 export class ContactAddComponent implements OnInit, OnChanges {
   @Input() contact: Contact | null = null;
+  @Input() activeTab: ContactTab = 'Contacts';
   @Output() onClose = new EventEmitter<void>();
   @Output() onSave = new EventEmitter<Contact>();
+
+  private readonly tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',
+  };
 
   contactType = signal<ContactType>('Individual');
   activeSection = signal<ContactSection>('personal');
@@ -67,6 +79,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   genders: Gender[] = ['Male', 'Female', 'Third Gender'];
   kycDocumentTypes: any[] = [];
+  kycDocumentNames: any[] = [];
   kycStatuses = ['Pending', 'Verified', 'Rejected'];
   bankAccountTypes = ['Savings', 'Current', 'Cash Credit', 'Overdraft', 'NRE', 'NRO'];
   salutations: any[] = [];
@@ -78,12 +91,25 @@ export class ContactAddComponent implements OnInit, OnChanges {
   districts: any[] = [];
   banks: any[] = [];
   relationTitles: any[] = [];
+  designations: any[] = [];
   isLoading = false;
 
-  constructor(private fb: FormBuilder, private commonService: CommonService) { }
+  isSaving = signal(false);
+  saveError = signal<string | null>(null);
+
+  constructor(private fb: FormBuilder, private commonService: CommonService, private contactMasterService: ContactMasterService) { }
 
   ngOnInit() {
     this.buildForm();
+    this.loadCountries();
+    this.loadContactTitles();
+    this.loadBanks();
+    this.loadRelationTitles();
+    this.loadAddressTypes(this.contactType());
+    this.loadKycDocumentTypes();
+    this.loadEnterpriseTypes();
+    this.loadBusinessNatures();
+    this.loadDesignations();
 
     forkJoin({
       countries: this.commonService.getCountries(),
@@ -151,6 +177,17 @@ export class ContactAddComponent implements OnInit, OnChanges {
     });
   }
 
+  onKycDocTypeChange(item: any) {
+    this.kycDocumentNames = [];
+    this.form.patchValue({ kycDocumentName: null });
+    if (item?.pDocumentGroupId) {
+      this.commonService.getDocumentProofs(item.pDocumentGroupId).subscribe({
+        next: (data) => { this.kycDocumentNames = data; },
+        error: () => { this.kycDocumentNames = []; }
+      });
+    }
+  }
+
   loadEnterpriseTypes() {
     this.commonService.getEnterpriseType().subscribe({
       next: (data) => { this.enterpriseTypes = data; },
@@ -162,6 +199,13 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.commonService.getBusinessTypes().subscribe({
       next: (data) => { this.businessNatures = data; },
       error: () => { this.businessNatures = []; }
+    });
+  }
+
+  loadDesignations() {
+    this.commonService.getDesignationsAll().subscribe({
+      next: (data) => { this.designations = data; },
+      error: () => { this.designations = []; }
     });
   }
 
@@ -379,6 +423,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
       secondaryEmail: ['', Validators.email],
       // Flags
       kycDocumentType: [''],
+      kycDocumentName: [''],
       kycDocumentNo: [''],
       kycIssuedDate: [null],
       kycExpiryDate: [null],
@@ -495,21 +540,88 @@ export class ContactAddComponent implements OnInit, OnChanges {
       return;
     }
     const v = this.form.value;
-    const saved: Contact = {
-      id: this.contact?.id ?? '',
-      uid: this.contact?.uid ?? '',
-      name: this.contactType() === 'Individual'
-        ? `${v.salutation} ${v.firstName} ${v.surName}`.trim()
-        : v.enterpriseName,
-      relation: this.contactType() === 'Individual' ? `S/o - ${v.fatherName}` : '',
-      phone: v.primaryContact,
-      address: this.addressRows()[0]
-        ? `${this.addressRows()[0].addressLine},${this.addressRows()[0].city}` : '',
-      status: 'Active',
-      photo: this.photoPreview() ?? undefined,
-      type: this.contact?.type ?? 'Contacts',
+    const payload = {
+      GlobalSchema: this.commonService.getschemaname(),
+      CompanyCode: this.commonService.getCompanyCode(),
+      Tab: this.tabMap[this.activeTab],
+      ContactType: this.contactType(),
+      // Individual
+      Salutation: v.salutation,
+      FirstName: v.firstName,
+      SurName: v.surName,
+      MailingName: v.mailingName,
+      Gender: v.gender,
+      FatherSalutation: v.fatherSalutation,
+      FatherName: v.fatherName,
+      DOB: v.dob,
+      Age: v.age,
+      PANCard: v.panCard,
+      AadharCard: v.aadharCard,
+      CNTNo: v.cntNo,
+      // Business
+      EnterpriseName: v.enterpriseName,
+      EnterpriseEmail: v.enterpriseEmail,
+      EnterpriseContact: v.enterpriseContact,
+      EnterprisePAN: v.enterprisePan,
+      EnterpriseType: v.enterpriseType,
+      BusinessNature: v.businessNature,
+      // Contact info
+      PrimaryContact: v.primaryContact,
+      SecondaryContact: v.secondaryContact,
+      PrimaryEmail: v.primaryEmail,
+      SecondaryEmail: v.secondaryEmail,
+      // KYC
+      KYCDocumentType: v.kycDocumentType,
+      KYCDocumentName: v.kycDocumentName,
+      KYCDocumentNo: v.kycDocumentNo,
+      KYCIssuedDate: v.kycIssuedDate,
+      KYCExpiryDate: v.kycExpiryDate,
+      KYCStatus: v.kycStatus,
+      KYCRemarks: v.kycRemarks,
+      // Bank
+      BankName: v.bankName,
+      BankBranch: v.bankBranch,
+      AccountHolderName: v.accountHolderName,
+      AccountNo: v.accountNo,
+      AccountType: v.accountType,
+      IFSCCode: v.ifscCode,
+      UPIId: v.upiId,
+      // Flags
+      FabricatedContact: v.fabricatedContact,
+      FabricatedContactComments: v.fabricatedContactComments,
+      PaidGuarantor: v.paidGuarantor,
+      PaidGuarantorComments: v.paidGuarantorComments,
+      // Address & contact persons
+      Addresses: this.addressRows(),
+      ContactPersons: this.contactPersons(),
     };
-    this.onSave.emit(saved);
+
+    this.isSaving.set(true);
+    this.saveError.set(null);
+    this.contactMasterService.saveContact(payload).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        const saved: Contact = {
+          id: this.contact?.id ?? '',
+          uid: this.contact?.uid ?? '',
+          name: this.contactType() === 'Individual'
+            ? `${v.salutation} ${v.firstName} ${v.surName}`.trim()
+            : v.enterpriseName,
+          relation: this.contactType() === 'Individual' ? `S/o - ${v.fatherName}` : '',
+          phone: v.primaryContact,
+          address: this.addressRows()[0]
+            ? `${this.addressRows()[0].addressLine},${this.addressRows()[0].city}` : '',
+          status: 'Active',
+          photo: this.photoPreview() ?? undefined,
+          type: this.contact?.type ?? 'Contacts',
+        };
+        this.onSave.emit(saved);
+      },
+      error: (err) => {
+        this.isSaving.set(false);
+        this.saveError.set(err?.message ?? 'Failed to save contact. Please try again.');
+      }
+    });
   }
 
   close() {

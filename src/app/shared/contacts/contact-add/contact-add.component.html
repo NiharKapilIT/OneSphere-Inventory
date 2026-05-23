@@ -373,8 +373,10 @@
         <div class="col-12 col-md-5">
           <div class="erp-form-group">
             <label>Designation</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentContactPerson.designation"
-              [ngModelOptions]="{standalone:true}" placeholder="Designation" />
+            <ng-select appendTo="body" [items]="designations" bindLabel="designation_name" bindValue="designation_name"
+              [(ngModel)]="currentContactPerson.designation" [ngModelOptions]="{standalone:true}"
+              placeholder="Select Designation" [searchable]="true" [clearable]="true">
+            </ng-select>
           </div>
         </div>
         <div class="col-12 col-md-2" style="display:flex; align-items:flex-end; padding-bottom:16px;">
@@ -647,15 +649,25 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>KYC Document Type</label>
-            <ng-select appendTo="body" [items]="kycDocumentTypes" bindLabel="pDocumentGroup" bindValue="pDocumentGroup"
-              formControlName="kycDocumentType" placeholder="Select document" [searchable]="true" [clearable]="true">
+            <ng-select appendTo="body" [items]="kycDocumentTypes" bindLabel="pDocumentGroup"
+              formControlName="kycDocumentType" placeholder="Select document" [searchable]="true" [clearable]="true"
+              (change)="onKycDocTypeChange($event)">
             </ng-select>
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>Document Number</label>
+            <label>Document Name</label>
+            <ng-select appendTo="body" [items]="kycDocumentNames" bindLabel="pDocumentName" bindValue="pDocumentId"
+              formControlName="kycDocumentName" placeholder="Select document name" [searchable]="true" [clearable]="true">
+            </ng-select>
+          </div>
+        </div>
+
+        <div class="col-12 col-md-4">
+          <div class="erp-form-group">
+            <label>Reference Number</label>
             <input type="text" class="erp-input" formControlName="kycDocumentNo" placeholder="Document number" />
           </div>
         </div>
@@ -892,8 +904,12 @@
         </button>
         }
 
-        <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveContact()">
-          <i class="pi pi-check"></i> Save Contact
+        @if (saveError()) {
+        <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> {{ saveError() }}</span>
+        }
+        <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveContact()" [disabled]="isSaving()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+          {{ isSaving() ? 'Saving...' : 'Save Contact' }}
         </button>
       </div>
     </div>

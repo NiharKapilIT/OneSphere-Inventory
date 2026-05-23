@@ -150,9 +150,18 @@ loadContacts() {
     'Freelancer':            'Freelancer',
   };
 
-  this.contactMasterService.getContactViewByName(tabMap[this.activeTab()], endindex).subscribe({
+  const activeTab = this.activeTab();
+  this.contactMasterService.getContactViewByName(tabMap[activeTab], endindex).subscribe({
     next: (data) => {
-      this.allContacts.set(this.mapContacts(data));
+      const mapped = this.mapContacts(data);
+      if (activeTab !== 'Contacts') {
+        mapped.forEach(c => {
+          if (!(c.roles ?? []).includes(activeTab as ContactRole)) {
+            (c.roles = c.roles ?? []).push(activeTab as ContactRole);
+          }
+        });
+      }
+      this.allContacts.set(mapped);
       this.hasMore.set(data.length >= this.pageSize());
       this.loading.set(false);
     },

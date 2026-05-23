@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, Input, OnInit, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { SharedModule } from 'primeng/api';
+import { CommonService } from '../../../core/services/Common/common.service';
 
 type EmployeeTab =
   | 'General Information'
@@ -23,10 +24,11 @@ type EmployeeTab =
   templateUrl: './employee-details.component.html',
   styleUrl: './employee-details.component.scss',
 })
-export class EmployeeDetailsComponent {
+export class EmployeeDetailsComponent implements OnInit {
   @Input() contact: any = null;
 
   private fb = inject(FormBuilder);
+  private commonService = inject(CommonService);
 
   pDatepickerMaxDate: Date = new Date();
 
@@ -41,17 +43,17 @@ export class EmployeeDetailsComponent {
   ];
   activeTab = signal<EmployeeTab>('General Information');
 
-  designations = ['Manager', 'Executive', 'Officer', 'Accountant', 'Field Staff'];
-  roles = ['Admin', 'Branch User', 'Cashier', 'Collector', 'Manager'];
-  branches = ['HABSIGUDA-2-CAO', 'Hyderabad', 'Vijayawada', 'Warangal'];
-  countries = ['India', 'United States', 'United Kingdom', 'Australia'];
+  designations: any[] = [];
+  roles: any[] = [];
+  branches: any[] = [];
+  countries: any[] = [];
   communities = ['General', 'BC', 'SC', 'ST', 'OC'];
   relationships = ['Father', 'Mother', 'Spouse', 'Son', 'Daughter', 'Brother', 'Sister'];
-  educationOptions = ['SSC', 'Intermediate', 'Degree', 'Post Graduation', 'Professional'];
+  educationOptions: any[] = [];
   bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
   joinedAsOptions = ['New Joining', 'Transfer', 'Promotion', 'Rejoining'];
-  documentTypes = ['Identity Proof', 'Address Proof', 'Education Proof', 'Experience Proof', 'Other'];
-  documentNames = ['Aadhar Card', 'PAN Card', 'Passport', 'Driving License', 'Certificate'];
+  documentTypes: any[] = [];
+  documentNames: any[] = [];
 
   form: FormGroup = this.fb.group({
     // Employment & Salary
@@ -134,6 +136,44 @@ export class EmployeeDetailsComponent {
   careerList = signal<any[]>([]);
   trainingList = signal<any[]>([]);
   documentsList = signal<any[]>([]);
+
+  ngOnInit() {
+    this.commonService.getRoles().subscribe({
+      next: (data) => { this.roles = data; },
+      error: () => { this.roles = []; }
+    });
+    this.commonService.getDesignationsAll().subscribe({
+      next: (data) => { this.designations = data; },
+      error: () => { this.designations = []; }
+    });
+    this.commonService.getBranches().subscribe({
+      next: (data) => { this.branches = data; },
+      error: () => { this.branches = []; }
+    });
+    this.commonService.getCountries().subscribe({
+      next: (data) => { this.countries = data; },
+      error: () => { this.countries = []; }
+    });
+    this.commonService.getDocumentGroupNames().subscribe({
+      next: (data) => { this.documentTypes = data; },
+      error: () => { this.documentTypes = []; }
+    });
+    this.commonService.getQualifications().subscribe({
+      next: (data) => { this.educationOptions = data; },
+      error: () => { this.educationOptions = []; }
+    });
+  }
+
+  onDocTypeChange(item: any) {
+    this.documentNames = [];
+    this.form.patchValue({ docName: null });
+    if (item?.pDocumentGroupId) {
+      this.commonService.getDocumentProofs(item.pDocumentGroupId).subscribe({
+        next: (data) => { this.documentNames = data; },
+        error: () => { this.documentNames = []; }
+      });
+    }
+  }
 
   setActiveTab(tab: EmployeeTab) {
     this.activeTab.set(tab);

@@ -18,6 +18,9 @@ export class ContactMasterService {
     return this.commonService.getAPI('/ContactMaster/GetcontactviewByName', params, 'YES');
   }
 
+  saveContact(data: any): Observable<any> {
+    return this.commonService.postAPI('/ContactMaster/SaveContact', data);
+  }
   getNoOfRecords(tab: string): Observable<number> {
     const params = new HttpParams()
       .set('globalSchema', this.commonService.getschemaname())
