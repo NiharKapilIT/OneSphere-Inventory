@@ -269,8 +269,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
       enterpriseEmail: data.pBusinessEntityEmailid ?? '',
       enterpriseContact: data.pBusinessEntityContactno ?? '',
       enterprisePan: data.ppancardno ?? '',
-      enterpriseType: data.pEnterpriseType ?? '',
-      businessNature: data.pBusinesstype ?? '',
+      //enterpriseType: data.pEnterpriseType ?? '',
+      enterpriseType: data.pEnterpriseType || null,
+
+      // businessNature: data.pBusinesstype ?? '',
+
+      businessNature: data.pBusinesstype || null,
       // Contact info
       primaryContact: data.pContactNumber ?? '',
       secondaryContact: data.pAlternativeNo ?? '',
@@ -366,8 +370,8 @@ export class ContactAddComponent implements OnInit, OnChanges {
       enterpriseEmail: [''],
       enterpriseContact: [''],
       enterprisePan: [''],
-      enterpriseType: [''],
-      businessNature: [''],
+      enterpriseType: [null],
+      businessNature: [null],
       // Contact Info
       primaryContact: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       secondaryContact: [''],
@@ -540,5 +544,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
         return '';
     }
   }
+
+
 
 }
