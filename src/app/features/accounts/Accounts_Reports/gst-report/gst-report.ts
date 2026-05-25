@@ -412,7 +412,7 @@ export class GstReport implements OnInit {
     const rows: any[]        = [];
     const reportName         = 'GST Report';
     const gridHeaders        = [
-      'Chit No.', 'GST No.', 'Name', 'Area', 'City', 'State',
+      'GST No.', 'Name', 'Area', 'City', 'State',
       'Subscriber Address', 'Transaction Date', 'Transaction No.',
       'Taxable Amount', 'IGST', 'CGST', 'SGST'
     ];
@@ -423,7 +423,7 @@ export class GstReport implements OnInit {
       6: { cellWidth: 'auto', halign: 'center' }, 7: { cellWidth: 'auto', halign: 'center' },
       8: { cellWidth: 'auto', halign: 'center' }, 9: { cellWidth: 15, halign: 'right' },
       10: { cellWidth: 15, halign: 'right' }, 11: { cellWidth: 15, halign: 'right' },
-      12: { cellWidth: 15, halign: 'right' }
+      // 12: { cellWidth: 15, halign: 'right' }
     };
 
     const details = this.gstReportDetails();
@@ -437,12 +437,12 @@ export class GstReport implements OnInit {
       const cgstAmount      = toAmt(element.cgstamount);
       const sgstAmount      = toAmt(element.sgstamount);
 
-      if (element.group !== undefined || (element.groupcode && element.accountname)) {
-        rows.push([element.groupcode, gstNumber, element.accountname, element.area, element.city,
+      if (element.group !== undefined || (element.accountname)) {
+        rows.push([ gstNumber, element.accountname, element.area, element.city,
           element.state, element.guarantoraddress, transactionDate, element.receiptnumber,
           taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       } else {
-        rows.push([element.groupcode,  gstNumber, element.accountname, element.area, element.city, element.state, element.guarantoraddress, transactionDate, element.receiptnumber, taxableAmount, igstAmount, cgstAmount, sgstAmount]);
+        rows.push([ gstNumber, element.accountname, element.area, element.city, element.state, element.guarantoraddress, transactionDate, element.receiptnumber, taxableAmount, igstAmount, cgstAmount, sgstAmount]);
       }
     });
 
@@ -508,7 +508,6 @@ export class GstReport implements OnInit {
     const rows = this.gstReportDetails().map(el => ({
       'Parent Name':      el.parentname,
       'GSTNo.':           el.gstnumber && el.gstnumber !== '[object Object]' ? el.gstnumber : '--NA--',
-      'Chit No.':         el.groupcode,
       'Name':             el.accountname,
       'Area':             el.area,
       'City':             el.city,

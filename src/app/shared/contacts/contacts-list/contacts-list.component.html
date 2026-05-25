@@ -341,9 +341,16 @@
           <app-subscriber-details [contact]="roleModalContact()"></app-subscriber-details>
         }
 
-        @if (roleModalRole() === 'Employee') {
+        <!-- @if (roleModalRole() === 'Employee') {
           <app-employee-details [contact]="roleModalContact()"></app-employee-details>
-        }
+        } -->
+          @if (roleModalRole() === 'Employee') {
+  <app-employee-details
+    [contact]="roleModalContact()"
+    [triggerSave]="triggerEmployeeSave()"
+    (onSaveSuccess)="onEmployeeSaveSuccess()">
+  </app-employee-details>
+}
 
         @if (roleModalRole() === 'Supplier / Vendor') {
           <div class="role-info-card-wrap">
@@ -410,14 +417,24 @@
         }
       </div>
 
-      <div class="role-modal-footer">
+      <!-- <div class="role-modal-footer">
         <button type="button" class="erp-btn btn-ghost btn-sm" (click)="closeRoleForm()">
           <i class="pi pi-times-circle"></i> Cancel
         </button>
         <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveRoleForm()">
           <i class="pi pi-check"></i> Save {{ roleModalRole() }}
         </button>
-      </div>
+      </div> -->
+      <div class="role-modal-footer">
+  <button type="button" class="erp-btn btn-ghost btn-sm" (click)="closeRoleForm()">
+    <i class="pi pi-times-circle"></i> Cancel
+  </button>
+  <button type="button" class="erp-btn btn-primary btn-sm"
+    (click)="saveRoleForm()"
+    [disabled]="roleModalRole() === 'Employee' && triggerEmployeeSave()">
+    <i class="pi pi-check"></i> Save {{ roleModalRole() }}
+  </button>
+</div>
     </div>
   </div>
 }

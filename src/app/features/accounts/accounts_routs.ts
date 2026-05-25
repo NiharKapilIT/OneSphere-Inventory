@@ -267,6 +267,12 @@ export const accountsRoutes: Routes = [
             .then(m => m.ScheduleTb)
       },
       {
+        path: 'schedule-tb-report',
+        loadComponent: () =>
+          import('./Accounts_Reports/schedule-tb-report/schedule-tb-report')
+            .then(m => m.ScheduleTbReport)
+      },
+      {
         path: 'tds-report',
         loadComponent: () =>
           import('./Accounts_Reports/tds-report/tds-report')

@@ -241,5 +241,28 @@ doc.addImage(rupeeImage, x - data.cell.contentWidth, y + 0.5, 1.5, 1.5);
   }
 
 
-
+  getDesignation(): Observable<any[]> {
+  return this._CommonService.getAPI('/Common/GetDesignation?GlobalSchema=global', '', 'NO');
 }
+  
+//  getEmployees(GlobalSchema: any, CompanyName: any, searchtype: any, BranchId: any, BranchSchema: any,sscagendatype: any): Observable<any> {
+//     const params = new HttpParams().set('GlobalSchema', GlobalSchema) .set('CompanyName', CompanyName).set('searchtype', searchtype)
+//      .set('BranchId', BranchId).set('BranchSchema', BranchSchema).set('sscagendatype', sscagendatype);
+//     return this._CommonService.getAPI('/HRMSTransactions/GetSSCAgendaEmployeeDetails', params, 'YES');
+//   }
+
+getEmployees(GlobalSchema: any, CompanyName: any, searchtype: any, BranchId: any, BranchSchema: any, sscagendatype: any): Observable<any> {
+  const params = `GlobalSchema=${GlobalSchema}&CompanyName=${CompanyName}&searchtype=${searchtype}&BranchId=${BranchId}&BranchSchema=${BranchSchema}&sscagendatype=${sscagendatype}`;
+  return this._CommonService.getAPI('/HRMSTransactions/GetSSCAgendaEmployeeDetails', params, 'YES');
+}
+
+
+
+  saveSscAgenda(data: any): Observable<any> {
+  return this._CommonService.postAPI('/HRMSTransactions/api/Transactions/HRMSTransactions/SaveSscAgenda', data);
+}
+}
+
+
+
+
