@@ -720,6 +720,32 @@ export class ContactsListComponent implements OnInit {
   // ── NEW: pulse signal that tells EmployeeDetailsComponent to save ──
   triggerEmployeeSave = signal(false);
 
+
+  tabCounts = signal<Record<string, number>>({});
+
+ 
+ loadTabCount(tab: ContactTab) {
+  const tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',  // ← was 'Referrals', now 'Freelancer'
+  };
+
+  this.contactMasterService.getNoOfRecords(tabMap[tab]).subscribe({
+    next: (count) => {
+      this.tabCounts.update(current => ({ ...current, [tab]: count }));
+    },
+    error: () => {}
+  });
+}
+
+
+
+
   filteredContacts = computed(() => {
     const q        = this.normalize(this.searchQuery());
     const uid      = this.normalize(this.uidFilter());
@@ -759,25 +785,49 @@ export class ContactsListComponent implements OnInit {
     private _commonService: CommonService
   ) {}
 
+  
   ngOnInit() {
-    this.loadContacts();
-  }
+  this.loadContacts();
+  this.loadTabCount('Contacts');
+}
 
-  loadContacts() {
-    this.loading.set(true);
-    const endindex = (this.currentPage() - 1) * this.pageSize();
-    this.contactMasterService.getContactViewByName(this.activeTab(), endindex).subscribe({
-      next: (data) => {
-        this.allContacts.set(this.mapContacts(data));
-        this.hasMore.set(data.length >= this.pageSize());
-        this.loading.set(false);
-      },
-      error: () => {
-        this.allContacts.set([]);
-        this.loading.set(false);
+  
+ 
+loadContacts() {
+  this.loading.set(true);
+  const endindex = (this.currentPage() - 1) * this.pageSize();
+  
+  const tabMap: Record<ContactTab, string> = {
+    'Contacts':              'Contacts',
+    'Subscriber / Customer': 'Referrals',
+    'Employee':              'Employees',
+    'Supplier / Vendor':     'Suppliers',
+    'Advocate':              'Advocates',
+    'Channel Partner':       'Referrals',
+    'Freelancer':            'Freelancer',
+  };
+
+  const activeTab = this.activeTab();
+  this.contactMasterService.getContactViewByName(tabMap[activeTab], endindex).subscribe({
+    next: (data) => {
+      const mapped = this.mapContacts(data);
+      if (activeTab !== 'Contacts') {
+        mapped.forEach(c => {
+          if (!(c.roles ?? []).includes(activeTab as ContactRole)) {
+            (c.roles = c.roles ?? []).push(activeTab as ContactRole);
+          }
+        });
       }
-    });
-  }
+      this.allContacts.set(mapped);
+      this.hasMore.set(data.length >= this.pageSize());
+      this.loading.set(false);
+    },
+    error: () => {
+      this.allContacts.set([]);
+      this.loading.set(false);
+    }
+  });
+}
 
   private mapContacts(data: any[]): Contact[] {
     return data.map(dto => {
@@ -807,13 +857,16 @@ export class ContactsListComponent implements OnInit {
     });
   }
 
-  switchTab(tab: ContactTab) {
-    this.activeTab.set(tab);
+switchTab(tab: ContactTab) {
+  this.activeTab.set(tab);
+  this.currentPage.set(1);
+   this.tabCounts.set({}); 
+  this.loadContacts();
+  this.loadTabCount(tab);
+}
+  onSearch() {
     this.currentPage.set(1);
-    this.loadContacts();
   }
-
-  onSearch() { this.currentPage.set(1); }
 
   toggleFilters()  { this.showFilters.update(v => !v); }
 
@@ -843,6 +896,12 @@ export class ContactsListComponent implements OnInit {
       this.loadContacts();
     }
   }
+ 
+
+  getTabCount(tab: ContactTab): number {
+  return this.tabCounts()[tab] ?? 0;
+}
+
 
   prevPage() {
     if (this.currentPage() > 1) {
@@ -858,10 +917,10 @@ export class ContactsListComponent implements OnInit {
     }
   }
 
-  getTabCount(tab: ContactTab) {
-    if (tab === 'Contacts') return this.allContacts().length;
-    return this.allContacts().filter(c => this.hasRole(c, tab as ContactRole)).length;
-  }
+  // getTabCount(tab: ContactTab) {
+  //   if (tab === 'Contacts') return this.allContacts().length;
+  //   return this.allContacts().filter(c => this.hasRole(c, tab as ContactRole)).length;
+  // }
 
   getContactInitials(contact: Contact) {
     return contact.name
@@ -874,11 +933,20 @@ export class ContactsListComponent implements OnInit {
     this.showAddForm.set(true);
   }
 
+
   openEditForm(contact: Contact) {
-    this.openMenuContactId.set(null);
-    this.editingContact.set(contact);
-    this.showAddForm.set(true);
-  }
+  console.log('1. openEditForm called:', contact);
+  console.log('2. contact.id:', contact.id);
+
+  this.openMenuContactId.set(null);
+  this.editingContact.set(null);
+  this.showAddForm.set(false);
+
+  console.log('3. setting contact:', contact);
+
+  this.editingContact.set({ ...contact });
+  this.showAddForm.set(true);
+}
 
   onFormClose() {
     this.showAddForm.set(false);
@@ -919,22 +987,105 @@ export class ContactsListComponent implements OnInit {
     this.triggerEmployeeSave.set(false); // reset on close
   }
 
-  // ── Save button in modal footer calls this ────────────────────────────────
-  saveRoleForm() {
-    debugger
-    const role = this.roleModalRole();
+  
+ saveRoleForm() {
+  const contact = this.roleModalContact();
+  const role = this.roleModalRole();
 
-    if (role === 'Employee') {
-      // Pulse true → EmployeeDetailsComponent.ngOnChanges fires → saveEmployee()
-      this.triggerEmployeeSave.set(true);
-      // Reset after tick so next Save click works again
-      setTimeout(() => this.triggerEmployeeSave.set(false), 200);
-      return;
-    }
+  if (!contact || !role) {
+    return;
+  }
 
-    // For all other roles, close immediately
+  // Supplier API call
+  // if (role === 'Supplier / Vendor') {
+
+  //   this.contactMasterService
+  //     .saveContactSupplier(contact.id, true)
+  //     .subscribe({
+
+  //       next: (res: any) => {
+
+  //         this.allContacts.update(list =>
+  //           list.map(item =>
+  //             item.id === contact.id
+  //               ? {
+  //                   ...item,
+  //                   roles: Array.from(
+  //                     new Set([...(item.roles || []), role])
+  //                   )
+  //                 }
+  //               : item
+  //           )
+  //         );
+
+  //         this.closeRoleForm();
+  //       },
+
+  //       error: (err) => {
+  //         console.error('Supplier save failed', err);
+  //       }
+
+  //     });
+
+  // } else {
+    if (role === 'Supplier / Vendor') {
+
+  this.contactMasterService
+    .saveContactSupplier(contact.id, true)
+    .subscribe({
+
+      next: (res: any) => {
+
+        if (res === true) {
+
+          alert('Supplier saved successfully');
+
+          this.allContacts.update(list =>
+            list.map(item =>
+              item.id === contact.id
+                ? {
+                    ...item,
+                    roles: Array.from(
+                      new Set([...(item.roles || []), role])
+                    )
+                  }
+                : item
+            )
+          );
+
+          this.closeRoleForm();
+
+        } else {
+          alert('Save failed');
+        }
+      },
+
+      error: (err) => {
+        console.error('Supplier save failed', err);
+        alert('API Error');
+      }
+
+    });
+
+} else {
+
+    // Local update for other roles
+    this.allContacts.update(list =>
+      list.map(item =>
+        item.id === contact.id
+          ? {
+              ...item,
+              roles: Array.from(
+                new Set([...(item.roles || []), role])
+              )
+            }
+          : item
+      )
+    );
+
     this.closeRoleForm();
   }
+}
 
   // ── Called by (onSaveSuccess) output from EmployeeDetailsComponent ────────
   onEmployeeSaveSuccess() {

@@ -6131,9 +6131,33 @@ export class CommonService {
     return this.getAPI('/Common/GetBusinessTypes', '', 'NO');
   }
 
+  getRoles(): Observable<any[]> {
+    return this.getAPI('/Common/GetRoles', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
+
+  getDesignationsAll(): Observable<any[]> {
+    return this.getAPI('/Common/GetDesignationsALL', '', 'NO');
+  }
 
 
+  getBranches(): Observable<any[]> {
+    return this.getAPI('/Common/GetBranches', 'GlobalSchema=' + this.getschemaname(), 'YES');
+  }
 
+  getQualifications(): Observable<any[]> {
+    return this.getAPI('/Common/ViewQualificationDetails', '', 'NO');
+  }
+
+  getDocumentProofs(docId: number): Observable<any[]> {
+    return this.getAPI('/Common/GetDocumentProofs', 'GlobalSchema=' + this.getschemaname() + '&docId=' + docId, 'YES');
+  }
+
+
+  viewContact(contactId: number): Observable<any> {
+    return this.getAPI('/ContactMaster/ViewContact', 'GlobalSchema=' + this.getschemaname() + '&refernceid=' + contactId, 'YES');
+  }
+
+  
 
   setPageModel(pageCriteria: PageCriteria, total: number): number[] {
     pageCriteria.pageSize = total > 0 && total < 10 ? total : 10;

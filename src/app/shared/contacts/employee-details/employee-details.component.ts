@@ -1241,6 +1241,44 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
   // Tab switch
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ngOnInit() {
+  //   this.commonService.getRoles().subscribe({
+  //     next: (data) => { this.roles = data; },
+  //     error: () => { this.roles = []; }
+  //   });
+  //   this.commonService.getDesignationsAll().subscribe({
+  //     next: (data) => { this.designations = data; },
+  //     error: () => { this.designations = []; }
+  //   });
+  //   this.commonService.getBranches().subscribe({
+  //     next: (data) => { this.branches = data; },
+  //     error: () => { this.branches = []; }
+  //   });
+  //   this.commonService.getCountries().subscribe({
+  //     next: (data) => { this.countries = data; },
+  //     error: () => { this.countries = []; }
+  //   });
+  //   this.commonService.getDocumentGroupNames().subscribe({
+  //     next: (data) => { this.documentTypes = data; },
+  //     error: () => { this.documentTypes = []; }
+  //   });
+  //   this.commonService.getQualifications().subscribe({
+  //     next: (data) => { this.educationOptions = data; },
+  //     error: () => { this.educationOptions = []; }
+  //   });
+  // }
+
+  onDocTypeChange(item: any) {
+    this.kycDocumentType = [];
+    this.form.patchValue({ docName: null });
+    if (item?.pDocumentGroupId) {
+      this._commonService.getDocumentProofs(item.pDocumentGroupId).subscribe({
+        next: (data) => { this.kycDocumentType = data; },
+        error: () => { this.kycDocumentType = []; }
+      });
+    }
+  }
+
   setActiveTab(tab: EmployeeTab) {
     this.activeTab.set(tab);
     if (tab !== 'Employee Documents') {

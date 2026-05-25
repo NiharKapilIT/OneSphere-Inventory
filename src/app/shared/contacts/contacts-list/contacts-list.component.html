@@ -309,6 +309,7 @@
 @if (showAddForm()) {
   <app-contact-add
     [contact]="editingContact()"
+    [activeTab]="activeTab()"
     (onClose)="onFormClose()"
     (onSave)="onFormSave($event)"
   ></app-contact-add>
