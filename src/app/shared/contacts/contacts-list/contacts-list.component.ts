@@ -193,7 +193,7 @@ loadContacts() {
         phone: String(dto.pContactNumber ?? ''),
         address: String(dto.pAddresDetails ?? ''),
         status: String(dto.pStatus ?? '') === 'Active' ? 'Active' : 'Inactive',
-        photo: dto.pImagePath  ? String(dto.pImage) : undefined,
+        photo: dto.pImagePath  ? String(dto.pImagePath) : undefined,
         type: 'Contacts' as ContactTab,
         roles,
       };
