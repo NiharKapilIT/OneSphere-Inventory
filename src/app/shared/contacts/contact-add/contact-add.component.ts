@@ -2,14 +2,16 @@ import {
   Component, OnInit, Input, Output, EventEmitter,
   signal, computed, OnChanges, SimpleChanges
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { AsyncPipe, CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
 import { Contact, ContactTab } from '../contacts-list/contacts-list.component';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { CommonService } from '../../../core/services/Common/common.service';
 import { ContactMasterService } from '../../../core/services/contacts/contact-master.service';
-import { forkJoin } from 'rxjs';
+import { NumbersOnlyDirective } from '../../../core/Directive/numbers-only';
+import { Subject, Observable, concat, of, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError, map } from 'rxjs/operators';
 
 export type ContactType = 'Individual' | 'Business Entity';
 export type Gender = 'Male' | 'Female' | 'Third Gender';
@@ -34,13 +36,28 @@ interface Address {
 
 interface ContactPerson {
   contact: string;
+  contactId?: any;
   designation: string;
+  isPrimary: boolean;
 }
+
+interface BankDetail {
+  isPrimary: boolean;
+  bankId: any;
+  bankName: string;
+  accountNo: string;
+  ifscCode: string;
+  branch: string;
+  accountHolderName: string;
+  accountType: string;
+  upiId: string;
+}
+
 
 @Component({
   selector: 'app-contact-add',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgSelectModule, DatePickerModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgSelectModule, DatePickerModule, NumbersOnlyDirective, AsyncPipe],
   templateUrl: './contact-add.component.html',
   styleUrl: './contact-add.component.scss',
 })
@@ -51,13 +68,13 @@ export class ContactAddComponent implements OnInit, OnChanges {
   @Output() onSave = new EventEmitter<Contact>();
 
   private readonly tabMap: Record<ContactTab, string> = {
-    'Contacts':              'Contacts',
+    'Contacts': 'Contacts',
     'Subscriber / Customer': 'Referrals',
-    'Employee':              'Employees',
-    'Supplier / Vendor':     'Suppliers',
-    'Advocate':              'Advocates',
-    'Channel Partner':       'Referrals',
-    'Freelancer':            'Freelancer',
+    'Employee': 'Employees',
+    'Supplier / Vendor': 'Suppliers',
+    'Advocate': 'Advocates',
+    'Channel Partner': 'Referrals',
+    'Freelancer': 'Freelancer',
   };
 
   contactType = signal<ContactType>('Individual');
@@ -68,11 +85,14 @@ export class ContactAddComponent implements OnInit, OnChanges {
   // Address table
   addressRows = signal<Address[]>([]);
   currentAddress: Address = this.emptyAddress();
+  bankRows = signal<BankDetail[]>([]);
+  contactSearchEvent = new Subject<string>();
+  contactList$!: Observable<any[]>;
+  selectedContactPerson: any = null;
 
   // Contact persons (Business)
   contactPersons = signal<ContactPerson[]>([]);
-  currentContactPerson: ContactPerson = { contact: '', designation: '' };
-
+  currentContactPerson: ContactPerson = { contact: '', designation: '', isPrimary: false };
   // Photo
   photoPreview = signal<string | null>(null);
   pDatepickerMaxDate: Date = new Date();
@@ -110,6 +130,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.loadEnterpriseTypes();
     this.loadBusinessNatures();
     this.loadDesignations();
+    this.setupContactSearch();
 
     forkJoin({
       countries: this.commonService.getCountries(),
@@ -170,6 +191,103 @@ export class ContactAddComponent implements OnInit, OnChanges {
     });
   }
 
+  onIfscInput(event: Event, controlName: string): void {
+
+    const input = event.target as HTMLInputElement;
+
+    const pos = input.selectionStart ?? input.value.length;
+
+    const clean = input.value
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase();
+
+    const control = this.form.get(controlName);
+
+    control?.setValue(clean, { emitEvent: false });
+
+    input.value = clean;
+
+    input.setSelectionRange(pos, pos);
+  }
+
+
+  setPrimaryContactPerson(idx: number) {
+    this.contactPersons.update(list => list.map((cp, i) => ({ ...cp, isPrimary: i === idx })));
+  }
+
+  private setupContactSearch(): void {
+    this.contactList$ = concat(
+      of([]),
+      this.contactSearchEvent.pipe(
+        debounceTime(400),
+        distinctUntilChanged(),
+        switchMap(term => {
+          if (!term || term.trim().length < 2) return of([]);
+          return this.contactMasterService.getSubscriberContactDetails(term, 'CONTACT MASTER')
+            .pipe(
+              map((res: any) => res?.message ?? res ?? []),
+              catchError(() => of([]))
+            );
+        })
+      )
+    );
+  }
+
+  onContactPersonSelect(selected: any): void {
+    if (selected) {
+      this.selectedContactPerson = selected;
+    } else {
+      this.selectedContactPerson = null;
+    }
+  }
+
+
+
+  addContactPerson() {
+    this.form.get('contactPerson')?.markAsTouched();
+    this.form.get('contactPersonDesignation')?.markAsTouched();
+
+    const contactVal = this.form.get('contactPerson')?.value;
+    const designationVal = this.form.get('contactPersonDesignation')?.value;
+
+    const contact = (contactVal ?? '').toString().trim();
+    const designation = (designationVal ?? '').toString().trim();
+
+    if (!contact || !designation) return;
+
+    this.contactPersons.update(list => [
+      ...list,
+      {
+        contact: contact,
+        contactId: this.selectedContactPerson?.contactid ?? null,
+        designation: designation,
+        isPrimary: list.length === 0
+      }
+    ]);
+
+    this.form.patchValue({ contactPerson: null, contactPersonDesignation: null });
+    this.form.get('contactPerson')?.markAsUntouched();
+    this.form.get('contactPersonDesignation')?.markAsUntouched();
+    this.selectedContactPerson = null;
+  }
+
+  lettersOnly(event: any): void {
+    event.target.value = event.target.value.replace(/[^a-zA-Z ]/g, '');
+  }
+
+  convertTitleCase(controlName: string): void {
+    const control = this.form.get(controlName);
+    const value = control?.value as string;
+    if (value) {
+      const titleCase = value
+        .toLowerCase()
+        .split(' ')
+        .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      control?.setValue(titleCase);
+    }
+  }
+
   loadKycDocumentTypes() {
     this.commonService.getDocumentGroupNames().subscribe({
       next: (data) => { this.kycDocumentTypes = data; },
@@ -216,10 +334,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
     });
   }
 
+
   onCountryChange(country: any) {
     this.states = [];
     this.districts = [];
     this.currentAddress.countryId = country?.tbl_mst_country_id ?? null;
+    this.form.patchValue({ state: null, district: null });
     if (country) {
       this.commonService.getStates(country.tbl_mst_country_id).subscribe({
         next: (data) => { this.states = data; },
@@ -228,9 +348,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
     }
   }
 
+
   onStateChange(state: any) {
     this.districts = [];
     this.currentAddress.stateId = state?.tbl_mst_state_id ?? null;
+    this.currentAddress.state = state?.state_name ?? '';
+    this.form.patchValue({ district: null });
     if (state) {
       this.commonService.getDistricts(state.tbl_mst_state_id).subscribe({
         next: (data) => { this.districts = data; },
@@ -241,6 +364,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
   onDistrictChange(district: any) {
     this.currentAddress.districtId = district?.tbl_mst_district_id ?? null;
+    this.currentAddress.district = district?.district_name ?? '';
   }
 
 
@@ -306,7 +430,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
       fatherSalutation: data.rTitleName ?? '',
       fatherName: data.pFatherName ?? '',
       dob: parsedDob,
-      age: data.pAge ?? '',
+      age: data.pAge ? Number(data.pAge) : null,
       panCard: data.ppancardno ?? '',
       // Business
       enterpriseName: data.pName ?? '',
@@ -329,9 +453,10 @@ export class ContactAddComponent implements OnInit, OnChanges {
       paidGuarantorDocument: data.paidguarantor_filename ?? '',
     });
 
-    // 5. Address rows
+
     if (Array.isArray(data.pAddressList) && data.pAddressList.length > 0) {
       this.addressRows.set(data.pAddressList.map((a: any) => ({
+        // isPrimary: true,
         isPrimary: this.toBool(a.pAddressPriority),
         type: a.pAddressType ?? '',
         addressLine: a.pAddress1 ?? '',
@@ -344,8 +469,8 @@ export class ContactAddComponent implements OnInit, OnChanges {
         district: a.pDistrict ?? '',
         districtId: a.pDistrictId ?? null,
         pincode: a.pPinCode ?? '',
-        longitude: a.plongitude ?? '',
-        latitude: a.platitude ?? '',
+        plongitude: a.longitude || null,
+        platitude: a.latitude || null,
       })));
     }
 
@@ -393,12 +518,20 @@ export class ContactAddComponent implements OnInit, OnChanges {
   buildForm() {
     this.form = this.fb.group({
       // Individual
-      salutation: [''],
+      addressType: [null, Validators.required],
+      addressLine: [null, Validators.required],
+      area: [null, Validators.required],
+      city: [null, Validators.required],
+      country: [null, Validators.required],
+      state: [null, Validators.required],
+      district: [null, Validators.required],
+      pincode: [null, Validators.required],
+      salutation: [null],
       firstName: ['', Validators.required],
       surName: [''],
       mailingName: [''],
       gender: ['Male', Validators.required],
-      fatherSalutation: [''],
+      fatherSalutation: [null],
       fatherName: ['', Validators.required],
       dob: [null],
       age: [''],
@@ -406,31 +539,31 @@ export class ContactAddComponent implements OnInit, OnChanges {
       aadharCard: [''],
       cntNo: [''],
       // Business
-      enterpriseName: [''],
+      enterpriseName: ['', Validators.required],
       enterpriseEmail: [''],
-      enterpriseContact: [''],
-      enterprisePan: [''],
-      enterpriseType: [''],
-      businessNature: [''],
+      enterpriseContact: ['', Validators.required],
+      enterprisePan: ['',],
+      enterpriseType: [null],
+      businessNature: [null],
       // Contact Info
       primaryContact: ['', [Validators.required, Validators.pattern('^[0-9]{10}$')]],
       secondaryContact: [''],
       primaryEmail: ['', Validators.email],
       secondaryEmail: ['', Validators.email],
       // Flags
-      kycDocumentType: [''],
-      kycDocumentName: [''],
-      kycDocumentNo: [''],
+      kycDocumentType: [null, Validators.required],
+      kycDocumentName: [null, Validators.required],
+      kycReferenceNo: ['', Validators.required],
       kycIssuedDate: [null],
       kycExpiryDate: [null],
       kycStatus: ['Pending'],
       kycRemarks: [''],
-      bankName: [''],
+      bankName: [null, Validators.required],
       bankBranch: [''],
       accountHolderName: [''],
-      accountNo: [''],
-      accountType: [''],
-      ifscCode: [''],
+      accountNo: ['', Validators.required],
+      accountType: [null],
+      ifscCode: ['', Validators.required],
       upiId: [''],
       fabricatedContact: [false],
       fabricatedContactComments: [''],
@@ -438,6 +571,8 @@ export class ContactAddComponent implements OnInit, OnChanges {
       paidGuarantor: [false],
       paidGuarantorComments: [''],
       paidGuarantorDocument: [''],
+      contactPerson: [null, Validators.required],
+      contactPersonDesignation: [null, Validators.required],
     });
   }
 
@@ -470,31 +605,57 @@ export class ContactAddComponent implements OnInit, OnChanges {
     };
   }
 
+
   addAddress() {
-    if (!this.currentAddress.addressLine && !this.currentAddress.city) return;
-    const rows = this.addressRows();
-    const newAddr = { ...this.currentAddress };
-    if (rows.length === 0) newAddr.isPrimary = true;
+    const addressControls = ['addressLine', 'area', 'city', 'addressType', 'country', 'state', 'district', 'pincode', 'latitude', 'longitude'];
+    addressControls.forEach(key => this.form.get(key)?.markAsTouched());
+
+    const v = this.form.value;
+    if (!v.addressLine || !v.city || !v.state || !v.district || !v.pincode) return;
+
+    const newAddr: Address = {
+      isPrimary: this.addressRows().length === 0,
+      type: v.addressType ?? '',
+      addressLine: v.addressLine ?? '',
+      area: v.area ?? '',
+      city: v.city ?? '',
+      country: v.country ?? '',
+      countryId: this.currentAddress.countryId,
+      state: v.state ?? '',
+      stateId: this.currentAddress.stateId,
+      district: v.district ?? '',
+      districtId: this.currentAddress.districtId,
+      pincode: v.pincode ?? '',
+      longitude: this.currentAddress.longitude,
+      latitude: this.currentAddress.latitude,
+    };
+
     this.addressRows.update(list => [...list, newAddr]);
+
+    this.form.patchValue({
+      addressLine: null, area: null, city: null,
+      addressType: null, country: null, state: null,
+      district: null, pincode: null, longitude: null, latitude: null
+    });
+
+    addressControls.forEach(key => this.form.get(key)?.markAsUntouched());
+
     this.currentAddress = this.emptyAddress();
     this.states = [];
     this.districts = [];
   }
+
+
 
   removeAddress(idx: number) {
     this.addressRows.update(list => list.filter((_, i) => i !== idx));
   }
 
   setPrimaryAddress(idx: number) {
+    debugger
     this.addressRows.update(list => list.map((a, i) => ({ ...a, isPrimary: i === idx })));
   }
 
-  // Contact persons
-  addContactPerson() {
-    if (!this.currentContactPerson.contact) return;
-    this.contactPersons.update(list => [...list, { ...this.currentContactPerson }]);
-    this.currentContactPerson = { contact: '', designation: '' };
-  }
 
   removeContactPerson(idx: number) {
     this.contactPersons.update(list => list.filter((_, i) => i !== idx));
@@ -510,6 +671,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
     }
   }
 
+
   clearForm() {
     this.form.reset();
     this.form.patchValue({
@@ -522,7 +684,10 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.contactPersons.set([]);
     this.photoPreview.set(null);
     this.currentAddress = this.emptyAddress();
+    this.states = [];
+    this.districts = [];
     this.activeSection.set('personal');
+    this.bankRows.set([]);
   }
 
   onFlagDocumentChange(event: Event, controlName: 'fabricatedContactDocument' | 'paidGuarantorDocument') {
@@ -530,95 +695,288 @@ export class ContactAddComponent implements OnInit, OnChanges {
     this.form.get(controlName)?.setValue(file?.name || '');
   }
 
-  saveContact() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+
+
+  addBank() {
+    const bankControls = ['bankName', 'accountNo', 'ifscCode'];
+    bankControls.forEach(key => this.form.get(key)?.markAsTouched());
+
     const v = this.form.value;
+    if (!v.bankName || !v.accountNo || !v.ifscCode) return;
+
+    const newBank: BankDetail = {
+      isPrimary: this.bankRows().length === 0,
+      bankId: v.bankName?.bankId ?? null,
+      bankName: v.bankName?.bankName ?? (typeof v.bankName === 'string' ? v.bankName : ''),
+      accountNo: v.accountNo ?? '',
+      ifscCode: v.ifscCode ?? '',
+      branch: v.bankBranch ?? '',
+      accountHolderName: v.accountHolderName ?? '',
+      accountType: v.accountType ?? '',
+      upiId: v.upiId ?? '',
+    };
+
+    this.bankRows.update(list => [...list, newBank]);
+
+    this.form.patchValue({
+      bankName: null, bankBranch: '', accountHolderName: '',
+      accountNo: '', accountType: null, ifscCode: '', upiId: '',
+
+    });
+    bankControls.forEach(key => this.form.get(key)?.markAsUntouched());
+  }
+
+  removeBank(idx: number) {
+    this.bankRows.update(list => {
+      const updated = list.filter((_, i) => i !== idx);
+      if (updated.length > 0 && !updated.some(b => b.isPrimary)) {
+        updated[0] = { ...updated[0], isPrimary: true };
+      }
+      return updated;
+    });
+  }
+
+  setPrimaryBank(idx: number) {
+    this.bankRows.update(list => list.map((b, i) => ({ ...b, isPrimary: i === idx })));
+  }
+
+
+  saveContact() {
+    debugger
+    // if (this.form.invalid) {
+    //   this.form.markAllAsTouched();
+    //   return;
+    // }
+
+    const v = this.form.value;
+    const branchId = this.commonService.getbrachid();
+    const schemaName = this.commonService.getschemaname();
+    const fullName = `${v.firstName || ''} ${v.surName || ''}`.trim();
+
+    const auditFields = {
+      pCreatedby: branchId,
+      pStatusid: 1,
+      pStatusname: 'Active',
+      ptypeofoperation: 'INSERT',
+      pipaddress: '127.0.0.1',
+      pactivitytype: 'CREATE',
+      currencyformat: 'INR',
+      dateformat: 'dd/MM/yyyy',
+      schemaname: schemaName,
+      preleasetype: 'LIVE',
+      branch_id: branchId,
+      ppayrollbranchid: 1,
+    };
+
     const payload = {
-      GlobalSchema: this.commonService.getschemaname(),
-      CompanyCode: this.commonService.getCompanyCode(),
-      Tab: this.tabMap[this.activeTab],
-      ContactType: this.contactType(),
-      // Individual
-      Salutation: v.salutation,
-      FirstName: v.firstName,
-      SurName: v.surName,
-      MailingName: v.mailingName,
-      Gender: v.gender,
-      FatherSalutation: v.fatherSalutation,
-      FatherName: v.fatherName,
-      DOB: v.dob,
-      Age: v.age,
-      PANCard: v.panCard,
-      AadharCard: v.aadharCard,
-      CNTNo: v.cntNo,
-      // Business
-      EnterpriseName: v.enterpriseName,
-      EnterpriseEmail: v.enterpriseEmail,
-      EnterpriseContact: v.enterpriseContact,
-      EnterprisePAN: v.enterprisePan,
-      EnterpriseType: v.enterpriseType,
-      BusinessNature: v.businessNature,
-      // Contact info
-      PrimaryContact: v.primaryContact,
-      SecondaryContact: v.secondaryContact,
-      PrimaryEmail: v.primaryEmail,
-      SecondaryEmail: v.secondaryEmail,
-      // KYC
-      KYCDocumentType: v.kycDocumentType,
-      KYCDocumentName: v.kycDocumentName,
-      KYCDocumentNo: v.kycDocumentNo,
-      KYCIssuedDate: v.kycIssuedDate,
-      KYCExpiryDate: v.kycExpiryDate,
-      KYCStatus: v.kycStatus,
-      KYCRemarks: v.kycRemarks,
-      // Bank
-      BankName: v.bankName,
-      BankBranch: v.bankBranch,
-      AccountHolderName: v.accountHolderName,
-      AccountNo: v.accountNo,
-      AccountType: v.accountType,
-      IFSCCode: v.ifscCode,
-      UPIId: v.upiId,
-      // Flags
-      FabricatedContact: v.fabricatedContact,
-      FabricatedContactComments: v.fabricatedContactComments,
-      PaidGuarantor: v.paidGuarantor,
-      PaidGuarantorComments: v.paidGuarantorComments,
-      // Address & contact persons
-      Addresses: this.addressRows(),
-      ContactPersons: this.contactPersons(),
+      ...auditFields,
+      global_schema: schemaName,
+      company_code: this.commonService.getCompanyCode(),
+      branch_code: this.commonService.getBranchCode(),
+      samebranchcode: this.commonService.getBranchCode(),
+      schemaid: 1,
+      pContactId: 0,
+      pTitleName: v.salutation || null,
+      rTitleName: v.fatherSalutation || null,
+      pContactTitilesid: 1,
+      pName: this.isIndividual ? v.firstName : v.enterpriseName,
+      pSurName: v.surName || null,
+      pContactName: this.isIndividual ? fullName : v.enterpriseName,
+      pContactimagepath: null,
+      pReferenceId: null,
+      pPhoto: null,
+      pFatherName: v.fatherName || null,
+      pSpouseName: null,
+      pcontactmailingname: v.mailingName || null,
+      pRoleid: 1,
+      pRolename: 'Customer',
+      pContactTypeId: this.contactType() === 'Individual' ? 1 : 2,
+      pContactType: this.contactType(),
+      pcontactexistingstatus: false,
+      pDob: v.dob ? new Date(v.dob).toISOString().split('T')[0] : null,
+      pAge: v.age ? Number(v.age) : null,
+      pGender: v.gender || null,
+      pGenderCode: v.gender === 'Male' ? 'M' : v.gender === 'Female' ? 'F' : null,
+      pIsPanNoAvailable: !!v.panCard,
+      pPanNumber: v.panCard || null,
+      ppancardno: v.panCard || null,
+      pContactNumber: v.primaryContact || null,
+      pAlternativeNo: v.secondaryContact || null,
+      pEmailId: v.primaryEmail || null,
+      pEmailId2: v.secondaryEmail || null,
+      pBusinesscontactreferenceid: null,
+      pBusinesscontactName: v.enterpriseName || null,
+      pBusinesstype: v.businessNature || null,
+      pEnterpriseTypeId: null,
+      pBusinesstypeId: null,
+      pEnterpriseType: v.enterpriseType || null,
+      pBusinessEntityEmailid: v.enterpriseEmail || null,
+      pBusinessEntityContactno: v.enterpriseContact || null,
+      is_fabricated_applicable: v.fabricatedContact === true,
+      is_fabricated_comments: v.fabricatedContactComments || null,
+      fabricated_filename: null,
+      is_paidguarantor_applicable: v.paidGuarantor === true,
+      is_paidguarantor_comments: v.paidGuarantorComments || null,
+      paidguarantor_filename: null,
+
+      pAddressList: this.addressRows().map((a: any, index: number) => ({
+        pRecordId: 0,
+        pAddressTypeID: 1,
+        pAddressType: a.type || null,
+        pAddress1: a.addressLine || null,
+        pAddress2: a.area || null,
+        pState: a.state || null,
+        pStateId: a.stateId ?? null,
+        pDistrict: a.district || null,
+        pDistrictId: a.districtId ?? null,
+        pCity: a.city || null,
+        pCountry: a.country || null,
+        pCountryId: a.countryId ?? null,
+        pPinCode: a.pincode || null,
+        plongitude: a.longitude || null,
+        platitude: a.latitude || null,
+        pAddressPriority: index === 0 ? 1 : 2,
+        ptypeofoperation: 'INSERT',
+        pAddressDetails: `${a.addressLine || ''} ${a.city || ''} ${a.state || ''}`.trim() || null,
+      })),
+
+      pcontactdetailslist: [
+        {
+          ...auditFields,
+          pbranchid: branchId,
+          pContactNumber: v.primaryContact || null,
+          pPriority: 1,
+        },
+      ],
+
+      pEmailidsList: [
+        {
+          ...auditFields,
+          pbranchid: branchId,
+          pRecordId: 0,
+          pEmailId: v.primaryEmail || null,
+          pPriority: 1,
+          pContactNumber: v.primaryContact || null,
+          pContactName: fullName || null,
+        },
+      ],
+
+      pEnterpriseTypelist: v.enterpriseType ? [
+        {
+          ...auditFields,
+          pEnterpriseType: v.enterpriseType,
+          pEnterpriseTypeId: null,
+        },
+      ] : [],
+
+      pBusinesstypelist: v.businessNature ? [
+        {
+          ...auditFields,
+          pBusinesstype: v.businessNature,
+        },
+      ] : [],
+
+      documentstorelist: v.kycDocumentNo ? [
+        {
+          ...auditFields,
+          contactdocumentsid: 0,
+          pDocumentId: 0,
+          pDocumentGroupId: v.kycDocumentType?.pDocumentGroupId ?? null,
+          pDocumentGroup: v.kycDocumentType?.pDocumentGroup || null,
+          pDocumentName: v.kycDocumentName?.pDocumentName || null,
+          pDocStorePath: null,
+          pDocFileType: 'pdf',
+          pDocReferenceno: v.kycDocumentNo || null,
+          pDocIsDownloadable: true,
+          pDocumentReferenceMonth: null,
+          pDocumentReferenceYear: null,
+          pFilename: v.fabricatedContactDocument || v.paidGuarantorDocument || null,
+          pVerificationoperation: null,
+          psubsectionname: null,
+          IsVerified: false,
+          pDocstoreId: 0,
+          pContactId: 0,
+          pLoanId: 0,
+          pApplicationNo: null,
+          pName: fullName || null,
+          pContactType: this.contactType(),
+          pTransactionType: null,
+          pApplicanttype: null,
+          pContactreferenceid: null,
+          pisapplicable: true,
+        },
+      ] : [],
+
+      referralbankdetailslist: this.bankRows().map(b => ({
+        ...auditFields,
+        pContactId: 0,
+        precordid: 0,
+        pBankAccountname: b.accountHolderName || '',
+        pBankId: b.bankId ?? null,
+        pBankName: b.bankName || '',
+        pBankAccountNo: b.accountNo || '',
+        pBankifscCode: b.ifscCode || '',
+        pBankBranch: b.branch || '',
+        pIsprimaryAccount: b.isPrimary,
+        pContactbankId: 0,
+      })),
+
+      pbusinessList: this.contactPersons().map((p: any, index: number) => ({
+        precordid: 0,
+        pContactId: 0,
+        pContactName: p.contact || null,
+        designationid: null,
+        designationname: p.designation || null,
+        pBusinessPriority: index + 1,
+        pstatus: 'Active',
+        ptypeofoperation: 'INSERT',
+      })),
+
+      pBusinessContactlist: [],
     };
 
     this.isSaving.set(true);
     this.saveError.set(null);
+
     this.contactMasterService.saveContact(payload).subscribe({
       next: () => {
         this.isSaving.set(false);
+
         const saved: Contact = {
           id: this.contact?.id ?? '',
           uid: this.contact?.uid ?? '',
           name: this.contactType() === 'Individual'
             ? `${v.salutation} ${v.firstName} ${v.surName}`.trim()
             : v.enterpriseName,
-          relation: this.contactType() === 'Individual' ? `S/o - ${v.fatherName}` : '',
+          relation: this.contactType() === 'Individual'
+            ? `S/o - ${v.fatherName}`
+            : '',
           phone: v.primaryContact,
           address: this.addressRows()[0]
-            ? `${this.addressRows()[0].addressLine},${this.addressRows()[0].city}` : '',
+            ? `${this.addressRows()[0].addressLine}, ${this.addressRows()[0].city}`
+            : '',
           status: 'Active',
           photo: this.photoPreview() ?? undefined,
           type: this.contact?.type ?? 'Contacts',
         };
+
         this.onSave.emit(saved);
       },
+
       error: (err) => {
         this.isSaving.set(false);
-        this.saveError.set(err?.message ?? 'Failed to save contact. Please try again.');
-      }
+        console.error(err);
+        this.saveError.set(
+          err?.error?.title ||
+          err?.message ||
+          'Failed to save contact. Please try again.'
+        );
+      },
     });
   }
+
+
+
 
   close() {
     this.onClose.emit();

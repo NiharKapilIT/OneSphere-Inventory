@@ -64,25 +64,25 @@ export class ContactsListComponent implements OnInit {
 
   tabCounts = signal<Record<string, number>>({});
 
- 
- loadTabCount(tab: ContactTab) {
-  const tabMap: Record<ContactTab, string> = {
-    'Contacts':              'Contacts',
-    'Subscriber / Customer': 'Referrals',
-    'Employee':              'Employees',
-    'Supplier / Vendor':     'Suppliers',
-    'Advocate':              'Advocates',
-    'Channel Partner':       'Referrals',
-    'Freelancer':            'Freelancer',  // ← was 'Referrals', now 'Freelancer'
-  };
 
-  this.contactMasterService.getNoOfRecords(tabMap[tab]).subscribe({
-    next: (count) => {
-      this.tabCounts.update(current => ({ ...current, [tab]: count }));
-    },
-    error: () => {}
-  });
-}
+  loadTabCount(tab: ContactTab) {
+    const tabMap: Record<ContactTab, string> = {
+      'Contacts': 'Contacts',
+      'Subscriber / Customer': 'Referrals',
+      'Employee': 'Employees',
+      'Supplier / Vendor': 'Suppliers',
+      'Advocate': 'Advocates',
+      'Channel Partner': 'Referrals',
+      'Freelancer': 'Freelancer',  // ← was 'Referrals', now 'Freelancer'
+    };
+
+    this.contactMasterService.getNoOfRecords(tabMap[tab]).subscribe({
+      next: (count) => {
+        this.tabCounts.update(current => ({ ...current, [tab]: count }));
+      },
+      error: () => { }
+    });
+  }
 
 
 
@@ -128,49 +128,49 @@ export class ContactsListComponent implements OnInit {
 
   constructor(private contactMasterService: ContactMasterService) { }
 
-  
+
   ngOnInit() {
-  this.loadContacts();
-  this.loadTabCount('Contacts');
-}
+    this.loadContacts();
+    this.loadTabCount('Contacts');
+  }
 
-  
- 
-loadContacts() {
-  this.loading.set(true);
-  const endindex = (this.currentPage() - 1) * this.pageSize();
-  
-  const tabMap: Record<ContactTab, string> = {
-    'Contacts':              'Contacts',
-    'Subscriber / Customer': 'Referrals',
-    'Employee':              'Employees',
-    'Supplier / Vendor':     'Suppliers',
-    'Advocate':              'Advocates',
-    'Channel Partner':       'Referrals',
-    'Freelancer':            'Freelancer',
-  };
 
-  const activeTab = this.activeTab();
-  this.contactMasterService.getContactViewByName(tabMap[activeTab], endindex).subscribe({
-    next: (data) => {
-      const mapped = this.mapContacts(data);
-      if (activeTab !== 'Contacts') {
-        mapped.forEach(c => {
-          if (!(c.roles ?? []).includes(activeTab as ContactRole)) {
-            (c.roles = c.roles ?? []).push(activeTab as ContactRole);
-          }
-        });
+
+  loadContacts() {
+    this.loading.set(true);
+    const endindex = (this.currentPage() - 1) * this.pageSize();
+
+    const tabMap: Record<ContactTab, string> = {
+      'Contacts': 'Contacts',
+      'Subscriber / Customer': 'Referrals',
+      'Employee': 'Employees',
+      'Supplier / Vendor': 'Suppliers',
+      'Advocate': 'Advocates',
+      'Channel Partner': 'Referrals',
+      'Freelancer': 'Freelancer',
+    };
+
+    const activeTab = this.activeTab();
+    this.contactMasterService.getContactViewByName(tabMap[activeTab], endindex).subscribe({
+      next: (data) => {
+        const mapped = this.mapContacts(data);
+        if (activeTab !== 'Contacts') {
+          mapped.forEach(c => {
+            if (!(c.roles ?? []).includes(activeTab as ContactRole)) {
+              (c.roles = c.roles ?? []).push(activeTab as ContactRole);
+            }
+          });
+        }
+        this.allContacts.set(mapped);
+        this.hasMore.set(data.length >= this.pageSize());
+        this.loading.set(false);
+      },
+      error: () => {
+        this.allContacts.set([]);
+        this.loading.set(false);
       }
-      this.allContacts.set(mapped);
-      this.hasMore.set(data.length >= this.pageSize());
-      this.loading.set(false);
-    },
-    error: () => {
-      this.allContacts.set([]);
-      this.loading.set(false);
-    }
-  });
-}
+    });
+  }
 
   private mapContacts(data: any[]): Contact[] {
     return data.map(dto => {
@@ -193,20 +193,20 @@ loadContacts() {
         phone: String(dto.pContactNumber ?? ''),
         address: String(dto.pAddresDetails ?? ''),
         status: String(dto.pStatus ?? '') === 'Active' ? 'Active' : 'Inactive',
-        photo: dto.pImagePath  ? String(dto.pImage) : undefined,
+        photo: dto.pImagePath ? String(dto.pImage) : undefined,
         type: 'Contacts' as ContactTab,
         roles,
       };
     });
   }
 
-switchTab(tab: ContactTab) {
-  this.activeTab.set(tab);
-  this.currentPage.set(1);
-   this.tabCounts.set({}); 
-  this.loadContacts();
-  this.loadTabCount(tab);
-}
+  switchTab(tab: ContactTab) {
+    this.activeTab.set(tab);
+    this.currentPage.set(1);
+    this.tabCounts.set({});
+    this.loadContacts();
+    this.loadTabCount(tab);
+  }
   onSearch() {
     this.currentPage.set(1);
   }
@@ -241,11 +241,11 @@ switchTab(tab: ContactTab) {
       this.loadContacts();
     }
   }
- 
+
 
   getTabCount(tab: ContactTab): number {
-  return this.tabCounts()[tab] ?? 0;
-}
+    return this.tabCounts()[tab] ?? 0;
+  }
 
 
 
@@ -279,38 +279,48 @@ switchTab(tab: ContactTab) {
 
 
   openEditForm(contact: Contact) {
-  console.log('1. openEditForm called:', contact);
-  console.log('2. contact.id:', contact.id);
+    console.log('1. openEditForm called:', contact);
+    console.log('2. contact.id:', contact.id);
 
-  this.openMenuContactId.set(null);
-  this.editingContact.set(null);
-  this.showAddForm.set(false);
+    this.openMenuContactId.set(null);
+    this.editingContact.set(null);
+    this.showAddForm.set(false);
 
-  console.log('3. setting contact:', contact);
+    console.log('3. setting contact:', contact);
 
-  this.editingContact.set({ ...contact });
-  this.showAddForm.set(true);
-}
+    this.editingContact.set({ ...contact });
+    this.showAddForm.set(true);
+  }
 
   onFormClose() {
     this.showAddForm.set(false);
     this.editingContact.set(null);
   }
 
+  // onFormSave(contact: Contact) {
+  //   if (this.editingContact()) {
+  //     this.allContacts.update(list =>
+  //       list.map(c => c.id === contact.id ? contact : c)
+  //     );
+  //   } else {
+  //     const currentTab = this.activeTab();
+  //     const roles = currentTab === 'Contacts' ? [] : [currentTab];
+  //     const newContact = { ...contact, id: Date.now().toString(), uid: `CNT${Date.now()}`.slice(0, 13), type: 'Contacts' as ContactTab, roles };
+  //     this.allContacts.update(list => [newContact, ...list]);
+  //   }
+  //   this.showAddForm.set(false);
+  //   this.editingContact.set(null);
+  // }
+
+
   onFormSave(contact: Contact) {
-    if (this.editingContact()) {
-      this.allContacts.update(list =>
-        list.map(c => c.id === contact.id ? contact : c)
-      );
-    } else {
-      const currentTab = this.activeTab();
-      const roles = currentTab === 'Contacts' ? [] : [currentTab];
-      const newContact = { ...contact, id: Date.now().toString(), uid: `CNT${Date.now()}`.slice(0, 13), type: 'Contacts' as ContactTab, roles };
-      this.allContacts.update(list => [newContact, ...list]);
-    }
     this.showAddForm.set(false);
     this.editingContact.set(null);
+    this.currentPage.set(1);
+    this.loadContacts();
+    this.loadTabCount(this.activeTab());
   }
+
 
   toggleCardMenu(contactId: string) {
     this.openMenuContactId.update(current => current === contactId ? null : contactId);
@@ -327,105 +337,105 @@ switchTab(tab: ContactTab) {
     this.roleModalRole.set(null);
   }
 
-  
- saveRoleForm() {
-  const contact = this.roleModalContact();
-  const role = this.roleModalRole();
 
-  if (!contact || !role) {
-    return;
-  }
+  saveRoleForm() {
+    const contact = this.roleModalContact();
+    const role = this.roleModalRole();
 
-  // Supplier API call
-  // if (role === 'Supplier / Vendor') {
+    if (!contact || !role) {
+      return;
+    }
 
-  //   this.contactMasterService
-  //     .saveContactSupplier(contact.id, true)
-  //     .subscribe({
+    // Supplier API call
+    // if (role === 'Supplier / Vendor') {
 
-  //       next: (res: any) => {
+    //   this.contactMasterService
+    //     .saveContactSupplier(contact.id, true)
+    //     .subscribe({
 
-  //         this.allContacts.update(list =>
-  //           list.map(item =>
-  //             item.id === contact.id
-  //               ? {
-  //                   ...item,
-  //                   roles: Array.from(
-  //                     new Set([...(item.roles || []), role])
-  //                   )
-  //                 }
-  //               : item
-  //           )
-  //         );
+    //       next: (res: any) => {
 
-  //         this.closeRoleForm();
-  //       },
+    //         this.allContacts.update(list =>
+    //           list.map(item =>
+    //             item.id === contact.id
+    //               ? {
+    //                   ...item,
+    //                   roles: Array.from(
+    //                     new Set([...(item.roles || []), role])
+    //                   )
+    //                 }
+    //               : item
+    //           )
+    //         );
 
-  //       error: (err) => {
-  //         console.error('Supplier save failed', err);
-  //       }
+    //         this.closeRoleForm();
+    //       },
 
-  //     });
+    //       error: (err) => {
+    //         console.error('Supplier save failed', err);
+    //       }
 
-  // } else {
+    //     });
+
+    // } else {
     if (role === 'Supplier / Vendor') {
 
-  this.contactMasterService
-    .saveContactSupplier(contact.id, true)
-    .subscribe({
+      this.contactMasterService
+        .saveContactSupplier(contact.id, true)
+        .subscribe({
 
-      next: (res: any) => {
+          next: (res: any) => {
 
-        if (res === true) {
+            if (res === true) {
 
-          alert('Supplier saved successfully');
+              alert('Supplier saved successfully');
 
-          this.allContacts.update(list =>
-            list.map(item =>
-              item.id === contact.id
-                ? {
-                    ...item,
-                    roles: Array.from(
-                      new Set([...(item.roles || []), role])
-                    )
-                  }
-                : item
-            )
-          );
+              this.allContacts.update(list =>
+                list.map(item =>
+                  item.id === contact.id
+                    ? {
+                      ...item,
+                      roles: Array.from(
+                        new Set([...(item.roles || []), role])
+                      )
+                    }
+                    : item
+                )
+              );
 
-          this.closeRoleForm();
+              this.closeRoleForm();
 
-        } else {
-          alert('Save failed');
-        }
-      },
+            } else {
+              alert('Save failed');
+            }
+          },
 
-      error: (err) => {
-        console.error('Supplier save failed', err);
-        alert('API Error');
-      }
+          error: (err) => {
+            console.error('Supplier save failed', err);
+            alert('API Error');
+          }
 
-    });
+        });
 
-} else {
+    } else {
 
-    // Local update for other roles
-    this.allContacts.update(list =>
-      list.map(item =>
-        item.id === contact.id
-          ? {
+      // Local update for other roles
+      this.allContacts.update(list =>
+        list.map(item =>
+          item.id === contact.id
+            ? {
               ...item,
               roles: Array.from(
                 new Set([...(item.roles || []), role])
               )
             }
-          : item
-      )
-    );
+            : item
+        )
+      );
 
-    this.closeRoleForm();
+      this.closeRoleForm();
+    }
   }
-}
 
   hasRole(contact: Contact, role: ContactRole) {
     return (contact.roles || []).includes(role);
