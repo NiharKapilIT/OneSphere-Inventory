@@ -57,6 +57,11 @@ export class ChequesInbank implements OnInit {
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
 
 
+  onTransactionDateSelect(date: Date) {
+    this.ChequesInBankForm.get('ptransactiondate')?.setValue(date);
+    this.chequeClearMinDate = new Date(date);
+  }
+
   onChequeClearDateSelect(date: Date) {
     this.ChequesInBankForm.get('pchequecleardate')?.setValue(date);
   }
@@ -155,7 +160,9 @@ export class ChequesInbank implements OnInit {
   // brsReturnFromDateModel: Date = new Date(new Date().setDate(new Date().getDate() - 1));
   // brsReturnToDateModel: Date = new Date();
   //chequeClearDateModel: Date = new Date();
+  transactionDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
   chequeClearDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
+  chequeClearMinDate: Date = new Date(new Date().setHours(0, 0, 0, 0));
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
   brsFromDateModel: Date = new Date();
   brsToDateModel: Date = new Date();
