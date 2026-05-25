@@ -16,60 +16,52 @@ import { HrmsPayroll } from '../../../../core/services/hrms/hrms-payroll';
 })
 export class SscAgenda implements OnInit {
   private hrms = inject(HrmsPayroll);
+  private _commonService = inject(CommonService);
   selectedTab: string = 'Confirmation';
-
-  selectedEmployee: string | null = null;
-  // selectedDesignation: string | null = null;
-  // selectedPromotionDesignation: string | null = null;
+  selectedEmployee: number | null = null;
   selectedDesignation: number | null = null;
   selectedPromotionDesignation: number | null = null;
   selectedTransferDesignation: number | null = null;
   selectedBranch: string | null = null;
-  // selectedTransferDesignation: string | null = null;
   selectedAuthority: string | null = null;
+  selectedEmployeeInfo: any = null;
 
   maxDate: Date = new Date();
-
-  // Confirmation
   confirmationDate: Date = new Date();
   confirmationMinutesDate: Date = new Date();
   confirmationRemarks: string = '';
   confirmationRefNo: string = '';
-
-  // Promotion
+  isSaving: boolean = false;
   promotionDate: Date = new Date();
   promotionMinutesDate: Date = new Date();
   promotionRemarks: string = '';
   promotionRefNo: string = '';
-
-  // Transfer
   transferDate: Date = new Date();
   transferJoiningDate: Date = new Date();
   transferReportingDate: Date = new Date();
   transferRemarks: string = '';
-
-  // Resignation
   resignationDate: Date = new Date();
   resignationRemarks: string = '';
 
-  // Validation messages
+  GlobalSchema = '';
+  CompanyName = '';
+  searchtype = '';
+  BranchId = 0;
+  BranchSchema = '';
+  sscagendatype = '';
   formValidationMessages: { [key: string]: string } = {};
   submitted: boolean = false;
-
-  employeeOptions: string[] = ['Employee 1', 'Employee 2', 'Employee 3'];
-  // designationOptions: string[] = ['HR Executive', 'Accounts Officer', 'Software Engineer'];
-  // promotionDesignationOptions: string[] = ['Senior HR Executive', 'Assistant Manager', 'Manager'];
+  employeeOptions: any[] = [];
   designationOptions: any[] = [];
   branchOptions: string[] = ['Hyderabad', 'Warangal', 'Chennai'];
   authorityOptions: string[] = ['HR Manager', 'Branch Manager', 'Managing Director'];
 
-  // onTabChange(): void {
-  //   this.clearForm();
-  // }
+
 
 
   ngOnInit(): void {
     this.getDesignation();
+    this.getEmployees();
   }
 
   getDesignation(): void {
@@ -81,6 +73,55 @@ export class SscAgenda implements OnInit {
         console.error('Error loading designation', error);
       }
     });
+  }
+
+
+  getEmployees(searchType: string = 'ALL'): void {
+    this.hrms.getEmployees(
+      this._commonService.getschemaname(),
+      this._commonService.getCompanyCode(),
+      searchType,
+      this._commonService.getbrachid() ?? 0,
+      this._commonService.getbranchname(),
+      this.getSscAgendaType()
+    ).subscribe({
+      next: (response: any) => {
+        const data = Array.isArray(response) ? response : (response?.data || response?.result || []);
+        this.employeeOptions = data.map((emp: any) => ({
+          ...emp,
+          displayName: `${emp.contact_name} (${emp.employee_code})`
+        }));
+      },
+      error: (error: any) => {
+        console.error('Error loading employees', error);
+      }
+    });
+  }
+
+  onEmployeeSearch(event: { term: string }): void {
+    if (event.term?.length >= 3) {
+      this.getEmployees(event.term);
+    }
+  }
+
+  onEmployeeChange(): void {
+    if (this.selectedEmployee) {
+      this.selectedEmployeeInfo = this.employeeOptions.find(
+        emp => emp.contact_id === this.selectedEmployee
+      ) ?? null;
+    } else {
+      this.selectedEmployeeInfo = null;
+    }
+  }
+
+  getSscAgendaType(): string {
+    const map: Record<string, string> = {
+      'Confirmation': 'C',
+      'Promotion': 'P',
+      'Transfer': 'T',
+      'Resignation': 'R'
+    };
+    return map[this.selectedTab] ?? 'C';
   }
 
   onTabChange(): void {
@@ -160,14 +201,102 @@ export class SscAgenda implements OnInit {
     return isValid;
   }
 
+
   save(): void {
     this.submitted = true;
     if (!this.validate()) return;
-    // save logic here
-    console.log('Saved successfully');
-    this.clearForm();
-  }
 
+    this.isSaving = true;
+
+    const formatDate = (date: Date | null): string | null => {
+      if (!date) return null;
+      const d = new Date(date);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const payload = {
+      company_code: this._commonService.getCompanyCode(),
+      branch_code: this._commonService.getbranchname(),
+      schemaname: this._commonService.getbranchname(),
+      pSscAgendaType: this.getSscAgendaType(),
+      pEmployeeContactId: this.selectedEmployee,
+      pbranchid: this._commonService.getbrachid() ?? 0,
+      pCreatedby: Number(sessionStorage.getItem('userId')) ?? 0,
+      pipaddress: '',
+      pStatus: 'Active',
+      pStatusid: 1,
+      pStatusname: 'Approved',
+      pactivitytype: 'I',
+      currencyformat: 'INR',
+      dateformat: 'dd-MM-yyyy',
+      preleasetype: 'Production',
+      ppayrollbranchid: this._commonService.getbrachid() ?? 1,
+
+      pDesignationId: this.selectedTab === 'Confirmation'
+        ? this.selectedDesignation
+        : this.selectedTab === 'Promotion'
+          ? this.selectedPromotionDesignation
+          : this.selectedTab === 'Transfer'
+            ? this.selectedTransferDesignation
+            : null,
+
+      pDateofConfirmation: this.selectedTab === 'Confirmation'
+        ? formatDate(this.confirmationDate) : '',
+      pSscMinutesNo: this.selectedTab === 'Confirmation'
+        ? this.confirmationRefNo
+        : this.selectedTab === 'Promotion'
+          ? this.promotionRefNo : '',
+      pSscMinutesDate: this.selectedTab === 'Confirmation'
+        ? formatDate(this.confirmationMinutesDate)
+        : this.selectedTab === 'Promotion'
+          ? formatDate(this.promotionMinutesDate) : '',
+      pRemarks: this.selectedTab === 'Confirmation' ? this.confirmationRemarks
+        : this.selectedTab === 'Promotion' ? this.promotionRemarks
+          : this.selectedTab === 'Transfer' ? this.transferRemarks
+            : this.resignationRemarks,
+
+      pDateofPromotion: this.selectedTab === 'Promotion'
+        ? formatDate(this.promotionDate) : '',
+
+      pDateOfTransfer: this.selectedTab === 'Transfer'
+        ? formatDate(this.transferDate) : '',
+      pDateOfJoining: this.selectedTab === 'Transfer'
+        ? formatDate(this.transferJoiningDate) : '',
+      pDateOfReporting: this.selectedTab === 'Transfer'
+        ? formatDate(this.transferReportingDate) : '',
+      pTrnsferTo: this.selectedTab === 'Transfer'
+        ? this.selectedBranch : null,
+      pResignationAuthorityId: this.selectedTab === 'Resignation'
+        ? this.selectedAuthority : null,
+
+      pDateOfResignation: this.selectedTab === 'Resignation'
+        ? formatDate(this.resignationDate) : '',
+
+      pFileName: '',
+      ptypeofoperation: 'INSERT',
+    };
+
+    console.log('SSC Payload:', payload);
+
+    this.hrms.saveSscAgenda(payload).subscribe({
+      next: (res: any) => {
+        this.isSaving = false;
+        if (res?.success) {
+          this._commonService.showSuccessMessage();
+          this.clearForm();
+        } else {
+          this._commonService.showErrorMessage(res?.message ?? 'Save failed');
+        }
+      },
+      error: (err: any) => {
+        this.isSaving = false;
+        this._commonService.showErrorMessage(err?.message ?? 'An error occurred');
+      }
+    });
+  }
 
   clearForm(): void {
     this.submitted = false;
@@ -178,6 +307,7 @@ export class SscAgenda implements OnInit {
     this.selectedBranch = null;
     this.selectedTransferDesignation = null;
     this.selectedAuthority = null;
+    this.selectedEmployeeInfo = null;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -197,4 +327,7 @@ export class SscAgenda implements OnInit {
     this.resignationDate = new Date(today);
     this.resignationRemarks = '';
   }
+
+
+
 }

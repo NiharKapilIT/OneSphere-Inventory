@@ -41,9 +41,12 @@
           <div class="col-xl-4 col-lg-5 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Select Employee <span class="required">*</span></label>
-              <ng-select [items]="employeeOptions" [(ngModel)]="selectedEmployee" placeholder="Search by employee name"
-                [searchable]="true" [clearable]="true" appendTo="body"
-                [ngClass]="{'ng-invalid': getValidationMsg('selectedEmployee')}">
+
+
+              <ng-select [items]="employeeOptions" bindLabel="displayName" bindValue="contact_id"
+                [(ngModel)]="selectedEmployee" placeholder="Search by employee name" [searchable]="true"
+                [clearable]="true" appendTo="body" [ngClass]="{'ng-invalid': getValidationMsg('selectedEmployee')}"
+                (search)="onEmployeeSearch($event)" (change)="onEmployeeChange()">
               </ng-select>
               @if (getValidationMsg('selectedEmployee')) {
               <div class="erp-field-error">{{ getValidationMsg('selectedEmployee') }}</div>
@@ -53,17 +56,24 @@
         </div>
       </div>
 
-      <!-- Employee Info -->
       <div class="p-4">
         <div class="erp-grid-shell p-3">
           <div class="row g-2">
             <div class="col-md-6">
-              <div class="d-flex gap-2 text-muted">Employee Name : <strong class="text-dark">John David</strong></div>
-              <div class="d-flex gap-2 text-muted">Designation : <strong class="text-dark">HR Executive</strong></div>
+              <div class="d-flex gap-2 text-muted">Employee Name :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.contact_name ?? '' }}</strong>
+              </div>
+              <div class="d-flex gap-2 text-muted">Designation :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.designation_name ?? '' }}</strong>
+              </div>
             </div>
             <div class="col-md-6">
-              <div class="d-flex gap-2 text-muted">EPF No. : <strong class="text-dark">EPF1025</strong></div>
-              <div class="d-flex gap-2 text-muted">Hire Date : <strong class="text-dark">12-Mar-2022</strong></div>
+              <div class="d-flex gap-2 text-muted">EPF No. :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.epf_no ?? '' }}</strong>
+              </div>
+              <div class="d-flex gap-2 text-muted">Hire Date :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.hire_date ?? '' }}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -308,9 +318,9 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Resignation Accept Authority <span class="required">*</span></label>
-              <ng-select [items]="authorityOptions" [(ngModel)]="selectedAuthority" placeholder="Select authority"
-                [searchable]="true" [clearable]="true" appendTo="body"
-                [ngClass]="{'ng-invalid': getValidationMsg('selectedAuthority')}">
+              <ng-select [items]="employeeOptions" bindLabel="displayName" bindValue="contact_id"
+                [(ngModel)]="selectedAuthority" placeholder="Select authority" [searchable]="true" [clearable]="true"
+                appendTo="body" [ngClass]="{'ng-invalid': getValidationMsg('selectedAuthority')}">
               </ng-select>
               @if (getValidationMsg('selectedAuthority')) {
               <div class="erp-field-error">{{ getValidationMsg('selectedAuthority') }}</div>
@@ -351,8 +361,13 @@
         <button type="button" class="erp-btn btn-white" (click)="clearForm()">
           <i class="pi pi-times"></i> Cancel
         </button>
-        <button type="button" class="erp-btn btn-primary" (click)="save()">
+        <!-- <button type="button" class="erp-btn btn-primary" (click)="save()">
           <i class="pi pi-check"></i> Save
+        </button> -->
+
+        <button type="button" class="erp-btn btn-primary" (click)="save()" [disabled]="isSaving">
+          <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+          {{ isSaving ? 'Saving...' : 'Save' }}
         </button>
       </div>
 
