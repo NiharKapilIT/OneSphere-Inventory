@@ -1,6 +1,6 @@
 
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -96,11 +96,13 @@ export class LedgerExtract implements OnInit {
     const toApi = this.formatDateForApi(this.rc.ToDate);
     const fromDisplay = this.formatDate(this.rc.FromDate);
     const toDisplay = this.formatDate(this.rc.ToDate);
+    const params = new HttpParams()
+  .set('fromDate', fromApi)
+  .set('toDate', toApi)
+  .set('Narration', this.rc.Narration)
+  .set('BranchSchema', 'accounts');
 
-    this.http
-      .get<LedgerRow[]>(
-        `https://localhost:5001/api/Accounts/GetLedgerExtractReport?fromDate=${fromApi}&toDate=${toApi}&Narration=${this.rc.Narration}&BranchSchema=accounts`
-      )
+    this.common.getAPI('/Accounts/GetLedgerExtractReport',params,'YES')
       .subscribe({
         next: (data) => {
           if (!data || data.length === 0) {

@@ -6,31 +6,31 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Designation<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="designations" formControlName="designation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="lstDesignation" formControlName="mdesignationid" bindLabel="designation_name" bindValue="tbl_mst_designation_id" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Role<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="roles" formControlName="role" placeholder="Select Role" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="rolesList" formControlName="pEmploymentRoleId" bindLabel="role_name" bindValue="tbl_mst_role_id" placeholder="Select Role" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Branch Name<span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="branches" formControlName="branch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+            <ng-select appendTo="body" [items]="Branchlist" bindLabel="branch_name" bindValue="tbl_mst_branch_configuration_id" formControlName="branchid" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Basic Salary<span class="required">*</span></label>
-            <input type="text" class="erp-input" formControlName="basicSalary" />
+            <input type="text" class="erp-input" formControlName="pEmploymentBasicSalary" />
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Allowance / Variable Pay<span class="required">*</span></label>
-            <input type="text" class="erp-input" formControlName="allowance" />
+            <input type="text" class="erp-input" formControlName="pEmploymentAllowanceORvda" />
           </div>
         </div>
         <div class="col-12 col-md-4">
@@ -40,7 +40,7 @@
           </div>
         </div>
         <div class="col-12">
-          <label class="erp-checkbox"><input type="checkbox" formControlName="payrollEligible" /><span>Payroll Eligible</span></label>
+          <label class="erp-checkbox"><input type="checkbox" formControlName="payrolleligible" /><span>Payroll Eligible</span></label>
         </div>
       </div>
 
@@ -51,10 +51,10 @@
             <div class="panel-body">
               <div class="section-title mb-3">Residential Status<span class="required">*</span></div>
               <div class="erp-radio-group flex-column align-items-start">
-                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Resident" /> Resident</label>
-                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Non-Resident" /> Non-Resident</label>
-                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Foreign National" /> Foreign National</label>
-                <label class="erp-radio"><input type="radio" formControlName="residentialStatus" value="Person of Indian Origin" /> Person of Indian Origin</label>
+                <label class="erp-radio"><input type="radio" formControlName="presidentialstatus" value="Resident" /> Resident</label>
+                <label class="erp-radio"><input type="radio" formControlName="presidentialstatus" value="Non-Resident" /> Non-Resident</label>
+                <label class="erp-radio"><input type="radio" formControlName="presidentialstatus" value="Foreign National" /> Foreign National</label>
+                <label class="erp-radio"><input type="radio" formControlName="presidentialstatus" value="Person of Indian Origin" /> Person of Indian Origin</label>
               </div>
             </div>
           </section>
@@ -66,19 +66,19 @@
               <div class="section-title mb-3">Birth & Nationality</div>
               <div class="erp-form-group">
                 <label>Place of Birth</label>
-                <input type="text" class="erp-input" formControlName="placeOfBirth" />
+                <input type="text" class="erp-input" formControlName="pplaceofbirth" />
               </div>
               <div class="erp-form-group">
                 <label>Country of Birth</label>
-                <ng-select appendTo="body" [items]="countries" formControlName="countryOfBirth" placeholder="Select Country" [searchable]="true" [clearable]="false"></ng-select>
+                <ng-select appendTo="body" [items]="countryDetails" bindLabel="country_name" bindValue="tbl_mst_country_id" formControlName="pCountryId" placeholder="Select Country" [searchable]="true" [clearable]="false"></ng-select>
               </div>
               <div class="erp-form-group">
                 <label>Nationality/Citizen of</label>
-                <input type="text" class="erp-input" formControlName="nationality" />
+                <input type="text" class="erp-input" formControlName="pnationality" />
               </div>
               <div class="erp-form-group">
                 <label>Community Details</label>
-                <ng-select appendTo="body" [items]="communities" formControlName="community" placeholder="Select Community" [searchable]="true" [clearable]="false"></ng-select>
+                <ng-select appendTo="body" [items]="communities" formControlName="pminoritycommunity" placeholder="Select Community" [searchable]="true" [clearable]="false"></ng-select>
               </div>
             </div>
           </section>
@@ -89,10 +89,10 @@
             <div class="panel-body">
               <div class="section-title mb-3">Marital Status<span class="required">*</span></div>
               <div class="erp-radio-group flex-column align-items-start">
-                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Married" /> Married</label>
-                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Single" /> Single</label>
-                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Separated" /> Separated</label>
-                <label class="erp-radio"><input type="radio" formControlName="maritalStatus" value="Widowed" /> Widowed</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritalstatus" value="Married" /> Married</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritalstatus" value="Single" /> Single</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritalstatus" value="Separated" /> Separated</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritalstatus" value="Widowed" /> Widowed</label>
               </div>
             </div>
           </section>
@@ -117,28 +117,28 @@
         <div class="section-title mb-3">General Information</div>
         <div class="row g-3">
           <div class="col-12 d-flex justify-content-end gap-3">
-            <label class="erp-checkbox"><input type="checkbox" formControlName="esiEligible" /><span>ESI Eligible</span></label>
-            <label class="erp-checkbox"><input type="checkbox" formControlName="pfEligible" /><span>PF Eligible</span></label>
+            <label class="erp-checkbox"><input type="checkbox" formControlName="pisesi" /><span>ESI Eligible</span></label>
+            <label class="erp-checkbox"><input type="checkbox" formControlName="pispf" /><span>PF Eligible</span></label>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>K.H.C No.</label><input type="text" class="erp-input" formControlName="khcNo" /></div>
+            <div class="erp-form-group"><label>K.H.C No.</label><input type="text" class="erp-input" formControlName="pkhcno" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Passport No.</label><input type="text" class="erp-input" formControlName="passportNo" /></div>
+            <div class="erp-form-group"><label>Passport No.</label><input type="text" class="erp-input" formControlName="ppassportno" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>PAN Card No.<span class="required">*</span></label><input type="text" class="erp-input" formControlName="panNo" /></div>
+            <div class="erp-form-group"><label>PAN Card No.<span class="required">*</span></label><input type="text" class="erp-input" formControlName="ppancardno" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Driving License No.</label><input type="text" class="erp-input" formControlName="drivingLicenseNo" /></div>
+            <div class="erp-form-group"><label>Driving License No.</label><input type="text" class="erp-input" formControlName="pdrivinglicienceno" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Department<span class="required">*</span></label><input type="text" class="erp-input" formControlName="department" /></div>
+            <div class="erp-form-group"><label>Department<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pdepartment" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Joined As<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="joinedAsOptions" formControlName="joinedAs" placeholder="Select Joined As" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="lstDesignation" formControlName="pjoinedasid" bindLabel="designation_name" bindValue="tbl_mst_designation_id" placeholder="Select Joined As" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -146,7 +146,7 @@
               <label>Join Date<span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="joinDate"
+                <p-datepicker formControlName="pjoindate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -165,7 +165,7 @@
               <label>Date Of Reporting<span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="dateOfReporting"
+                <p-datepicker formControlName="pdateofreporting"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -184,7 +184,7 @@
               <label>DOJ In This Branch<span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="dojInThisBranch"
+                <p-datepicker formControlName="pdojinthisbranch"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -201,7 +201,7 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Earned Leaves Claim Branch</label>
-              <ng-select appendTo="body" [items]="branches" formControlName="earnedLeavesBranch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="Branchlist" bindLabel="branch_name" bindValue="tbl_mst_branch_configuration_id" formControlName="pearnedleavesclaimbranch" placeholder="Select Branch" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -209,7 +209,7 @@
               <label>Previous Earned Leaves Claim Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="prevEarnedLeavesClaimDate"
+                <p-datepicker formControlName="ppreviouesearnedleavesdate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -226,39 +226,39 @@
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Blood Group</label>
-              <ng-select appendTo="body" [items]="bloodGroups" formControlName="bloodGroup" placeholder="Select Blood Group" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="lstbloodgroup" bindLabel="bloodgroup" formControlName="bloodgroup" bindValue="bloodgroupid" placeholder="Select Blood Group" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>UAN Number</label><input type="text" class="erp-input" formControlName="uanNumber" /></div>
+            <div class="erp-form-group"><label>UAN Number</label><input type="text" class="erp-input" formControlName="uan_number" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Health Problems<span class="required">*</span></label><input type="text" class="erp-input" formControlName="healthProblems" /></div>
+            <div class="erp-form-group"><label>Health Problems<span class="required">*</span></label><input type="text" class="erp-input" formControlName="phealthproblems" /></div>
           </div>
           <div class="col-12">
-            <label class="erp-checkbox"><input type="checkbox" formControlName="physicalHandicap" /><span>Physical handicap <span class="erp-field-error">*Only for 40% Disable</span></span></label>
+            <label class="erp-checkbox"><input type="checkbox" formControlName="pishandicaped" /><span>Physical handicap <span class="erp-field-error">*Only for 40% Disable</span></span></label>
           </div>
         </div>
       }
 
       @if (activeTab() === 'Family Details') {
         <div class="section-title mb-3">Family Details</div>
-        <div class="row g-3">
+        <div formGroupName="FamilyControls" class="row g-3">
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Relationship<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="relationships" formControlName="familyRelationship" placeholder="Select Relationship" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="relationshipList" bindLabel="relationshipname" bindValue="relationshipid" formControlName="relationshipid" placeholder="Select Relationship" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="familyName" /></div>
+            <div class="erp-form-group"><label>Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pname" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Date of Birth<span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="familyDob"
+                <p-datepicker formControlName="pdateofbirth"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -273,15 +273,15 @@
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Age</label><input type="text" class="erp-input" formControlName="familyAge" /></div>
+            <div class="erp-form-group"><label>Age</label><input type="text" class="erp-input" formControlName="page" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Gender<span class="required">*</span></label>
               <div class="erp-radio-group">
-                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Male" /> Male</label>
-                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Female" /> Female</label>
-                <label class="erp-radio"><input type="radio" formControlName="familyGender" value="Third Gender" /> Third Gender</label>
+                <label class="erp-radio"><input type="radio" formControlName="pgender" value="Male" /> Male</label>
+                <label class="erp-radio"><input type="radio" formControlName="pgender" value="Female" /> Female</label>
+                <label class="erp-radio"><input type="radio" formControlName="pgender" value="Third Gender" /> Third Gender</label>
               </div>
             </div>
           </div>
@@ -289,22 +289,22 @@
             <div class="erp-form-group">
               <label>Martial Status<span class="required">*</span></label>
               <div class="erp-radio-group">
-                <label class="erp-radio"><input type="radio" formControlName="familyMartialStatus" value="Married" /> Married</label>
-                <label class="erp-radio"><input type="radio" formControlName="familyMartialStatus" value="Un-married" /> Un-married</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritialstatus" value="Married" /> Married</label>
+                <label class="erp-radio"><input type="radio" formControlName="pmaritialstatus" value="Un-married" /> Un-married</label>
               </div>
             </div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Education</label>
-              <ng-select appendTo="body" [items]="educationOptions" formControlName="familyEducation" placeholder="Select Education" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="qualificationlist" bindLabel="qualificationname" bindValue="qualificationid" formControlName="qualificationid" placeholder="Select Education" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Occupation</label><input type="text" class="erp-input" formControlName="familyOccupation" /></div>
+            <div class="erp-form-group"><label>Occupation</label><input type="text" class="erp-input" formControlName="poccupation" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Phone No.</label><input type="text" class="erp-input" formControlName="familyPhone" /></div>
+            <div class="erp-form-group"><label>Phone No.</label><input type="text" class="erp-input" formControlName="pphoneno" /></div>
           </div>
           <div class="col-12 d-flex justify-content-end">
             <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
@@ -342,24 +342,24 @@
 
       @if (activeTab() === 'Education') {
         <div class="section-title mb-3">Education</div>
-        <div class="row g-3">
+        <div formGroupName="EducationControls" class="row g-3">
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Course<span class="required">*</span></label><input type="text" class="erp-input" formControlName="course" /></div>
+            <div class="erp-form-group"><label>Course<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pcourse" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Group<span class="required">*</span></label><input type="text" class="erp-input" formControlName="educationGroup" /></div>
+            <div class="erp-form-group"><label>Group<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pgroup" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>School / College<span class="required">*</span></label><input type="text" class="erp-input" formControlName="college" /></div>
+            <div class="erp-form-group"><label>School / College<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pschool" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Place<span class="required">*</span></label><input type="text" class="erp-input" formControlName="educationPlace" /></div>
+            <div class="erp-form-group"><label>Place<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pplace" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Year</label><input type="text" class="erp-input" formControlName="year" /></div>
+            <div class="erp-form-group"><label>Year</label><input type="text" class="erp-input" formControlName="pyear" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>% Of Marks</label><input type="text" class="erp-input" formControlName="marks" /></div>
+            <div class="erp-form-group"><label>% Of Marks</label><input type="text" class="erp-input" formControlName="ppercentofmarks" /></div>
           </div>
           <div class="col-12 d-flex justify-content-end">
             <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
@@ -395,14 +395,14 @@
 
       @if (activeTab() === 'Previous Experience Details') {
         <div class="section-title mb-3">Previous Experience Details</div>
-        <div class="row g-3">
+        <div formGroupName="priviousexpControls" class="row g-3">
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Organization Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="orgName" /></div>
+            <div class="erp-form-group"><label>Organization Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="porginazationname" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Designation</label>
-              <ng-select appendTo="body" [items]="designations" formControlName="expDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
+              <ng-select appendTo="body" [items]="lstDesignation" bindLabel="designation_name" bindValue="tbl_mst_designation_id" formControlName="pdesignationid" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -410,7 +410,7 @@
               <label>From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="expFromDate"
+                <p-datepicker formControlName="pfromdate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -429,7 +429,7 @@
               <label>To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="expToDate"
+                <p-datepicker formControlName="ptodate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -444,10 +444,10 @@
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Last Pay</label><input type="text" class="erp-input" formControlName="lastPay" /></div>
+            <div class="erp-form-group"><label>Last Pay</label><input type="text" class="erp-input" formControlName="plastpay" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Reason For Leaving<span class="required">*</span></label><input type="text" class="erp-input" formControlName="reasonForLeaving" /></div>
+            <div class="erp-form-group"><label>Reason For Leaving<span class="required">*</span></label><input type="text" class="erp-input" formControlName="preasonforleaving" /></div>
           </div>
           <div class="col-12 d-flex justify-content-end">
             <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
@@ -484,14 +484,14 @@
 
       @if (activeTab() === 'Kapil Career') {
         <div class="section-title mb-3">Kapil Career</div>
-        <div class="row g-3">
+        <div formGroupName="KapilCareercontrols" class="row g-3">
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Company / Office<span class="required">*</span></label><input type="text" class="erp-input" formControlName="company" /></div>
+            <div class="erp-form-group"><label>Company / Office<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pcompanyname" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Designation<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="designations" formControlName="careerDesignation" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="lstDesignation" bindLabel="designation_name" bindValue="tbl_mst_designation_id" formControlName="designationid" placeholder="Select Designation" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
@@ -499,7 +499,7 @@
               <label>From Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="careerFromDate"
+                <p-datepicker formControlName="pfromdate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -518,7 +518,7 @@
               <label>To Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="careerToDate"
+                <p-datepicker formControlName="ptodate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -533,10 +533,10 @@
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>SSC Minutes No.</label><input type="text" class="erp-input" formControlName="sscNo" /></div>
+            <div class="erp-form-group"><label>SSC Minutes No.</label><input type="text" class="erp-input" formControlName="psscminutesno" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Reason For Transfer<span class="required">*</span></label><input type="text" class="erp-input" formControlName="reasonForTransfer" /></div>
+            <div class="erp-form-group"><label>Reason For Transfer<span class="required">*</span></label><input type="text" class="erp-input" formControlName="preasonfortransfer" /></div>
           </div>
           <div class="col-12 d-flex justify-content-end">
             <button type="button" class="erp-btn btn-primary btn-sm"><i class="pi pi-plus"></i> Add</button>
@@ -573,16 +573,16 @@
 
       @if (activeTab() === 'Department Training') {
         <div class="section-title mb-3">Department Training</div>
-        <div class="row g-3">
+        <div formGroupName="Trainingcontrols" class="row g-3">
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Course Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="courseName" /></div>
+            <div class="erp-form-group"><label>Course Name<span class="required">*</span></label><input type="text" class="erp-input" formControlName="pcoursename" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Date<span class="required">*</span></label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker formControlName="trainingDate"
+                <p-datepicker formControlName="pdate"
                   dateFormat="dd-M-yy"
                   placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true"
@@ -626,10 +626,10 @@
         </div>
         <div class="row g-3 mt-2">
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Disciplinary Actions</label><input type="text" class="erp-input" formControlName="disciplinaryActions" /></div>
+            <div class="erp-form-group"><label>Disciplinary Actions</label><input type="text" class="erp-input" formControlName="pdisciplinaryactions" /></div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Extra Curricular Activities</label><input type="text" class="erp-input" formControlName="extraCurricular" /></div>
+            <div class="erp-form-group"><label>Extra Curricular Activities</label><input type="text" class="erp-input" formControlName="pextracurricularactivities" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
@@ -644,21 +644,21 @@
       }
 
       @if (activeTab() === 'Employee Documents') {
-        <div class="row g-3">
+        <div formGroupName="EmployeeDocumentsControls" class="row g-3">
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Document Type<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="documentTypes" formControlName="docType" placeholder="Select Document Type" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="groupDetails" bindLabel="pDocumentGroup" bindValue="pDocumentGroupId" formControlName="pDocumentGroupId" placeholder="Select Document Type" [searchable]="true" (change)="idProofType_Change($event)" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
               <label>Document Name<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="documentNames" formControlName="docName" placeholder="Select Document Name" [searchable]="true" [clearable]="false"></ng-select>
+              <ng-select appendTo="body" [items]="kycDocumentType" bindLabel="pDocumentName" bindValue="pDocumentId" formControlName="pDocumentId" placeholder="Select Document Name" [searchable]="true" [clearable]="false"></ng-select>
             </div>
           </div>
           <div class="col-12 col-md-4">
-            <div class="erp-form-group"><label>Reference Number</label><input type="text" class="erp-input" formControlName="refNo" /></div>
+            <div class="erp-form-group"><label>Reference Number</label><input type="text" class="erp-input" formControlName="pDocReferenceno" /></div>
           </div>
           <div class="col-12 col-md-4">
             <div class="erp-form-group">
