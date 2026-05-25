@@ -175,7 +175,7 @@ export class ScheduleTb implements OnInit {
 
       autoTable(doc, {
         startY: y,
-        head: [['Account Name', 'Debit Amount\u20B9', 'Credit Amount\u20B9']],
+        head: [['Account Name', 'Debit Amount', 'Credit Amount']],
         body: [],
         theme: 'plain',
         headStyles: {
