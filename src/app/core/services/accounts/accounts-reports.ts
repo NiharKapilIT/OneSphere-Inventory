@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { catchError, Observable, of, throwError } from 'rxjs';
+import { catchError, map, Observable, of, throwError } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CommonService } from '../Common/common.service';
+import { AccountRow, ScheduleTbRequest, ScheduleTbRow, ScheduleTree } from '../../models/schedule-tb-model';
 
 const EXCEL_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8';
 const EXCEL_EXTENSION = '.xlsx';
@@ -3451,7 +3452,55 @@ export class AccountsReports {
     }
 
   }
+  private readonly apiUrl = 'https://localhost:5001/api/Accounts/GetScheduleTBReport';
+   fetchScheduleTb(req: ScheduleTbRequest): Observable<AccountRow[]> {
+    const params = new HttpParams()
+      .set('fromDate', 'null')
+      .set('toDate', req.date)
+      .set('companycode',this._CommonService.getCompanyCode())
+      .set('branchcode',this._CommonService.getBranchCode())
+      .set('GlobalSchema',this._CommonService.getschemaname());
 
+    return this.http
+      .get<ScheduleTbRow[]>(this.apiUrl, { params })
+      .pipe(map((rows) => rows.map(this.toAccountRow)));
+  }
+ private toAccountRow = (r: ScheduleTbRow): AccountRow => ({
+    mainname: r.mainName ?? '',
+  groupname: r.groupName ?? '',
+  subgroupname: r.subGroupName ?? '',
+  subhead: r.subHead ?? '',
+  vchaccountname: r.accountName?? '',
+
+  accountid: r.accountId ?? '',
+
+  debitamount: Number(r.debitAmount ) || 0,
+  creditamount: Number(r.creditAmount ) || 0,
+
+  mainsortorder: Number(r.mainNameSortOrder ) || 0,
+
+  groupsortorder: Number(r.groupSortOrder ) || 0,
+
+  subgroupsortorder:
+    Number(r.subGroupSortOrder ) || 0,
+
+  subheadsortorder:
+    Number(r.subHeadSortOrder ) || 0,
+  });
+  buildTree(rows: AccountRow[]): ScheduleTree {
+    const tree: ScheduleTree = {};
+    for (const r of rows) {
+      (((tree[r.mainname] ??= {})[r.groupname] ??= {})[r.subgroupname] ??=
+        {})[r.subhead] ??= [];
+      tree[r.mainname][r.groupname][r.subgroupname][r.subhead].push(r);
+    }
+    return tree;
+  }
+  sortMains(mains: string[]): string[] {
+    const order = ['INCOME', 'EXPENSES', 'ASSETS', 'EQUITY AND LIABILITIES'];
+    return mains.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  }
+  
 
 
 

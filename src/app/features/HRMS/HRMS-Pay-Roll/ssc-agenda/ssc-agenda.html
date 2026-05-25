@@ -1,4 +1,4 @@
- <div class="module-page hrms-transaction-page">
+<div class="module-page hrms-transaction-page">
   <div class="erp-card">
     <div class="card-body p-0">
 
@@ -10,30 +10,30 @@
       </div>
 
       <!-- Tabs -->
-        <div class="p-4">
-          <div class="erp-radio-button-group p-0">
-            <label class="erp-radio-button" for="confirmation">
-              <input type="radio" name="agendaType" id="confirmation" value="Confirmation"
-                [(ngModel)]="selectedTab" (change)="onTabChange()" />
-              <span class="button-label">Confirmation</span>
-            </label>
-            <label class="erp-radio-button" for="promotion">
-              <input type="radio" name="agendaType" id="promotion" value="Promotion"
-                [(ngModel)]="selectedTab" (change)="onTabChange()" />
-              <span class="button-label">Promotion</span>
-            </label>
-            <label class="erp-radio-button" for="transfer">
-              <input type="radio" name="agendaType" id="transfer" value="Transfer"
-                [(ngModel)]="selectedTab" (change)="onTabChange()" />
-              <span class="button-label">Transfer</span>
-            </label>
-            <label class="erp-radio-button" for="resignation">
-              <input type="radio" name="agendaType" id="resignation" value="Resignation"
-                [(ngModel)]="selectedTab" (change)="onTabChange()" />
-              <span class="button-label">Resignation</span>
-            </label>
-          </div>
+      <div class="p-4">
+        <div class="erp-radio-button-group p-0">
+          <label class="erp-radio-button" for="confirmation">
+            <input type="radio" name="agendaType" id="confirmation" value="Confirmation" [(ngModel)]="selectedTab"
+              (change)="onTabChange()" />
+            <span class="button-label">Confirmation</span>
+          </label>
+          <label class="erp-radio-button" for="promotion">
+            <input type="radio" name="agendaType" id="promotion" value="Promotion" [(ngModel)]="selectedTab"
+              (change)="onTabChange()" />
+            <span class="button-label">Promotion</span>
+          </label>
+          <label class="erp-radio-button" for="transfer">
+            <input type="radio" name="agendaType" id="transfer" value="Transfer" [(ngModel)]="selectedTab"
+              (change)="onTabChange()" />
+            <span class="button-label">Transfer</span>
+          </label>
+          <label class="erp-radio-button" for="resignation">
+            <input type="radio" name="agendaType" id="resignation" value="Resignation" [(ngModel)]="selectedTab"
+              (change)="onTabChange()" />
+            <span class="button-label">Resignation</span>
+          </label>
         </div>
+      </div>
 
       <!-- Employee Selection -->
       <div class="p-4">
@@ -41,34 +41,39 @@
           <div class="col-xl-4 col-lg-5 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Select Employee <span class="required">*</span></label>
-              <ng-select
-                [items]="employeeOptions"
-                [(ngModel)]="selectedEmployee"
-                placeholder="Search by employee name"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
-                [ngClass]="{'ng-invalid': getValidationMsg('selectedEmployee')}">
+
+
+              <ng-select [items]="employeeOptions" bindLabel="displayName" bindValue="contact_id"
+                [(ngModel)]="selectedEmployee" placeholder="Search by employee name" [searchable]="true"
+                [clearable]="true" appendTo="body" [ngClass]="{'ng-invalid': getValidationMsg('selectedEmployee')}"
+                (search)="onEmployeeSearch($event)" (change)="onEmployeeChange()">
               </ng-select>
               @if (getValidationMsg('selectedEmployee')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedEmployee') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedEmployee') }}</div>
               }
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Employee Info -->
       <div class="p-4">
         <div class="erp-grid-shell p-3">
           <div class="row g-2">
             <div class="col-md-6">
-              <div class="d-flex gap-2 text-muted">Employee Name : <strong class="text-dark">John David</strong></div>
-              <div class="d-flex gap-2 text-muted">Designation : <strong class="text-dark">HR Executive</strong></div>
+              <div class="d-flex gap-2 text-muted">Employee Name :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.contact_name ?? '' }}</strong>
+              </div>
+              <div class="d-flex gap-2 text-muted">Designation :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.designation_name ?? '' }}</strong>
+              </div>
             </div>
             <div class="col-md-6">
-              <div class="d-flex gap-2 text-muted">EPF No. : <strong class="text-dark">EPF1025</strong></div>
-              <div class="d-flex gap-2 text-muted">Hire Date : <strong class="text-dark">12-Mar-2022</strong></div>
+              <div class="d-flex gap-2 text-muted">EPF No. :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.epf_no ?? '' }}</strong>
+              </div>
+              <div class="d-flex gap-2 text-muted">Hire Date :
+                <strong class="text-dark">{{ selectedEmployeeInfo?.hire_date ?? '' }}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -83,17 +88,12 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
-                [ngClass]="{'ng-invalid': getValidationMsg('selectedDesignation')}">
+              <ng-select [items]="designationOptions" bindLabel="designation_name" bindValue="tbl_mst_designation_id"
+                [(ngModel)]="selectedDesignation" placeholder="Select designation" [searchable]="true"
+                [clearable]="true" appendTo="body" [ngClass]="{'ng-invalid': getValidationMsg('selectedDesignation')}">
               </ng-select>
               @if (getValidationMsg('selectedDesignation')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedDesignation') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedDesignation') }}</div>
               }
             </div>
           </div>
@@ -103,14 +103,8 @@
               <label class="erp-label">Date of Confirmation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="confirmationDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="confirmationDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -120,12 +114,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Remarks <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('confirmationRemarks')"
-                placeholder="Enter remarks"
-                [(ngModel)]="confirmationRemarks" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('confirmationRemarks')"
+                placeholder="Enter remarks" [(ngModel)]="confirmationRemarks" />
               @if (getValidationMsg('confirmationRemarks')) {
-                <div class="erp-field-error">{{ getValidationMsg('confirmationRemarks') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('confirmationRemarks') }}</div>
               }
             </div>
           </div>
@@ -133,12 +125,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Ref No. <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('confirmationRefNo')"
-                placeholder="Enter reference number"
-                [(ngModel)]="confirmationRefNo" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('confirmationRefNo')"
+                placeholder="Enter reference number" [(ngModel)]="confirmationRefNo" />
               @if (getValidationMsg('confirmationRefNo')) {
-                <div class="erp-field-error">{{ getValidationMsg('confirmationRefNo') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('confirmationRefNo') }}</div>
               }
             </div>
           </div>
@@ -148,14 +138,8 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="confirmationMinutesDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="confirmationMinutesDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -175,17 +159,13 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="promotionDesignationOptions"
-                [(ngModel)]="selectedPromotionDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
+              <ng-select [items]="designationOptions" bindLabel="designation_name" bindValue="tbl_mst_designation_id"
+                [(ngModel)]="selectedPromotionDesignation" placeholder="Select designation" [searchable]="true"
+                [clearable]="true" appendTo="body"
                 [ngClass]="{'ng-invalid': getValidationMsg('selectedPromotionDesignation')}">
               </ng-select>
               @if (getValidationMsg('selectedPromotionDesignation')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedPromotionDesignation') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedPromotionDesignation') }}</div>
               }
             </div>
           </div>
@@ -195,14 +175,8 @@
               <label class="erp-label">Date of Promotion</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="promotionDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="promotionDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -212,12 +186,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Remarks <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('promotionRemarks')"
-                placeholder="Enter remarks"
-                [(ngModel)]="promotionRemarks" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('promotionRemarks')"
+                placeholder="Enter remarks" [(ngModel)]="promotionRemarks" />
               @if (getValidationMsg('promotionRemarks')) {
-                <div class="erp-field-error">{{ getValidationMsg('promotionRemarks') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('promotionRemarks') }}</div>
               }
             </div>
           </div>
@@ -225,12 +197,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Ref No. <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('promotionRefNo')"
-                placeholder="Enter reference number"
-                [(ngModel)]="promotionRefNo" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('promotionRefNo')"
+                placeholder="Enter reference number" [(ngModel)]="promotionRefNo" />
               @if (getValidationMsg('promotionRefNo')) {
-                <div class="erp-field-error">{{ getValidationMsg('promotionRefNo') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('promotionRefNo') }}</div>
               }
             </div>
           </div>
@@ -240,14 +210,8 @@
               <label class="erp-label">Minutes Date</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="promotionMinutesDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="promotionMinutesDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -269,14 +233,8 @@
               <label class="erp-label">Date of Transfer</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="transferDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="transferDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -288,14 +246,8 @@
               <label class="erp-label">Date of Joining</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="transferJoiningDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="transferJoiningDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -307,14 +259,8 @@
               <label class="erp-label">Date of Reporting</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="transferReportingDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="transferReportingDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -324,17 +270,12 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Posted to Branch <span class="required">*</span></label>
-              <ng-select
-                [items]="branchOptions"
-                [(ngModel)]="selectedBranch"
-                placeholder="Select branch"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
+              <ng-select [items]="branchOptions" [(ngModel)]="selectedBranch" placeholder="Select branch"
+                [searchable]="true" [clearable]="true" appendTo="body"
                 [ngClass]="{'ng-invalid': getValidationMsg('selectedBranch')}">
               </ng-select>
               @if (getValidationMsg('selectedBranch')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedBranch') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedBranch') }}</div>
               }
             </div>
           </div>
@@ -342,17 +283,13 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Designation <span class="required">*</span></label>
-              <ng-select
-                [items]="designationOptions"
-                [(ngModel)]="selectedTransferDesignation"
-                placeholder="Select designation"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
+              <ng-select [items]="designationOptions" bindLabel="designation_name" bindValue="tbl_mst_designation_id"
+                [(ngModel)]="selectedTransferDesignation" placeholder="Select designation" [searchable]="true"
+                [clearable]="true" appendTo="body"
                 [ngClass]="{'ng-invalid': getValidationMsg('selectedTransferDesignation')}">
               </ng-select>
               @if (getValidationMsg('selectedTransferDesignation')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedTransferDesignation') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedTransferDesignation') }}</div>
               }
             </div>
           </div>
@@ -360,12 +297,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Remarks <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('transferRemarks')"
-                placeholder="Enter remarks"
-                [(ngModel)]="transferRemarks" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('transferRemarks')"
+                placeholder="Enter remarks" [(ngModel)]="transferRemarks" />
               @if (getValidationMsg('transferRemarks')) {
-                <div class="erp-field-error">{{ getValidationMsg('transferRemarks') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('transferRemarks') }}</div>
               }
             </div>
           </div>
@@ -383,17 +318,12 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Resignation Accept Authority <span class="required">*</span></label>
-              <ng-select
-                [items]="authorityOptions"
-                [(ngModel)]="selectedAuthority"
-                placeholder="Select authority"
-                [searchable]="true"
-                [clearable]="true"
-                appendTo="body"
-                [ngClass]="{'ng-invalid': getValidationMsg('selectedAuthority')}">
+              <ng-select [items]="employeeOptions" bindLabel="displayName" bindValue="contact_id"
+                [(ngModel)]="selectedAuthority" placeholder="Select authority" [searchable]="true" [clearable]="true"
+                appendTo="body" [ngClass]="{'ng-invalid': getValidationMsg('selectedAuthority')}">
               </ng-select>
               @if (getValidationMsg('selectedAuthority')) {
-                <div class="erp-field-error">{{ getValidationMsg('selectedAuthority') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('selectedAuthority') }}</div>
               }
             </div>
           </div>
@@ -403,14 +333,8 @@
               <label class="erp-label">Date of Resignation</label>
               <div class="erp-input-wrap erp-date-wrap">
                 <i class="pi pi-calendar erp-input-icon"></i>
-                <p-datepicker
-                  [(ngModel)]="resignationDate"
-                  dateFormat="dd-MM-yy"
-                  placeholder="DD-MMM-YYYY"
-                  [readonlyInput]="true"
-                  [maxDate]="maxDate"
-                  appendTo="body"
-                  styleClass="w-100"
+                <p-datepicker [(ngModel)]="resignationDate" dateFormat="dd-MM-yy" placeholder="DD-MMM-YYYY"
+                  [readonlyInput]="true" [maxDate]="maxDate" appendTo="body" styleClass="w-100"
                   inputStyleClass="erp-input icon-pad w-100">
                 </p-datepicker>
               </div>
@@ -420,12 +344,10 @@
           <div class="col-lg-4 col-md-6">
             <div class="erp-form-group">
               <label class="erp-label">Remarks <span class="required">*</span></label>
-              <input type="text" class="erp-input"
-                [class.erp-input--invalid]="getValidationMsg('resignationRemarks')"
-                placeholder="Enter remarks"
-                [(ngModel)]="resignationRemarks" />
+              <input type="text" class="erp-input" [class.erp-input--invalid]="getValidationMsg('resignationRemarks')"
+                placeholder="Enter remarks" [(ngModel)]="resignationRemarks" />
               @if (getValidationMsg('resignationRemarks')) {
-                <div class="erp-field-error">{{ getValidationMsg('resignationRemarks') }}</div>
+              <div class="erp-field-error">{{ getValidationMsg('resignationRemarks') }}</div>
               }
             </div>
           </div>
@@ -439,8 +361,13 @@
         <button type="button" class="erp-btn btn-white" (click)="clearForm()">
           <i class="pi pi-times"></i> Cancel
         </button>
-        <button type="button" class="erp-btn btn-primary" (click)="save()">
+        <!-- <button type="button" class="erp-btn btn-primary" (click)="save()">
           <i class="pi pi-check"></i> Save
+        </button> -->
+
+        <button type="button" class="erp-btn btn-primary" (click)="save()" [disabled]="isSaving">
+          <i class="pi" [ngClass]="isSaving ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+          {{ isSaving ? 'Saving...' : 'Save' }}
         </button>
       </div>
 

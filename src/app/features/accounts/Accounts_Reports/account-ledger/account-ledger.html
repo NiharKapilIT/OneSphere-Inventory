@@ -168,7 +168,8 @@
 
           <!-- Report Title -->
           <h6 class="text-center mb-3" style="font-size: 16px; font-weight: 700; color: var(--clr-p1, #0c4a6e);">
-            Account Ledger - ADVICE IN TRANSIT {{ reportTitle() }}
+            <!-- Account Ledger - ADVICE IN TRANSIT {{ reportTitle() }} -->
+            Account Ledger - {{ reportTitle() }}
           </h6>
 
           <!-- Date Range -->
@@ -256,8 +257,16 @@
                     {{ row.ptransactionno === 0 ? '--NA--' : row.ptransactionno }}
                   </td>
 
+                  <!-- <td>
+                    {{ row.pparticulars }}
+                  </td> -->
                   <td>
                     {{ row.pparticulars }}
+                    @if (isNarrationChecked() && row.pdescription) {
+                    <span class="text-muted" style="font-size: 12px;">
+                      ({{ row.pdescription }})
+                    </span>
+                    }
                   </td>
 
                   <td class="td-right">

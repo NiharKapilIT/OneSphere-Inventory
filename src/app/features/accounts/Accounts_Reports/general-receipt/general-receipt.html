@@ -126,6 +126,10 @@
                           <span class="ms-2 text-muted small">
                             (Ref: {{ receiptdata.reference_number }}, Bank: {{ getBankName(receiptdata.cheque_bank) }})
                           </span>
+                        }@else{
+                          <span class="ms-2 text-muted small">
+                            (Ref: {{ receiptdata.reference_number }}, Bank: {{ getBankName(receiptdata.pdepositbankname) }})
+                          </span>
                         }
                       </p>
                     </div>

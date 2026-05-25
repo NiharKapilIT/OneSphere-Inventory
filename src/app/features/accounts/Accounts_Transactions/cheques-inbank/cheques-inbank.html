@@ -69,7 +69,10 @@
           </label>
           <div class="erp-input-wrap erp-date-wrap">
             <i class="pi pi-calendar erp-input-icon"></i>
-            <input type="text" class="erp-input icon-pad w-100" [value]="today2 | date:'dd-MMM-yyyy'" readonly />
+            <p-datepicker [(ngModel)]="transactionDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
+              dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+              (onSelect)="onTransactionDateSelect($event)">
+            </p-datepicker>
           </div>
         </div>
         <div class="filter-field filter-field--sm">
@@ -79,7 +82,8 @@
           <div class="erp-input-wrap erp-date-wrap">
             <i class="pi pi-calendar erp-input-icon"></i>
             <p-datepicker [(ngModel)]="chequeClearDateModel" [ngModelOptions]="{standalone: true}" [maxDate]="today2"
-              dateFormat="dd-M-yy" appendTo="body" styleClass="w-100" inputStyleClass="erp-input w-100"
+              [minDate]="chequeClearMinDate" dateFormat="dd-M-yy" appendTo="body" styleClass="w-100"
+              inputStyleClass="erp-input w-100"
               (onSelect)="ChequesInBankForm.get('pchequecleardate')?.setValue($event)">
             </p-datepicker>
           </div>

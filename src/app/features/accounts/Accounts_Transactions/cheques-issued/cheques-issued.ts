@@ -1453,7 +1453,7 @@ export class ChequesIssued implements OnInit {
         data.pcancelstatus = false; data.pchequestatus = 'P';
       } else {
         data.pclearstatus = false; data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.pdepositstatus = false; data.pclearstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
@@ -1471,7 +1471,7 @@ export class ChequesIssued implements OnInit {
       } else {
         data.pclearstatus = false; data.preturnstatus = false;
         data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.preturnstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
@@ -1489,7 +1489,7 @@ export class ChequesIssued implements OnInit {
       } else {
         data.pclearstatus = false; data.preturnstatus = false;
         data.pcancelstatus = false; data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.pcancelstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
