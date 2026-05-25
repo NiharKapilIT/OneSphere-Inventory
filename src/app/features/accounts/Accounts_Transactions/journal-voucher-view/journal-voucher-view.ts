@@ -124,7 +124,8 @@ export class JournalVoucherView implements OnInit {
   }
 
   viewHandler(event: any, row: any): void {
-    const receipt = btoa(row.journalVoucherNo + ',' + 'Journal Voucher');
+    //const receipt = btoa(row.journalVoucherNo + ',' + 'Journal Voucher');
+    const receipt = btoa(row.journalVoucherNo + ',' + 'Journal Voucher' + ',' + 'Reprint');
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/journal-voucher', receipt])
     );
