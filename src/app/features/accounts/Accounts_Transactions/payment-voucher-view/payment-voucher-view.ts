@@ -53,6 +53,7 @@ import { ChangeDetectorRef } from '@angular/core';
     RouterModule,
   ],
   providers: [DecimalPipe, CurrencyPipe, DatePipe],
+  styles: [`:host .erp-badge.badge-danger { background: #fee2e2; color: #dc2626; } :host .erp-badge.badge-success { background: #dcfce7; color: #16a34a; }`],
 })
 export class PaymentVoucherView implements OnInit, OnDestroy {
   pDatepickerMaxDate: any = new Date();

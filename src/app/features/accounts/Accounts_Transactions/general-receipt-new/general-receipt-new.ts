@@ -72,6 +72,7 @@ function percentageValidator(c: AbstractControl): ValidationErrors | null {
 
   ],
   templateUrl: './general-receipt-new.html',
+  styles: [`:host .erp-badge.badge-danger { background: #fee2e2; color: #dc2626; } :host .erp-badge.badge-success { background: #dcfce7; color: #16a34a; }`],
 })
 export class GeneralReceiptNew implements OnInit {
   pDatepickerMaxDate: Date = new Date();
