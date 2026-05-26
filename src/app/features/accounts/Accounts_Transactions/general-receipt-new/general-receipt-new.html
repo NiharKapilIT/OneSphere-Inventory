@@ -536,7 +536,7 @@
           <section class="account-tax-group" [class.is-expanded]="showtds()">
             <div class="account-tax-group-header">
               <div>
-                <h4>TDS Details</h4>
+                <h4>TDS Details <span class="erp-badge badge-danger pt-1"><i class="pi pi-times-circle"></i> TDS Excluded</span></h4>
                 <span>Tax deduction setup for this receipt line.</span>
               </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
@@ -595,7 +595,7 @@
           <section class="account-tax-group" [class.is-expanded]="showgst()" formGroupName="preceiptslist">
             <div class="account-tax-group-header">
               <div>
-                <h4>GST Details</h4>
+                <h4>GST Details <span class="erp-badge badge-success pt-1"><i class="pi pi-check-circle"></i> GST Included</span></h4>
                 <span>GST state, percentage and calculated breakup.</span>
               </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!GeneralReceiptForm.get('ppartyid')?.value">
@@ -1197,6 +1197,11 @@
           </div>
         </div>
       </div>
+
+      <!-- GST / TDS note -->
+      <!-- <div class="px-4 pb-3">
+        <p class="erp-form-note"><i class="pi pi-info-circle"></i> GST is included in the total amount received. TDS is not applicable / not deducted here.</p>
+      </div> -->
 
       <!-- Footer -->
       <div class="card-footer d-flex gap-2 justify-end">

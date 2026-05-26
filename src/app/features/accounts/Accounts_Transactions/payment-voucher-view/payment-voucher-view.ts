@@ -53,6 +53,7 @@ import { ChangeDetectorRef } from '@angular/core';
     RouterModule,
   ],
   providers: [DecimalPipe, CurrencyPipe, DatePipe],
+  styles: [`:host .erp-badge.badge-danger { background: #fee2e2; color: #dc2626; } :host .erp-badge.badge-success { background: #dcfce7; color: #16a34a; }`],
 })
 export class PaymentVoucherView implements OnInit, OnDestroy {
   pDatepickerMaxDate: any = new Date();
@@ -1611,7 +1612,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
 
-  addPaymentDetails(): void {
+  addPaymentDetails(): void { debugger;
 
     const round = (n: number) =>
       Math.round((n + Number.EPSILON) * 100) / 100;
@@ -3073,8 +3074,12 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         const safe = (v: any) =>
           Number(this.commonService.removeCommasInAmount(v) || 0);
 
+        // const debit = ledgerPayments.reduce(
+        //   (s: any, p: any) => s + safe(p.pamount) + safe(p.ptdsamount),
+        //   0
+        // );
         const debit = ledgerPayments.reduce(
-          (s: any, p: any) => s + safe(p.pamount) + safe(p.ptdsamount),
+          (s: any, p: any) => s + safe(p.pamount)- safe(p.pgstamount),
           0
         );
         this.partyjournalentrylist.push({
@@ -3092,9 +3097,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           if (tdsAmt > 0) {
             tdsEntries.push({
               type: `Journal Voucher ${idx}`,
-              accountname: `TDS-${sec} RECEIVABLE`,
-              debitamount: tdsAmt,
-              creditamount: 0,
+              accountname: `TDS-${sec} PAYABLE`,
+              debitamount: 0,
+              creditamount: tdsAmt,
             });
           }
         }
@@ -3107,8 +3112,8 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           tdsEntries.push({
             type: `Journal Voucher ${idx}`,
             accountname: ledger,
-            debitamount: 0,
-            creditamount: totalTds,
+            debitamount: totalTds,
+            creditamount: 0,
           });
         }
         idx++;
@@ -3135,9 +3140,14 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
       });
 
+      // const totalPaid = (this.paymentsList || []).reduce(
+      //   (s: any, p: any) =>
+      //     s + Number(this.commonService.removeCommasInAmount(p.ptotalamount) || 0),
+      //   0
+      // );
       const totalPaid = (this.paymentsList || []).reduce(
         (s: any, p: any) =>
-          s + Number(this.commonService.removeCommasInAmount(p.ptotalamount) || 0),
+          s + Number(this.commonService.removeCommasInAmount(p.pamount) || 0),
         0
       );
       if (totalPaid > 0) {

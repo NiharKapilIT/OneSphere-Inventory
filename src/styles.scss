@@ -1127,6 +1127,16 @@ select.erp-input {
   color: #94a3b8;
 }
 
+.erp-form-note {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  i { color: #3b82f6; }
+}
+
 .erp-form-row {
   display: grid;
   gap: 16px;
@@ -4123,6 +4133,10 @@ select.erp-select-sm {
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .account-tax-group-header span {

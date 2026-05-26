@@ -1,7 +1,7 @@
 import { AfterViewInit, Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { NavigationEnd, NavigationError, Router, RouterModule } from '@angular/router';
 import {
   Module,
   NavigationService,
@@ -156,6 +156,19 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
         this.restoreNavigationFromRoute(event.urlAfterRedirects);
         this.updateReferenceTray(event.urlAfterRedirects);
         this.contentArea?.nativeElement.scrollTo({ top: 0 });
+      });
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationError => event instanceof NavigationError),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(event => {
+        console.error('Navigation failed:', event.error);
+        // Chunk load failure (lazy module not found on server) — navigate back to dashboard root
+        if (event.error?.name === 'ChunkLoadError' || String(event.error).includes('Loading chunk')) {
+          this.router.navigate(['/dashboard']);
+        }
       });
 
     // Set General Receipt as default selection
