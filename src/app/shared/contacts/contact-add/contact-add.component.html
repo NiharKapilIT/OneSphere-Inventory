@@ -4,10 +4,10 @@
 <div class="contact-modal-wrap">
   <!-- <div class="contact-modal" (click)="$event.stopPropagation()"> -->
 
-    <div class="contact-modal" (click)="$event.stopPropagation()" style="position:relative;">
+  <div class="contact-modal" (click)="$event.stopPropagation()" style="position:relative;">
 
-  <!-- Loading overlay while ViewContact API fetches edit data -->
-  @if (isLoading) {
+    <!-- Loading overlay while ViewContact API fetches edit data -->
+    @if (isLoading) {
     <div style="position:absolute; inset:0; background:rgba(255,255,255,0.75);
                 display:flex; align-items:center; justify-content:center;
                 z-index:10; border-radius:12px;">
@@ -16,7 +16,7 @@
         <span style="font-size:13px; color:#64748b;">Loading contact data...</span>
       </div>
     </div>
-  }
+    }
 
 
     <!-- ── HEADER ──────────────────────────────────────────────── -->
@@ -68,10 +68,42 @@
 
     <div [formGroup]="form" class="contact-modal-body">
 
+
       <!-- ══ SECTION 1 : PERSONAL / BUSINESS ══════════════════════ -->
       @if (activeSection() === 'personal') {
 
-      <!-- Contact Type Radio -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Contact Number / Name</label>
+
+            <ng-select [items]="(contactList$ | async) ?? []" bindLabel="contactname" bindValue="contactname"
+              [typeahead]="contactSearchEvent" (search)="contactSearchEvent.next($event.term)"
+              formControlName="contactPersonSearch" placeholder="Search by phone, name etc." [searchable]="true"
+              [clearable]="true" (change)="onContactPersonSelect($event)">
+
+              <ng-template ng-header-tmp>
+                <div class="row" style="font-size:12px; font-weight:600; padding:4px 8px;">
+                  <span class="col-4">Name</span>
+                  <span class="col-4">Mobile</span>
+                  <span class="col-4">Email</span>
+                </div>
+              </ng-template>
+
+              <ng-template ng-option-tmp let-item="item">
+                <div class="row" style="font-size:12px;">
+                  <span class="col-4">{{ item.contactname }}</span>
+                  <span class="col-4">{{ item.contactmobilenumber }}</span>
+                  <span class="col-4">{{ item.contactemailid }}</span>
+                </div>
+              </ng-template>
+
+            </ng-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- THEN CONTACT TYPE RADIO -->
       <div class="erp-radio-button-group mb-4">
         <label class="erp-radio-button">
           <input type="radio" name="contactType" value="Individual" [checked]="isIndividual"
@@ -103,7 +135,8 @@
                 bindValue="title_name" formControlName="salutation" placeholder="Select Salutation" [searchable]="true"
                 [clearable]="false">
               </ng-select>
-              <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
+              <input type="text" class="erp-input" formControlName="firstName" placeholder="First name"
+                (blur)="convertTitleCase('bankBranch')" (input)="lettersOnly($event)" />
             </div>
             @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
             <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Name is required</span>
@@ -152,7 +185,8 @@
                 bindLabel="relation_title_name" bindValue="relation_title_name" formControlName="fatherSalutation"
                 placeholder="Select" [searchable]="true" [clearable]="false">
               </ng-select>
-              <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
+              <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name"
+                (blur)="convertTitleCase('bankBranch')" (input)="lettersOnly($event)" />
             </div>
             @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
             <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Father name is required</span>
@@ -213,7 +247,7 @@
           <div class="erp-form-group">
             <label>PAN Card No.</label>
             <input type="text" class="erp-input" formControlName="panCard" placeholder="ABCDE1234F"
-              style="text-transform:uppercase;" maxlength="10" />
+              style="text-transform:uppercase;" maxlength="10" (input)="onIfscInput($event, 'panCard')" />
           </div>
         </div>
 
@@ -221,7 +255,7 @@
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Aadhar Card No.</label>
-            <input type="text" class="erp-input" formControlName="aadharCard" placeholder="XXXX XXXX XXXX"
+            <input type="text" class="erp-input" formControlName="aadharCard" placeholder="XXXX XXXX XXXX" numbersOnly
               maxlength="14" />
           </div>
         </div>
@@ -232,7 +266,8 @@
             <label>CNT No.</label>
             <div class="erp-input-wrap">
               <i class="pi pi-hashtag erp-input-icon"></i>
-              <input type="text" class="erp-input icon-pad" formControlName="cntNo" placeholder="CNT number" />
+              <input type="text" class="erp-input icon-pad" maxlength="12" formControlName="cntNo"
+                (input)="onIfscInput($event, 'cntNo')" placeholder="CNT number" />
             </div>
           </div>
         </div>
@@ -249,24 +284,16 @@
 
       <div class="row g-3">
 
-        <!-- Contact Number / Name lookup -->
-        <div class="col-12 col-md-6">
-          <div class="erp-form-group">
-            <label>Contact Number / Name</label>
-            <div class="erp-input-wrap">
-              <i class="pi pi-search erp-input-icon"></i>
-              <input type="text" class="erp-input icon-pad" placeholder="Search by phone, name etc." />
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6"></div>
+        <!-- <div class="col-12 col-md-6"></div> -->
 
         <!-- Enterprise Name -->
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Name of the Enterprise <span class="required">*</span></label>
             <input type="text" class="erp-input" formControlName="enterpriseName" placeholder="Enterprise name" />
+            @if(form.get('enterpriseName')?.invalid && form.get('enterpriseName')?.touched){
+            <span class="erp-field-error">Name of the Enterprise is required</span>
+            }
           </div>
         </div>
 
@@ -314,8 +341,12 @@
             <label>Enterprise Contact No. <span class="required">*</span></label>
             <div class="erp-input-wrap">
               <i class="pi pi-phone erp-input-icon"></i>
-              <input type="tel" class="erp-input icon-pad" formControlName="enterpriseContact"
+              <input type="tel" class="erp-input icon-pad" formControlName="enterpriseContact" maxlength="10"
                 placeholder="10-digit number" />
+              @if (form.get('enterpriseContact')?.invalid && form.get('enterpriseContact')?.touched) {
+              <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Valid 10-digit number
+                required</span>
+              }
             </div>
           </div>
         </div>
@@ -324,9 +355,12 @@
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>PAN Card No.</label>
-            <input type="text" class="erp-input" formControlName="enterprisePan" placeholder="ABCDE1234F"
-              style="text-transform:uppercase;" maxlength="10" />
+            <div class="erp-input-wrap">
+              <input type="text" class="erp-input icon-pad" formControlName="enterprisePan" placeholder="ABCDE1234F"
+                (input)="onIfscInput($event, 'enterprisePan')" maxlength="10" />
+            </div>
           </div>
+
         </div>
 
         <!-- Type of Enterprise -->
@@ -362,21 +396,49 @@
       <div class="row g-3 mb-3">
         <div class="col-12 col-md-5">
           <div class="erp-form-group">
-            <label>Contact</label>
-            <div class="erp-input-wrap">
-              <i class="pi pi-search erp-input-icon"></i>
-              <input type="text" class="erp-input icon-pad" [(ngModel)]="currentContactPerson.contact"
-                [ngModelOptions]="{standalone:true}" placeholder="Search by phone, name etc." />
-            </div>
+            <label>Contact<span class="required">*</span></label>
+            <ng-select [items]="(contactList$ | async) ?? []" bindLabel="contactname" bindValue="contactname"
+              [typeahead]="contactSearchEvent" (search)="contactSearchEvent.next($event.term)"
+              formControlName="contactPerson" placeholder="Search by phone, name etc." [searchable]="true"
+              [clearable]="true" (change)="onContactPersonSelect($event)">
+
+              <ng-template ng-header-tmp>
+                <div class="row" style="font-size:12px; font-weight:600; padding:4px 8px;">
+                  <span class="col-4">Name</span>
+                  <span class="col-4">Mobile</span>
+                  <span class="col-4">Email</span>
+                </div>
+              </ng-template>
+
+              <ng-template ng-option-tmp let-item="item">
+                <div class="row" style="font-size:12px;">
+                  <span class="col-4" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ item.contactname }}
+                  </span>
+                  <span class="col-4" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ item.contactmobilenumber }}
+                  </span>
+                  <span class="col-4" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    {{ item.contactemailid }}
+                  </span>
+                </div>
+              </ng-template>
+            </ng-select>
+            @if (form.get('contactPerson')?.invalid && form.get('contactPerson')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Contact is required</span>
+            }
           </div>
         </div>
         <div class="col-12 col-md-5">
           <div class="erp-form-group">
-            <label>Designation</label>
+            <label>Designation<span class="required">*</span></label>
             <ng-select appendTo="body" [items]="designations" bindLabel="designation_name" bindValue="designation_name"
-              [(ngModel)]="currentContactPerson.designation" [ngModelOptions]="{standalone:true}"
-              placeholder="Select Designation" [searchable]="true" [clearable]="true">
+              formControlName="contactPersonDesignation" placeholder="Select Designation" [searchable]="true"
+              [clearable]="true">
             </ng-select>
+            @if (form.get('contactPersonDesignation')?.invalid && form.get('contactPersonDesignation')?.touched) {
+            <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Designation is required</span>
+            }
           </div>
         </div>
         <div class="col-12 col-md-2" style="display:flex; align-items:flex-end; padding-bottom:16px;">
@@ -406,9 +468,13 @@
             @for (cp of contactPersons(); track $index) {
             <tr>
               <td class="td-center">
-                <label class="erp-radio">
-                  <input type="radio" name="primaryContact" [value]="$index" />
+                <label class="erp-radio" style="justify-content:center;">
+                  <input type="radio" name="primaryContactPerson" [checked]="cp.isPrimary"
+                    (change)="setPrimaryContactPerson($index)" />
                 </label>
+                @if (cp.isPrimary) {
+                <span class="erp-badge badge-success" style="margin-left:4px;">Primary</span>
+                }
               </td>
               <td>{{ cp.contact }}</td>
               <td>{{ cp.designation }}</td>
@@ -436,7 +502,7 @@
             <label>Primary Contact Number <span class="required">*</span></label>
             <div class="erp-input-wrap">
               <i class="pi pi-mobile erp-input-icon"></i>
-              <input type="tel" class="erp-input icon-pad" formControlName="primaryContact"
+              <input type="tel" class="erp-input icon-pad" formControlName="primaryContact" numbersOnly
                 placeholder="10-digit mobile number" maxlength="10" />
             </div>
             @if (form.get('primaryContact')?.invalid && form.get('primaryContact')?.touched) {
@@ -450,7 +516,7 @@
             <label>Secondary Contact Number</label>
             <div class="erp-input-wrap">
               <i class="pi pi-phone erp-input-icon"></i>
-              <input type="tel" class="erp-input icon-pad" formControlName="secondaryContact"
+              <input type="tel" class="erp-input icon-pad" formControlName="secondaryContact" numbersOnly
                 placeholder="Alternate number" maxlength="10" />
             </div>
           </div>
@@ -495,80 +561,150 @@
       <div class="row g-3">
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
-            <label>Address Line</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.addressLine"
-              [ngModelOptions]="{standalone:true}" placeholder="House/Flat no, Street name" />
+            <label>Address Line <span class="required">*</span></label>
+            <!-- <input type="text" class="erp-input" [(ngModel)]="currentAddress.addressLine"
+              [ngModelOptions]="{standalone:true}" placeholder="House/Flat no, Street name" /> -->
+            <input type="text" class="erp-input" formControlName="addressLine"
+              placeholder="House/Flat no, Street name" />
+
+            @if(form.get('addressLine')?.invalid &&
+            form.get('addressLine')?.touched){
+
+            <span class="erp-field-error">
+              Address Line is required
+            </span>
+
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
-            <label>Area / Locality</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.area" [ngModelOptions]="{standalone:true}"
-              placeholder="Area or locality" />
+            <label>Area / Locality <span class="required">*</span></label>
+            <!-- <input type="text" class="erp-input" [(ngModel)]="currentAddress.area" [ngModelOptions]="{standalone:true}"
+              placeholder="Area or locality" /> -->
+            <input type="text" class="erp-input" formControlName="area" placeholder="Area or locality" />
+            @if(form.get('area')?.invalid &&
+            form.get('area')?.touched){
+
+            <span class="erp-field-error">
+              Area is required
+            </span>
+
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>City / Town</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.city" [ngModelOptions]="{standalone:true}"
-              placeholder="City" />
+            <label>City / Town<span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="city" placeholder="City" />
+            <!-- <input type="text" class="erp-input" [(ngModel)]="currentAddress.city" [ngModelOptions]="{standalone:true}"
+              placeholder="City" /> -->
+            @if(form.get('city')?.invalid &&
+            form.get('city')?.touched){
+
+            <span class="erp-field-error">
+              City is required
+            </span>
+
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>Address Type</label>
-            <ng-select appendTo="body" [items]="addressTypes" bindLabel="pAddressType" bindValue="pAddressType"
+            <label>Address Type<span class="required">*</span></label>
+            <!-- <ng-select appendTo="body" [items]="addressTypes" bindLabel="pAddressType" bindValue="pAddressType"
               [(ngModel)]="currentAddress.type" [ngModelOptions]="{standalone:true}" placeholder="Select Address Type"
               [searchable]="true" [clearable]="true">
+            </ng-select> -->
+
+            <ng-select formControlName="addressType" [items]="addressTypes" bindLabel="pAddressType"
+              bindValue="pAddressType">
             </ng-select>
+
+            @if(form.get('addressType')?.invalid &&
+            form.get('addressType')?.touched){
+
+            <span class="erp-field-error">
+              Address Type is required
+            </span>
+
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Country <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name"
+            <!-- <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name"
               [(ngModel)]="currentAddress.country" [ngModelOptions]="{standalone:true}" placeholder="Select Country"
               [searchable]="true" [clearable]="true" (change)="onCountryChange($event)">
+            </ng-select> -->
+            <ng-select appendTo="body" [items]="countries" bindLabel="country_name" bindValue="country_name"
+              formControlName="country" placeholder="Select Country" [searchable]="true" [clearable]="true"
+              (change)="onCountryChange($event)">
             </ng-select>
+            @if(form.get('country')?.invalid &&
+            form.get('country')?.touched){
+
+            <span class="erp-field-error">Country is required </span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>State <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="states" bindLabel="state_name" bindValue="state_name"
+            <!-- <ng-select appendTo="body" [items]="states" bindLabel="state_name" bindValue="state_name"
               [(ngModel)]="currentAddress.state" [ngModelOptions]="{standalone:true}" placeholder="Select State"
               [searchable]="true" [clearable]="true" (change)="onStateChange($event)">
+            </ng-select> -->
+            <ng-select appendTo="body" [items]="states" bindLabel="state_name" bindValue="state_name"
+              formControlName="state" placeholder="Select State" [searchable]="true" [clearable]="true"
+              (change)="onStateChange($event)">
             </ng-select>
+            @if(form.get('state')?.invalid && form.get('state')?.touched){
+            <span class="erp-field-error">State is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>District <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="districts" bindLabel="district_name" bindValue="district_name"
+            <!-- <ng-select appendTo="body" [items]="districts" bindLabel="district_name" bindValue="district_name"
               [(ngModel)]="currentAddress.district" [ngModelOptions]="{standalone:true}" placeholder="Select District"
               [searchable]="true" [clearable]="true" (change)="onDistrictChange($event)">
+            </ng-select> -->
+            <ng-select appendTo="body" [items]="districts" bindLabel="district_name" bindValue="district_name"
+              formControlName="district" placeholder="Select District" [searchable]="true" [clearable]="true"
+              (change)="onDistrictChange($event)">
             </ng-select>
+            @if(form.get('district')?.invalid && form.get('district')?.touched){
+            <span class="erp-field-error">District is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Pincode <span class="required">*</span></label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.pincode"
-              [ngModelOptions]="{standalone:true}" placeholder="6-digit pincode" maxlength="6" />
+            <!-- <input type="text" class="erp-input" [(ngModel)]="currentAddress.pincode" numbersOnly
+              [ngModelOptions]="{standalone:true}" placeholder="6-digit pincode" maxlength="6" /> -->
+            <input type="text" class="erp-input" formControlName="pincode" numbersOnly placeholder="6-digit pincode"
+              maxlength="6" />
+            @if(form.get('pincode')?.invalid && form.get('pincode')?.touched){
+            <span class="erp-field-error">Pincode is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Longitude</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.longitude"
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.longitude" numbersOnly
               [ngModelOptions]="{standalone:true}" placeholder="e.g. 78.4867" />
           </div>
         </div>
@@ -576,7 +712,7 @@
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
             <label>Latitude</label>
-            <input type="text" class="erp-input" [(ngModel)]="currentAddress.latitude"
+            <input type="text" class="erp-input" [(ngModel)]="currentAddress.latitude" numbersOnly
               [ngModelOptions]="{standalone:true}" placeholder="e.g. 17.3850" />
           </div>
         </div>
@@ -648,27 +784,38 @@
       <div class="row g-3">
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>KYC Document Type</label>
+            <label>KYC Document Type<span class="required">*</span></label>
             <ng-select appendTo="body" [items]="kycDocumentTypes" bindLabel="pDocumentGroup"
               formControlName="kycDocumentType" placeholder="Select document" [searchable]="true" [clearable]="true"
               (change)="onKycDocTypeChange($event)">
             </ng-select>
+            @if(form.get('kycDocumentType')?.invalid && form.get('kycDocumentType')?.touched){
+            <span class="erp-field-error">KYC Document Type is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>Document Name</label>
+            <label>Document Name<span class="required">*</span></label>
             <ng-select appendTo="body" [items]="kycDocumentNames" bindLabel="pDocumentName" bindValue="pDocumentId"
-              formControlName="kycDocumentName" placeholder="Select document name" [searchable]="true" [clearable]="true">
+              formControlName="kycDocumentName" placeholder="Select document name" [searchable]="true"
+              [clearable]="true">
             </ng-select>
+            @if(form.get('kycDocumentName')?.invalid && form.get('kycDocumentName')?.touched){
+            <span class="erp-field-error">Document Name is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>Reference Number</label>
-            <input type="text" class="erp-input" formControlName="kycDocumentNo" placeholder="Document number" />
+            <label>Reference Number<span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="kycReferenceNo" numbersOnly maxlength="20"
+              placeholder="Reference number" />
+            @if(form.get('kycReferenceNo')?.invalid && form.get('kycReferenceNo')?.touched){
+            <span class="erp-field-error">Reference Number is required</span>
+            }
           </div>
         </div>
 
@@ -740,32 +887,40 @@
       <div class="row g-3">
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
-            <label>Bank Name</label>
+            <label>Bank Name <span class="required">*</span></label>
             <ng-select appendTo="body" [items]="banks" bindLabel="bankName" formControlName="bankName"
               placeholder="Select bank" [searchable]="true" [clearable]="true">
             </ng-select>
+            @if(form.get('bankName')?.invalid && form.get('bankName')?.touched){
+            <span class="erp-field-error">Bank Name is required</span>
+            }
           </div>
         </div>
 
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Branch Name</label>
-            <input type="text" class="erp-input" formControlName="bankBranch" placeholder="Branch name" />
+            <input type="text" class="erp-input" formControlName="bankBranch" placeholder="Branch name"
+              (blur)="convertTitleCase('bankBranch')" (input)="lettersOnly($event)" />
           </div>
         </div>
 
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
             <label>Account Holder Name</label>
-            <input type="text" class="erp-input" formControlName="accountHolderName"
-              placeholder="Account holder name" />
+            <input type="text" class="erp-input" formControlName="accountHolderName" placeholder="Account holder name"
+              (blur)="convertTitleCase('accountHolderName')" (input)="lettersOnly($event)" />
           </div>
         </div>
 
         <div class="col-12 col-md-6">
           <div class="erp-form-group">
-            <label>Account Number</label>
-            <input type="text" class="erp-input" formControlName="accountNo" placeholder="Account number" />
+            <label>Account Number <span class="required">*</span></label>
+            <input type="text" class="erp-input" formControlName="accountNo" maxlength="20" placeholder="Account number"
+              numbersOnly />
+            @if(form.get('accountNo')?.invalid && form.get('accountNo')?.touched){
+            <span class="erp-field-error">Account Number is required</span>
+            }
           </div>
         </div>
 
@@ -780,9 +935,12 @@
 
         <div class="col-12 col-md-4">
           <div class="erp-form-group">
-            <label>IFSC Code</label>
+            <label>IFSC Code <span class="required">*</span></label>
             <input type="text" class="erp-input" formControlName="ifscCode" placeholder="IFSC code"
-              style="text-transform:uppercase;" maxlength="11" />
+              style="text-transform:uppercase;" maxlength="11" (input)="onIfscInput($event, 'ifscCode')" />
+            @if(form.get('ifscCode')?.invalid && form.get('ifscCode')?.touched){
+            <span class="erp-field-error">IFSC Code is required</span>
+            }
           </div>
         </div>
 
@@ -795,7 +953,59 @@
             </div>
           </div>
         </div>
+
+        <!-- Add Button -->
+        <div class="col-12" style="display:flex; justify-content:flex-end;">
+          <button type="button" class="erp-btn btn-primary" (click)="addBank()">
+            <i class="pi pi-plus"></i> Add Bank
+          </button>
+        </div>
       </div>
+
+      <!-- Bank Table -->
+      <div class="erp-table-wrap" style="margin-top:16px;">
+        <table class="erp-table">
+          <thead>
+            <tr>
+              <th style="width:110px;">Primary Account</th>
+              <th>Bank Name</th>
+              <th>Account Number</th>
+              <th>IFSC Code</th>
+              <th>Branch</th>
+              <th style="width:60px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @if (bankRows().length === 0) {
+            <tr>
+              <td colspan="6" class="grn-table-empty">No bank accounts added yet</td>
+            </tr>
+            }
+            @for (bank of bankRows(); track $index) {
+            <tr>
+              <td class="td-center">
+                <label class="erp-radio" style="justify-content:center;">
+                  <input type="radio" name="primaryBank" [checked]="bank.isPrimary" (change)="setPrimaryBank($index)" />
+                </label>
+                @if (bank.isPrimary) {
+                <span class="erp-badge badge-success" style="margin-left:4px;">Primary</span>
+                }
+              </td>
+              <td>{{ bank.bankName || '—' }}</td>
+              <td>{{ bank.accountNo || '—' }}</td>
+              <td>{{ bank.ifscCode || '—' }}</td>
+              <td>{{ bank.branch || '—' }}</td>
+              <td class="td-actions">
+                <button class="erp-btn btn-danger-outline btn-sm btn-icon" (click)="removeBank($index)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
       }<!-- /section bank -->
 
       <!-- ══ SECTION 3 : OTHERS ═════════════════════════════════════ -->

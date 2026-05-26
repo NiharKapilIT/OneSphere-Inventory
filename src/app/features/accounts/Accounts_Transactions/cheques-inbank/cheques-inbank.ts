@@ -57,6 +57,11 @@ export class ChequesInbank implements OnInit {
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
 
 
+  onTransactionDateSelect(date: Date) {
+    this.ChequesInBankForm.get('ptransactiondate')?.setValue(date);
+    this.chequeClearMinDate = new Date(date);
+  }
+
   onChequeClearDateSelect(date: Date) {
     this.ChequesInBankForm.get('pchequecleardate')?.setValue(date);
   }
@@ -155,7 +160,9 @@ export class ChequesInbank implements OnInit {
   // brsReturnFromDateModel: Date = new Date(new Date().setDate(new Date().getDate() - 1));
   // brsReturnToDateModel: Date = new Date();
   //chequeClearDateModel: Date = new Date();
+  transactionDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
   chequeClearDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
+  chequeClearMinDate: Date = new Date(new Date().setHours(0, 0, 0, 0));
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
   brsFromDateModel: Date = new Date();
   brsToDateModel: Date = new Date();
@@ -1040,6 +1047,19 @@ export class ChequesInbank implements OnInit {
     const checkbox = event.target as HTMLInputElement;
 
     if (checkbox.checked) {
+      const depositedDate = data.pdepositeddate
+        ? this._commonService.getDateObjectFromDataBase(data.pdepositeddate) : null;
+      const chequeClearDate = this.chequeClearDateModel;
+      if (depositedDate && chequeClearDate) {
+        const dd = new Date(depositedDate).setHours(0, 0, 0, 0);
+        const cd = new Date(chequeClearDate).setHours(0, 0, 0, 0);
+        if (cd < dd) {
+          checkbox.checked = false;
+          this._commonService.showWarningMessage('Cheque Clear Date Should be Greater than or Equal Deposited Date');
+          return;
+        }
+      }
+
       // ── Uncheck Return first if it was checked ──
       data.preturnstatus = false;
       data.pdepositstatus = true;
@@ -1172,6 +1192,21 @@ export class ChequesInbank implements OnInit {
   CheckedReturn(event: Event, data: any): void {
 
     const checked = (event.target as HTMLInputElement).checked;
+
+    if (checked) {
+      const depositedDate = data.pdepositeddate
+        ? this._commonService.getDateObjectFromDataBase(data.pdepositeddate) : null;
+      const chequeClearDate = this.chequeClearDateModel;
+      if (depositedDate && chequeClearDate) {
+        const dd = new Date(depositedDate).setHours(0, 0, 0, 0);
+        const cd = new Date(chequeClearDate).setHours(0, 0, 0, 0);
+        if (cd < dd) {
+          (event.target as HTMLInputElement).checked = false;
+          this._commonService.showWarningMessage('Cheque Clear Date Should be Greater than or Equal Deposited Date');
+          return;
+        }
+      }
+    }
 
     this.gridData = this.gridData.map((row: any) => {
 

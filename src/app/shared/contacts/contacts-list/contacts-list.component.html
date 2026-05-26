@@ -13,17 +13,15 @@
       </div>
 
       <div class="contacts-header-actions">
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail" data-grid-share="mail"><i class="pi pi-envelope"></i></a>
-                <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener" title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
-        <button
-          type="button"
-          class="icon-action"
-          [class.active]="showFilters()"
-          (click)="toggleFilters()"
+        <a class="erp-btn btn-white btn-sm grid-icon-action" href="mailto:" title="Mail" aria-label="Mail"
+          data-grid-share="mail"><i class="pi pi-envelope"></i></a>
+        <a class="erp-btn btn-white btn-sm grid-icon-action" href="https://wa.me/" target="_blank" rel="noopener"
+          title="WhatsApp" aria-label="WhatsApp" data-grid-share="whatsapp"><i class="pi pi-whatsapp"></i></a>
+        <button type="button" class="icon-action" [class.active]="showFilters()" (click)="toggleFilters()"
           title="Grid filters">
           <i class="pi pi-filter"></i>
           @if (activeFilterCount() > 0) {
-            <span class="filter-count">{{ activeFilterCount() }}</span>
+          <span class="filter-count">{{ activeFilterCount() }}</span>
           }
         </button>
 
@@ -45,11 +43,8 @@
     <div class="tabs-section contacts-tabs">
       <ul class="tabs-nav">
         @for (tab of tabs; track tab) {
-          <li
-            class="tab-item"
-            [class.active]="activeTab() === tab"
-            (click)="switchTab(tab)">
-            <i class="pi" [ngClass]="{
+        <li class="tab-item" [class.active]="activeTab() === tab" (click)="switchTab(tab)">
+          <i class="pi" [ngClass]="{
               'pi-address-book': tab === 'Contacts',
               'pi-users':       tab === 'Subscriber / Customer',
               'pi-id-card':     tab === 'Employee',
@@ -58,9 +53,9 @@
               'pi-share-alt':   tab === 'Channel Partner',
               'pi-star':        tab === 'Freelancer'
             }"></i>
-            <span class="tab-label">{{ tab }}</span>
-            <span class="tab-count">{{ getTabCount(tab) }}</span>
-          </li>
+          <span class="tab-label">{{ tab }}</span>
+          <span class="tab-count">{{ getTabCount(tab) }}</span>
+        </li>
         }
       </ul>
     </div>
@@ -68,12 +63,8 @@
     <div class="contacts-grid-toolbar">
       <div class="contacts-search">
         <i class="pi pi-search"></i>
-        <input
-          type="text"
-          class="erp-input"
-          placeholder="Search name, contact no, UID, relation or address"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQuery.set($event); onSearch()" />
+        <input type="text" class="erp-input" placeholder="Search name, contact no, UID, relation or address"
+          [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event); onSearch()" />
       </div>
 
       <div class="toolbar-summary">
@@ -88,191 +79,163 @@
     </div>
 
     @if (showFilters()) {
-      <section class="contacts-filter-panel">
-        <div class="filter-panel-header">
-          <div>
-            <span class="filter-title">
-              <i class="pi pi-filter"></i>
-              Grid Filters
-            </span>
-            <span class="filter-subtitle">Refine the current {{ activeTab() }} grid.</span>
-          </div>
-
-          <button type="button" class="erp-btn btn-ghost btn-sm" (click)="clearFilters()" [disabled]="activeFilterCount() === 0">
-            <i class="pi pi-refresh"></i>
-            Reset
-          </button>
+    <section class="contacts-filter-panel">
+      <div class="filter-panel-header">
+        <div>
+          <span class="filter-title">
+            <i class="pi pi-filter"></i>
+            Grid Filters
+          </span>
+          <span class="filter-subtitle">Refine the current {{ activeTab() }} grid.</span>
         </div>
 
-        <div class="filter-grid">
-          <div class="filter-field">
-            <label>Name / Keyword</label>
-            <input
-              type="text"
-              class="erp-input"
-              placeholder="Search all fields"
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event); onSearch()" />
-          </div>
+        <button type="button" class="erp-btn btn-ghost btn-sm" (click)="clearFilters()"
+          [disabled]="activeFilterCount() === 0">
+          <i class="pi pi-refresh"></i>
+          Reset
+        </button>
+      </div>
 
-          <div class="filter-field">
-            <label>UID / CNT No</label>
-            <input
-              type="text"
-              class="erp-input"
-              placeholder="Enter UID"
-              [ngModel]="uidFilter()"
-              (ngModelChange)="uidFilter.set($event); onSearch()" />
-          </div>
-
-          <div class="filter-field">
-            <label>Contact No</label>
-            <input
-              type="text"
-              class="erp-input"
-              placeholder="Enter contact no"
-              [ngModel]="phoneFilter()"
-              (ngModelChange)="phoneFilter.set($event); onSearch()" />
-          </div>
-
-          <div class="filter-field">
-            <label>Status</label>
-            <ng-select
-              appendTo="body"
-              [items]="statusOptions"
-              [ngModel]="statusFilter()"
-              (ngModelChange)="statusFilter.set($event); onSearch()"
-              placeholder="Select Status"
-              [searchable]="true"
-              [clearable]="true">
-            </ng-select>
-          </div>
-
-          <div class="filter-field">
-            <label>Relation</label>
-            <input
-              type="text"
-              class="erp-input"
-              placeholder="Father/spouse relation"
-              [ngModel]="relationFilter()"
-              (ngModelChange)="relationFilter.set($event); onSearch()" />
-          </div>
-
-          <div class="filter-field">
-            <label>Address</label>
-            <input
-              type="text"
-              class="erp-input"
-              placeholder="City, area or district"
-              [ngModel]="addressFilter()"
-              (ngModelChange)="addressFilter.set($event); onSearch()" />
-          </div>
-
-          <div class="filter-field">
-            <label>Rows Per Page</label>
-            <ng-select
-              appendTo="body"
-              [items]="pageSizeOptions"
-              [ngModel]="pageSize()"
-              (ngModelChange)="setPageSize($event)"
-              placeholder="Select Rows Per Page"
-              [searchable]="true"
-              [clearable]="false">
-            </ng-select>
-          </div>
+      <div class="filter-grid">
+        <div class="filter-field">
+          <label>Name / Keyword</label>
+          <input type="text" class="erp-input" placeholder="Search all fields" [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event); onSearch()" />
         </div>
-      </section>
+
+        <div class="filter-field">
+          <label>UID / CNT No</label>
+          <input type="text" class="erp-input" placeholder="Enter UID" [ngModel]="uidFilter()"
+            (ngModelChange)="uidFilter.set($event); onSearch()" />
+        </div>
+
+        <div class="filter-field">
+          <label>Contact No</label>
+          <input type="text" class="erp-input" placeholder="Enter contact no" [ngModel]="phoneFilter()"
+            (ngModelChange)="phoneFilter.set($event); onSearch()" />
+        </div>
+
+        <div class="filter-field">
+          <label>Status</label>
+          <ng-select appendTo="body" [items]="statusOptions" [ngModel]="statusFilter()"
+            (ngModelChange)="statusFilter.set($event); onSearch()" placeholder="Select Status" [searchable]="true"
+            [clearable]="true">
+          </ng-select>
+        </div>
+
+        <div class="filter-field">
+          <label>Relation</label>
+          <input type="text" class="erp-input" placeholder="Father/spouse relation" [ngModel]="relationFilter()"
+            (ngModelChange)="relationFilter.set($event); onSearch()" />
+        </div>
+
+        <div class="filter-field">
+          <label>Address</label>
+          <input type="text" class="erp-input" placeholder="City, area or district" [ngModel]="addressFilter()"
+            (ngModelChange)="addressFilter.set($event); onSearch()" />
+        </div>
+
+        <div class="filter-field">
+          <label>Rows Per Page</label>
+          <ng-select appendTo="body" [items]="pageSizeOptions" [ngModel]="pageSize()"
+            (ngModelChange)="setPageSize($event)" placeholder="Select Rows Per Page" [searchable]="true"
+            [clearable]="false">
+          </ng-select>
+        </div>
+      </div>
+    </section>
     }
 
     <main class="contacts-grid-area">
       @if (pagedContacts().length === 0) {
-        <div class="contacts-empty">
-          <i class="pi pi-inbox"></i>
-          <span>No contacts found for "{{ activeTab() }}"</span>
-        </div>
+      <div class="contacts-empty">
+        <i class="pi pi-inbox"></i>
+        <span>No contacts found for "{{ activeTab() }}"</span>
+      </div>
       }
 
       <div class="contacts-grid">
         @for (contact of pagedContacts(); track contact.id) {
-          <article class="contact-card" [class.menu-open]="openMenuContactId() === contact.id">
-            <div class="contact-menu-wrap">
-              <button type="button" class="icon-action subtle" title="More actions" (click)="toggleCardMenu(contact.id)">
-                <i class="pi pi-ellipsis-v"></i>
-              </button>
+        <article class="contact-card" [class.menu-open]="openMenuContactId() === contact.id">
+          <div class="contact-menu-wrap">
+            <button type="button" class="icon-action subtle" title="More actions" (click)="toggleCardMenu(contact.id)">
+              <i class="pi pi-ellipsis-v"></i>
+            </button>
 
-              @if (openMenuContactId() === contact.id) {
-                <div class="contact-role-menu">
-                  <div class="role-menu-title">Convert / assign as</div>
-                  @for (role of roleTabs; track role) {
-                    <button type="button" class="role-menu-item" (click)="openRoleForm(contact, role)">
-                      <i class="pi" [ngClass]="getRoleIcon(role)"></i>
-                      <span>{{ role }}</span>
-                      @if (hasRole(contact, role)) {
-                        <i class="pi pi-check role-menu-check"></i>
-                      }
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-
-            <div class="contact-avatar">
-              @if (contact.photo) {
-                <img [src]="contact.photo" alt="avatar" />
-              } @else {
-                <span>{{ getContactInitials(contact) }}</span>
-              }
-            </div>
-
-            <div class="contact-card-body">
-              <div class="contact-title-row">
-                <div class="contact-title">
-                  <span class="contact-name" [attr.title]="contact.name">{{ contact.name }}</span>
-                  <span class="contact-uid" [attr.title]="contact.uid">{{ contact.uid }}</span>
-                </div>
-
-                <span class="contact-status" [class.inactive]="contact.status === 'Inactive'">
-                  {{ contact.status }}
-                </span>
-              </div>
-
-              @if (contact.relation) {
-                <div class="contact-line muted">
-                  <i class="pi pi-user"></i>
-                  <span [attr.title]="contact.relation">{{ contact.relation }}</span>
-                </div>
-              }
-
-              <div class="contact-line">
-                <i class="pi pi-phone"></i>
-                <span [attr.title]="contact.phone">{{ contact.phone }}</span>
-              </div>
-
-              <div class="contact-line address">
-                <i class="pi pi-map-marker"></i>
-                <span [attr.title]="contact.address || 'Address not available'">{{ contact.address || 'Address not available' }}</span>
-              </div>
-
-              <div class="contact-role-list">
-                @if ((contact.roles || []).length === 0) {
-                  <span class="role-chip muted" title="No role assigned">No role assigned</span>
+            @if (openMenuContactId() === contact.id) {
+            <div class="contact-role-menu">
+              <div class="role-menu-title">Convert / assign as</div>
+              @for (role of roleTabs; track role) {
+              <button type="button" class="role-menu-item" (click)="openRoleForm(contact, role)">
+                <i class="pi" [ngClass]="getRoleIcon(role)"></i>
+                <span>{{ role }}</span>
+                @if (hasRole(contact, role)) {
+                <i class="pi pi-check role-menu-check"></i>
                 }
-                @for (role of contact.roles || []; track role) {
-                  <span class="role-chip" [attr.title]="role">
-                    <i class="pi" [ngClass]="getRoleIcon(role)"></i>
-                    {{ role }}
-                  </span>
-                }
+              </button>
+              }
+            </div>
+            }
+          </div>
+
+          <div class="contact-avatar">
+            @if (contact.photo) {
+            <img [src]="contact.photo" alt="avatar" />
+            } @else {
+            <span>{{ getContactInitials(contact) }}</span>
+            }
+          </div>
+
+          <div class="contact-card-body">
+            <div class="contact-title-row">
+              <div class="contact-title">
+                <span class="contact-name" [attr.title]="contact.name">{{ contact.name }}</span>
+                <span class="contact-uid" [attr.title]="contact.uid">{{ contact.uid }}</span>
               </div>
+
+              <span class="contact-status" [class.inactive]="contact.status === 'Inactive'">
+                {{ contact.status }}
+              </span>
             </div>
 
-            <div class="contact-card-actions">
-              <button type="button" class="erp-btn btn-outline btn-sm" (click)="openEditForm(contact)">
-                <i class="pi pi-pencil"></i>
-                Edit
-              </button>
+            @if (contact.relation) {
+            <div class="contact-line muted">
+              <i class="pi pi-user"></i>
+              <span [attr.title]="contact.relation">{{ contact.relation }}</span>
             </div>
-          </article>
+            }
+
+            <div class="contact-line">
+              <i class="pi pi-phone"></i>
+              <span [attr.title]="contact.phone">{{ contact.phone }}</span>
+            </div>
+
+            <div class="contact-line address">
+              <i class="pi pi-map-marker"></i>
+              <span [attr.title]="contact.address || 'Address not available'">{{ contact.address || 'Address not
+                available' }}</span>
+            </div>
+
+            <div class="contact-role-list">
+              @if ((contact.roles || []).length === 0) {
+              <span class="role-chip muted" title="No role assigned">No role assigned</span>
+              }
+              @for (role of contact.roles || []; track role) {
+              <span class="role-chip" [attr.title]="role">
+                <i class="pi" [ngClass]="getRoleIcon(role)"></i>
+                {{ role }}
+              </span>
+              }
+            </div>
+          </div>
+
+          <div class="contact-card-actions">
+            <button type="button" class="erp-btn btn-outline btn-sm" (click)="openEditForm(contact)">
+              <i class="pi pi-pencil"></i>
+              Edit
+            </button>
+          </div>
+        </article>
         }
       </div>
     </main>
@@ -289,13 +252,9 @@
         </button>
 
         @for (page of pageNumbers(); track page) {
-          <button
-            type="button"
-            class="pg-btn"
-            [class.active]="currentPage() === page"
-            (click)="goToPage(page)">
-            {{ page }}
-          </button>
+        <button type="button" class="pg-btn" [class.active]="currentPage() === page" (click)="goToPage(page)">
+          {{ page }}
+        </button>
         }
 
         <button type="button" class="pg-btn" (click)="nextPage()" [disabled]="currentPage() === totalPages()">
@@ -307,40 +266,38 @@
 </div>
 
 @if (showAddForm()) {
-  <app-contact-add
-    [contact]="editingContact()"
-    [activeTab]="activeTab()"
-    (onClose)="onFormClose()"
-    (onSave)="onFormSave($event)"
-  ></app-contact-add>
+<app-contact-add [contact]="editingContact()" [activeTab]="activeTab()" (onClose)="onFormClose()"
+  (onSave)="onFormSave($event)"></app-contact-add>
 }
 
 @if (roleModalContact() && roleModalRole()) {
-  <div class="modal-overlay" (click)="closeRoleForm()"></div>
+<div class="modal-overlay" (click)="closeRoleForm()"></div>
 
-  <div class="role-modal-wrap">
-    <div class="role-modal" [class.subscriber-role-modal]="roleModalRole() === 'Subscriber / Customer' || roleModalRole() === 'Employee'" (click)="$event.stopPropagation()">
-      <div class="role-modal-header">
-        <div class="contacts-heading">
-          <span class="contacts-heading-icon">
-            <i class="pi" [ngClass]="getRoleIcon(roleModalRole()!)"></i>
-          </span>
-          <div>
-            <h2>{{ roleModalRole() }} Details</h2>
-            <p [attr.title]="(roleModalContact()?.name || '') + ' - ' + (roleModalContact()?.uid || '')">{{ roleModalContact()?.name }} - {{ roleModalContact()?.uid }}</p>
-          </div>
+<div class="role-modal-wrap">
+  <div class="role-modal"
+    [class.subscriber-role-modal]="roleModalRole() === 'Subscriber / Customer' || roleModalRole() === 'Employee'"
+    (click)="$event.stopPropagation()">
+    <div class="role-modal-header">
+      <div class="contacts-heading">
+        <span class="contacts-heading-icon">
+          <i class="pi" [ngClass]="getRoleIcon(roleModalRole()!)"></i>
+        </span>
+        <div>
+          <h2>{{ roleModalRole() }} Details</h2>
+          <p [attr.title]="(roleModalContact()?.name || '') + ' - ' + (roleModalContact()?.uid || '')">{{
+            roleModalContact()?.name }} - {{ roleModalContact()?.uid }}</p>
         </div>
-
-        <button type="button" class="contact-modal-close" (click)="closeRoleForm()" title="Close">
-          <i class="pi pi-times"></i>
-        </button>
       </div>
 
-      <div class="role-modal-body">
-        @if (roleModalRole() === 'Subscriber / Customer') {
-          <app-subscriber-details [contact]="roleModalContact()"></app-subscriber-details>
-        }
+      <button type="button" class="contact-modal-close" (click)="closeRoleForm()" title="Close">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
 
+    <div class="role-modal-body">
+      @if (roleModalRole() === 'Subscriber / Customer') {
+      <app-subscriber-details [contact]="roleModalContact()"></app-subscriber-details>
+      }
         <!-- @if (roleModalRole() === 'Employee') {
           <app-employee-details [contact]="roleModalContact()"></app-employee-details>
         } -->
@@ -352,71 +309,88 @@
   </app-employee-details>
 }
 
-        @if (roleModalRole() === 'Supplier / Vendor') {
-          <div class="role-info-card-wrap">
-            <div class="role-info-card">
-              <div class="contact-avatar">
-                @if (roleModalContact()?.photo) {
-                  <img [src]="roleModalContact()?.photo" alt="avatar" />
-                } @else {
-                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
-                }
-              </div>
-              <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
-              <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
-              <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{ roleModalContact()?.uid }}</span>
-              <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
-            </div>
-          </div>
-        }
+      @if (roleModalRole() === 'Employee') {
+      <app-employee-details [contact]="roleModalContact()"></app-employee-details>
+      }
 
-        @if (roleModalRole() === 'Advocate') {
-          <div class="role-info-card-wrap">
-            <div class="role-info-card">
-              <div class="contact-avatar">
-                @if (roleModalContact()?.photo) {
-                  <img [src]="roleModalContact()?.photo" alt="avatar" />
-                } @else {
-                  <span>{{ getContactInitials(roleModalContact()!) }}</span>
-                }
-              </div>
-              <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
-              <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
-              <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{ roleModalContact()?.uid }}</span>
-              <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{ roleModalContact()?.panNo || 'N/A' }}</span>
-            </div>
+      @if (roleModalRole() === 'Supplier / Vendor') {
+      <div class="role-info-card-wrap">
+        <div class="role-info-card">
+          <div class="contact-avatar">
+            @if (roleModalContact()?.photo) {
+            <img [src]="roleModalContact()?.photo" alt="avatar" />
+            } @else {
+            <span>{{ getContactInitials(roleModalContact()!) }}</span>
+            }
           </div>
-        }
-
-        @if (roleModalRole() === 'Channel Partner') {
-          <app-channel-partner-details [contact]="roleModalContact()"></app-channel-partner-details>
-        }
-
-        @if (roleModalRole() === 'Freelancer') {
-          <div class="role-pan-section">
-            <div class="role-pan-row">
-              <span class="role-pan-label">PAN</span>
-              @if (roleModalContact()?.panNo) {
-                <span class="role-pan-available"><i class="pi pi-check-circle"></i> Available</span>
-              } @else {
-                <span class="role-pan-unavailable"><i class="pi pi-times-circle"></i> Not Available</span>
-              }
-            </div>
-            <div class="role-pan-number">{{ maskPan(roleModalContact()?.panNo) }}</div>
-          </div>
-          <div class="role-form-grid mt-3">
-            <div class="erp-form-group">
-              <label>TDS Section No.<span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="tdsOptions" placeholder="Select TDS Section" [searchable]="true" [clearable]="false"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label>Designation</label>
-              <ng-select appendTo="body" [items]="[]" placeholder="Select Designation" [searchable]="true" [clearable]="true"></ng-select>
-            </div>
-          </div>
-        }
+          <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
+          <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
+          <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{
+            roleModalContact()?.uid }}</span>
+          <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{
+            roleModalContact()?.panNo || 'N/A' }}</span>
+        </div>
       </div>
+      }
 
+      @if (roleModalRole() === 'Advocate') {
+      <div class="role-info-card-wrap">
+        <div class="role-info-card">
+          <div class="contact-avatar">
+            @if (roleModalContact()?.photo) {
+            <img [src]="roleModalContact()?.photo" alt="avatar" />
+            } @else {
+            <span>{{ getContactInitials(roleModalContact()!) }}</span>
+            }
+          </div>
+          <strong class="role-info-name" [attr.title]="roleModalContact()?.name">{{ roleModalContact()?.name }}</strong>
+          <span class="role-info-phone" [attr.title]="roleModalContact()?.phone">{{ roleModalContact()?.phone }}</span>
+          <span class="role-info-meta" [attr.title]="'Unique ID - ' + (roleModalContact()?.uid || '')">Unique ID - {{
+            roleModalContact()?.uid }}</span>
+          <span class="role-info-meta" [attr.title]="'Pan No. - ' + (roleModalContact()?.panNo || 'N/A')">Pan No. - {{
+            roleModalContact()?.panNo || 'N/A' }}</span>
+        </div>
+      </div>
+      }
+
+      @if (roleModalRole() === 'Channel Partner') {
+      <app-channel-partner-details [contact]="roleModalContact()"></app-channel-partner-details>
+      }
+
+      @if (roleModalRole() === 'Freelancer') {
+      <div class="role-pan-section">
+        <div class="role-pan-row">
+          <span class="role-pan-label">PAN</span>
+          @if (roleModalContact()?.panNo) {
+          <span class="role-pan-available"><i class="pi pi-check-circle"></i> Available</span>
+          } @else {
+          <span class="role-pan-unavailable"><i class="pi pi-times-circle"></i> Not Available</span>
+          }
+        </div>
+        <div class="role-pan-number">{{ maskPan(roleModalContact()?.panNo) }}</div>
+      </div>
+      <div class="role-form-grid mt-3">
+        <div class="erp-form-group">
+          <label>TDS Section No.<span class="required">*</span></label>
+          <ng-select appendTo="body" [items]="tdsOptions" placeholder="Select TDS Section" [searchable]="true"
+            [clearable]="false"></ng-select>
+        </div>
+        <div class="erp-form-group">
+          <label>Designation</label>
+          <ng-select appendTo="body" [items]="[]" placeholder="Select Designation" [searchable]="true"
+            [clearable]="true"></ng-select>
+        </div>
+      </div>
+      }
+    </div>
+
+    <div class="role-modal-footer">
+      <button type="button" class="erp-btn btn-ghost btn-sm" (click)="closeRoleForm()">
+        <i class="pi pi-times-circle"></i> Cancel
+      </button>
+      <button type="button" class="erp-btn btn-primary btn-sm" (click)="saveRoleForm()">
+        <i class="pi pi-check"></i> Save {{ roleModalRole() }}
+      </button>
       <!-- <div class="role-modal-footer">
         <button type="button" class="erp-btn btn-ghost btn-sm" (click)="closeRoleForm()">
           <i class="pi pi-times-circle"></i> Cancel
@@ -440,5 +414,5 @@
 </div>
     </div>
   </div>
+</div>
 }
- <!-- [disabled]="roleModalRole() === 'Employee' && triggerEmployeeSave()" -->

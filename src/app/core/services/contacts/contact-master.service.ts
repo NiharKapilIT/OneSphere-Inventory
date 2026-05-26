@@ -167,19 +167,28 @@ checkpancardno(panNo: string): Observable<any> {
     return this.commonService.getAPI('/ContactMaster/Getnoofrecords', params, 'YES');
   }
 
-saveContactSupplier(contactId: string, isSupplier: boolean): Observable<any> {
 
-  const url =
-    `/ContactMore/SaveContactSupplier` +
-    `?globalSchema=${this.commonService.getschemaname()}` +
-    `&companyCode=${this.commonService.getCompanyCode()}` +
-    `&branchCode=${this.commonService.getBranchCode()}`;
+  getSubscriberContactDetails(searchtype: string, formName: string): Observable<any[]> {
+    const params = new HttpParams()
+      .set('globalSchema', this.commonService.getschemaname())
+      .set('searchtype', searchtype)
+      .set('formName', formName);
+    return this.commonService.getAPI('/Subscriber/GetSubscriberContactDetails', params, 'YES');
+  }
 
-  const body = {
-    pContactId: contactId,
-    pIsSupplier: isSupplier
-  };
+  saveContactSupplier(contactId: string, isSupplier: boolean): Observable<any> {
 
-  return this.commonService.postAPI(url, body);
-}
+    const url =
+      `/ContactMore/SaveContactSupplier` +
+      `?globalSchema=${this.commonService.getschemaname()}` +
+      `&companyCode=${this.commonService.getCompanyCode()}` +
+      `&branchCode=${this.commonService.getBranchCode()}`;
+
+    const body = {
+      pContactId: contactId,
+      pIsSupplier: isSupplier
+    };
+
+    return this.commonService.postAPI(url, body);
+  }
 }
