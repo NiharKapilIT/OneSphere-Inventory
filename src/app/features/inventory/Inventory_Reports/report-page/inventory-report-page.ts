@@ -5,10 +5,6 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
 import {
   INVENTORY_COMMON_REPORT_FILTERS,
   INVENTORY_REPORT_PRIMARY_FILTERS,
@@ -71,6 +67,23 @@ export class InventoryReportPageComponent implements OnInit {
   readonly filterDefinitions = computed(() => {
     const allowed = new Set<InventoryReportFilterKey>(this.report().filters);
     return INVENTORY_COMMON_REPORT_FILTERS.filter(filter => allowed.has(filter.key));
+  });
+
+  // Stable computed so ng-select gets the same array reference between CD cycles — prevents NG0103 infinite loop
+  readonly filterMultiValues = computed<Record<InventoryReportFilterKey, string[]>>(() => {
+    const filters = this.filters();
+    return INVENTORY_COMMON_REPORT_FILTERS.reduce<Record<InventoryReportFilterKey, string[]>>(
+      (acc, { key }) => {
+        const value = filters[key];
+        acc[key] = Array.isArray(value)
+          ? value
+          : !value || value instanceof Date
+          ? []
+          : String(value).split(',').map(s => s.trim()).filter(Boolean);
+        return acc;
+      },
+      {} as Record<InventoryReportFilterKey, string[]>
+    );
   });
 
   readonly primaryFilterDefinitions = computed(() => {
@@ -304,7 +317,11 @@ export class InventoryReportPageComponent implements OnInit {
     }));
   }
 
-  exportExcel(): void {
+  async exportExcel(): Promise<void> {
+    const [XLSX, { saveAs }] = await Promise.all([
+      import('xlsx'),
+      import('file-saver')
+    ]);
     const exportRows = this.exportRows();
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     const workbook = XLSX.utils.book_new();
@@ -313,7 +330,9 @@ export class InventoryReportPageComponent implements OnInit {
     saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), `${this.report().slug}.xlsx`);
   }
 
-  exportPdf(): void {
+  async exportPdf(): Promise<void> {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF({ orientation: 'landscape' });
     doc.setFontSize(13);
     doc.text(this.report().title, 14, 14);
