@@ -385,7 +385,7 @@
           <section class="account-tax-group" [class.is-expanded]="showGst()">
             <div class="account-tax-group-header">
               <div>
-                <h4>GST Details</h4>
+                <h4>GST Details <span class="erp-badge badge-danger pt-1"><i class="pi pi-times-circle"></i> GST Excluded</span></h4>
                 <span>GST state, percentage and calculated breakup.</span>
               </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="disableGst()">
@@ -479,7 +479,7 @@
           <section class="account-tax-group" [class.is-expanded]="showTds()">
             <div class="account-tax-group-header">
               <div>
-                <h4>TDS Details</h4>
+                <h4>TDS Details <span class="erp-badge badge-success pt-1"><i class="pi pi-check-circle"></i> TDS Included</span></h4>
                 <span>Tax deduction setup for this payment line.</span>
               </div>
               <div class="erp-toggle-group">
@@ -790,6 +790,11 @@
 
       </div>
 
+
+      <!-- GST / TDS note -->
+      <!-- <div class="px-4 pb-3">
+        <p class="erp-form-note"><i class="pi pi-info-circle"></i> GST is not part of this voucher. TDS is deducted from the gross amount before payment.</p>
+      </div> -->
 
       <!-- FOOTER -->
       <div class="card-footer d-flex gap-2 justify-end">
