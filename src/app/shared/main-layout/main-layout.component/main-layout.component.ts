@@ -206,6 +206,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   selectModule(module: Module, event?: Event): void {
+    sessionStorage.setItem('moduleName', module.id);
     this.scrollModuleTabIntoView(event);
 
     this.closeFlyoutSearch();

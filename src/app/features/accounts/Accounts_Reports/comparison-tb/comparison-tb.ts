@@ -205,6 +205,7 @@ export class ComparisonTb implements OnInit {
   }
 
   private getComparisionTBReports(): void {
+    debugger
     this.ComparisionTBForm.markAllAsTouched();
     this.submitted = true;
 
