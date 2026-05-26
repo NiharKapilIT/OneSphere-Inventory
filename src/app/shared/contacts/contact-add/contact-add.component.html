@@ -68,10 +68,42 @@
 
     <div [formGroup]="form" class="contact-modal-body">
 
+
       <!-- ══ SECTION 1 : PERSONAL / BUSINESS ══════════════════════ -->
       @if (activeSection() === 'personal') {
 
-      <!-- Contact Type Radio -->
+      <div class="row g-3 mb-3">
+        <div class="col-12 col-md-6">
+          <div class="erp-form-group">
+            <label>Contact Number / Name</label>
+
+            <ng-select [items]="(contactList$ | async) ?? []" bindLabel="contactname" bindValue="contactname"
+              [typeahead]="contactSearchEvent" (search)="contactSearchEvent.next($event.term)"
+              formControlName="contactPersonSearch" placeholder="Search by phone, name etc." [searchable]="true"
+              [clearable]="true" (change)="onContactPersonSelect($event)">
+
+              <ng-template ng-header-tmp>
+                <div class="row" style="font-size:12px; font-weight:600; padding:4px 8px;">
+                  <span class="col-4">Name</span>
+                  <span class="col-4">Mobile</span>
+                  <span class="col-4">Email</span>
+                </div>
+              </ng-template>
+
+              <ng-template ng-option-tmp let-item="item">
+                <div class="row" style="font-size:12px;">
+                  <span class="col-4">{{ item.contactname }}</span>
+                  <span class="col-4">{{ item.contactmobilenumber }}</span>
+                  <span class="col-4">{{ item.contactemailid }}</span>
+                </div>
+              </ng-template>
+
+            </ng-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- THEN CONTACT TYPE RADIO -->
       <div class="erp-radio-button-group mb-4">
         <label class="erp-radio-button">
           <input type="radio" name="contactType" value="Individual" [checked]="isIndividual"
@@ -103,7 +135,8 @@
                 bindValue="title_name" formControlName="salutation" placeholder="Select Salutation" [searchable]="true"
                 [clearable]="false">
               </ng-select>
-              <input type="text" class="erp-input" formControlName="firstName" placeholder="First name" />
+              <input type="text" class="erp-input" formControlName="firstName" placeholder="First name"
+                (blur)="convertTitleCase('bankBranch')" (input)="lettersOnly($event)" />
             </div>
             @if (form.get('firstName')?.invalid && form.get('firstName')?.touched) {
             <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Name is required</span>
@@ -152,7 +185,8 @@
                 bindLabel="relation_title_name" bindValue="relation_title_name" formControlName="fatherSalutation"
                 placeholder="Select" [searchable]="true" [clearable]="false">
               </ng-select>
-              <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name" />
+              <input type="text" class="erp-input" formControlName="fatherName" placeholder="Father name"
+                (blur)="convertTitleCase('bankBranch')" (input)="lettersOnly($event)" />
             </div>
             @if (form.get('fatherName')?.invalid && form.get('fatherName')?.touched) {
             <span class="erp-field-error"><i class="pi pi-exclamation-circle"></i> Father name is required</span>
@@ -233,7 +267,7 @@
             <div class="erp-input-wrap">
               <i class="pi pi-hashtag erp-input-icon"></i>
               <input type="text" class="erp-input icon-pad" maxlength="12" formControlName="cntNo"
-                placeholder="CNT number" />
+                (input)="onIfscInput($event, 'cntNo')" placeholder="CNT number" />
             </div>
           </div>
         </div>
@@ -250,18 +284,7 @@
 
       <div class="row g-3">
 
-        <!-- Contact Number / Name lookup -->
-        <div class="col-12 col-md-6">
-          <div class="erp-form-group">
-            <label>Contact Number / Name</label>
-            <div class="erp-input-wrap">
-              <i class="pi pi-search erp-input-icon"></i>
-              <input type="text" class="erp-input icon-pad" placeholder="Search by phone, name etc." />
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12 col-md-6"></div>
+        <!-- <div class="col-12 col-md-6"></div> -->
 
         <!-- Enterprise Name -->
         <div class="col-12 col-md-6">
