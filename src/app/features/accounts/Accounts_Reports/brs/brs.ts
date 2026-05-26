@@ -89,7 +89,7 @@ export class Brs implements OnInit {
   today = new Date();
   // ── Form ─────────────────────────────────────────────────────────────────────
   BRStatmentForm!: FormGroup;
-   collapsedGroups = signal<Set<string>>(new Set());
+  collapsedGroups = signal<Set<string>>(new Set());
 
   toggleGroup(status: string): void {
     this.collapsedGroups.update(groups => {
@@ -130,15 +130,15 @@ export class Brs implements OnInit {
     this.initializeDatePicker();
     this.bankBookDetails();
     const initialFrom = this.BRStatmentForm.get('fromDate')?.value;
-  this.toDateMinDate = initialFrom ?? null;
+    this.toDateMinDate = initialFrom ?? null;
 
-  this.BRStatmentForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
-    this.toDateMinDate = val ?? null;
-    const toDate = this.BRStatmentForm.get('toDate')?.value;
-    if (toDate && val && toDate < val) {
-      this.BRStatmentForm.get('toDate')?.setValue(null as unknown as Date);
-    }
-  });
+    this.BRStatmentForm.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+      this.toDateMinDate = val ?? null;
+      const toDate = this.BRStatmentForm.get('toDate')?.value;
+      if (toDate && val && toDate < val) {
+        this.BRStatmentForm.get('toDate')?.setValue(null as unknown as Date);
+      }
+    });
   }
 
   // ── Validators ────────────────────────────────────────────────────────────────
@@ -203,7 +203,7 @@ export class Brs implements OnInit {
     this.gridView.set([]);
     this.showhide.set(true);
 
-    this.BRStatmentForm.patchValue({ fromDate: this.today,toDate:this.today, pbankbalance: 0, pFilename: '' });
+    this.BRStatmentForm.patchValue({ fromDate: this.today, toDate: this.today, pbankbalance: 0, pFilename: '' });
 
     this.dpConfig = {
       ...this.dpConfig,
@@ -253,7 +253,7 @@ export class Brs implements OnInit {
     if (!this.chequesInfo()) {
       this.brstatement
         .GetBrStatementReportByDates(
-          fromDate, _pBankAccountId??'',
+          fromDate, _pBankAccountId ?? '',
           this.commonService.getbranchname(),
           this.commonService.getBranchCode(),
           this.commonService.getCompanyCode(),
@@ -299,7 +299,7 @@ export class Brs implements OnInit {
 
       this.brstatement
         .GetBrStatementReportByDatesChequesInfo(
-          formattedFrom, formattedTo, _pBankAccountId??'',
+          formattedFrom, formattedTo, _pBankAccountId ?? '',
           this.commonService.getbranchname(),
           this.commonService.getschemaname(),
           this.commonService.getCompanyCode(),
@@ -308,18 +308,19 @@ export class Brs implements OnInit {
         .pipe(finalize(() => {
           this.loading.set(false);
           this.isLoading.set(false);
-          this.savebutton.set('Generate Report');            
+          this.savebutton.set('Generate Report');
           this.cdr.detectChanges();
         }))
         .subscribe({
           next: (res: any[]) => {
             const from = new Date(this.BRStatmentForm.value.fromDate);
             const to = new Date(this.BRStatmentForm.value.toDate);
-            this.ChequesInfoDetails = (res ?? []).filter(item => {
-              if (!item.depositeddate) return false;
-              const dep = new Date(item.depositeddate);
-              return dep >= from && dep <= to;
-            });
+            // this.ChequesInfoDetails = (res ?? []).filter(item => {
+            //   if (!item.depositeddate) return false;
+            //   const dep = new Date(item.depositeddate);
+            //   return dep >= from && dep <= to;
+            // });
+            this.ChequesInfoDetails = res ?? [];
 
             if (this.ChequesInfoDetails.length > 0) {
               this.export();
@@ -424,69 +425,69 @@ export class Brs implements OnInit {
   }
 
   uploadAndProgress(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  if (!input.files?.length) return;
+    const input = event.target as HTMLInputElement;
+    if (!input.files?.length) return;
 
-  const file = input.files[0];
+    const file = input.files[0];
 
-  if (!this.validateFile(file.name)) {
-    this.commonService.showWarningMessage('Upload jpg, png or pdf files');
-    return;
+    if (!this.validateFile(file.name)) {
+      this.commonService.showWarningMessage('Upload jpg, png or pdf files');
+      return;
+    }
+
+    if (file.size / 1024 / 1024 > 30) {
+      this.commonService.showWarningMessage('File Size Maximum Allowed 30Mb Only!');
+      return;
+    }
+
+    const newFileName = 'BRS.' + file.name.split('.').pop();
+    this.kycFileName = newFileName;
+    this.BRStatmentForm.patchValue({ pFilename: newFileName });
   }
-
-  if (file.size / 1024 / 1024 > 30) {
-    this.commonService.showWarningMessage('File Size Maximum Allowed 30Mb Only!');
-    return;
-  }
-
-  const newFileName = 'BRS.' + file.name.split('.').pop();
-  this.kycFileName = newFileName;
-  this.BRStatmentForm.patchValue({ pFilename: newFileName });
-}
 
   // ── Save ──────────────────────────────────────────────────────────────────────
   saveWithPrint(): void {
-  if (!this.BRStatmentForm.value.pFilename) {
-    this.commonService.showWarningMessage('Upload Document Required');
-    return;
-  }
-
-  if (!confirm('Do you want to save?')) return;
-
-  const schemaName  = this.commonService.getbranchname();
-  const bankId      = this.BRStatmentForm.value.bankAccountId;
-  const companyCode = this.commonService.getCompanyCode();
-  const branchCode  = this.commonService.getBranchCode();
-
-  const payload = this.gridView().map((row, index) => ({
-    pgrouptype:        row.pGroupType,
-    pchequedate:       row.ptransactiondate,
-    preferencenumber:  row.pChequeNumber,
-    pparticulars:      row.pparticulars,
-    pbankname:         row.pBankName,
-    pbranchname:       row.pBranchName,
-    pamount:           row.ptotalreceivedamount,
-    pbankid:           +bankId,
-    pbrsdate:          this.datePipe.transform(this.BRStatmentForm.value.fromDate, 'yyyy-MM-dd'),
-    pbankbalance:      this.commonService.removeCommasForEntredNumber(this.BRStatmentForm.value.pbankbalance),
-    ptypeofoperation:  index === 0 ? 'UPDATE' : 'CREATE',
-    schemaname:        schemaName,
-    pFilename:         this.BRStatmentForm.value.pFilename,
-    company_code:      companyCode,
-    branch_code:       branchCode
-  }));
-  
-
-  this.brstatement.SaveBrs(JSON.stringify({ '_BrsDTO': payload })).subscribe({
-    next: () => {
-      this.commonService.showSuccessMsg('success');
-      this.getBRStatmentReports();
-    },
-    error: () => {
-      this.commonService.showWarningMessage('Save failed. Please try again.');
+    if (!this.BRStatmentForm.value.pFilename) {
+      this.commonService.showWarningMessage('Upload Document Required');
+      return;
     }
-  });
-}
+
+    if (!confirm('Do you want to save?')) return;
+
+    const schemaName = this.commonService.getbranchname();
+    const bankId = this.BRStatmentForm.value.bankAccountId;
+    const companyCode = this.commonService.getCompanyCode();
+    const branchCode = this.commonService.getBranchCode();
+
+    const payload = this.gridView().map((row, index) => ({
+      pgrouptype: row.pGroupType,
+      pchequedate: row.ptransactiondate,
+      preferencenumber: row.pChequeNumber,
+      pparticulars: row.pparticulars,
+      pbankname: row.pBankName,
+      pbranchname: row.pBranchName,
+      pamount: row.ptotalreceivedamount,
+      pbankid: +bankId,
+      pbrsdate: this.datePipe.transform(this.BRStatmentForm.value.fromDate, 'yyyy-MM-dd'),
+      pbankbalance: this.commonService.removeCommasForEntredNumber(this.BRStatmentForm.value.pbankbalance),
+      ptypeofoperation: index === 0 ? 'UPDATE' : 'CREATE',
+      schemaname: schemaName,
+      pFilename: this.BRStatmentForm.value.pFilename,
+      company_code: companyCode,
+      branch_code: branchCode
+    }));
+
+
+    this.brstatement.SaveBrs(JSON.stringify({ '_BrsDTO': payload })).subscribe({
+      next: () => {
+        this.commonService.showSuccessMsg('success');
+        this.getBRStatmentReports();
+      },
+      error: () => {
+        this.commonService.showWarningMessage('Save failed. Please try again.');
+      }
+    });
+  }
 
   // ── Row group helpers ─────────────────────────────────────────────────────────
   toggleExpandGroup(group: any): void {
