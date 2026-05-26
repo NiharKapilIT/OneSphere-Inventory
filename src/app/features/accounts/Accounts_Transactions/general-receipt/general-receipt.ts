@@ -136,7 +136,8 @@ export class GeneralReceipt implements OnInit {
 
   viewRow(row: Receipt): void {
     if (!row?.receipt_number) return;
-    const receipt = btoa(`${row.receipt_number},General Receipt`);
+   // const receipt = btoa(`${row.receipt_number},General Receipt`);
+   const receipt = btoa(`${row.receipt_number},General Receipt,Reprint`);
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/general-receipt', receipt])
     );

@@ -88,8 +88,7 @@ export class ScheduleTb implements OnInit {
       .set('branchcode',this.commonService.getBranchCode())
       .set('GlobalSchema',this.commonService.getschemaname());
 
-    this.http
-      .get<any>(`${this.apiBase}/Accounts/GetScheduleTBReport`, { params })
+    this.commonService.getAPI('/Accounts/GetScheduleTBReport', params, 'YES')
       .subscribe({
         next: (res) => {
           let rows: TBRow[] = [];
@@ -176,7 +175,7 @@ export class ScheduleTb implements OnInit {
 
       autoTable(doc, {
         startY: y,
-        head: [['Account Name', 'Debit Amount\u20B9', 'Credit Amount\u20B9']],
+        head: [['Account Name', 'Debit Amount', 'Credit Amount']],
         body: [],
         theme: 'plain',
         headStyles: {

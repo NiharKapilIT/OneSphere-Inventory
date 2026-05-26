@@ -373,8 +373,15 @@ export class PaymentVoucher implements OnInit {
     const referenceInfo = refNo ? `Ref: ${refNo}, Bank: ${bank}` : '';
 
 
-    this.commonService._downloadGridPdf1(
-      this.receiptName(),
+    // this.commonService._downloadGridPdf1(
+    //   this.receiptName(),
+
+    const pdfTitle = this.duplicate() === 'Reprint' ? `${this.receiptName()} (Duplicate)` : this.receiptName();
+this.commonService._downloadGridPdf1(
+      pdfTitle,
+
+
+
       rows,
       ['S.No.', 'Particulars', 'Amount'],
       {

@@ -172,8 +172,15 @@ pdfOrprint(action: 'Pdf' | 'Print'): void {
     this.commonService.currencyFormat(this.pCreditAmount())
   ]);
 
-  this.commonService._downloadGridPdf1(
-    this.receiptName(),
+  // this.commonService._downloadGridPdf1(
+  //   this.receiptName(),
+
+ 
+
+const pdfTitle = this.duplicate() === 'Reprint' ? `${this.receiptName()} (Duplicate)` : this.receiptName();
+this.commonService._downloadGridPdf1(
+    pdfTitle,
+
     rows,
     ['S.No', 'Particulars', 'Debit Amount', 'Credit Amount'],
     {
