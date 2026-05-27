@@ -1,16 +1,10 @@
 import {
-  Component, OnInit, signal, computed, inject
+  Component, OnInit, OnDestroy, signal, computed, inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, timeout } from 'rxjs';
-
-
-import {
-  CompanyCode, BranchCode, LoginResponse
-} from './login.models';
-
 
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -18,218 +12,196 @@ import { PasswordModule } from 'primeng/password';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { environment } from '../../../envir/environment.prod';
-import { AuthService } from '../../core/services/auth.service';
-import { CompanyDetailsService } from '../../core/services/Common/company-details-service';
+import { AuthPayload, AuthService, LoginTenantOption, OtpIssueResponse } from '../../core/services/auth.service';
 import { NgSelectModule } from '@ng-select/ng-select';
+import { SubscriptionService, ModulePricingItem } from '../../core/services/subscription/subscription.service';
+import { CompanyDetailsService } from '../../core/services/Common/company-details-service';
+import { CompanyCode, BranchCode, LoginResponse } from './login.models';
+import { BiometricAuthService } from '../../core/services/biometric-auth.service';
 
-type AuthMode = 'login' | 'otp' | 'register';
-type RegisterStep = 1 | 2 | 3 | 4 | 5;
-
-interface RegistrationBranch {
-  branchName: string;
-  branchCode: string;
-  city: string;
-  state: string;
-  contactNo: string;
-}
+type AuthMode = 'password' | 'otp' | 'register' | 'userid';
+type RegisterStep = 1 | 2;
 
 interface CompanySetupDraft {
   companyName: string;
   legalName: string;
   companyCode: string;
   gstin: string;
-  pan: string;
-  cin: string;
+  cinNumber: string;
+  panNumber: string;
   email: string;
   contactNo: string;
-  address: string;
+  registrationAddress: string;
   city: string;
   state: string;
   country: string;
   pincode: string;
   financialYear: string;
-}
-
-interface AdminUserDraft {
-  fullName: string;
-  email: string;
-  contactNo: string;
-  role: string;
-  accessScope: string;
-}
-
-interface DemoPermission {
-  module: string;
-  access: string;
-  rights: string;
-}
-
-interface DemoUserAccess {
-  name: string;
-  role: string;
-  company: string;
-  branch: string;
-  access: string;
-}
-
-interface DemoLoginCompany {
-  name: string;
-  code: string;
-  role: string;
-  branches: string[];
+  adminPassword: string;
+  confirmAdminPassword: string;
 }
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [
-    FormsModule, NgSelectModule, ButtonModule,
-    InputTextModule, PasswordModule, ToastModule,
+    FormsModule, ButtonModule, InputTextModule, ToastModule, PasswordModule, NgSelectModule
   ],
   providers: [MessageService],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent implements OnInit {
+export class LoginComponent implements OnInit, OnDestroy {
 
   // ── DI via inject() ──────────────────────────────────────────────
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly messageService = inject(MessageService);
+  private readonly subscriptionService = inject(SubscriptionService);
   private readonly companyService = inject(CompanyDetailsService);
+  private readonly biometric = inject(BiometricAuthService);
 
-  // ── Signals ──────────────────────────────────────────────────────
-  step = signal<1 | 2>(1);
-  authMode = signal<AuthMode>('login');
-  registerStep = signal<RegisterStep>(1);
-  saasDemoModalOpen = signal(false);
-  saasDemoStep = signal<RegisterStep>(1);
-  otpLoginStep = signal<1 | 2>(1);
-  loading = signal(false);
-  errorMessage = signal('');
+  private _codeDebounce: ReturnType<typeof setTimeout> | null = null;
 
+  // ── Legacy Password Variables ──────────────────────────────────────
+  legacyStep = signal<1 | 2>(1);
   companyCodes = signal<CompanyCode[]>([]);
   companyOptions = signal<{ label: string; value: number }[]>([]);
   branchOptions = signal<{ label: string; value: string }[]>([]);
-
   selectedCompanyId = signal<number | null>(null);
-  selectedBranchCode = signal('');
+  selectedBranchCode = signal<string | null>(null);
   selectedCompanyCode = signal('');
   username = signal('');
   password = signal('');
 
-  loginOtpIdentifier = signal('');
-  loginOtp = signal('');
-  loginOtpSent = signal(false);
-
-  registrationIdentity = signal('admin@demoenterprise.com');
-  registrationOtp = signal('123456');
-  registrationOtpSent = signal(false);
-  registrationOtpVerified = signal(false);
-
-  companySetup = signal<CompanySetupDraft>({
-    companyName: 'Demo Enterprise Pvt Ltd',
-    legalName: 'Demo Enterprise Private Limited',
-    companyCode: 'DEMO01',
-    gstin: '36ABCDE1234F1Z5',
-    pan: 'ABCDE1234F',
-    cin: 'U72900TG2026PTC000001',
-    email: 'accounts@demoenterprise.com',
-    contactNo: '9876543210',
-    address: '5th Floor, Business Towers, Financial District',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    country: 'India',
-    pincode: '500032',
-    financialYear: '2025-2026',
-  });
-
-  registrationBranches = signal<RegistrationBranch[]>([
-    { branchName: 'Head Office', branchCode: 'HO', city: 'Hyderabad', state: 'Telangana', contactNo: '9876543210' },
-    { branchName: 'Bengaluru Branch', branchCode: 'BLR', city: 'Bengaluru', state: 'Karnataka', contactNo: '9876501234' },
-  ]);
-
-  adminUser = signal<AdminUserDraft>({
-    fullName: 'Demo Admin',
-    email: 'admin@demoenterprise.com',
-    contactNo: '9876543210',
-    role: 'Default Admin',
-    accessScope: 'All Branches',
-  });
-
-  demoPermissions = signal<DemoPermission[]>([
-    { module: 'Accounts', access: 'Admin', rights: 'Create, View, Update, Delete, Approve' },
-    { module: 'HRMS', access: 'Manager', rights: 'Create, View, Update, Approve' },
-    { module: 'Reports', access: 'View Only', rights: 'View, Export' },
-    { module: 'Settings', access: 'Admin Only', rights: 'Create Roles, Assign Users, Configure Company' },
-  ]);
-
-  demoUserAccess = signal<DemoUserAccess[]>([
-    { name: 'Demo Admin', role: 'Default Admin', company: 'Demo Enterprise', branch: 'All Branches', access: 'Full CRUD + Approvals' },
-    { name: 'Accounts Manager', role: 'Accounts Admin', company: 'Demo Enterprise', branch: 'Head Office', access: 'CRUD + Approvals' },
-    { name: 'HR Executive', role: 'HR User', company: 'Demo Enterprise', branch: 'Bengaluru Branch', access: 'Create, View, Update' },
-    { name: 'Management Viewer', role: 'Viewer', company: 'All Allocated Companies', branch: 'All Allocated Branches', access: 'View Only' },
-  ]);
-
-  demoLoginCompanies = signal<DemoLoginCompany[]>([
-    { name: 'Demo Enterprise Pvt Ltd', code: 'DEMO01', role: 'Default Admin', branches: ['Head Office', 'Bengaluru Branch'] },
-    { name: 'Kapil Demo Services', code: 'KDS01', role: 'Management Viewer', branches: ['Corporate Office', 'Vizag Branch'] },
-  ]);
-
-
-
-  // ── Computed ─────────────────────────────────────────────────────
   noBranches = computed(() =>
     !!this.selectedCompanyId() &&
     this.branchOptions().length === 0 &&
     !this.loading()
   );
 
+  // ── Subscription / module signals ────────────────────────────────
+  availableModules = signal<ModulePricingItem[]>([]);
+  selectedModuleIds = signal<Set<number>>(new Set());
+  maxBranches = signal(5);
+  maxUsers = signal(10);
+  modulesLoading = signal(false);
+
+  // ── Signals ──────────────────────────────────────────────────────
+  authMode = signal<AuthMode>('otp');
+  registerStep = signal<RegisterStep>(1);
+  loading = signal(false);
+  errorMessage = signal('');
+
+  companyCodeChecking = signal(false);
+  companyCodeAvailable = signal<boolean | null>(null);
+  companyCodeError = signal('');
+
+  loginOtpIdentifier = signal('');
+  loginOtpCompanyCode = signal('');
+  loginOtp = signal('');
+  loginOtpSent = signal(false);
+  loginOtpDeliveryMessage = signal('');
+  loginOtpDeliveryFailed = signal(false);
+  loginRequiresSelection = signal(false);
+  loginTenantOptions = signal<LoginTenantOption[]>([]);
+  selectedLoginCompanyId = signal<number | null>(null);
+  selectedLoginBranchId = signal<number | null>(null);
+
+  // ── Login with User ID (direct password, no company pre-select) ───
+  useridIdentifier = signal('');
+  useridPassword = signal('');
+  useridRequiresSelection = signal(false);
+  useridTenantOptions = signal<LoginTenantOption[]>([]);
+  selectedUseridCompanyId = signal<number | null>(null);
+  selectedUseridBranchId = signal<number | null>(null);
+
+  registrationIdentity = signal('');
+  registrationOtp = signal('');
+  registrationOtpSent = signal(false);
+  registrationOtpDeliveryMessage = signal('');
+  registrationOtpDeliveryFailed = signal(false);
+  registrationOtpVerified = signal(false);
+
+  companySetup = signal<CompanySetupDraft>({
+    companyName: '',
+    legalName: '',
+    companyCode: '',
+    gstin: '',
+    cinNumber: '',
+    panNumber: '',
+    email: '',
+    contactNo: '',
+    registrationAddress: '',
+    city: '',
+    state: '',
+    country: 'India',
+    pincode: '',
+    financialYear: '',
+    adminPassword: '',
+    confirmAdminPassword: '',
+  });
+
+  // ── Biometric signals (login verification) ──────────────────────
+  biometricStep         = signal(false);
+  biometricLoading      = signal(false);
+  biometricError        = signal('');
+  biometricAvailable    = signal(false);
+  biometricNotEnrolled  = signal(false);   // required but not enrolled on this device
+  private pendingPayload: AuthPayload | null = null;
+
+  // ── Biometric signals (company setup enrollment) ─────────────────
+  setupBioStep      = signal(false);
+  setupBioEnrolling = signal(false);
+  setupBioMessage   = signal('');
+  setupBioSuccess   = signal(false);
+  private setupBioUserId: number | null = null;
+  private setupBioRoute = '/dashboard';
+
+  // ── Computed ─────────────────────────────────────────────────────
   registerProgress = computed(() => {
     const step = this.registerStep();
     return [
       { no: 1, label: 'Verify', active: step === 1, done: step > 1 },
-      { no: 2, label: 'Company', active: step === 2, done: step > 2 },
-      { no: 3, label: 'Branches', active: step === 3, done: step > 3 },
-      { no: 4, label: 'Admin User', active: step === 4, done: false },
+      { no: 2, label: 'Company & Plan', active: step === 2, done: false },
     ];
   });
 
-  saasDemoProgress = computed(() => {
-    const step = this.saasDemoStep();
-    return [
-      { no: 1, label: 'Verify', active: step === 1, done: step > 1 },
-      { no: 2, label: 'Company', active: step === 2, done: step > 2 },
-      { no: 3, label: 'Branches', active: step === 3, done: step > 3 },
-      { no: 4, label: 'Users & Access', active: step === 4, done: step > 4 },
-      { no: 5, label: 'Login Flow', active: step === 5, done: false },
-    ];
-  });
+  selectedLoginTenant = computed(() =>
+    this.loginTenantOptions().find(option => option.companyId === this.selectedLoginCompanyId()) ?? null
+  );
 
+  selectedLoginBranches = computed(() => this.selectedLoginTenant()?.branches ?? []);
 
-  // ── ngOnInit: set API URL then load companies ────────
+  selectedUseridTenant = computed(() =>
+    this.useridTenantOptions().find(option => option.companyId === this.selectedUseridCompanyId()) ?? null
+  );
+
+  selectedUseridBranches = computed(() => this.selectedUseridTenant()?.branches ?? []);
+
+  ngOnDestroy(): void {
+    if (this._codeDebounce) clearTimeout(this._codeDebounce);
+  }
 
   async ngOnInit(): Promise<void> {
-    (this.selectedBranchCode as any).set(null);
-    (this.selectedCompanyCode as any).set(null);
-    (this.selectedCompanyId as any).set(null);
-
     let urldata = environment.apiURL;
-    let res = await this.http.get<{ apiURL: string }[]>(urldata).toPromise();
-
-    if (res?.length && res[0].apiURL) {
-      let url = new URL(res[0].apiURL);
-      let apiURL = url.origin + '/api';
-      sessionStorage.setItem('apiURL', apiURL);
+    let res = await firstValueFrom(this.http.get<{ apiURL: string; morphoRdUrl?: string }[]>(urldata)).catch(() => undefined);
+    if (res?.length) {
+      if (res[0].apiURL) {
+        let url = new URL(res[0].apiURL);
+        let apiURL = url.origin + '/api';
+        sessionStorage.setItem('apiURL', apiURL);
+      }
+      if (res[0].morphoRdUrl) {
+        sessionStorage.setItem('morphoRdUrl', res[0].morphoRdUrl);
+      }
     }
-
     await this.loadCompanyCodes();
   }
 
   // ── Load companies ───────────────────────────────────────────────
   private async loadCompanyCodes(): Promise<void> {
-
     const api = sessionStorage.getItem('apiURL') ?? '';
     try {
       const data = await firstValueFrom(
@@ -253,8 +225,7 @@ export class LoginComponent implements OnInit {
     const api = sessionStorage.getItem('apiURL') ?? '';
 
     this.branchOptions.set([]);
-    //this.selectedBranchCode.set('');
-    (this.selectedBranchCode as any).set(null);
+    this.selectedBranchCode.set(null);
     this.errorMessage.set('');
     if (!id) return;
 
@@ -280,8 +251,8 @@ export class LoginComponent implements OnInit {
     }
   }
 
-  // ── Step 1 next ──────────────────────────────────────────────────
-  onStep1Next(): void {
+  // ── Legacy Login Methods ─────────────────────────────────────────
+  onLegacyStep1Next(): void {
     this.errorMessage.set('');
     if (!this.selectedCompanyId()) {
       this.errorMessage.set('Please select a company.'); return;
@@ -289,184 +260,26 @@ export class LoginComponent implements OnInit {
     if (!this.selectedBranchCode()) {
       this.errorMessage.set('Please select a branch.'); return;
     }
-    this.step.set(2);
+    this.loginTenantOptions.set([]);
+    this.selectedLoginCompanyId.set(null);
+    this.selectedLoginBranchId.set(null);
+    this.legacyStep.set(2);
   }
 
-  // ── Go back ──────────────────────────────────────────────────────
-
-  goBack(): void {
-    (this.selectedBranchCode as any).set(null);
-    (this.selectedCompanyCode as any).set(null);
-    (this.selectedCompanyId as any).set(null);
-    this.step.set(1);
+  goBackLegacy(): void {
+    this.selectedBranchCode.set(null);
+    this.selectedCompanyCode.set('');
+    this.selectedCompanyId.set(null);
+    this.legacyStep.set(1);
   }
 
-  setAuthMode(mode: AuthMode): void {
-    this.authMode.set(mode);
+  async onLegacyLogin(): Promise<void> {
     this.errorMessage.set('');
-    if (mode === 'login') {
-      this.step.set(1);
-    }
-    if (mode === 'otp') {
-      this.otpLoginStep.set(1);
-    }
-    if (mode === 'register') {
-      this.registerStep.set(1);
-    }
-  }
-
-  openSaasRegistrationDemo(): void {
-    this.errorMessage.set('');
-    this.saasDemoStep.set(1);
-    this.saasDemoModalOpen.set(true);
-  }
-
-  closeSaasRegistrationDemo(): void {
-    this.saasDemoModalOpen.set(false);
-    this.errorMessage.set('');
-  }
-
-  setSaasDemoStep(step: number): void {
-    this.saasDemoStep.set(step as RegisterStep);
-    this.errorMessage.set('');
-  }
-
-  nextSaasDemoStep(): void {
-    const step = this.saasDemoStep();
-    if (step < 5) {
-      this.saasDemoStep.set((step + 1) as RegisterStep);
-    }
-  }
-
-  previousSaasDemoStep(): void {
-    const step = this.saasDemoStep();
-    if (step > 1) {
-      this.saasDemoStep.set((step - 1) as RegisterStep);
-    }
-  }
-
-  sendLoginOtp(): void {
-    this.errorMessage.set('');
-    if (!this.loginOtpIdentifier().trim()) {
-      this.errorMessage.set('Please enter mobile number or mail ID.');
+    if (!this.selectedCompanyCode() || !this.selectedBranchCode()) {
+      this.errorMessage.set('Please select company and branch before password login.');
+      this.legacyStep.set(1);
       return;
     }
-    this.loginOtpSent.set(true);
-    this.showToast('success', 'OTP sent', 'A verification code has been sent.');
-  }
-
-  verifyLoginOtp(): void {
-    this.errorMessage.set('');
-    if (!this.loginOtpSent()) {
-      this.errorMessage.set('Please send OTP first.');
-      return;
-    }
-    if (this.loginOtp().trim().length < 4) {
-      this.errorMessage.set('Please enter a valid OTP.');
-      return;
-    }
-    this.otpLoginStep.set(2);
-    this.showToast('success', 'OTP verified', 'Choose company and branch to continue.');
-  }
-
-  completeOtpLogin(): void {
-    this.errorMessage.set('');
-    if (!this.selectedCompanyId() || !this.selectedBranchCode()) {
-      this.errorMessage.set('Please select company and branch.');
-      return;
-    }
-    this.showToast('success', 'OTP login ready', 'Backend login integration can be connected later.');
-  }
-
-  sendRegistrationOtp(): void {
-    this.errorMessage.set('');
-    if (!this.registrationIdentity().trim()) {
-      this.errorMessage.set('Please enter mobile number or mail ID.');
-      return;
-    }
-    this.registrationOtpSent.set(true);
-    this.showToast('success', 'OTP sent', 'Registration OTP has been sent.');
-  }
-
-  confirmRegistrationOtp(): void {
-    this.errorMessage.set('');
-    if (!this.registrationOtpSent()) {
-      this.errorMessage.set('Please send OTP first.');
-      return;
-    }
-    if (this.registrationOtp().trim().length < 4) {
-      this.errorMessage.set('Please enter a valid OTP.');
-      return;
-    }
-    this.registrationOtpVerified.set(true);
-    this.registerStep.set(2);
-  }
-
-  updateCompanySetup(field: keyof CompanySetupDraft, value: string): void {
-    this.companySetup.update(current => ({ ...current, [field]: value }));
-  }
-
-  goToCompanyBranchSetup(): void {
-    const company = this.companySetup();
-    this.errorMessage.set('');
-    if (!company.companyName.trim() || !company.companyCode.trim() || !company.email.trim() || !company.contactNo.trim()) {
-      this.errorMessage.set('Please fill company name, code, mail ID and contact number.');
-      return;
-    }
-    this.registerStep.set(3);
-  }
-
-  addRegistrationBranch(): void {
-    this.registrationBranches.update(branches => [
-      ...branches,
-      { branchName: '', branchCode: '', city: '', state: '', contactNo: '' },
-    ]);
-  }
-
-  removeRegistrationBranch(index: number): void {
-    this.registrationBranches.update(branches =>
-      branches.length === 1 ? branches : branches.filter((_, branchIndex) => branchIndex !== index)
-    );
-  }
-
-  updateRegistrationBranch(index: number, field: keyof RegistrationBranch, value: string): void {
-    this.registrationBranches.update(branches =>
-      branches.map((branch, branchIndex) =>
-        branchIndex === index ? { ...branch, [field]: value } : branch
-      )
-    );
-  }
-
-  goToAdminUserSetup(): void {
-    this.errorMessage.set('');
-    const hasBranch = this.registrationBranches().some(branch =>
-      branch.branchName.trim() && branch.branchCode.trim()
-    );
-    if (!hasBranch) {
-      this.errorMessage.set('Please add at least one branch name and branch code.');
-      return;
-    }
-    this.registerStep.set(4);
-  }
-
-  updateAdminUser(field: keyof AdminUserDraft, value: string): void {
-    this.adminUser.update(current => ({ ...current, [field]: value }));
-  }
-
-  finishRegistrationSetup(): void {
-    const admin = this.adminUser();
-    this.errorMessage.set('');
-    if (!admin.fullName.trim() || !admin.email.trim() || !admin.contactNo.trim()) {
-      this.errorMessage.set('Please fill admin user name, mail ID and contact number.');
-      return;
-    }
-    this.showToast('success', 'Registration UI complete', 'Company, branch and admin user setup is ready for backend integration.');
-    this.setAuthMode('login');
-  }
-
-  // ── Login POST ───────────────────────────────────────────────────
-  async onLogin(): Promise<void> {
-    this.errorMessage.set('');
     if (!this.username().trim()) {
       this.errorMessage.set('Please enter your username.'); return;
     }
@@ -474,10 +287,10 @@ export class LoginComponent implements OnInit {
       this.errorMessage.set('Please enter your password.'); return;
     }
 
-    const api = sessionStorage.getItem('apiURL') ?? '';
     this.loading.set(true);
 
     try {
+      const api = sessionStorage.getItem('apiURL') ?? '';
       const response = await firstValueFrom(
         this.http.post<LoginResponse>(`${api}/Accounts/login`, {
           user_name: this.username().trim(),
@@ -494,13 +307,12 @@ export class LoginComponent implements OnInit {
         response.token || '',
         resolvedUsername,
         this.selectedCompanyCode(),
-        this.selectedBranchCode(),
+        this.selectedBranchCode() || '',
         response.userId,
         response.branchId,
-        response.ipAddress,
+        (response as any).ipAddress ?? (response as any).IPAddress ?? '',
       );
 
-      // store company details (fire-and-forget, non-blocking)
       this.companyService.GetCompanyData().subscribe({
         next: (d: any) => {
           if (d?.length) sessionStorage.setItem('CompanyDetails', JSON.stringify(d[0]));
@@ -508,22 +320,821 @@ export class LoginComponent implements OnInit {
       });
 
       this.showToast('success', 'Login successful', `Welcome back, ${resolvedUsername}!`);
-      setTimeout(() => this.router.navigate(['/dashboard']), 1000);
+      setTimeout(() => this.router.navigate(['/dashboard']), 400);
 
     } catch (err: any) {
       if (err?.status === 401) {
         this.errorMessage.set('Invalid username or password.');
         this.showToast('error', 'Login failed', 'Invalid credentials. Please try again.');
       } else {
-        this.errorMessage.set('Login failed. Please try again.');
-        this.showToast('error', 'Error', 'Something went wrong. Please try again.');
+        this.errorMessage.set(err?.error?.message || 'Login failed. Please try again.');
+        this.showToast('error', 'Error', this.errorMessage());
       }
     } finally {
       this.loading.set(false);
     }
   }
 
+  setAuthMode(mode: AuthMode): void {
+    this.authMode.set(mode);
+    this.errorMessage.set('');
+    if (mode === 'password') {
+      this.legacyStep.set(1);
+      this.selectedCompanyCode.set('');
+      this.selectedCompanyId.set(null);
+      this.selectedBranchCode.set(null);
+      this.loginTenantOptions.set([]);
+      this.selectedLoginCompanyId.set(null);
+      this.selectedLoginBranchId.set(null);
+      this.loginOtpDeliveryMessage.set('');
+    }
+    if (mode === 'userid') {
+      this.useridIdentifier.set('');
+      this.useridPassword.set('');
+      this.useridRequiresSelection.set(false);
+      this.useridTenantOptions.set([]);
+      this.selectedUseridCompanyId.set(null);
+      this.selectedUseridBranchId.set(null);
+    }
+    if (mode === 'register') {
+      this.registerStep.set(1);
+      this.registrationOtp.set('');
+      this.registrationOtpSent.set(false);
+      this.registrationOtpDeliveryFailed.set(false);
+      this.registrationOtpVerified.set(false);
+      this.registrationOtpDeliveryMessage.set('');
+      this.companyCodeAvailable.set(null);
+      this.companyCodeError.set('');
+      this.companySetup.set({
+        companyName: '', legalName: '', companyCode: '', gstin: '', cinNumber: '',
+        panNumber: '', email: '', contactNo: '', registrationAddress: '',
+        city: '', state: '', country: 'India', pincode: '', financialYear: '',
+        adminPassword: '', confirmAdminPassword: '',
+      });
+      this.selectedModuleIds.set(new Set());
+      this.maxBranches.set(5);
+      this.maxUsers.set(10);
+      this.loadAvailableModules();
+    }
+  }
+
+  private async loadAvailableModules(): Promise<void> {
+    this.modulesLoading.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.subscriptionService.getAvailableModules().pipe(timeout(8000))
+      );
+      if (res?.data) {
+        this.availableModules.set(res.data);
+        // Pre-select core modules
+        const coreIds = new Set(res.data.filter(m => m.isCore).map(m => m.id));
+        this.selectedModuleIds.set(coreIds);
+      }
+    } catch {
+      // silent - user can proceed without module list
+    } finally {
+      this.modulesLoading.set(false);
+    }
+  }
+
+  isModuleSelected(moduleId: number): boolean {
+    return this.selectedModuleIds().has(moduleId);
+  }
+
+  toggleModule(module: ModulePricingItem): void {
+    if (module.isCore) return; // core modules cannot be deselected
+    const current = new Set(this.selectedModuleIds());
+    if (current.has(module.id)) {
+      current.delete(module.id);
+    } else {
+      current.add(module.id);
+    }
+    this.selectedModuleIds.set(current);
+  }
+
+  get totalModuleCost(): number {
+    return this.availableModules()
+      .filter(m => this.selectedModuleIds().has(m.id))
+      .reduce((sum, m) => sum + m.monthlyPrice, 0);
+  }
+
+  async sendLoginOtp(): Promise<void> {
+    this.errorMessage.set('');
+    const id = this.loginOtpIdentifier().trim();
+    if (!id) {
+      this.errorMessage.set('Please enter your email, mobile or username.');
+      return;
+    }
+    const companyCode = this.loginOtpCompanyCode().trim() || undefined;
+    this.loginTenantOptions.set([]);
+    this.selectedLoginCompanyId.set(null);
+    this.selectedLoginBranchId.set(null);
+    this.loginOtpDeliveryMessage.set('');
+    this.loading.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.authService.requestOtp(id, companyCode).pipe(timeout(20000))
+      );
+      if (!this.isOtpDeliveryConfirmed(response)) {
+        const smsSent = this.readOtpFlag(response.data, 'smsSent', 'SmsSent') === true;
+        const emailSent = this.readOtpFlag(response.data, 'emailSent', 'EmailSent') === true;
+        let channelDetail = '';
+        if (!smsSent && !emailSent) channelDetail = ' Both SMS and email delivery failed.';
+        else if (!smsSent) channelDetail = ' SMS delivery failed.';
+        else if (!emailSent) channelDetail = ' Email delivery failed.';
+        const msg = 'OTP delivery could not be confirmed.' + channelDetail + ' If you received the OTP from your administrator, you may still enter it below.';
+        this.loginOtpSent.set(true);
+        this.loginOtpDeliveryFailed.set(true);
+        this.loginOtp.set('');
+        this.loginOtpDeliveryMessage.set(msg);
+        this.showToast('warn', 'Delivery not confirmed', msg);
+        return;
+      }
+      this.loginOtpDeliveryFailed.set(false);
+      const deliveryMessage = this.otpDeliverySuccessMessage(response);
+      this.loginOtpSent.set(true);
+      this.loginOtp.set('');
+      this.loginOtpDeliveryMessage.set(deliveryMessage);
+      this.showToast('success', 'OTP sent', deliveryMessage);
+    } catch (err: any) {
+      const msg = err?.error?.message || 'Unable to send OTP. Please try again.';
+      this.errorMessage.set(msg);
+      this.showToast('error', 'OTP error', msg);
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async verifyLoginOtp(): Promise<void> {
+    this.errorMessage.set('');
+    if (!this.loginOtpSent()) {
+      this.errorMessage.set('Please request an OTP first.');
+      return;
+    }
+    if (!/^\d{6}$/.test(this.loginOtp().trim())) {
+      this.errorMessage.set('Please enter a valid 6-digit OTP.');
+      return;
+    }
+    this.loading.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.authService.verifyOtp(
+          this.loginOtpIdentifier().trim(),
+          this.loginOtp().trim(),
+          this.loginOtpCompanyCode().trim() || undefined,
+          this.selectedLoginCompanyId(),
+          this.selectedLoginBranchId()
+        ).pipe(timeout(10000))
+      );
+
+      if (!response?.data) {
+        throw new Error(response?.message || 'Invalid OTP response.');
+      }
+
+      if (response.data.requiresSelection) {
+        const options = response.data.tenantOptions ?? [];
+        this.prepareTenantSelection(options);
+        this.loginRequiresSelection.set(true);
+
+        // If only one company came back (edge-case: backend returned requiresSelection
+        // but the company+branch were already resolved), proceed automatically.
+        if (options.length === 1 && this.selectedLoginBranchId() !== null) {
+          await this.verifyLoginOtp();
+          return;
+        }
+
+        this.showToast('success', 'OTP verified', 'Your account is linked to multiple companies. Select one to continue.');
+        return;
+      }
+
+      this.loginRequiresSelection.set(false);
+      this.completeLogin(response.data);
+    } catch (err: any) {
+      this.errorMessage.set(err?.error?.message || err?.message || 'Invalid or expired OTP.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  selectLoginCompany(companyId: number | string): void {
+    const resolvedCompanyId = Number(companyId) || null;
+    this.selectedLoginCompanyId.set(resolvedCompanyId);
+    const branch = this.loginTenantOptions()
+      .find(option => option.companyId === resolvedCompanyId)
+      ?.branches
+      ?.find(item => item.isDefault)
+      ?? this.loginTenantOptions().find(option => option.companyId === resolvedCompanyId)?.branches?.[0]
+      ?? null;
+    this.selectedLoginBranchId.set(branch?.id ?? null);
+  }
+
+  selectLoginBranch(branchId: number | string): void {
+    this.selectedLoginBranchId.set(Number(branchId) || null);
+  }
+
+  // ── Login with User ID ────────────────────────────────────────────
+  async onUserIdLogin(): Promise<void> {
+    this.errorMessage.set('');
+    const id = this.useridIdentifier().trim();
+    const pw = this.useridPassword().trim();
+    if (!id) { this.errorMessage.set('Please enter your email or user ID.'); return; }
+    if (!pw) { this.errorMessage.set('Please enter your password.'); return; }
+
+    this.loading.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.authService.passwordLogin(
+          id,
+          pw,
+          undefined,
+          this.useridRequiresSelection() ? this.selectedUseridCompanyId() : null,
+          this.useridRequiresSelection() ? this.selectedUseridBranchId() : null
+        ).pipe(timeout(10000))
+      );
+
+      if (!response?.data) {
+        throw new Error(response?.message || 'Login failed.');
+      }
+
+      if (response.data.requiresSelection) {
+        const options = response.data.tenantOptions ?? [];
+        this.useridTenantOptions.set(options);
+        const first = options[0] ?? null;
+        this.selectedUseridCompanyId.set(first?.companyId ?? null);
+        this.selectedUseridBranchId.set(
+          first?.branches?.find(b => b.isDefault)?.id ?? first?.branches?.[0]?.id ?? null
+        );
+        this.useridRequiresSelection.set(true);
+        this.showToast('info', 'Select company', 'Your credentials are linked to multiple companies. Pick one to continue.');
+        return;
+      }
+
+      this.useridRequiresSelection.set(false);
+      this.completeLogin(response.data);
+    } catch (err: any) {
+      this.errorMessage.set(err?.error?.message || err?.message || 'Invalid credentials or account not found.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  selectUseridCompany(companyId: number | string): void {
+    const id = Number(companyId) || null;
+    this.selectedUseridCompanyId.set(id);
+    const branch = this.useridTenantOptions()
+      .find(o => o.companyId === id)
+      ?.branches?.find(b => b.isDefault)
+      ?? this.useridTenantOptions().find(o => o.companyId === id)?.branches?.[0]
+      ?? null;
+    this.selectedUseridBranchId.set(branch?.id ?? null);
+  }
+
+  selectUseridBranch(branchId: number | string): void {
+    this.selectedUseridBranchId.set(Number(branchId) || null);
+  }
+
+  private prepareTenantSelection(options: LoginTenantOption[]): void {
+    this.loginTenantOptions.set(options);
+    const first = options[0] ?? null;
+    this.selectedLoginCompanyId.set(first?.companyId ?? null);
+    this.selectedLoginBranchId.set(first?.branches?.find(branch => branch.isDefault)?.id ?? first?.branches?.[0]?.id ?? null);
+  }
+
+  // ── Login completion (biometric gate) ───────────────────────────
+  private completeLogin(payload: AuthPayload): void {
+    const userId = payload.user?.id;
+    if (userId) {
+      const enrolled = this.biometric.hasCredential(userId);
+      const required = this.biometric.isRequired(userId);
+      if (enrolled || required) {
+        this.pendingPayload = payload;
+        this.biometricNotEnrolled.set(!enrolled);
+        this.biometricStep.set(true);
+        this.biometricError.set('');
+        return;
+      }
+    }
+
+    this.finishLogin(payload);
+  }
+
+  async onBiometricVerify(): Promise<void> {
+    if (!this.pendingPayload) return;
+    const userId = this.pendingPayload.user?.id;
+    if (!userId) { this.finishLogin(this.pendingPayload!); return; }
+
+    // Required but not enrolled on this device — warn and proceed
+    if (this.biometricNotEnrolled()) {
+      const payload = this.pendingPayload;
+      this.pendingPayload = null;
+      this.biometricStep.set(false);
+      this.biometricNotEnrolled.set(false);
+      this.showToast('warn', 'Fingerprint not enrolled',
+        'Ask your admin to enroll fingerprint on this device for secure login.');
+      this.finishLogin(payload!);
+      return;
+    }
+
+    this.biometricLoading.set(true);
+    this.biometricError.set('');
+    const result = await this.biometric.authenticateCredential(userId);
+    this.biometricLoading.set(false);
+
+    if (result === 'success') {
+      const payload = this.pendingPayload;
+      this.pendingPayload = null;
+      this.biometricStep.set(false);
+      this.biometricNotEnrolled.set(false);
+      this.finishLogin(payload!);
+    } else if (result === 'cancelled') {
+      this.biometricError.set('Scan cancelled or timed out. Place your finger on the sensor and try again.');
+    } else if (result === 'unsupported') {
+      this.biometricError.set(
+        'Fingerprint device not reachable. Ensure the Morpho RD Service is installed and running on this PC, then try again.'
+      );
+    } else if (result === 'no_credential') {
+      this.biometricError.set('No fingerprint enrolled for this account on this device. Ask your admin to enroll it.');
+    } else {
+      this.biometricError.set('Fingerprint verification failed. Please try again or contact your administrator.');
+    }
+  }
+
+  onBiometricCancel(): void {
+    this.biometricStep.set(false);
+    this.biometricNotEnrolled.set(false);
+    this.pendingPayload = null;
+    this.biometricError.set('');
+    this.errorMessage.set('Login cancelled. Please sign in again.');
+  }
+
+  private async finishLogin(payload: AuthPayload): Promise<void> {
+    this.authService.setMultiTenantSession(payload);
+    this.showToast('success', 'Welcome!', `Signed in as ${payload.user?.fullName || payload.user?.username}.`);
+
+    const isPostReg = sessionStorage.getItem('postRegistrationSetupPending') === 'true';
+    const shouldOpenSettings = (payload.branches?.length ?? 0) === 0 || isPostReg;
+    sessionStorage.removeItem('postRegistrationSetupPending');
+
+    const route = shouldOpenSettings
+      ? '/dashboard/settings/branch-management/manage-branches'
+      : '/dashboard';
+
+    // After company registration: offer fingerprint enrollment for the new admin
+    const userId = payload.user?.id;
+    if (isPostReg && userId && await this.biometric.isPlatformAuthenticatorAvailable()) {
+      this.setupBioUserId = userId;
+      this.setupBioRoute  = route;
+      this.setupBioStep.set(true);
+      this.setupBioMessage.set('');
+      this.setupBioSuccess.set(false);
+      return;
+    }
+
+    setTimeout(() => this.router.navigate([route]), 400);
+  }
+
+  // ── Company-setup biometric enrollment ───────────────────────────
+  async onSetupBioEnroll(): Promise<void> {
+    if (!this.setupBioUserId) { this.onSetupBioDone(); return; }
+    this.setupBioEnrolling.set(true);
+    this.setupBioMessage.set('');
+
+    const u = JSON.parse(sessionStorage.getItem('authUser') || '{}');
+    const result = await this.biometric.registerCredential(
+      this.setupBioUserId,
+      u.username ?? String(this.setupBioUserId),
+      u.fullName  ?? u.username ?? 'Admin'
+    );
+    this.setupBioEnrolling.set(false);
+
+    if (result === 'success') {
+      this.biometric.setRequired(this.setupBioUserId, true);
+      this.setupBioSuccess.set(true);
+      this.setupBioMessage.set('Fingerprint enrolled! You will be prompted to verify it on every login.');
+    } else if (result === 'cancelled') {
+      this.setupBioMessage.set('Scan cancelled. You can enroll later from Settings → Manage Users.');
+    } else if (result === 'unsupported') {
+      this.setupBioMessage.set('This device does not support fingerprint authentication.');
+    } else {
+      this.setupBioMessage.set('Enrollment failed. Try again from Settings → Manage Users.');
+    }
+  }
+
+  onSetupBioDone(): void {
+    this.setupBioStep.set(false);
+    this.setupBioSuccess.set(false);
+    this.setupBioMessage.set('');
+    const route = this.setupBioRoute;
+    this.setupBioUserId = null;
+    this.setupBioRoute  = '/dashboard';
+    setTimeout(() => this.router.navigate([route]), 200);
+  }
+
+  async sendRegistrationOtp(): Promise<void> {
+    this.errorMessage.set('');
+    if (!this.registrationIdentity().trim()) {
+      this.errorMessage.set('Please enter your email or mobile number.');
+      return;
+    }
+    if (!this.isEmailOrMobile(this.registrationIdentity())) {
+      this.errorMessage.set('Please use a valid email address or 10-digit mobile number for registration.');
+      return;
+    }
+    this.loading.set(true);
+    try {
+      const response = await firstValueFrom(
+        this.authService.requestRegistrationOtp(this.registrationIdentity().trim()).pipe(timeout(20000))
+      );
+      if (!this.isOtpDeliveryConfirmed(response)) {
+        const msg = this.otpDeliveryFailureMessage(
+          response,
+          'OTP delivery could not be confirmed. If you received the OTP, enter it below, or try a different contact.'
+        );
+        this.registrationOtp.set('');
+        this.registrationOtpSent.set(true);
+        this.registrationOtpDeliveryFailed.set(true);
+        this.registrationOtpDeliveryMessage.set(msg);
+        this.showToast('warn', 'Delivery not confirmed', msg);
+        return;
+      }
+      const deliveryMessage = this.otpDeliverySuccessMessage(response);
+      this.registrationOtp.set('');
+      this.registrationOtpSent.set(true);
+      this.registrationOtpDeliveryFailed.set(false);
+      this.registrationOtpDeliveryMessage.set(deliveryMessage);
+      this.showToast('success', 'OTP sent', deliveryMessage);
+    } catch (err: any) {
+      this.errorMessage.set(err?.error?.message || 'Unable to request OTP.');
+      this.showToast('error', 'OTP failed', this.errorMessage());
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  updateRegistrationIdentity(value: string): void {
+    this.registrationIdentity.set(value);
+    this.registrationOtp.set('');
+    this.registrationOtpSent.set(false);
+    this.registrationOtpDeliveryFailed.set(false);
+    this.registrationOtpVerified.set(false);
+    this.registrationOtpDeliveryMessage.set('');
+    this.errorMessage.set('');
+  }
+
+  updateLoginOtpIdentifier(value: string): void {
+    this.loginOtpIdentifier.set(value);
+    this.loginOtpCompanyCode.set('');
+    this.loginOtp.set('');
+    this.loginOtpSent.set(false);
+    this.loginOtpDeliveryFailed.set(false);
+    this.loginOtpDeliveryMessage.set('');
+    this.loginRequiresSelection.set(false);
+    this.loginTenantOptions.set([]);
+    this.selectedLoginCompanyId.set(null);
+    this.selectedLoginBranchId.set(null);
+    this.errorMessage.set('');
+  }
+
+  changeLoginId(): void {
+    this.loginOtpSent.set(false);
+    this.loginOtp.set('');
+    this.loginOtpCompanyCode.set('');
+    this.loginOtpDeliveryFailed.set(false);
+    this.loginOtpDeliveryMessage.set('');
+    this.loginRequiresSelection.set(false);
+    this.loginTenantOptions.set([]);
+    this.selectedLoginCompanyId.set(null);
+    this.selectedLoginBranchId.set(null);
+    this.errorMessage.set('');
+  }
+
+  async confirmRegistrationOtp(): Promise<void> {
+    this.errorMessage.set('');
+    if (!this.registrationOtpSent()) {
+      this.errorMessage.set('Please send OTP first.');
+      return;
+    }
+    if (!/^\d{6}$/.test(this.registrationOtp().trim())) {
+      this.errorMessage.set('Please enter a valid 6 digit OTP.');
+      return;
+    }
+    this.loading.set(true);
+    try {
+      await firstValueFrom(
+        this.authService.verifyRegistrationOtp(this.registrationIdentity().trim(), this.registrationOtp().trim()).pipe(timeout(10000))
+      );
+      this.registrationOtpVerified.set(true);
+      this.prefillRegistrationContactFromVerifiedIdentity();
+      this.registerStep.set(2);
+      this.showToast('success', 'OTP verified', 'Continue company registration.');
+    } catch (err: any) {
+      this.errorMessage.set(err?.error?.message || 'Invalid or expired OTP.');
+      this.showToast('error', 'OTP failed', this.errorMessage());
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  updateCompanySetup(field: keyof CompanySetupDraft, value: string): void {
+    this.companySetup.update(current => ({ ...current, [field]: value }));
+
+    if (field === 'companyName') {
+      this.companyCodeAvailable.set(null);
+      this.companyCodeError.set('');
+      if (this._codeDebounce) clearTimeout(this._codeDebounce);
+      if (!value.trim()) return;
+      this._codeDebounce = setTimeout(() => this.fetchSuggestedCode(value), 600);
+    }
+
+    if (field === 'companyCode') {
+      this.companyCodeAvailable.set(null);
+      this.companyCodeError.set('');
+    }
+  }
+
+  private async fetchSuggestedCode(name: string): Promise<void> {
+    if (this.companySetup().companyCode.trim()) return;
+    const code = this.generateCompanyCode(name);
+    if (!code) return;
+    this.companySetup.update(c => ({ ...c, companyCode: code }));
+    this.companyCodeAvailable.set(null);
+    this.companyCodeError.set('');
+    this.companyCodeChecking.set(true);
+    try {
+      const res = await firstValueFrom(
+        this.authService.checkCompanyCode(code).pipe(timeout(6000))
+      );
+      if (this.companySetup().companyCode === code) {
+        this.companyCodeAvailable.set(res?.available ?? null);
+        if (res?.available === false) {
+          this.companyCodeError.set('This company code is already taken. Please use a different one.');
+        }
+      }
+    } catch {
+      // silent - user can type manually
+    } finally {
+      this.companyCodeChecking.set(false);
+    }
+  }
+
+  private generateCompanyCode(name: string): string {
+    const firstLetter = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')[0];
+    if (!firstLetter) return '';
+    const yy = new Date().getFullYear().toString().slice(-2);
+    return `${firstLetter}${yy}001`;
+  }
+
+  async onCompanyCodeBlur(): Promise<void> {
+    const code = this.companySetup().companyCode.trim();
+    if (!code) { this.companyCodeAvailable.set(null); this.companyCodeError.set(''); return; }
+    this.companyCodeChecking.set(true);
+    this.companyCodeAvailable.set(null);
+    this.companyCodeError.set('');
+    try {
+      const res = await firstValueFrom(
+        this.authService.checkCompanyCode(code).pipe(timeout(6000))
+      );
+      if (res?.available) {
+        this.companyCodeAvailable.set(true);
+        this.companyCodeError.set('');
+      } else {
+        this.companyCodeAvailable.set(false);
+        this.companyCodeError.set('This company code is already taken. Please use a different one.');
+      }
+    } catch {
+      this.companyCodeAvailable.set(null);
+    } finally {
+      this.companyCodeChecking.set(false);
+    }
+  }
+
+  onCompanyCodeChange(value: string): void {
+    this.updateCompanySetup('companyCode', value);
+    this.companyCodeAvailable.set(null);
+    this.companyCodeError.set('');
+  }
+
+  async finishRegistrationSetup(): Promise<void> {
+    const company = this.companySetup();
+    this.errorMessage.set('');
+    if (!company.companyName.trim() || !company.companyCode.trim() || !company.email.trim() || !company.contactNo.trim()) {
+      this.errorMessage.set('Please fill company name, code, mail ID and contact number.');
+      return;
+    }
+    if (this.companyCodeAvailable() === false) {
+      this.errorMessage.set('The company code is already in use. Please choose a different one.');
+      return;
+    }
+    if (this.companyCodeChecking()) {
+      this.errorMessage.set('Please wait while the company code is being verified.');
+      return;
+    }
+    const adminPassword = company.adminPassword.trim();
+    const confirmAdminPassword = company.confirmAdminPassword.trim();
+    if (adminPassword || confirmAdminPassword) {
+      if (adminPassword.length < 8) {
+        this.errorMessage.set('Admin password must be at least 8 characters.');
+        return;
+      }
+      if (adminPassword !== confirmAdminPassword) {
+        this.errorMessage.set('Admin password and confirmation do not match.');
+        return;
+      }
+    }
+
+    const api = sessionStorage.getItem('apiURL') ?? '';
+    this.loading.set(true);
+    try {
+      const optionalText = (value: string | null | undefined): string | null => {
+        const trimmed = value?.trim() ?? '';
+        return trimmed ? trimmed : null;
+      };
+      await firstValueFrom(
+        this.http.post(`${api}/companies`, {
+          companyCode: company.companyCode.trim(),
+          companyName: company.companyName.trim(),
+          legalName: optionalText(company.legalName),
+          email: company.email.trim(),
+          mobile: company.contactNo.trim(),
+          gstNo: optionalText(company.gstin),
+          panNo: optionalText(company.panNumber),
+          address: optionalText(company.registrationAddress),
+          city: optionalText(company.city),
+          state: optionalText(company.state),
+          country: optionalText(company.country),
+          pincode: optionalText(company.pincode),
+          status: 'active',
+          registrationIdentifier: this.registrationIdentity().trim(),
+          adminPassword: optionalText(company.adminPassword),
+          // Subscription plan fields
+          subscribedModuleIds: Array.from(this.selectedModuleIds()),
+          maxBranches: this.maxBranches(),
+          maxUsers: this.maxUsers()
+        }).pipe(timeout(15000))
+      );
+
+      this.showToast('success', 'Registration complete', 'Company created. Sign in to finish branch and user setup.');
+      sessionStorage.setItem('postRegistrationSetupPending', 'true');
+      this.setAuthMode('otp');
+      this.loginOtpIdentifier.set(this.getPostRegistrationLoginIdentifier(company));
+      this.loginOtpCompanyCode.set('');
+      this.loginOtp.set('');
+      this.loginOtpSent.set(false);
+      this.loginOtpDeliveryMessage.set('');
+      this.loginTenantOptions.set([]);
+      this.selectedLoginCompanyId.set(null);
+      this.selectedLoginBranchId.set(null);
+    } catch (err: any) {
+      this.errorMessage.set(err?.error?.message || 'Registration failed.');
+      this.showToast('error', 'Registration failed', this.errorMessage());
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
   // ── Toast helper ─────────────────────────────────────────────────
+  private isEmailOrMobile(value: string): boolean {
+    const trimmed = value.trim();
+    if (trimmed.includes('@')) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    const mobile = digits.length === 12 && digits.startsWith('91')
+      ? digits.slice(2)
+      : digits.length === 11 && digits.startsWith('0')
+        ? digits.slice(1)
+        : digits;
+    return /^\d{10}$/.test(mobile);
+  }
+
+  private prefillRegistrationContactFromVerifiedIdentity(): void {
+    const identity = this.registrationIdentity().trim();
+    if (!identity) return;
+
+    this.companySetup.update(current => {
+      if (identity.includes('@') && !current.email.trim()) {
+        return { ...current, email: identity };
+      }
+
+      if (!identity.includes('@') && !current.contactNo.trim()) {
+        return { ...current, contactNo: this.normalizeMobileForDisplay(identity) ?? identity };
+      }
+
+      return current;
+    });
+  }
+
+  private getPostRegistrationLoginIdentifier(company: CompanySetupDraft): string {
+    const verified = this.registrationIdentity().trim();
+    if (verified.includes('@')) {
+      return verified;
+    }
+
+    return this.normalizeMobileForDisplay(verified) || company.contactNo.trim() || company.email.trim() || verified;
+  }
+
+  private normalizeMobileForDisplay(value: string): string | null {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length === 12 && digits.startsWith('91')) {
+      return digits.slice(2);
+    }
+    if (digits.length === 11 && digits.startsWith('0')) {
+      return digits.slice(1);
+    }
+    return digits.length === 10 ? digits : null;
+  }
+
+  private isOtpDeliveryConfirmed(response: OtpIssueResponse | undefined): boolean {
+    if (!response) {
+      return false;
+    }
+
+    // If the server explicitly says success=false, always treat as failure.
+    if (response.success !== true) {
+      return false;
+    }
+
+    // Check for any explicit delivery-acknowledged flag in the response data.
+    const acknowledged = this.readOtpFlag(
+      response.data,
+      'deliveryConfirmed',
+      'DeliveryConfirmed',
+      'deliveryAcknowledged',
+      'DeliveryAcknowledged',
+      'acknowledged',
+      'Acknowledged',
+      'otpSent',
+      'OtpSent'
+    );
+
+    if (acknowledged !== undefined) {
+      return acknowledged;
+    }
+
+    // Check channel-specific flags.
+    const smsSent = this.readOtpFlag(response.data, 'smsSent', 'SmsSent');
+    const emailSent = this.readOtpFlag(response.data, 'emailSent', 'EmailSent');
+
+    // If channel flags are explicitly present, at least one must be true.
+    if (smsSent !== undefined || emailSent !== undefined) {
+      return smsSent === true || emailSent === true;
+    }
+
+    // No channel-specific flags at all — the API returned success=true without
+    // delivery detail (e.g. username-only login). Trust the server's success flag.
+    return true;
+  }
+
+  private otpDeliverySuccessMessage(response: OtpIssueResponse | undefined): string {
+    const data = response?.data;
+    const smsSent = this.readOtpFlag(data, 'smsSent', 'SmsSent') === true;
+    const emailSent = this.readOtpFlag(data, 'emailSent', 'EmailSent') === true;
+
+    if (smsSent && emailSent) {
+      return 'SMS and email delivery confirmed.';
+    }
+    if (smsSent) {
+      return 'SMS delivery confirmed.';
+    }
+    if (emailSent) {
+      return 'Email delivery confirmed.';
+    }
+
+    return 'OTP delivery confirmed.';
+  }
+
+  private otpDeliveryFailureMessage(response: OtpIssueResponse | undefined, fallback: string): string {
+    const acknowledged = this.readOtpFlag(
+      response?.data,
+      'deliveryConfirmed',
+      'DeliveryConfirmed',
+      'deliveryAcknowledged',
+      'DeliveryAcknowledged',
+      'acknowledged',
+      'Acknowledged',
+      'otpSent',
+      'OtpSent'
+    );
+
+    if (acknowledged === false) {
+      return fallback;
+    }
+
+    return response?.message || fallback;
+  }
+
+  private readOtpFlag(data: OtpIssueResponse['data'] | undefined, ...keys: string[]): boolean | undefined {
+    if (!data) return undefined;
+    const raw = data as Record<string, unknown>;
+    for (const key of keys) {
+      if (typeof raw[key] === 'boolean') {
+        return raw[key] as boolean;
+      }
+    }
+    return undefined;
+  }
+
   showToast(severity: string, summary: string, detail: string): void {
     this.messageService.add({ severity, summary, detail, life: 3000 });
   }

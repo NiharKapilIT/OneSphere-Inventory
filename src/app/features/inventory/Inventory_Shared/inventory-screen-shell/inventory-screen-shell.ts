@@ -5,8 +5,10 @@ import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, from, map, of, switchMap } from 'rxjs';
 import { ReferenceDataBindEvent } from '../../../../shared/reference-data-tray/reference-data-tray.models';
 import { ReferenceDataTrayService } from '../../../../shared/reference-data-tray/reference-data-tray.service';
+import { ApiResponse, CategoryItem, GstRateGuide, InventoryConfigService, TaxCodeSuggestion } from '../inventory-config.service';
 import {
   INVENTORY_KPIS,
   INVENTORY_OPTIONS,
@@ -14,7 +16,8 @@ import {
   INVENTORY_SEGMENTS,
   INVENTORY_UOM_CONVERSIONS,
   InventoryField,
-  InventoryScreenConfig
+  InventoryScreenConfig,
+  InventorySegment
 } from '../inventory-screen.model';
 
 interface GlobalContactOption {
@@ -37,6 +40,7 @@ export class InventoryScreenShell implements OnInit {
   @Input({ required: true }) config!: InventoryScreenConfig;
 
   private readonly referenceDataTrayService = inject(ReferenceDataTrayService);
+  private readonly inventoryConfigService = inject(InventoryConfigService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly activeAddMaster = signal('');
@@ -73,22 +77,86 @@ export class InventoryScreenShell implements OnInit {
   readonly boundReferenceFields = signal<Record<string, string>>({});
   readonly boundReferenceLabels = signal<string[]>([]);
   readonly scannerMessage = signal('');
-  readonly selectedSegment = signal('Electronics');
+  readonly productName = signal('');
+  readonly selectedProductCategory = signal('');
+  readonly hsnSacCode = signal('');
+  readonly hsnSacDescription = signal('');
+  readonly gstRate = signal<number | null>(null);
+  readonly selectedTaxCodeSuggestion = signal<TaxCodeSuggestion | null>(null);
+  readonly taxCodeSuggestions = signal<TaxCodeSuggestion[]>([]);
+  readonly taxCodeSuggesting = signal(false);
+  readonly taxCodeSearchMessage = signal('');
+  readonly selectedTaxSource = signal('');
+  readonly taxSourceUpdatedAt = signal<string | null>(null);
+  readonly gstGuide = signal<GstRateGuide | null>(null);
+  readonly gstGuideLoading = signal(false);
+  private readonly taxCodeSearch$ = new Subject<{ query: string; category: string; autoPick: boolean }>();
+
+  // ── API form-capture state ────────────────────────────────────────────────
+  readonly genericNameValue = signal('');
+
+  readonly existingRowMatches = computed(() => {
+    const q = this.genericNameValue().trim().toLowerCase();
+    if (q.length < 2) return [];
+    return this.liveRows().filter(row =>
+      row.some(cell => cell.toLowerCase().includes(q))
+    ).slice(0, 6);
+  });
+
+  readonly formValues = signal<Record<string, any>>({});
+  readonly savedRecordObjects = signal<any[]>([]);
+  readonly editingId = signal<number | null>(null);
+  readonly isSaving = signal(false);
+  readonly saveMsg = signal('');
+  readonly saveError = signal('');
+  readonly selectedSegment = signal('');
+
+  readonly pendingRows = signal<Array<{ payload: Record<string, any>; formSnapshot: Record<string, any>; display: string[] }>>([]);
+  readonly editingPendingIndex = signal<number | null>(null);
+  readonly isBatchSaving = signal(false);
+  readonly isAdmin = signal(false);
+
+  readonly quickAddName = signal('');
+  readonly quickAddCode = signal('');
+  readonly isSavingQuickAdd = signal(false);
+  readonly quickAddError = signal('');
+  readonly addMasterSourceFieldKey = signal<string | null>(null);
+
   readonly kpis = INVENTORY_KPIS;
-  readonly segments = INVENTORY_SEGMENTS;
+  private readonly segmentCardList = signal<InventorySegment[]>([]);
   readonly uomConversions = INVENTORY_UOM_CONVERSIONS;
-  readonly segmentOptions = INVENTORY_OPTIONS.segments;
+  private readonly segmentOptionList = signal<string[]>([]);
+  protected readonly categoryOptionList = signal<string[]>([]);
+  private readonly uomOptionList = signal<string[]>([]);
+  private readonly hsnSacOptionList = signal<string[]>([]);
+  private readonly brandOptionList = signal<string[]>([]);
+  private readonly attributeOptionList = signal<string[]>([]);
+  private readonly variantOptionList = signal<string[]>([]);
+  private readonly productOptionList = signal<string[]>([]);
+  private readonly serialPolicyOptionList = signal<string[]>([]);
+  private readonly batchPolicyOptionList = signal<string[]>([]);
+  private readonly loadedCategoryObjects = signal<CategoryItem[]>([]);
   readonly statusOptions = INVENTORY_OPTIONS.status;
   readonly locationOptions = INVENTORY_OPTIONS.locations;
   readonly contactOptions = INVENTORY_OPTIONS.contactPersons;
-  readonly categoryOptions = INVENTORY_OPTIONS.categories;
-  readonly uomOptions = INVENTORY_OPTIONS.uoms;
-  readonly hsnSacOptions = INVENTORY_OPTIONS.hsnSac;
-  readonly brandOptions = INVENTORY_OPTIONS.brands;
-  readonly productOptions = INVENTORY_OPTIONS.products;
   readonly productTypeOptions = INVENTORY_OPTIONS.productTypes;
+  readonly valuationMethods = INVENTORY_OPTIONS.valuationMethods;
   readonly hsnSourceOptions = ['Government API', 'Ready API', 'Manual Entry'];
   readonly partyTypeOptions = ['Company', 'Individual'];
+
+  get segmentOptions(): string[] { return this.segmentOptionList(); }
+  get segmentCount(): number { return this.segmentOptions.length; }
+  get categoryOptions(): string[] { return this.categoryOptionList(); }
+  get uomOptions(): string[] { return this.uomOptionList(); }
+  get hsnSacOptions(): string[] { return this.hsnSacOptionList(); }
+  get brandOptions(): string[] { return this.brandOptionList(); }
+  get attributeOptions(): string[] { return this.attributeOptionList(); }
+  get variantOptions(): string[] { return this.variantOptionList(); }
+  get productOptions(): string[] { return this.productOptionList(); }
+  get serialPolicyOptions(): string[] { return this.serialPolicyOptionList(); }
+  get batchPolicyOptions(): string[] { return this.batchPolicyOptionList(); }
+  get segments() { return this.segmentCardList(); }
+
   readonly globalContacts: GlobalContactOption[] = [
     {
       name: 'ElectroMart Supplies Pvt Ltd',
@@ -136,9 +204,9 @@ export class InventoryScreenShell implements OnInit {
       address: 'Food Park, Hyderabad'
     }
   ];
-  readonly defaultCategorySelections = INVENTORY_OPTIONS.categories.slice(0, 2);
-  readonly defaultUomSelections = INVENTORY_OPTIONS.uoms.slice(0, 3);
-  readonly defaultHsnSacSelections = INVENTORY_OPTIONS.hsnSac.slice(0, 2);
+  readonly defaultCategorySelections: string[] = [];
+  readonly defaultUomSelections: string[] = [];
+  readonly defaultHsnSacSelections: string[] = [];
   private readonly fieldDefaultValues = new Map<string, string | string[] | undefined>();
   readonly categorySuggestionRows = [
     ['Computers & Devices', 'Similar to Electronics, Laptop, Printer'],
@@ -169,11 +237,77 @@ export class InventoryScreenShell implements OnInit {
     this.referenceDataTrayService.referenceBind$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(event => this.applyReferenceBinding(event));
+
+    this.taxCodeSearch$
+      .pipe(
+        debounceTime(300),
+        map(request => ({
+          query: request.query.trim(),
+          category: request.category.trim(),
+          autoPick: request.autoPick
+        })),
+        distinctUntilChanged((a, b) => a.query === b.query && a.category === b.category && a.autoPick === b.autoPick),
+        switchMap(request => {
+          const searchTerm = request.query.length >= 2 ? request.query : request.category;
+          if (searchTerm.length < 2) {
+            this.taxCodeSuggesting.set(false);
+            this.taxCodeSuggestions.set([]);
+            this.taxCodeSearchMessage.set('');
+            return of({ res: { success: true, message: 'Minimum search length not reached.', data: [] as TaxCodeSuggestion[] }, autoPick: false });
+          }
+
+          this.taxCodeSuggesting.set(true);
+          this.taxCodeSearchMessage.set('');
+          return this.inventoryConfigService.searchTaxCodes(searchTerm, '', 10, request.autoPick ? request.category : undefined).pipe(
+            map(res => ({ res, autoPick: request.autoPick })),
+            catchError(() => of({ res: { success: false, message: 'Unable to search local HSN/SAC data.', data: [] as TaxCodeSuggestion[] }, autoPick: false }))
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(({ res, autoPick }) => {
+        this.taxCodeSuggesting.set(false);
+        const suggestions = res.data ?? [];
+        this.taxCodeSuggestions.set(suggestions);
+        const hasSearchText = this.productName().trim().length >= 2 || this.hsnSacCode().trim().length >= 2;
+        if (autoPick && suggestions.length) {
+          this.selectTaxCodeSuggestion(suggestions[0], false);
+          this.taxCodeSearchMessage.set(`Auto picked ${suggestions[0].code} from category hint. Verify before saving.`);
+          return;
+        }
+
+        this.taxCodeSearchMessage.set((res.data?.length || !hasSearchText) ? '' : (res.message || 'No matching local HSN/SAC code found.'));
+      });
   }
 
   ngOnInit(): void {
+    const token = sessionStorage.getItem('token') || sessionStorage.getItem('jwt') || sessionStorage.getItem('access_token') || localStorage.getItem('token') || '';
+    if (token) {
+      try {
+        const jwtPayload = JSON.parse(atob(token.split('.')[1]));
+        const role: any = jwtPayload?.role || jwtPayload?.roles || jwtPayload?.userRole || '';
+        const roleStr = Array.isArray(role) ? role.join(',') : String(role);
+        this.isAdmin.set(roleStr.toLowerCase().includes('admin'));
+      } catch { this.isAdmin.set(true); }
+    } else {
+      this.isAdmin.set(true); // dev fallback — no token means dev mode
+    }
+    this.loadLookupOptions();
+
+    if (this.config?.key === 'productServiceMaster') {
+      this.productTaxUomRequired.set(true);
+      this.queueTaxCodeSearch(true);
+    }
+
     if (this.config?.lineColumns?.length) {
       this.directEntryLineRows();
+    }
+    if (this.isApiWired()) {
+      this.loadApiRecords();
+    }
+    if (this.config?.key === 'productServiceMaster' || this.config?.key === 'hsnSacMapping') {
+      this.loadTaxCodeSourceStatus();
+      this.loadGstGuide();
     }
   }
 
@@ -181,6 +315,76 @@ export class InventoryScreenShell implements OnInit {
   onInventoryBarcodeScan(event: Event): void {
     const detail = (event as CustomEvent<{ code?: string }>).detail;
     this.addScannedItem(detail?.code || '');
+  }
+
+  @HostListener('click', ['$event'])
+  onShellClick(event: MouseEvent): void {
+    if (!this.isApiWired()) return;
+
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest('button') as HTMLButtonElement | null;
+    if (!button || button.closest('.inventory-modal')) return;
+
+    const text = (button.textContent || '').trim().replace(/\s+/g, ' ');
+    const title = button.getAttribute('title') || '';
+    const dataAction = button.getAttribute('data-action') || '';
+    const dataIndex = button.getAttribute('data-index');
+
+    // Pending grid — remove row
+    if (title === 'Remove' || dataAction === 'remove-pending') {
+      event.preventDefault();
+      const idx = dataIndex !== null ? Number(dataIndex) : -1;
+      if (idx >= 0) this.removePendingRow(idx);
+      return;
+    }
+
+    // Edit — pending vs live grid
+    if (title === 'Edit' || dataAction === 'edit-pending') {
+      const isPending = dataAction === 'edit-pending' || !!button.closest('.inventory-current-entries');
+      if (isPending) {
+        event.preventDefault();
+        const idx = dataIndex !== null ? Number(dataIndex) : -1;
+        if (idx >= 0) this.editPendingRow(idx);
+      } else {
+        const row = button.closest('tr');
+        if (!row) return;
+        const cells = Array.from(row.querySelectorAll('td'))
+          .slice(1)
+          .map(cell => (cell.textContent || '').trim());
+        if (cells.length) {
+          event.preventDefault();
+          this.editRecordByRow(cells);
+        }
+      }
+      return;
+    }
+
+    if (text === 'Clear' || text === 'Cancel') {
+      event.preventDefault();
+      this.editingPendingIndex.set(null);
+      this.clearConfigForm();
+      return;
+    }
+
+    // "Add" in the form — push to pending grid
+    if (text === 'Add' || text === 'Add to List') {
+      const isFormAction = !!button.closest('.inventory-form-actions') && !button.closest('.inventory-final-actions');
+      if (isFormAction) {
+        event.preventDefault();
+        this.addToPendingRows();
+      }
+      return;
+    }
+
+    // "Save" / "Save All" in the final actions — batch save
+    if (text === 'Save' || text === 'Save All') {
+      const isFinalAction = !!button.closest('.inventory-final-actions');
+      if (isFinalAction) {
+        event.preventDefault();
+        this.savePendingBatch();
+      }
+      return;
+    }
   }
 
   readonly partySummaryData = computed(() => {
@@ -217,6 +421,287 @@ export class InventoryScreenShell implements OnInit {
 
   closePartySummary(): void {
     this.partySummaryOpen.set(false);
+  }
+
+  onProductNameChange(value: string): void {
+    this.productName.set(value ?? '');
+    this.queueTaxCodeSearch(false);
+  }
+
+  onProductCategoryChange(value: string | null): void {
+    this.selectedProductCategory.set(value || '');
+    this.queueTaxCodeSearch(true);
+
+    if (value) {
+      const cat = this.loadedCategoryObjects().find(c => c.category_name === value);
+      if (cat) {
+        if (cat.serial_applicable) {
+          this.productSerialApplicable.set(true);
+          if (cat.serial_policy_name) this.collectFormField('serialPolicyName', cat.serial_policy_name);
+        }
+        if (cat.batch_applicable) {
+          this.productBatchApplicable.set(true);
+          if (cat.batch_policy_name) this.collectFormField('batchPolicyName', cat.batch_policy_name);
+        }
+      }
+    }
+  }
+
+  onTaxCodeManualSearch(value: string): void {
+    this.hsnSacCode.set(value ?? '');
+    this.queueTaxCodeSearch(false);
+  }
+
+  onTaxDescriptionChange(value: string): void {
+    this.hsnSacDescription.set(value ?? '');
+  }
+
+  onGstRateChange(value: string | number | null): void {
+    const numeric = Number(value);
+    this.gstRate.set(Number.isFinite(numeric) ? numeric : null);
+  }
+
+  selectTaxCodeSuggestion(item: TaxCodeSuggestion, clearSuggestions = true): void {
+    this.selectedTaxCodeSuggestion.set(item);
+    this.hsnSacCode.set(item.code);
+    this.hsnSacDescription.set(item.description || '');
+    this.gstRate.set(item.gst_rate ?? null);
+    this.selectedTaxSource.set(item.source || this.selectedTaxSource());
+    this.taxSourceUpdatedAt.set(item.source_updated_at || this.taxSourceUpdatedAt());
+    if (item.category && !this.selectedProductCategory()) {
+      this.selectedProductCategory.set(item.category);
+    }
+    if (clearSuggestions) {
+      this.taxCodeSuggestions.set([]);
+    }
+    this.taxCodeSearchMessage.set('');
+  }
+
+  taxRateLabel(rate: number | null | undefined): string {
+    return rate === null || rate === undefined ? 'GST not mapped' : `${rate}% GST`;
+  }
+
+  taxCodeSourceLabel(): string {
+    const source = this.selectedTaxSource();
+    const updatedAt = this.taxSourceUpdatedAt();
+    if (!source && !updatedAt) {
+      return 'No imported source available';
+    }
+
+    return `${source || 'Imported source'}${updatedAt ? `, updated ${this.formatDateLabel(updatedAt)}` : ''}`;
+  }
+
+  loadTaxCodeSourceStatus(): void {
+    this.inventoryConfigService.getTaxCodeSourceStatus().subscribe({
+      next: res => {
+        const status = res.data;
+        this.selectedTaxSource.set(status?.source || '');
+        this.taxSourceUpdatedAt.set(status?.source_updated_at || null);
+      },
+      error: () => {
+        this.selectedTaxSource.set('');
+        this.taxSourceUpdatedAt.set(null);
+      }
+    });
+  }
+
+  loadGstGuide(): void {
+    this.gstGuideLoading.set(true);
+    this.inventoryConfigService.getGstGuide().subscribe({
+      next: res => {
+        this.gstGuide.set(res.data ?? null);
+        this.gstGuideLoading.set(false);
+      },
+      error: () => {
+        this.gstGuide.set(null);
+        this.gstGuideLoading.set(false);
+      }
+    });
+  }
+
+  selectedTaxHint(): string {
+    const selected = this.selectedTaxCodeSuggestion();
+    if (!selected) {
+      return 'Select a product/category or type at least two characters to get HSN/SAC hints.';
+    }
+
+    return [
+      selected.category ? `Category: ${selected.category}` : '',
+      selected.remarks ? `Instruction: ${selected.remarks}` : '',
+      selected.gst_guide_label ? `GST guide: ${selected.gst_guide_label}` : ''
+    ].filter(Boolean).join(' | ');
+  }
+
+  selectedGstGuideText(): string {
+    const selected = this.selectedTaxCodeSuggestion();
+    if (selected?.gst_guide_description || selected?.gst_guide_notes) {
+      return [selected.gst_guide_description, selected.gst_guide_notes].filter(Boolean).join(' ');
+    }
+
+    const rate = this.gstRate();
+    const guide = this.gstGuide()?.slabs.find(item => Number(item.rate) === Number(rate));
+    return guide ? [guide.description, guide.notes].filter(Boolean).join(' ') : '';
+  }
+
+  gstGuidePreviewRows() {
+    return (this.gstGuide()?.slabs || []).slice(0, 6);
+  }
+
+  private queueTaxCodeSearch(autoPick: boolean): void {
+    const manualCode = this.hsnSacCode().trim();
+    const query = manualCode.length >= 2 ? manualCode : this.productName();
+    this.taxCodeSearch$.next({
+      query,
+      category: this.selectedProductCategory(),
+      autoPick
+    });
+  }
+
+  protected loadLookupOptions(): void {
+    this.inventoryConfigService.getSegments(true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const savedSegments = res.data ?? [];
+          const names = savedSegments.map(item => item.segment_name).filter(Boolean) as string[];
+          this.segmentOptionList.set(names);
+          this.segmentCardList.set(savedSegments.map(item => ({
+            name: item.segment_name,
+            behavior: item.usage_note || 'Configured inventory segment',
+            stock: String((item.categories?.length || 0) + (item.uoms?.length || 0)) + ' mappings',
+            availability: item.status === 'active' ? 'Active' : 'Inactive'
+          })));
+          const segmentCategories = savedSegments.flatMap(item => item.categories?.map(c => c.category_name) || []).filter(Boolean) as string[];
+          const segmentUoms = savedSegments.flatMap(item => item.uoms?.map(u => u.uom_symbol || u.uom_name || u.uom_code) || []).filter(Boolean) as string[];
+          const segmentHsn = savedSegments.flatMap(item => item.hsn_sac_codes?.map(h => h.code) || []).filter(Boolean) as string[];
+          if (segmentCategories.length) this.categoryOptionList.set(segmentCategories);
+          if (segmentUoms.length) this.uomOptionList.set(segmentUoms);
+          if (segmentHsn.length) this.hsnSacOptionList.set(segmentHsn);
+          if (!this.selectedSegment() && names.length) {
+            this.selectedSegment.set(names[0]);
+          }
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getCategories(true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const cats = res.data ?? [];
+          const names = cats.map(item => item.category_name).filter(Boolean) as string[];
+          if (names.length) this.categoryOptionList.set(names);
+          this.loadedCategoryObjects.set(cats);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getUoms(true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.uom_symbol || item.uom_name || item.uom_code).filter(Boolean) as string[];
+          if (names.length) this.uomOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getHsnSac(undefined, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const codes = (res.data ?? []).map(item => item.code).filter(Boolean) as string[];
+          if (codes.length) this.hsnSacOptionList.set(codes);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getBrands(null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.brand_name).filter(Boolean) as string[];
+          if (names.length) this.brandOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getAttributes(null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.attribute_name).filter(Boolean) as string[];
+          if (names.length) this.attributeOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getVariants(null, null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.variant_name).filter(Boolean) as string[];
+          if (names.length) this.variantOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getSerialPolicies(null, null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.policy_name).filter(Boolean) as string[];
+          if (names.length) this.serialPolicyOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getBatchPolicies(null, null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.policy_name).filter(Boolean) as string[];
+          if (names.length) this.batchPolicyOptionList.set(names);
+        },
+        error: () => {}
+      });
+
+    this.inventoryConfigService.getProducts(null, null, true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const names = (res.data ?? []).map(item => item.product_name).filter(Boolean) as string[];
+          if (names.length) this.productOptionList.set(names);
+        },
+        error: () => {}
+      });
+  }
+
+  private savedOrFallback(fallback: string[], incoming: Array<string | null | undefined>): string[] {
+    const saved = this.mergeOptions([], incoming);
+    return saved.length ? saved : this.mergeOptions([], fallback);
+  }
+
+  private mergeOptions(base: string[], incoming: Array<string | null | undefined>): string[] {
+    const seen = new Set<string>();
+    return [...base, ...incoming]
+      .map(item => (item || '').trim())
+      .filter(item => {
+        if (!item) return false;
+        const key = item.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+
+  private formatDateLabel(value: string): string {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   screenUsageLabel(): string {
@@ -410,8 +895,65 @@ export class InventoryScreenShell implements OnInit {
     }
   }
 
-  openAddMaster(master: string): void {
+  openAddMaster(master: string, sourceFieldKey?: string): void {
     this.activeAddMaster.set(master);
+    this.addMasterSourceFieldKey.set(sourceFieldKey ?? null);
+    this.quickAddName.set('');
+    this.quickAddCode.set('');
+    this.quickAddError.set('');
+  }
+
+  onQuickAddNameChange(name: string): void {
+    this.quickAddName.set(name);
+    this.quickAddCode.set(this.generateCodeFromName(name));
+  }
+
+  saveQuickCategory(): void {
+    const name = this.quickAddName().trim();
+    if (!name) { this.quickAddError.set('Category name is required.'); return; }
+    if (this.isSavingQuickAdd()) return;
+
+    const code = this.quickAddCode().trim() || this.generateCodeFromName(name);
+    this.isSavingQuickAdd.set(true);
+    this.quickAddError.set('');
+
+    const v = this.formValues();
+    const catPayload: Record<string, any> = {
+      category_code: code,
+      category_name: name,
+      description: v['description'] || '',
+      serial_applicable: this.categorySerialApplicable(),
+      serial_policy_name: v['serialPolicyName'] || null,
+      batch_applicable: this.categoryBatchApplicable(),
+      batch_policy_name: v['batchPolicyName'] || null,
+      status: 'active'
+    };
+    this.inventoryConfigService.saveCategory(catPayload, null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: ApiResponse<any>) => {
+          this.isSavingQuickAdd.set(false);
+          if (res.success) {
+            if (!this.categoryOptionList().includes(name)) {
+              this.categoryOptionList.update(opts => [...opts, name]);
+            }
+            const sourceKey = this.addMasterSourceFieldKey();
+            if (sourceKey) this.collectFormField(sourceKey, name);
+            if (this.config?.key === 'productServiceMaster') {
+              this.selectedProductCategory.set(name);
+              this.queueTaxCodeSearch(true);
+            }
+            this.closeAddMaster();
+            this.loadLookupOptions();
+          } else {
+            this.quickAddError.set(res.message || 'Failed to save category.');
+          }
+        },
+        error: (err: any) => {
+          this.isSavingQuickAdd.set(false);
+          this.quickAddError.set(err?.error?.message || 'Failed to save category.');
+        }
+      });
   }
 
   changeSegment(segment: string): void {
@@ -468,6 +1010,13 @@ export class InventoryScreenShell implements OnInit {
 
   selectPartyContact(contact: GlobalContactOption | null): void {
     this.selectedPartyContact.set(contact);
+    this.collectFormField('name', contact?.name || '');
+    this.collectFormField('type', contact?.type || 'Company');
+    this.collectFormField('gstin', contact?.gstin || '');
+    this.collectFormField('pan', contact?.pan || '');
+    this.collectFormField('mobile', contact?.mobile || '');
+    this.collectFormField('email', contact?.email || '');
+    this.collectFormField('address', contact?.address || '');
   }
 
   selectPartyContactPerson(contact: GlobalContactOption | null): void {
@@ -560,10 +1109,11 @@ export class InventoryScreenShell implements OnInit {
   }
 
   gridRows(tableId: string, rows: string[][]): string[][] {
+    const sourceRows = tableId === 'records' && this.isApiWired() ? this.liveRows() : rows;
     const search = this.activeGridSearch() === tableId ? this.gridSearchText().trim().toLowerCase() : '';
     const filtered = search
-      ? rows.filter(row => row.some(cell => String(cell).toLowerCase().includes(search)))
-      : [...rows];
+      ? sourceRows.filter(row => row.some(cell => String(cell).toLowerCase().includes(search)))
+      : [...sourceRows];
     const sort = this.sortState();
 
     if (sort?.tableId !== tableId) {
@@ -579,7 +1129,7 @@ export class InventoryScreenShell implements OnInit {
   }
 
   currentEntryRows(): string[][] {
-    return (this.config?.rows || []).slice(0, 2);
+    return this.pendingRows().map(r => r.display);
   }
 
   isPosView(): boolean {
@@ -587,12 +1137,62 @@ export class InventoryScreenShell implements OnInit {
   }
 
   displayFields() {
-    return this.isPosView() ? (this.config.posFields || this.config.fields || []) : (this.config.fields || []);
+    const fields = this.isPosView() ? (this.config.posFields || this.config.fields || []) : (this.config.fields || []);
+    return fields.map(field => ({ ...field, options: this.runtimeOptions(field) }));
+  }
+
+  private runtimeOptions(field: InventoryField): string[] | undefined {
+    if (field.type !== 'select' && field.type !== 'multiselect') return field.options;
+
+    const key = field.key.toLowerCase();
+    const label = field.label.toLowerCase();
+    const addMaster = (field.addMaster || '').toLowerCase();
+
+    if (this.config?.key !== 'businessSegments' && (key === 'segment' || label.includes('business segment') || addMaster.includes('business segment'))) {
+      return this.segmentOptions;
+    }
+
+    if (['category', 'linkedcategory', 'applicablecategory', 'parentcategory'].includes(key) || addMaster === 'category') {
+      return this.categoryOptions;
+    }
+
+    if (key.includes('uom') || addMaster === 'uom') {
+      return this.uomOptions;
+    }
+
+    if (key.includes('hsnsac') || label.includes('hsn') || addMaster.includes('hsn')) {
+      return this.hsnSacOptions;
+    }
+
+    if (['product', 'substituteproduct', 'finishedproduct', 'rawmaterials', 'applicableproducts'].includes(key) || addMaster === 'product / service') {
+      return this.productOptions;
+    }
+
+    if (key === 'brand' || addMaster === 'brand') {
+      return this.brandOptions;
+    }
+
+    if (key === 'variant' || addMaster === 'variant') {
+      return this.variantOptions;
+    }
+
+    if (key === 'attributename' || addMaster === 'attribute') {
+      return this.attributeOptions;
+    }
+
+    return field.options;
   }
 
   defaultFieldValue(field: InventoryField): string | string[] | undefined {
     const sourceValue = this.sourceFieldValue(field);
     if (sourceValue) return sourceValue;
+
+    if (this.isApiWired()) {
+      if (field.type === 'multiselect') return [];
+      if (this.isStatusSwitchField(field)) return 'Active';
+      if (this.isYesNoSwitchField(field)) return 'No';
+      return '';
+    }
 
     const cacheKey = `${this.config?.key || 'inventory'}:${field.key}`;
     if (!this.fieldDefaultValues.has(cacheKey)) {
@@ -633,15 +1233,18 @@ export class InventoryScreenShell implements OnInit {
   }
 
   fieldSwitchChecked(field: InventoryField): boolean {
-    const value = this.defaultFieldValue(field);
-    return value === 'Active' || value === 'Yes';
+    const live = this.formValues()[field.key];
+    const value = live !== undefined ? live : this.defaultFieldValue(field);
+    return value === 'Active' || value === 'Yes' || value === true;
   }
 
   setFieldSwitchChecked(field: InventoryField, checked: boolean): void {
-    const cacheKey = `${this.config?.key || 'inventory'}:${field.key}`;
-    this.fieldDefaultValues.set(cacheKey, this.isStatusSwitchField(field)
+    const displayVal = this.isStatusSwitchField(field)
       ? (checked ? 'Active' : 'Inactive')
-      : (checked ? 'Yes' : 'No'));
+      : (checked ? 'Yes' : 'No');
+    const cacheKey = `${this.config?.key || 'inventory'}:${field.key}`;
+    this.fieldDefaultValues.set(cacheKey, displayVal);
+    this.collectFormField(field.key, displayVal);
   }
 
   fieldSwitchOnLabel(field: InventoryField): string {
@@ -889,5 +1492,683 @@ export class InventoryScreenShell implements OnInit {
 
   closeAddMaster(): void {
     this.activeAddMaster.set('');
+  }
+
+  clearConfigForm(): void {
+    this.formValues.set({});
+    this.editingId.set(null);
+    this.fieldDefaultValues.clear();
+    this.saveError.set('');
+    this.categorySerialApplicable.set(false);
+    this.categoryBatchApplicable.set(false);
+
+    if (this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster') {
+      this.selectedPartyContact.set(null);
+      this.selectedPartyContactPerson.set(null);
+    }
+
+    if (this.config?.key !== 'productServiceMaster' && this.config?.key !== 'hsnSacMapping') return;
+
+    this.productName.set('');
+    this.selectedProductCategory.set('');
+    this.hsnSacCode.set('');
+    this.hsnSacDescription.set('');
+    this.gstRate.set(null);
+    this.selectedTaxCodeSuggestion.set(null);
+    this.taxCodeSuggestions.set([]);
+    this.taxCodeSearchMessage.set('');
+
+    if (this.config?.key !== 'productServiceMaster') return;
+
+    this.productBatchApplicable.set(false);
+    this.productSerialApplicable.set(false);
+    this.productExpiryApplicable.set(false);
+    this.productQcRequired.set(false);
+    this.productStockControlsRequired.set(false);
+    this.productTrackingRequired.set(false);
+    this.productAdditionalInfoRequired.set(false);
+  }
+
+  // ── API wiring ────────────────────────────────────────────────────────────
+
+  isApiWired(): boolean {
+    const key = this.config?.key;
+    return key === 'businessSegments' || key === 'branchMaster'
+      || key === 'warehouseMaster' || key === 'uomMaster' || key === 'categoryMaster'
+      || key === 'hsnSacMapping'
+      || key === 'paymentTermsMaster' || key === 'brandMaster' || key === 'attributeMaster'
+      || key === 'productGroupMaster' || key === 'variantMaster' || key === 'serialNumberPolicy'
+      || key === 'batchLotPolicy' || key === 'barcodeConfiguration' || key === 'substituteProducts'
+      || key === 'consumptionTypeMaster'
+      || key === 'vendorMaster' || key === 'customerMaster' || key === 'productServiceMaster';
+  }
+
+  collectFormField(key: string, value: any): void {
+    this.formValues.update(v => ({ ...v, [key]: value }));
+  }
+
+  formFieldValue(field: InventoryField): any {
+    const live = this.formValues()[field.key];
+    return live !== undefined ? live : this.defaultFieldValue(field);
+  }
+
+  liveRows(): string[][] {
+    return this.isApiWired() ? this.mapToGridRows(this.savedRecordObjects()) : (this.config?.rows || []);
+  }
+
+  loadApiRecords(): void {
+    let obs$: Observable<ApiResponse<any[]>>;
+    const key = this.config?.key;
+    switch (key) {
+      case 'businessSegments':     obs$ = this.inventoryConfigService.getSegments(true);            break;
+      case 'branchMaster':         obs$ = this.inventoryConfigService.getBranchesInv(true);         break;
+      case 'warehouseMaster':      obs$ = this.inventoryConfigService.getWarehouses(true);          break;
+      case 'uomMaster':            obs$ = this.inventoryConfigService.getUoms(true);                break;
+      case 'categoryMaster':       obs$ = this.inventoryConfigService.getCategories(true);          break;
+      case 'hsnSacMapping':        obs$ = this.inventoryConfigService.getHsnSac(undefined, true);   break;
+      case 'paymentTermsMaster':   obs$ = this.inventoryConfigService.getPaymentTerms(true);        break;
+      case 'brandMaster':          obs$ = this.inventoryConfigService.getBrands(null, true);        break;
+      case 'attributeMaster':      obs$ = this.inventoryConfigService.getAttributes(null, true);    break;
+      case 'productGroupMaster':   obs$ = this.inventoryConfigService.getProductGroups(null, null, true); break;
+      case 'variantMaster':        obs$ = this.inventoryConfigService.getVariants(null, null, true);     break;
+      case 'serialNumberPolicy':   obs$ = this.inventoryConfigService.getSerialPolicies(null, null, true); break;
+      case 'batchLotPolicy':       obs$ = this.inventoryConfigService.getBatchPolicies(null, null, true);  break;
+      case 'barcodeConfiguration':  obs$ = this.inventoryConfigService.getBarcodeConfigurations(true);     break;
+      case 'substituteProducts':    obs$ = this.inventoryConfigService.getSubstituteProducts(true);        break;
+      case 'consumptionTypeMaster': obs$ = this.inventoryConfigService.getConsumptionTypes(null, true);   break;
+      case 'vendorMaster':         obs$ = this.inventoryConfigService.getVendors(null, true);       break;
+      case 'customerMaster':       obs$ = this.inventoryConfigService.getCustomers(null, true);     break;
+      case 'productServiceMaster': obs$ = this.inventoryConfigService.getProducts(null, null, true);      break;
+      default: return;
+    }
+    obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: ApiResponse<any[]>) => {
+        if (res.success && Array.isArray(res.data)) {
+          this.savedRecordObjects.set(res.data);
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  saveConfigRecord(): void {
+    if (this.isSaving()) return;
+    const payload = this.buildPayload();
+    const validationMessage = this.validatePayload(payload);
+    if (validationMessage) {
+      this.saveMsg.set('');
+      this.saveError.set(validationMessage);
+      return;
+    }
+
+    const id = this.editingId();
+    this.isSaving.set(true);
+    this.saveMsg.set('');
+    this.saveError.set('');
+    let obs$: Observable<ApiResponse<any>>;
+    switch (this.config?.key) {
+      case 'businessSegments':      obs$ = this.inventoryConfigService.saveSegment(payload, id);          break;
+      case 'branchMaster':          obs$ = this.inventoryConfigService.saveBranchInv(payload, id);       break;
+      case 'warehouseMaster':       obs$ = this.inventoryConfigService.saveWarehouse(payload, id);        break;
+      case 'uomMaster':             obs$ = this.inventoryConfigService.saveUom(payload, id);              break;
+      case 'categoryMaster':        obs$ = this.inventoryConfigService.saveCategory(payload, id);         break;
+      case 'hsnSacMapping':         obs$ = this.inventoryConfigService.saveHsnSac(payload, id);           break;
+      case 'paymentTermsMaster':    obs$ = this.inventoryConfigService.savePaymentTerm(payload, id);      break;
+      case 'brandMaster':           obs$ = this.inventoryConfigService.saveBrand(payload, id);            break;
+      case 'attributeMaster':       obs$ = this.inventoryConfigService.saveAttribute(payload, id);        break;
+      case 'productGroupMaster':    obs$ = this.inventoryConfigService.saveProductGroup(payload, id);     break;
+      case 'variantMaster':         obs$ = this.inventoryConfigService.saveVariant(payload, id);          break;
+      case 'serialNumberPolicy':    obs$ = this.inventoryConfigService.saveSerialPolicy(payload, id);     break;
+      case 'batchLotPolicy':        obs$ = this.inventoryConfigService.saveBatchPolicy(payload, id);      break;
+      case 'barcodeConfiguration':   obs$ = this.inventoryConfigService.saveBarcodeConfiguration(payload, id); break;
+      case 'substituteProducts':     obs$ = this.inventoryConfigService.saveSubstituteProduct(payload, id); break;
+      case 'consumptionTypeMaster': obs$ = this.inventoryConfigService.saveConsumptionType(payload, id);  break;
+      case 'vendorMaster':          obs$ = this.inventoryConfigService.saveVendor(payload, id);           break;
+      case 'customerMaster':        obs$ = this.inventoryConfigService.saveCustomer(payload, id);         break;
+      case 'productServiceMaster':  obs$ = this.inventoryConfigService.saveProduct(payload, id);          break;
+      default: this.isSaving.set(false); return;
+    }
+    obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res: ApiResponse<any>) => {
+        this.isSaving.set(false);
+        if (res.success) {
+          this.saveMsg.set(id ? 'Record updated.' : 'Record saved.');
+          this.clearConfigForm();
+          this.loadApiRecords();
+          this.loadLookupOptions();
+          setTimeout(() => this.saveMsg.set(''), 3000);
+        } else {
+          this.saveError.set(res.message || 'Save failed.');
+        }
+      },
+      error: (err: any) => {
+        this.isSaving.set(false);
+        this.saveError.set(err?.error?.message || err?.message || 'Server error. Check connection and try again.');
+      }
+    });
+  }
+
+  // ── Pending grid (temp entries before batch save) ────────────────────────
+
+  generateCodeFromName(name: string): string {
+    const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+    const prefix = words.slice(0, 3).map(w => w[0].toUpperCase()).join('');
+    if (!prefix) return '';
+    const existingCount = this.savedRecordObjects().length + this.pendingRows().length;
+    return `${prefix}-${String(existingCount + 1).padStart(3, '0')}`;
+  }
+
+  maybeAutoCode(fieldKey: string, value: string): void {
+    if (!value || this.editingId() !== null || this.editingPendingIndex() !== null) return;
+    let codeKey: string | null = null;
+    if (fieldKey.endsWith('Name')) {
+      codeKey = fieldKey.replace(/Name$/, 'Code');
+    } else if (fieldKey === 'consumptionType') {
+      codeKey = 'typeCode';
+    }
+    if (!codeKey) return;
+    const fields = this.config?.fields || [];
+    if (!fields.some(f => f.key === codeKey)) return;
+    const current = this.formValues()[codeKey!];
+    if (current && String(current).trim()) return;
+    this.collectFormField(codeKey!, this.generateCodeFromName(value));
+  }
+
+  addToPendingRows(): void {
+    const payload = this.buildPayload();
+    const msg = this.validatePayload(payload);
+    if (msg) { this.saveError.set(msg); return; }
+
+    const display = this.mapToGridRows([payload])[0] || [];
+    const formSnapshot = { ...this.formValues() };
+    const idx = this.editingPendingIndex();
+
+    if (idx !== null) {
+      const rows = this.pendingRows().slice();
+      rows[idx] = { payload, formSnapshot, display };
+      this.pendingRows.set(rows);
+      this.editingPendingIndex.set(null);
+    } else {
+      this.pendingRows.update(rows => [...rows, { payload, formSnapshot, display }]);
+    }
+    this.saveError.set('');
+    this.clearConfigForm();
+  }
+
+  editPendingRow(index: number): void {
+    const row = this.pendingRows()[index];
+    if (!row) return;
+    this.editingPendingIndex.set(index);
+    this.formValues.set({ ...row.formSnapshot });
+    this.saveError.set('');
+  }
+
+  removePendingRow(index: number): void {
+    this.pendingRows.update(rows => rows.filter((_, i) => i !== index));
+    if (this.editingPendingIndex() === index) {
+      this.editingPendingIndex.set(null);
+      this.clearConfigForm();
+    }
+  }
+
+  savePendingBatch(): void {
+    const rows = this.pendingRows();
+    if (!rows.length || this.isBatchSaving()) return;
+    this.isBatchSaving.set(true);
+    this.saveMsg.set('');
+    this.saveError.set('');
+
+    const saveOne = (payload: Record<string, any>): Observable<ApiResponse<any>> => {
+      switch (this.config?.key) {
+        case 'businessSegments':     return this.inventoryConfigService.saveSegment(payload, null);
+        case 'branchMaster':         return this.inventoryConfigService.saveBranchInv(payload, null);
+        case 'warehouseMaster':      return this.inventoryConfigService.saveWarehouse(payload, null);
+        case 'uomMaster':            return this.inventoryConfigService.saveUom(payload, null);
+        case 'categoryMaster':       return this.inventoryConfigService.saveCategory(payload, null);
+        case 'hsnSacMapping':        return this.inventoryConfigService.saveHsnSac(payload, null);
+        case 'paymentTermsMaster':   return this.inventoryConfigService.savePaymentTerm(payload, null);
+        case 'brandMaster':          return this.inventoryConfigService.saveBrand(payload, null);
+        case 'attributeMaster':      return this.inventoryConfigService.saveAttribute(payload, null);
+        case 'productGroupMaster':   return this.inventoryConfigService.saveProductGroup(payload, null);
+        case 'variantMaster':        return this.inventoryConfigService.saveVariant(payload, null);
+        case 'serialNumberPolicy':   return this.inventoryConfigService.saveSerialPolicy(payload, null);
+        case 'batchLotPolicy':       return this.inventoryConfigService.saveBatchPolicy(payload, null);
+        case 'barcodeConfiguration': return this.inventoryConfigService.saveBarcodeConfiguration(payload, null);
+        case 'substituteProducts':   return this.inventoryConfigService.saveSubstituteProduct(payload, null);
+        case 'consumptionTypeMaster':return this.inventoryConfigService.saveConsumptionType(payload, null);
+        case 'vendorMaster':         return this.inventoryConfigService.saveVendor(payload, null);
+        case 'customerMaster':       return this.inventoryConfigService.saveCustomer(payload, null);
+        case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
+        default: return of({ success: false, message: 'Unknown screen', data: null });
+      }
+    };
+
+    from(rows).pipe(
+      concatMap(row => saveOne(row.payload).pipe(catchError(err => of({ success: false, message: err?.error?.message || 'Save failed', data: null })))),
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe({
+      next: (res: ApiResponse<any>) => {
+        if (!res.success) {
+          this.saveError.update(e => e ? e : (res.message || 'One or more records failed to save.'));
+        }
+      },
+      error: (err: any) => {
+        this.isBatchSaving.set(false);
+        this.saveError.set(err?.error?.message || 'Batch save failed.');
+        this.loadApiRecords();
+      },
+      complete: () => {
+        this.isBatchSaving.set(false);
+        this.pendingRows.set([]);
+        this.editingPendingIndex.set(null);
+        const count = rows.length;
+        this.saveMsg.set(`${count} record${count !== 1 ? 's' : ''} saved.`);
+        this.loadApiRecords();
+        this.loadLookupOptions();
+        setTimeout(() => this.saveMsg.set(''), 3000);
+      }
+    });
+  }
+
+  editRecordByRow(row: string[]): void {
+    if (!this.isApiWired()) return;
+    const records = this.savedRecordObjects();
+    const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Active';
+    let record: any;
+    switch (this.config?.key) {
+      case 'businessSegments':   record = records.find(r => r.segment_name === row[0]);  break;
+      case 'branchMaster':       record = records.find(r => r.branch_code === row[0]);   break;
+      case 'warehouseMaster':    record = records.find(r => r.warehouse_code === row[0]); break;
+      case 'uomMaster':          record = records.find(r => r.uom_code === row[0]);        break;
+      case 'categoryMaster':     record = records.find(r => r.category_code === row[0]);   break;
+      case 'hsnSacMapping':      record = records.find(r => r.code === row[0]);            break;
+      case 'paymentTermsMaster': record = records.find(r => r.term_code === row[0] || r.term_name === row[0]); break;
+      case 'brandMaster':        record = records.find(r => r.brand_code === row[0]);      break;
+      case 'attributeMaster':    record = records.find(r => r.attribute_name === row[0]);  break;
+      case 'productGroupMaster': record = records.find(r => r.group_code === row[0]);      break;
+      case 'variantMaster':      record = records.find(r => r.variant_code === row[0]);    break;
+      case 'serialNumberPolicy': record = records.find(r => r.policy_code === row[0]);     break;
+      case 'batchLotPolicy':     record = records.find(r => r.policy_code === row[0]);     break;
+      case 'barcodeConfiguration': record = records.find(r => r.barcode_type === row[0] && String(r.prefix || '') === row[2]); break;
+      case 'substituteProducts': record = records.find(r => r.product_name === row[0] && r.substitute_product_name === row[1]); break;
+      case 'consumptionTypeMaster': record = records.find(r => r.type_code === row[0] || r.type_name === row[0]); break;
+      case 'vendorMaster':       record = records.find(r => r.vendor_code === row[0]);     break;
+      case 'customerMaster':     record = records.find(r => r.customer_code === row[0]);   break;
+      case 'productServiceMaster': record = records.find(r => r.product_code === row[0]); break;
+    }
+    if (!record) return;
+    this.editingId.set(record.id ?? null);
+    switch (this.config?.key) {
+      case 'businessSegments':
+        this.formValues.set({
+          segmentName: record.segment_name || '',
+          category: (record.categories || []).map((c: any) => c.category_name),
+          relatedHsnSac: (record.hsn_sac_codes || []).map((h: any) => h.code),
+          typicalUoms: (record.uoms || []).map((u: any) => u.uom_symbol || u.uom_name),
+          usageNote: record.usage_note || '',
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'branchMaster':
+        this.formValues.set({
+          branchCode: record.branch_code || '',
+          branchName: record.branch_name || '',
+          segment: record.segment_name || '',
+          gstin: record.gstin || '',
+          pan: record.pan || '',
+          contactPerson: record.contact_name || '',
+          mobile: record.contact_mobile || '',
+          email: record.contact_email || '',
+          address: record.address || '',
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'warehouseMaster':
+        this.formValues.set({ locationCode: record.warehouse_code || '', locationName: record.warehouse_name || '', locationAddress: record.address || '', status: cap(record.status || 'active') });
+        break;
+      case 'uomMaster':
+        this.formValues.set({ uomCode: record.uom_code || '', uomName: record.uom_name || '', status: cap(record.status || 'active') });
+        break;
+      case 'categoryMaster':
+        this.categorySerialApplicable.set(!!record.serial_applicable);
+        this.categoryBatchApplicable.set(!!record.batch_applicable);
+        this.formValues.set({
+          categoryCode: record.category_code || '',
+          categoryName: record.category_name || '',
+          description: record.description || '',
+          serialPolicyName: record.serial_policy_name || '',
+          batchPolicyName: record.batch_policy_name || '',
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'hsnSacMapping':
+        this.hsnSacCode.set(record.code || '');
+        this.hsnSacDescription.set(record.description || '');
+        this.gstRate.set(record.gst_rate ?? null);
+        this.formValues.set({
+          code: record.code || '',
+          description: record.description || '',
+          hsnType: record.hsn_type || 'HSN',
+          gstRate: record.gst_rate ?? 0,
+          cgstRate: record.cgst_rate ?? 0,
+          sgstRate: record.sgst_rate ?? 0,
+          igstRate: record.igst_rate ?? 0,
+          cessRate: record.cess_rate ?? 0,
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'paymentTermsMaster':
+        this.formValues.set({ termName: record.term_name || '', termCode: record.term_code || '', creditDays: record.credit_days ?? 0, discountPercent: record.discount_pct ?? 0, description: record.description || '', status: cap(record.status || 'active') });
+        break;
+      case 'brandMaster':
+        this.formValues.set({ brandCode: record.brand_code || '', brandName: record.brand_name || '', manufacturer: record.manufacturer || '', description: record.description || '', status: cap(record.status || 'active') });
+        break;
+      case 'attributeMaster':
+        this.formValues.set({ attributeName: record.attribute_name || '', attributeType: record.attribute_type || 'Text', possibleValues: (record.possible_values || []).join(', '), mandatoryFlag: record.is_mandatory ? 'Yes' : 'No', status: cap(record.status || 'active') });
+        break;
+      case 'productGroupMaster':
+        this.formValues.set({ groupCode: record.group_code || '', groupName: record.group_name || '', linkedCategory: record.category_name || '', description: record.description || '', status: cap(record.status || 'active') });
+        break;
+      case 'variantMaster':
+        this.formValues.set({ variantCode: record.variant_code || '', variantName: record.variant_name || '', attributeName: record.attribute_name || '', attributeValue: record.attribute_value || '', description: record.description || '' });
+        break;
+      case 'serialNumberPolicy':
+        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', serialFormat: record.serial_format || '', captureStage: record.capture_stage || '', status: cap(record.status || 'active') });
+        break;
+      case 'batchLotPolicy':
+        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', batchFormat: record.batch_format || '', expiryRequired: record.expiry_required ? 'Yes' : 'No', qcRequired: record.qc_required ? 'Yes' : 'No', status: cap(record.status || 'active') });
+        break;
+      case 'barcodeConfiguration':
+        this.formValues.set({ barcodeType: record.barcode_type || '', autoGenerate: record.auto_generate ? 'Yes' : 'No', prefix: record.prefix || '', startingNumber: record.starting_number ?? 1, length: record.length ?? 12, applicableProducts: record.applicable_products || [], status: cap(record.status || 'active') });
+        break;
+      case 'substituteProducts':
+        this.formValues.set({ product: record.product_name || '', substituteProduct: record.substitute_product_name || '', priority: record.priority ?? 1, remarks: record.remarks || '', status: cap(record.status || 'active') });
+        break;
+      case 'consumptionTypeMaster':
+        this.formValues.set({ consumptionType: record.type_name || '', typeName: record.type_name || '', typeCode: record.type_code || '', department: record.department || '', approvalRequired: record.approval_required ? 'Yes' : 'No', approvalWorkflow: record.approval_workflow_name || '', remarks: record.remarks || '', status: cap(record.status || 'active') });
+        break;
+      case 'vendorMaster':
+        this.formValues.set({ name: record.vendor_name || '', code: record.vendor_code || '', segment: record.segment_name || '', type: record.vendor_type || 'Company', vendorCategory: record.vendor_category || '', gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', creditLimit: record.credit_limit ?? 0, status: cap(record.status || 'active') });
+        break;
+      case 'customerMaster':
+        this.formValues.set({ name: record.customer_name || '', code: record.customer_code || '', segment: record.segment_name || '', type: record.customer_type || 'Company', customerCategory: record.customer_category || '', gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', creditLimit: record.credit_limit ?? 0, status: cap(record.status || 'active') });
+        break;
+      case 'productServiceMaster':
+        this.productName.set(record.product_name || '');
+        this.selectedProductCategory.set(record.category_name || '');
+        this.hsnSacCode.set(record.hsn_sac_code || '');
+        this.gstRate.set(record.gst_rate ?? null);
+        this.productBatchApplicable.set(!!record.batch_applicable);
+        this.productSerialApplicable.set(!!record.serial_applicable);
+        this.productExpiryApplicable.set(!!record.expiry_applicable);
+        this.productQcRequired.set(!!record.qc_required);
+        this.formValues.set({
+          productCode: record.product_code || '',
+          sku: record.sku || '',
+          productType: record.product_type === 'Service' ? 'Service' : 'Physical Stock',
+          baseUom: record.base_uom_symbol || record.base_uom_name || '',
+          brand: record.brand_name || '',
+          variant: record.variant_name || '',
+          valuationMethod: record.valuation_method || 'FIFO',
+          taxCategory: record.tax_category || '',
+          serialPolicyName: record.serial_policy_name || '',
+          batchPolicyName: record.batch_policy_name || '',
+          minStockLevel: record.min_stock_level ?? 0,
+          maxStockLevel: record.max_stock_level ?? 0,
+          reorderLevel: record.reorder_level ?? 0,
+          reorderQty: record.reorder_qty ?? 0,
+          description: record.description || '',
+          status: cap(record.item_status || record.status || 'active')
+        });
+        break;
+    }
+  }
+
+  protected buildPayload(): Record<string, any> {
+    const v = this.formValues();
+    const lc = (s: string) => (s || 'Active').toLowerCase();
+    const bool = (s: any) => s === true || s === 'Yes';
+    const productType = (s: any) => {
+      const raw = String(s || 'Product').trim();
+      if (raw === 'Product' || raw === 'Service' || raw === 'Both') return raw;
+      return raw.toLowerCase().includes('service') ? 'Service' : 'Product';
+    };
+    const captureStage = (s: any) => {
+      const raw = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      return raw.includes('both') ? 'both' : raw || null;
+    };
+    switch (this.config?.key) {
+      case 'businessSegments':
+        return {
+          segment_name: v['segmentName'] || '',
+          category_names: Array.isArray(v['category']) ? v['category'] : [],
+          hsn_sac_codes: Array.isArray(v['relatedHsnSac']) ? v['relatedHsnSac'] : [],
+          uom_names: Array.isArray(v['typicalUoms']) ? v['typicalUoms'] : [],
+          usage_note: v['usageNote'] || null,
+          status: lc(v['status'] || 'active')
+        };
+      case 'branchMaster':
+        return {
+          branch_code: v['branchCode'] || null,
+          branch_name: v['branchName'] || '',
+          segment_name: v['segment'] || null,
+          gstin: v['gstin'] || null,
+          pan: v['pan'] || null,
+          contact_name: v['contactPerson'] || null,
+          contact_mobile: v['mobile'] || null,
+          contact_email: v['email'] || null,
+          address: v['address'] || null,
+          activity_types: Array.isArray(v['activityTypes']) ? v['activityTypes'] : [],
+          is_head_office: false,
+          status: lc(v['status'] || 'active')
+        };
+      case 'warehouseMaster':
+        return { warehouse_code: v['locationCode'] || '', warehouse_name: v['locationName'] || '', address: v['locationAddress'] || '', status: lc(v['status']) };
+      case 'uomMaster':
+        return { uom_code: v['uomCode'] || '', uom_name: v['uomName'] || '', status: lc(v['status']) };
+      case 'categoryMaster':
+        return {
+          category_code: v['categoryCode'] || '',
+          category_name: v['categoryName'] || '',
+          description: v['description'] || '',
+          serial_applicable: this.categorySerialApplicable(),
+          serial_policy_name: v['serialPolicyName'] || null,
+          batch_applicable: this.categoryBatchApplicable(),
+          batch_policy_name: v['batchPolicyName'] || null,
+          status: lc(v['status'])
+        };
+      case 'hsnSacMapping': {
+        const code = String(v['code'] || this.hsnSacCode()).trim();
+        const gstRate = this.gstRate() ?? (v['gstRate'] !== undefined && v['gstRate'] !== '' ? Number(v['gstRate']) : 0);
+        return {
+          code,
+          description: v['description'] || this.hsnSacDescription() || null,
+          hsn_type: v['hsnType'] || (code.length > 4 ? 'SAC' : 'HSN'),
+          gst_rate: gstRate,
+          cgst_rate: v['cgstRate'] !== undefined && v['cgstRate'] !== '' ? Number(v['cgstRate']) : gstRate / 2,
+          sgst_rate: v['sgstRate'] !== undefined && v['sgstRate'] !== '' ? Number(v['sgstRate']) : gstRate / 2,
+          igst_rate: v['igstRate'] !== undefined && v['igstRate'] !== '' ? Number(v['igstRate']) : gstRate,
+          cess_rate: Number(v['cessRate']) || 0,
+          status: lc(v['status'])
+        };
+      }
+      case 'paymentTermsMaster':
+        return { term_code: v['termCode'] || null, term_name: v['termName'] || '', credit_days: Number(v['creditDays']) || 0, discount_pct: Number(v['discountPercent']) || 0, description: v['description'] || '', status: lc(v['status']) };
+      case 'brandMaster':
+        return { brand_code: v['brandCode'] || null, brand_name: v['brandName'] || '', category_name: v['categoryName'] || null, manufacturer: v['manufacturer'] || null, description: v['description'] || null, status: lc(v['status']) };
+      case 'attributeMaster': {
+        const rawValues = String(v['possibleValues'] || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        return { attribute_name: v['attributeName'] || '', category_name: v['categoryName'] || null, attribute_type: v['attributeType'] || 'Text', possible_values: rawValues.length ? rawValues : null, is_mandatory: bool(v['mandatoryFlag']), status: lc(v['status']) };
+      }
+      case 'productGroupMaster':
+        return { group_code: v['groupCode'] || null, group_name: v['groupName'] || '', category_name: v['linkedCategory'] || null, description: v['description'] || null, status: lc(v['status']) };
+      case 'variantMaster':
+        return { variant_code: v['variantCode'] || null, variant_name: v['variantName'] || '', category_name: v['categoryName'] || null, attribute_name: v['attributeName'] || null, attribute_value: v['attributeValue'] || null, description: v['description'] || null, status: 'active' };
+      case 'serialNumberPolicy':
+        return { policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || null, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), status: lc(v['status']) };
+      case 'batchLotPolicy':
+        return { policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || v['applicableFor'] || null, batch_format: v['batchFormat'] || null, expiry_required: bool(v['expiryRequired']), qc_required: bool(v['qcRequired']), status: lc(v['status']) };
+      case 'barcodeConfiguration':
+        return {
+          category_name: v['categoryName'] || null,
+          barcode_type: v['barcodeType'] || '',
+          auto_generate: bool(v['autoGenerate'] || 'Yes'),
+          prefix: v['prefix'] || null,
+          starting_number: Number(v['startingNumber']) || 1,
+          length: Number(v['length']) || 12,
+          applicable_products: Array.isArray(v['applicableProducts']) ? v['applicableProducts'] : String(v['applicableProducts'] || '').split(',').map((item: string) => item.trim()).filter(Boolean),
+          status: lc(v['status'])
+        };
+      case 'substituteProducts':
+        return {
+          product_name: v['product'] || '',
+          substitute_product_name: v['substituteProduct'] || '',
+          priority: Number(v['priority']) || 1,
+          remarks: v['remarks'] || null,
+          status: lc(v['status'])
+        };
+      case 'consumptionTypeMaster':
+        return { type_code: v['typeCode'] || null, type_name: v['typeName'] || v['consumptionType'] || '', department: v['department'] || null, approval_required: bool(v['approvalRequired']), remarks: v['remarks'] || null, status: lc(v['status']) };
+      case 'vendorMaster':
+        return { vendor_code: v['code'] || v['vendorCode'] || null, vendor_name: v['name'] || v['vendorName'] || '', vendor_type: v['type'] || v['vendorType'] || 'Company', segment_name: v['segment'] || null, vendor_category: v['vendorCategory'] || null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, credit_limit: Number(v['creditLimit']) || 0, status: lc(v['status']) };
+      case 'customerMaster':
+        return { customer_code: v['code'] || v['customerCode'] || null, customer_name: v['name'] || v['customerName'] || '', customer_type: v['type'] || v['customerType'] || 'Company', segment_name: v['segment'] || null, customer_category: v['customerCategory'] || null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, credit_limit: Number(v['creditLimit']) || 0, status: lc(v['status']) };
+      case 'productServiceMaster':
+        return {
+          segment_name: this.selectedSegment() || v['segment'] || null,
+          product_code: v['productCode'] || null,
+          product_name: this.productName().trim() || v['name'] || v['productName'] || '',
+          sku: v['sku'] || null,
+          product_type: productType(v['productType']),
+          item_status: lc(v['status'] || 'active'),
+          status: lc(v['status'] || 'active'),
+          category_name: this.selectedProductCategory() || v['category'] || v['categoryName'] || null,
+          base_uom_name: v['baseUom'] || null,
+          brand_name: v['brand'] || v['brandName'] || null,
+          variant_name: v['variant'] || null,
+          hsn_sac_code: this.hsnSacCode().trim() || v['hsnSac'] || v['hsnSacCode'] || null,
+          gst_rate: this.gstRate() ?? (v['gstRate'] !== undefined && v['gstRate'] !== '' ? Number(v['gstRate']) : null),
+          tax_category: v['taxCategory'] || (this.gstRate() !== null ? `GST ${this.gstRate()}%` : null),
+          valuation_method: v['valuationMethod'] || 'FIFO',
+          reorder_level: Number(v['reorderLevel']) || 0,
+          reorder_qty: Number(v['reorderQty']) || 0,
+          max_stock_level: Number(v['maxStockLevel']) || 0,
+          min_stock_level: Number(v['minStockLevel']) || 0,
+          batch_policy_name: v['batchPolicyName'] || null,
+          serial_policy_name: v['serialPolicyName'] || null,
+          batch_applicable: this.productBatchApplicable() || bool(v['batchApplicable']),
+          serial_applicable: this.productSerialApplicable() || bool(v['serialApplicable']),
+          expiry_applicable: this.productExpiryApplicable() || bool(v['expiryApplicable']),
+          qc_required: this.productQcRequired() || bool(v['qcRequired']),
+          description: v['description'] || null
+        };
+      default:
+        return v;
+    }
+  }
+
+  protected validatePayload(payload: Record<string, any>): string {
+    const hasValue = (value: any) => String(value ?? '').trim().length > 0;
+
+    if (this.config?.key === 'businessSegments') {
+      if (!hasValue(payload['segment_name'])) return 'Business Segment name is required.';
+    }
+
+    if (this.config?.key === 'branchMaster') {
+      if (!hasValue(payload['branch_name'])) return 'Branch name is required.';
+    }
+
+    if (this.config?.key === 'hsnSacMapping') {
+      if (!hasValue(payload['code'])) return 'HSN/SAC Code is required.';
+      if (payload['gst_rate'] === null || payload['gst_rate'] === undefined || payload['gst_rate'] === '') {
+        return 'GST Rate is required for HSN/SAC mapping.';
+      }
+    }
+
+    if (this.config?.key === 'barcodeConfiguration') {
+      if (!hasValue(payload['barcode_type'])) return 'Barcode Type is required.';
+    }
+
+    if (this.config?.key === 'substituteProducts') {
+      if (!hasValue(payload['product_name'])) return 'Product is required.';
+      if (!hasValue(payload['substitute_product_name'])) return 'Substitute Product is required.';
+      if (String(payload['product_name']).trim().toLowerCase() === String(payload['substitute_product_name']).trim().toLowerCase()) {
+        return 'Product and Substitute Product cannot be same.';
+      }
+    }
+
+    if (this.config?.key !== 'productServiceMaster') {
+      return '';
+    }
+
+    if (!hasValue(payload['product_name'])) return 'Product / Service Name is required.';
+    if (!hasValue(payload['category_name']) && !hasValue(payload['category_id'])) return 'Product Category is mandatory.';
+    if (!hasValue(payload['base_uom_name']) && !hasValue(payload['base_uom_id'])) return 'Base UOM is mandatory.';
+    if (!hasValue(payload['hsn_sac_code']) && !hasValue(payload['hsn_sac_id'])) return 'HSN/SAC tax classification is mandatory.';
+    if (payload['batch_applicable'] && !hasValue(payload['batch_policy_name'])) return 'Select Batch / Lot Policy or turn off Batch Applicable.';
+    if (payload['serial_applicable'] && !hasValue(payload['serial_policy_name'])) return 'Select Serial Number Policy or turn off Serial Number Applicable.';
+
+    return '';
+  }
+
+  protected mapToGridRows(records: any[]): string[][] {
+    const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Active';
+    switch (this.config?.key) {
+      case 'businessSegments':
+        return records.map(r => [
+          r.segment_name || '',
+          (r.categories || []).map((c: any) => c.category_name).join(', '),
+          (r.hsn_sac_codes || []).map((h: any) => h.code).join(', '),
+          (r.uoms || []).map((u: any) => u.uom_symbol || u.uom_name).join(', '),
+          r.usage_note || '',
+          cap(r.status || 'active')
+        ]);
+      case 'branchMaster':
+        return records.map(r => [
+          r.branch_code || '',
+          r.branch_name || '',
+          (r.activity_types || []).join(', '),
+          [r.gstin ? `GSTIN: ${r.gstin}` : '', r.pan ? `PAN: ${r.pan}` : ''].filter(Boolean).join(' | '),
+          [r.contact_name, r.contact_mobile, r.contact_email].filter(Boolean).join(' | '),
+          '',
+          cap(r.status || 'active')
+        ]);
+      case 'warehouseMaster':
+        return records.map(r => [r.warehouse_code || '', r.warehouse_name || '', r.address || '', '', cap(r.status || 'active')]);
+      case 'uomMaster':
+        return records.map(r => [r.uom_code || '', r.uom_name || '', 'No', 'No', 'No', cap(r.status || 'active')]);
+      case 'categoryMaster':
+        return records.map(r => [r.category_code || '', r.category_name || '', '', 'No', 'No', r.description || '', cap(r.status || 'active')]);
+      case 'hsnSacMapping':
+        return records.map(r => [r.code || '', r.description || '', String(r.gst_rate ?? ''), String(r.cgst_rate ?? ''), String(r.sgst_rate ?? ''), String(r.igst_rate ?? ''), String(r.cess_rate ?? ''), '', cap(r.status || 'active')]);
+      case 'paymentTermsMaster':
+        return records.map(r => [r.term_name || '', r.term_code || '', String(r.credit_days ?? 0), String(r.discount_pct ?? 0), r.description || '', cap(r.status || 'active')]);
+      case 'brandMaster':
+        return records.map(r => [r.brand_code || '', r.brand_name || '', r.manufacturer || '', '', r.description || '', cap(r.status || 'active')]);
+      case 'attributeMaster':
+        return records.map(r => [r.attribute_name || '', r.attribute_type || '', (r.possible_values || []).join(', '), r.is_mandatory ? 'Yes' : 'No', cap(r.status || 'active')]);
+      case 'productGroupMaster':
+        return records.map(r => [r.group_code || '', r.group_name || '', r.category_name || '', r.description || '', cap(r.status || 'active')]);
+      case 'variantMaster':
+        return records.map(r => [r.variant_code || '', r.variant_name || '', r.attribute_name || '', r.attribute_value || '', r.description || '']);
+      case 'serialNumberPolicy':
+        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.serial_format || '', r.capture_stage || '', cap(r.status || 'active')]);
+      case 'batchLotPolicy':
+        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.batch_format || '', r.expiry_required ? 'Yes' : 'No', r.qc_required ? 'Yes' : 'No', cap(r.status || 'active')]);
+      case 'barcodeConfiguration':
+        return records.map(r => [r.barcode_type || '', r.auto_generate ? 'Yes' : 'No', r.prefix || '', String(r.starting_number ?? ''), String(r.length ?? ''), (r.applicable_products || []).join(', ')]);
+      case 'substituteProducts':
+        return records.map(r => [r.product_name || '', r.substitute_product_name || '', String(r.priority ?? 1), r.remarks || '']);
+      case 'consumptionTypeMaster':
+        return records.map(r => [r.type_code || '', r.type_name || '', r.department || '', r.approval_required ? 'Yes' : 'No', r.remarks || '', cap(r.status || 'active')]);
+      case 'vendorMaster':
+        return records.map(r => [r.vendor_code || '', r.vendor_name || '', r.vendor_type || '', r.segment_name || '', r.gstin || '', cap(r.status || 'active')]);
+      case 'customerMaster':
+        return records.map(r => [r.customer_code || '', r.customer_name || '', r.customer_type || '', r.segment_name || '', r.gstin || '', cap(r.status || 'active')]);
+      case 'productServiceMaster':
+        return records.map(r => [r.product_code || '', r.sku || '', r.product_name || '', r.category_name || '', r.base_uom_symbol || r.base_uom_name || '', r.valuation_method || '', r.hsn_sac_code || '', String(r.gst_rate ?? ''), cap(r.item_status || 'active')]);
+      default:
+        return [];
+    }
   }
 }

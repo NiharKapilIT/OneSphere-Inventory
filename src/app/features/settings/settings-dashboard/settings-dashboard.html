@@ -15,13 +15,14 @@
         <div class="row g-3">
           @for (stat of stats; track stat.label) {
             <div class="col-xl-3 col-lg-4 col-md-6">
-              <div class="erp-grid-shell p-3 h-100 d-flex align-items-center justify-content-between">
+              <a class="erp-grid-shell p-3 h-100 d-flex align-items-center justify-content-between settings-dash-link"
+                [routerLink]="stat.route">
                 <div>
                   <span class="text-muted text-small d-block">{{ stat.label }}</span>
                   <strong class="fs-5">{{ stat.value }}</strong>
                 </div>
                 <i [class]="stat.icon"></i>
-              </div>
+              </a>
             </div>
           }
         </div>

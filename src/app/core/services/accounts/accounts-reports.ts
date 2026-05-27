@@ -422,6 +422,15 @@ export class AccountsReports {
     return this._CommonService.getAPI('/Accounts/GetComparisionTB', params, 'YES');
   }
 
+  GetScheduleTBNestedReport(toDate: string, companyCode: any, branchCode: any): Observable<any> {
+    const params = new HttpParams()
+      .set('toDate', toDate)
+      .set('companyCode', companyCode)
+      .set('branchCode', branchCode);
+
+    return this._CommonService.getAPI('/Accounts/GetScheduleTBNestedReport', params, 'YES');
+  }
+
   // GetTrialBalanceData(fromdate: string, todate: string, grouptype: string): Observable<any> {
   //   const params = new HttpParams()
   //     .set('fromDate', fromdate)

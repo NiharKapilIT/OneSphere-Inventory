@@ -17,6 +17,7 @@ export const routes: Routes = [
     path: 'dashboard',
     component: MainLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       {
         path: '',
@@ -41,6 +42,15 @@ export const routes: Routes = [
       {
         path: 'inventory',
         loadChildren: () => import('./features/inventory/inventory_routs').then(m => m.inventoryRoutes)
+      },
+      {
+        path: 'admin',
+        children: [
+          {
+            path: 'subscription',
+            loadComponent: () => import('./features/settings/subscription/subscription.component').then(m => m.SubscriptionComponent)
+          }
+        ]
       },
       {
         path: 'settings',

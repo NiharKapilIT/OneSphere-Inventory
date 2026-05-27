@@ -25,8 +25,8 @@ input {
 }
 
 .top-navbar {
-  height: 74px;
-  min-height: 74px;
+  height: 62px;
+  min-height: 62px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -36,6 +36,52 @@ input {
   box-shadow: var(--shadow-sm);
   z-index: 500;
   position: relative;
+  overflow: visible;
+  transition: height 0.28s ease, min-height 0.28s ease, padding 0.28s ease, box-shadow 0.28s ease;
+}
+
+.app-root.navbar-hidden .top-navbar {
+  height: 0;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  box-shadow: none;
+  border-bottom-color: transparent;
+  overflow: hidden;
+}
+
+.navbar-toggle-tab {
+  position: fixed;
+  top: 61px;
+  right: 14px;
+  z-index: 501;
+  width: 36px;
+  height: 14px;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--topbar-border);
+  border-top: none;
+  background: var(--topbar-bg);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: top 0.28s ease, background 0.18s ease;
+
+  i {
+    font-size: 9px;
+    color: var(--text-muted, #888);
+  }
+
+  &:hover {
+    background: var(--hover-bg, #f0f0f0);
+    i { color: var(--text-primary, #333); }
+  }
+}
+
+.app-root.navbar-hidden .navbar-toggle-tab {
+  top: 0;
 }
 
 .nav-left {
@@ -46,12 +92,12 @@ input {
 }
 
 .hamburger {
-  width: 42px;
-  height: 42px;
+  width: 22px;
+  height: 22px;
   border: 1px solid var(--panel-border);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.86);
-  color: var(--text-main);
+  // background: rgba(255, 255, 255, 0.86);
+  // color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +147,7 @@ input {
 
 .brand-name {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -177,7 +223,7 @@ input {
 
 .module-tab {
   min-width: 110px;
-  height: 40px;
+  height: 35px;
   padding: 0 14px;
   border: 1px solid var(--panel-border);
   border-radius: 18px;
@@ -648,6 +694,11 @@ input {
 
 .avatar-panel {
   width: 290px;
+  max-height: calc(100vh - 86px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .ap-user-header {
@@ -683,7 +734,7 @@ input {
 
 .ap-username {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -699,6 +750,98 @@ input {
   &:last-child {
     border-bottom: none;
   }
+}
+
+.ap-context-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-transform: uppercase;
+  }
+
+  select {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text-main);
+    font-size: 12px;
+    text-transform: none;
+  }
+}
+
+.ap-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.ap-password-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0 0 8px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.74);
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-soft);
+  }
+
+  input {
+    width: 100%;
+    min-height: 34px;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text-main);
+    font-size: 12px;
+    padding: 0 10px;
+  }
+}
+
+.ap-password-error,
+.ap-password-success {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ap-password-error {
+  color: #b91c1c;
+}
+
+.ap-password-success {
+  color: #047857;
 }
 
 .ap-menu-item {
@@ -731,6 +874,10 @@ input {
     color: var(--primary-dark);
   }
 
+  .ap-menu-chevron {
+    margin-left: auto;
+  }
+
   &.ap-danger:hover {
     background: #fff4f4;
     border-color: #ffdede;
@@ -740,6 +887,32 @@ input {
       color: #d04747;
     }
   }
+
+  &.ap-upgrade-item {
+    background: linear-gradient(135deg, rgba(207,250,254,0.3), rgba(8,145,178,0.05));
+    border-color: rgba(8,145,178,0.15);
+    color: #0c4a6e;
+    font-weight: 600;
+
+    i { color: #0891b2; }
+
+    &:hover {
+      background: linear-gradient(135deg, rgba(207,250,254,0.5), rgba(8,145,178,0.1));
+      border-color: rgba(8,145,178,0.25);
+    }
+  }
+}
+
+.ap-upgrade-badge {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: linear-gradient(135deg, #0c4a6e, #0891b2);
+  padding: 2px 7px;
+  border-radius: 20px;
 }
 
 .ap-theme-section {
@@ -837,8 +1010,8 @@ input {
 }
 
 .sidebar {
-  width: 104px;
-  min-width: 104px;
+  width: 100px;
+  min-width: 100px;
   background: var(--sidebar-bg);
   display: flex;
   flex-direction: column;
@@ -857,7 +1030,7 @@ input {
 .sb-items {
   flex: 1;
   overflow-y: auto;
-  padding: 12px 8px 12px;
+  padding: 8px 4px 8px;
 }
 
 .sb-item {
@@ -865,7 +1038,7 @@ input {
   border: none;
   background: transparent;
   border-radius: 22px;
-  padding: 12px 6px 10px;
+  padding: 6px;
   margin-bottom: 10px;
   display: flex;
   flex-direction: column;
@@ -907,15 +1080,13 @@ input {
 
 .sb-label {
   max-width: 80px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   line-height: 1.15;
-  text-align: center; 
-  word-break: break-word;
-
-   white-space: nowrap;       /* Prevent text from wrapping */
-    overflow: hidden;          /* Hide overflowed text */
-    text-overflow: ellipsis;   /* Show "..." when text overflows */
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sb-arrow {
@@ -939,8 +1110,8 @@ input {
   transition: width 0.24s ease, min-width 0.24s ease, opacity 0.18s ease;
 
   &.open {
-    width: 240px;
-    min-width: 240px;
+    width: 210px;
+    min-width: 210px;
     opacity: 1;
     pointer-events: auto;
     border-right-color: var(--panel-border);
@@ -949,11 +1120,11 @@ input {
 }
 
 .fp-header {
-  padding: 14px 16px 10px;
+  padding: 10px 16px 10px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
+  position: relative;
 }
 
 .fp-head-left {
@@ -961,6 +1132,7 @@ input {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  padding-right: 52px;
 }
 
 .fp-icon {
@@ -981,8 +1153,8 @@ input {
 }
 
 .fp-title {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.05;
   color: var(--text-strong);
 }
@@ -993,20 +1165,28 @@ input {
 }
 
 .fp-actions {
+  position: absolute;
+  top: 5px;
+  right: 6px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 3px;
 }
 
 .fp-action-btn {
-  width: 32px;
-  height: 32px;
+  width: 22px;
+  height: 22px;
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
+  border-radius: 7px;
   background: var(--panel-soft);
   color: var(--text-main);
   cursor: pointer;
   transition: 0.16s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  i { font-size: 10px; }
 
   &:hover,
   &.active {
@@ -1032,7 +1212,7 @@ input {
 }
 
 .fp-search-wrap {
-  height: 38px;
+  height: 32px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1113,8 +1293,8 @@ input {
 .fp-group-title {
   min-width: 0;
   overflow: hidden;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1130,7 +1310,7 @@ input {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .fp-group-arrow {
@@ -1151,7 +1331,7 @@ input {
 
 .fp-item {
   width: 100%;
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 8px;
   margin-bottom: 4px;
   border: 1px solid transparent;
@@ -1205,7 +1385,7 @@ input {
 }
 
 .fp-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.1;
   color: var(--text-strong);
@@ -1215,7 +1395,7 @@ input {
 }
 
 .fp-sub-name {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--text-soft);
   text-transform: uppercase;
@@ -1243,8 +1423,10 @@ input {
 
 .content-area {
   flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: var(--workspace-surface);
 }
 
@@ -1291,7 +1473,7 @@ input {
 
 .bc-current {
   color: var(--primary-dark);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .bc-sep {
@@ -1302,6 +1484,8 @@ input {
 .content-body {
   // padding: 16px 18px 18px;
   min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
   background:
     radial-gradient(circle at top right, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 32%),
     var(--workspace-surface);
@@ -1309,6 +1493,14 @@ input {
   &.with-breadcrumb {
     padding-top: 12px;
   }
+}
+
+// Routed component host elements must fill width and stay in block flow
+:host ::ng-deep .content-body > *:not(router-outlet) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .welcome-state {
@@ -1348,7 +1540,7 @@ input {
 .ws-title {
   margin: 0 0 8px;
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 

@@ -68,7 +68,7 @@
 .reference-section h3 {
   margin: 0;
   color: var(--clr-p1, #0c4a6e);
-  font-weight: 820;
+  font-weight: 600;
 }
 
 .reference-tray h2 {
@@ -172,7 +172,7 @@
 .reference-field span {
   color: #64748b;
   font-size: 10px;
-  font-weight: 780;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -181,7 +181,7 @@
   overflow: hidden;
   color: #172033;
   font-size: 12px;
-  font-weight: 820;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -227,7 +227,7 @@
   background: #f8fafc;
   color: var(--clr-p1, #0c4a6e);
   font-size: 12px;
-  font-weight: 820;
+  font-weight: 600;
 }
 
 .reference-table__scroll {
@@ -253,7 +253,7 @@
 .reference-table th {
   background: #f8fafc;
   color: #64748b;
-  font-weight: 820;
+  font-weight: 600;
 }
 
 .reference-table tr.is-bound td {
@@ -267,7 +267,7 @@
 .reference-table__empty {
   color: #64748b;
   font-size: 12px;
-  font-weight: 760;
+  font-weight: 600;
   text-align: center;
 }
 
@@ -278,7 +278,7 @@
   min-height: 26px;
   cursor: pointer;
   font-size: 11px;
-  font-weight: 820;
+  font-weight: 600;
   color: var(--clr-p1, #0c4a6e);
   user-select: none;
 }
@@ -308,7 +308,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 780;
+  font-weight: 600;
   text-decoration: none;
 }
 

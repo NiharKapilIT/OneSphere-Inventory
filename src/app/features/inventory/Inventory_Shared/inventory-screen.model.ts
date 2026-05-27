@@ -274,7 +274,7 @@ export const INVENTORY_OPTIONS = {
   customerTypes: ['Dealer', 'Corporate Client', 'Tenant', 'Property Buyer', 'Project Client', 'Restaurant Guest', 'Banquet Client', 'Hotel Guest'],
   vendorTypes: ['Supplier', 'Service Provider', 'Contractor', 'Manufacturer', 'Broker', 'Channel Partner', 'Food Supplier', 'Beverage Supplier'],
   trackingMethods: ['None', 'Batch', 'Serial / IMEI', 'Unit / Plot', 'Seat / Space', 'Room / Table', 'Recipe / BOM Component', 'BOM Component'],
-  valuationMethods: ['FIFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost'],
+  valuationMethods: ['FIFO', 'FEFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost'],
   hsnTypes: ['HSN', 'SAC'],
   gstRates: ['0', '5', '12', '18', '28'],
   uomTypes: ['Base', 'Purchase', 'Sale', 'Billing', 'Capacity'],
@@ -373,9 +373,9 @@ function partyMaster(key: string, title: string, subtitle: string, icon: string)
       : 'Customer master used in Estimation, Proforma Invoice, Sales Invoice, POS billing, receivables and customer reports.',
     screenMode: 'Master setup',
     fields: [
-      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
-      { key: 'code', label: `${isVendor ? 'Vendor' : 'Customer'} Code` },
       { key: 'name', label: `${isVendor ? 'Vendor' : 'Customer'} Name / Company Name`, type: 'select', options: ['ElectroMart Supplies Pvt Ltd', 'Tenant Works Pvt Ltd', 'Rajesh Kumar', 'Priya Sharma', 'Fresh Foods Distributor'], addMaster: 'Contact Person' },
+      { key: 'code', label: `${isVendor ? 'Vendor' : 'Customer'} Code` },
+      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'type', label: `${isVendor ? 'Vendor' : 'Customer'} Type`, type: 'select', options: ['Company', 'Individual'] },
       { key: 'gstin', label: 'GSTIN' },
       { key: 'pan', label: 'PAN' },
@@ -575,8 +575,8 @@ export const uomMasterConfig: InventoryScreenConfig = {
   outputImpact: 'UOM list used by Product Master, purchase UOM, sale/billing UOM, transactions and reports.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'uomCode', label: 'UOM Code' },
     { key: 'uomName', label: 'UOM Name' },
+    { key: 'uomCode', label: 'UOM Code' },
     { key: 'decimalAllowed', label: 'Decimal Allowed', type: 'select', options: ['Yes', 'No'] },
     { key: 'isBaseUom', label: 'Is Base UOM', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status },
@@ -652,8 +652,8 @@ export const productGroupMasterConfig: InventoryScreenConfig = {
   outputImpact: 'Product group is used in Product Master, product search, stock summaries and MIS reporting.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'groupCode', label: 'Group Code' },
     { key: 'groupName', label: 'Group Name' },
+    { key: 'groupCode', label: 'Group Code' },
     { key: 'linkedCategory', label: 'Linked Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'description', label: 'Description', type: 'textarea' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
@@ -676,6 +676,7 @@ export const barcodeConfigurationConfig: InventoryScreenConfig = {
   outputImpact: 'Barcode rules support product labels, inward scanning, POS billing and stock verification.',
   screenMode: 'Master setup',
   fields: [
+    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'barcodeType', label: 'Barcode Type', type: 'select', options: ['EAN-13', 'Code 128', 'QR Code', 'Internal SKU'] },
     { key: 'autoGenerate', label: 'Auto Generate', type: 'select', options: ['Yes', 'No'] },
     { key: 'prefix', label: 'Prefix' },
@@ -788,11 +789,13 @@ export const paymentTermsMasterConfig: InventoryScreenConfig = {
   screenMode: 'Master setup',
   fields: [
     { key: 'termName', label: 'Term Name' },
+    { key: 'termCode', label: 'Term Code' },
     { key: 'creditDays', label: 'Credit Days', type: 'number' },
     { key: 'discountPercent', label: 'Discount %', type: 'number' },
-    { key: 'description', label: 'Description', type: 'textarea' }
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Term Name', 'Credit Days', 'Discount %', 'Description'],
+  columns: ['Term Name', 'Term Code', 'Credit Days', 'Discount %', 'Description', 'Status'],
   rows: [
     ['Immediate', '0', '0', 'Payment on receipt'],
     ['30 Days', '30', '0', 'Standard vendor credit'],
@@ -838,8 +841,8 @@ export const categoryMasterConfig: InventoryScreenConfig = {
   outputImpact: 'Categories are used in Product Master, attributes, variants, product search, stock reports and MIS grouping.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'categoryCode', label: 'Category Code' },
     { key: 'categoryName', label: 'Category Name' },
+    { key: 'categoryCode', label: 'Category Code' },
     { key: 'parentCategory', label: 'Parent Category', type: 'select', options: ['None / Main Category', 'Electronics', 'Agro Products', 'IT Services', 'Real Estate Units', 'Project Materials', 'Hotel / Restaurant', 'Food & Beverage'], addMaster: 'Business Segment' },
     { key: 'description', label: 'Description', type: 'textarea' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
@@ -869,8 +872,9 @@ export const brandMasterConfig: InventoryScreenConfig = {
   outputImpact: 'Brand is used in Product Master, purchase analysis, sales reports, stock search and item identification.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'brandCode', label: 'Brand Code' },
     { key: 'brandName', label: 'Brand Name' },
+    { key: 'brandCode', label: 'Brand Code' },
+    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'manufacturer', label: 'Manufacturer', type: 'select', options: ['Dell Technologies', 'Samsung India', 'AgroFresh Foods', 'AeroTech Labs', 'BuildCast Industries', 'Kitchen Fresh Foods', 'Beverage World', 'House Brand'], addMaster: 'Manufacturer' },
     { key: 'brandLogo', label: 'Brand Logo (Optional)', type: 'file' },
     { key: 'description', label: 'Description', type: 'textarea' },
@@ -900,6 +904,7 @@ export const attributeMasterConfig: InventoryScreenConfig = {
   screenMode: 'Master setup',
   fields: [
     { key: 'attributeName', label: 'Attribute Name' },
+    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'attributeType', label: 'Attribute Type', type: 'select', options: ['Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes / No'] },
     { key: 'possibleValues', label: 'Possible Values', type: 'textarea' },
     { key: 'mandatoryFlag', label: 'Mandatory Flag', type: 'select', options: ['Yes', 'No'] },
@@ -931,10 +936,11 @@ export const variantMasterConfig: InventoryScreenConfig = {
   outputImpact: 'Variant values can be used for product SKU creation, alternate item identification, stock grouping and product search.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'variantCode', label: 'Variant Code' },
     { key: 'variantName', label: 'Variant Name' },
+    { key: 'variantCode', label: 'Variant Code' },
+    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'attributeName', label: 'Attribute Name', type: 'select', options: ['Color', 'Storage Capacity', 'Grade', 'Size', 'Material', 'Expiry Date', 'Spice Level', 'Meal Type', 'Room Type'], addMaster: 'Attribute' },
-    { key: 'attributeValue', label: 'Attribute Value', type: 'select', options: ['Black', 'White', '64GB', '128GB', 'Premium', 'Grade A', 'Large', 'Medium Spicy', 'Veg', 'Deluxe'] },
+    { key: 'attributeValue', label: 'Attribute Value (Optional)', type: 'select', options: ['Black', 'White', '64GB', '128GB', 'Premium', 'Grade A', 'Large', 'Medium Spicy', 'Veg', 'Deluxe'] },
     { key: 'description', label: 'Description', type: 'textarea' }
   ],
   columns: ['Variant Code', 'Variant Name', 'Attribute Name', 'Attribute Value', 'Description'],
@@ -962,8 +968,8 @@ export const serialNumberPolicyConfig: InventoryScreenConfig = {
   outputImpact: 'Serial policy controls whether products require IMEI, serial number, warranty tracking or unique item scanning.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'policyCode', label: 'Policy Code' },
     { key: 'policyName', label: 'Policy Name' },
+    { key: 'policyCode', label: 'Policy Code' },
     { key: 'applicableCategory', label: 'Applicable Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'serialFormat', label: 'Serial Format' },
     { key: 'captureStage', label: 'Capture Stage', type: 'select', options: ['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration'] },
@@ -990,19 +996,19 @@ export const batchLotPolicyConfig: InventoryScreenConfig = {
   outputImpact: 'Batch/Lot policy controls inward lots, expiry, QC hold, food/agro traceability and manufacturing raw material tracking.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'policyCode', label: 'Policy Code' },
     { key: 'policyName', label: 'Policy Name' },
-    { key: 'applicableFor', label: 'Applicable For', type: 'select', options: ['Product Wise', 'Category Default', 'Food / Restaurant', 'Agro Product', 'Manufacturing Raw Material'] },
+    { key: 'policyCode', label: 'Policy Code' },
+    { key: 'applicableCategory', label: 'Applicable Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'batchFormat', label: 'Batch / Lot Format' },
     { key: 'expiryRequired', label: 'Expiry Required', type: 'select', options: ['Yes', 'No'] },
     { key: 'qcRequired', label: 'QC Required', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Policy Code', 'Policy Name', 'Applicable For', 'Batch / Lot Format', 'Expiry Required', 'QC Required', 'Status'],
+  columns: ['Policy Code', 'Policy Name', 'Applicable Category', 'Batch / Lot Format', 'Expiry Required', 'QC Required', 'Status'],
   rows: [
-    ['BLP-FOOD', 'Food Batch With Expiry', 'Food / Restaurant', 'YYYYMMDD-SUPPLIER-SEQ', 'Yes', 'Yes', 'Active'],
-    ['BLP-AGRO', 'Agro Lot Tracking', 'Agro Product', 'LOT-FY-SEQ', 'Yes', 'Yes', 'Active'],
-    ['BLP-RM', 'Raw Material Batch', 'Manufacturing Raw Material', 'RM-PO-SEQ', 'No', 'Yes', 'Active']
+    ['BLP-FOOD', 'Food Batch With Expiry', 'Raw Ingredients', 'YYYYMMDD-SUPPLIER-SEQ', 'Yes', 'Yes', 'Active'],
+    ['BLP-AGRO', 'Agro Lot Tracking', 'Agro Commodities', 'LOT-FY-SEQ', 'Yes', 'Yes', 'Active'],
+    ['BLP-RM', 'Raw Material Batch', 'Drone Components', 'RM-PO-SEQ', 'No', 'Yes', 'Active']
   ]
 };
 
@@ -1067,12 +1073,13 @@ export const consumptionTypeMasterConfig: InventoryScreenConfig = {
   screenMode: 'Master setup',
   fields: [
     { key: 'consumptionType', label: 'Consumption Type' },
+    { key: 'typeCode', label: 'Consumption Code' },
     { key: 'department', label: 'Department' },
     { key: 'approvalRequired', label: 'Approval Required', type: 'select', options: ['Yes', 'No'] },
     { key: 'approvalWorkflow', label: 'Approval Workflow', type: 'select', options: ['Admin Department Head Approval', 'Production Manager Approval', 'Kitchen Auto Approval'], addMaster: 'Approval Workflow' },
     { key: 'remarks', label: 'Remarks', type: 'textarea' }
   ],
-  columns: ['Consumption Type', 'Department', 'Approval Required', 'Approval Workflow', 'Remarks'],
+  columns: ['Consumption Code', 'Consumption Type', 'Department', 'Approval Required', 'Remarks', 'Status'],
   rows: [
     ['Internal Maintenance', 'Admin', 'Yes', 'Admin Department Head Approval', 'Office and facility consumption'],
     ['Production Issue', 'Manufacturing', 'Yes', 'Production Manager Approval', 'Raw material issued to production'],
@@ -1179,7 +1186,7 @@ export const productServiceMasterConfig: InventoryScreenConfig = {
     { key: 'saleUom', label: 'Saleable / Billable UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
     { key: 'behavior', label: 'Transaction Behavior', type: 'select', options: INVENTORY_OPTIONS.behavior }
   ],
-  columns: ['SKU', 'Name', 'Product Category', 'Base UOM', 'Valuation', 'HSN/SAC', 'GST %', 'Tracking'],
+  columns: ['Product Code', 'SKU', 'Name', 'Product Category', 'Base UOM', 'Valuation', 'HSN/SAC', 'GST %', 'Status'],
   rows: [
     ['ITM-1001', 'LED Display', 'Computers & Devices', 'Nos', 'FIFO', '8471', '18', 'Serial / IMEI'],
     ['SRV-2090', 'AMC Support', 'IT Services', 'Month', 'Weighted Average', '998313', '18', 'None'],

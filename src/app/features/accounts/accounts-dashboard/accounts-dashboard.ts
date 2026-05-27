@@ -1007,7 +1007,7 @@ export class AccountsDashboard {
         h2 { color: #0c4a6e; margin-bottom: 12px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #dbe8f9; padding: 7px 10px; text-align: left; }
-        th { background: #0c4a6e; color: #fff; font-weight: 700; }
+        th { background: #0c4a6e; color: #fff; font-weight: 600; }
         tr:nth-child(even) td { background: #f8fafc; }
       </style>
       </head><body>

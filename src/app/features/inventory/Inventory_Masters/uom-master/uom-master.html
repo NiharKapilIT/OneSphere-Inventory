@@ -1,4 +1,4 @@
-<div class="module-page inventory-page">
+﻿<div class="module-page inventory-page">
   <div class="inventory-shell">
     <div class="inventory-header">
       <div>
@@ -126,8 +126,10 @@
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
                     </div>
                   </td>
                   @for (cell of row; track $index) {
@@ -281,8 +283,8 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">UOM Definition</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
-                <div class="erp-form-group"><label class="erp-label">UOM Name</label><input class="erp-input" type="text" placeholder="Numbers, Kilogram, Bag" /></div>
+                <div class="erp-form-group"><label class="erp-label">UOM Name <span class="text-danger">*</span></label><input class="erp-input" type="text" placeholder="Numbers, Kilogram, Bag" [ngModel]="formFieldValue({key:'uomName', label:'UOM Name', type:'text'})" (ngModelChange)="collectFormField('uomName', $event)" /></div>
+                <div class="erp-form-group"><label class="erp-label">UOM Code <span class="erp-label-hint">auto-generated</span></label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" [ngModel]="formFieldValue({key:'uomCode', label:'UOM Code', type:'text'})" (ngModelChange)="collectFormField('uomCode', $event)" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Decimal Allowed</label>
                   <label class="inventory-labeled-switch yes-no">
@@ -306,7 +308,7 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Status</label>
                   <label class="inventory-labeled-switch status">
-                    <input type="checkbox" checked />
+                    <input type="checkbox" [checked]="fieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']})" (change)="setFieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
                     <span class="inventory-switch-track">
                       <span class="switch-text switch-on">Active</span>
                       <span class="switch-text switch-off">Inactive</span>
@@ -975,9 +977,11 @@
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                        </div>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
+                    </div>
                       </td>
                       @for (cell of row; track $index) {
                         <td>{{ cell }}</td>
@@ -989,6 +993,21 @@
             </div>
           </div>
         } @else {
+        @if (isApiWired()) {
+          <div class="product-segment-bar">
+            <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
+            @if (segmentCount === 1) {
+              <span class="erp-badge badge-info">{{ segmentOptions[0] }}</span>
+            } @else {
+              <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
+                [items]="segmentOptions" [searchable]="false" [clearable]="false"
+                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                placeholder="Select Segment">
+              </ng-select>
+            }
+            <span class="product-segment-bar-hint">Records added here belong to this segment.</span>
+          </div>
+        }
         <div class="inventory-form-grid" [class.inventory-config-grid]="config.key === 'businessSegments' || config.key === 'warehouseMaster'">
           @for (field of displayFields(); track field.key) {
             <div class="erp-form-group" [class.span-2]="field.type === 'textarea' && config.key !== 'warehouseMaster' && config.key !== 'businessSegments'">
@@ -1011,13 +1030,15 @@
                     [clearable]="true"
                     [multiple]="field.type === 'multiselect'"
                     [closeOnSelect]="field.type !== 'multiselect'"
-                    [ngModel]="defaultFieldValue(field)"
+                    [ngModel]="formFieldValue(field)"
+                    (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)"
                     [placeholder]="'Select ' + field.label">
                   </ng-select>
                 } @else if (field.type === 'date') {
                   <div class="inventory-date-wrap">
                     <p-datepicker
-                      [ngModel]="null"
+                      [ngModel]="formFieldValue(field)"
+                      (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)"
                       [ngModelOptions]="{ standalone: true }"
                       dateFormat="dd-M-yy"
                       placeholder="DD-MMM-YYYY"
@@ -1030,16 +1051,16 @@
                     <i class="pi pi-calendar inventory-date-icon"></i>
                   </div>
                 } @else if (field.type === 'number') {
-                  <input class="erp-input" type="number" placeholder="0" />
+                  <input class="erp-input" type="number" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" placeholder="0" />
                 } @else if (field.type === 'file') {
                   <input class="erp-input" type="file" accept="image/*" />
                 } @else if (field.type === 'textarea') {
-                  <textarea class="erp-input" rows="2" [placeholder]="field.key === 'locationAddress' || field.key === 'address' ? 'Fetch from Maps API while typing later or enter address manually' : 'Enter notes'"></textarea>
+                  <textarea class="erp-input" rows="2" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationAddress' || field.key === 'address' ? 'Fetch from Maps API while typing later or enter address manually' : 'Enter notes'"></textarea>
                 } @else {
-                  <input class="erp-input" type="text" [placeholder]="field.key === 'locationCode' ? 'Auto generated from location name + backend code' : 'Enter ' + field.label" />
+                  <input class="erp-input" type="text" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationCode' ? 'Auto generated from location name + backend code' : 'Enter ' + field.label" />
                 }
                 @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster)">
+                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
                     <i class="pi pi-plus"></i>
                   </button>
                 }
@@ -1178,8 +1199,8 @@
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove"><i class="pi pi-trash"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" [attr.data-index]="$index"><i class="pi pi-pencil"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" [attr.data-index]="$index"><i class="pi pi-trash"></i></button>
                         </div>
                       </td>
                       @for (cell of row.slice(0, (config.columns || []).length); track $index) {
@@ -1235,12 +1256,14 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', config.rows || []); track $index) {
+              @for (row of gridRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
                     </div>
                   </td>
                   @for (cell of row.slice(0, (config.columns || []).length); track $index) {
@@ -1314,9 +1337,7 @@
         </div>
       </div>
     </div>
-  }
-
-  @if (activeAddMaster()) {
+  }  @if (activeAddMaster()) {
     <div class="inventory-modal-backdrop">
       <div class="inventory-modal">
         <div class="inventory-modal-header">
@@ -1411,9 +1432,11 @@
                   <tr>
                     <td class="text-center">
                       <div class="inventory-row-actions">
+                      @if (isAdmin()) {
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      </div>
+                      }
+                    </div>
                     </td>
                     @for (cell of row; track $index) {
                       <td>{{ cell }}</td>
@@ -1424,53 +1447,29 @@
             </table>
           </div>
         } @else if (activeAddMaster() === 'Category') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Category Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-            <div class="erp-form-group"><label class="erp-label">Category Name</label><input class="erp-input" type="text" placeholder="Enter general group name" /></div>
+          <div class="inventory-form-grid inventory-config-grid">
             <div class="erp-form-group">
-              <label class="erp-label">Segment</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [searchable]="true" [clearable]="true" [ngModel]="'Electronics'" placeholder="Select Segment"></ng-select>
+              <label class="erp-label">Category Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" placeholder="Enter category name"
+                [ngModel]="quickAddName()" (ngModelChange)="onQuickAddNameChange($event)" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Available Categories</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultCategorySelections" placeholder="Check existing categories"></ng-select>
+              <label class="erp-label">Category Code <span class="erp-label-hint">auto-generated</span></label>
+              <input class="erp-input" type="text" placeholder="Auto-fills from name"
+                [ngModel]="quickAddCode()" (ngModelChange)="quickAddCode.set($event)" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Business Segment</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="segmentOptions" [searchable]="false" [clearable]="true"
+                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                placeholder="Select Segment">
+              </ng-select>
             </div>
           </div>
-          <div class="inventory-duplicate-advice">
-            <strong>Duplication check</strong>
-            <span>Before saving, compare singular/plural words, abbreviations and similar business meaning.</span>
-          </div>
-          <div class="inventory-mini-table">
-            <div class="inventory-mini-title">Available Similar Categories</div>
-            <table class="erp-table compact">
-              <thead>
-                <tr>
-                  <th class="text-center">Actions</th>
-                  @for (column of ['Existing Category', 'Why it may match']; track column; let columnIndex = $index) {
-                    <th class="inventory-sortable-th">
-                      <button type="button" class="inventory-sort-btn" (click)="sortBy('categoryLookup', columnIndex)">
-                        <span>{{ column }}</span>
-                        <i [class]="sortIcon('categoryLookup', columnIndex)"></i>
-                      </button>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of gridRows('categoryLookup', categorySuggestionRows); track row[0]) {
-                  <tr>
-                    <td class="text-center">
-                      <div class="inventory-row-actions">
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      </div>
-                    </td>
-                    <td>{{ row[0] }}</td><td>{{ row[1] }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          @if (quickAddError()) {
+            <p class="inventory-error-msg">{{ quickAddError() }}</p>
+          }
         } @else if (activeAddMaster() === 'UOM') {
           <div class="inventory-form-grid">
             <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
@@ -1760,7 +1759,12 @@
         }
         <div class="inventory-form-actions">
           <button type="button" class="erp-btn btn-white" (click)="closeAddMaster()"><i class="pi pi-times"></i> Cancel</button>
-          <button type="button" class="erp-btn btn-primary" (click)="closeAddMaster()"><i class="pi pi-check"></i> Save</button>
+          <button type="button" class="erp-btn btn-primary"
+            (click)="activeAddMaster() === 'Category' ? saveQuickCategory() : closeAddMaster()"
+            [disabled]="isSavingQuickAdd()">
+            <i [class]="isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+            {{ isSavingQuickAdd() ? 'Saving...' : 'Save' }}
+          </button>
         </div>
       </div>
     </div>

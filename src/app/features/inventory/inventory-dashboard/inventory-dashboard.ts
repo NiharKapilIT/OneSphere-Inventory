@@ -22,6 +22,8 @@ interface SegmentMetric {
   icon: string;
   stockValue: string;
   revenueHold: string;
+  stockShare: number;
+  holdShare: number;
   health: number;
   lowStock: number;
   pendingApprovals: number;
@@ -109,6 +111,41 @@ interface GridPayload {
   rows: string[][];
 }
 
+interface MovementPoint {
+  label: string;
+  inward: number;
+  outward: number;
+  dispatch: number;
+  inwardValue: string;
+  outwardValue: string;
+  dispatchValue: string;
+}
+
+interface StockMix {
+  label: string;
+  value: string;
+  share: number;
+  color: string;
+  note: string;
+}
+
+interface WarehouseSnapshot {
+  location: string;
+  segment: string;
+  fill: number;
+  stockValue: string;
+  dispatch: string;
+  slowMoving: string;
+  icon: string;
+}
+
+interface StockAgeBucket {
+  label: string;
+  value: string;
+  share: number;
+  tone: 'fresh' | 'moving' | 'slow' | 'blocked';
+}
+
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
@@ -135,11 +172,43 @@ export class InventoryDashboard {
   ];
 
   readonly segmentMetrics: SegmentMetric[] = [
-    { segment: 'Electronics', icon: 'pi pi-desktop', stockValue: 'Rs. 2.24 Cr', revenueHold: 'Rs. 18.2 L', health: 82, lowStock: 6, pendingApprovals: 3, decision: 'Approve reorder for laptop and CCTV items today.', route: '/dashboard/inventory/reports/stock-availability-report' },
-    { segment: 'Agro Product', icon: 'pi pi-sun', stockValue: 'Rs. 86 L', revenueHold: 'Rs. 7.4 L', health: 68, lowStock: 3, pendingApprovals: 2, decision: 'Season stock is tight. Raise PR for seed and fertilizer.', route: '/dashboard/inventory/transactions/purchase-requisition' },
-    { segment: 'Hotel / Restaurant', icon: 'pi pi-shopping-bag', stockValue: 'Rs. 42 L', revenueHold: 'Rs. 3.1 L', health: 74, lowStock: 4, pendingApprovals: 1, decision: 'Move expiring stock to kitchen consumption plan.', route: '/dashboard/inventory/transactions/material-consumption' },
-    { segment: 'Drone Manufacturing', icon: 'pi pi-cog', stockValue: 'Rs. 1.22 Cr', revenueHold: 'Rs. 22.6 L', health: 91, lowStock: 0, pendingApprovals: 4, decision: 'Clear QC hold on battery packs to release finished goods.', route: '/dashboard/inventory/transactions/production-entry' },
-    { segment: 'Co-working Space', icon: 'pi pi-building', stockValue: 'Rs. 28 L', revenueHold: 'Rs. 6.8 L', health: 94, lowStock: 1, pendingApprovals: 1, decision: 'Review cabin availability and convert bookings to invoices.', route: '/dashboard/inventory/transactions/sales-invoice' }
+    { segment: 'Electronics', icon: 'pi pi-desktop', stockValue: 'Rs. 2.24 Cr', revenueHold: 'Rs. 18.2 L', stockShare: 100, holdShare: 81, health: 82, lowStock: 6, pendingApprovals: 3, decision: 'Approve reorder for laptop and CCTV items today.', route: '/dashboard/inventory/reports/stock-availability-report' },
+    { segment: 'Agro Product', icon: 'pi pi-sun', stockValue: 'Rs. 86 L', revenueHold: 'Rs. 7.4 L', stockShare: 38, holdShare: 33, health: 68, lowStock: 3, pendingApprovals: 2, decision: 'Season stock is tight. Raise PR for seed and fertilizer.', route: '/dashboard/inventory/transactions/purchase-requisition' },
+    { segment: 'Hotel / Restaurant', icon: 'pi pi-shopping-bag', stockValue: 'Rs. 42 L', revenueHold: 'Rs. 3.1 L', stockShare: 19, holdShare: 14, health: 74, lowStock: 4, pendingApprovals: 1, decision: 'Move expiring stock to kitchen consumption plan.', route: '/dashboard/inventory/transactions/material-consumption' },
+    { segment: 'Drone Manufacturing', icon: 'pi pi-cog', stockValue: 'Rs. 1.22 Cr', revenueHold: 'Rs. 22.6 L', stockShare: 54, holdShare: 100, health: 91, lowStock: 0, pendingApprovals: 4, decision: 'Clear QC hold on battery packs to release finished goods.', route: '/dashboard/inventory/transactions/production-entry' },
+    { segment: 'Co-working Space', icon: 'pi pi-building', stockValue: 'Rs. 28 L', revenueHold: 'Rs. 6.8 L', stockShare: 13, holdShare: 30, health: 94, lowStock: 1, pendingApprovals: 1, decision: 'Review cabin availability and convert bookings to invoices.', route: '/dashboard/inventory/transactions/sales-invoice' }
+  ];
+
+  readonly movementPoints: MovementPoint[] = [
+    { label: 'Mon', inward: 54, outward: 34, dispatch: 28, inwardValue: 'Rs. 2.8 L', outwardValue: 'Rs. 1.7 L', dispatchValue: '8' },
+    { label: 'Tue', inward: 68, outward: 48, dispatch: 42, inwardValue: 'Rs. 3.6 L', outwardValue: 'Rs. 2.4 L', dispatchValue: '12' },
+    { label: 'Wed', inward: 41, outward: 62, dispatch: 51, inwardValue: 'Rs. 2.1 L', outwardValue: 'Rs. 3.1 L', dispatchValue: '15' },
+    { label: 'Thu', inward: 72, outward: 57, dispatch: 64, inwardValue: 'Rs. 3.8 L', outwardValue: 'Rs. 2.9 L', dispatchValue: '18' },
+    { label: 'Fri', inward: 46, outward: 70, dispatch: 58, inwardValue: 'Rs. 2.4 L', outwardValue: 'Rs. 3.5 L', dispatchValue: '16' },
+    { label: 'Sat', inward: 63, outward: 44, dispatch: 37, inwardValue: 'Rs. 3.3 L', outwardValue: 'Rs. 2.2 L', dispatchValue: '11' },
+    { label: 'Sun', inward: 34, outward: 30, dispatch: 25, inwardValue: 'Rs. 1.8 L', outwardValue: 'Rs. 1.5 L', dispatchValue: '7' }
+  ];
+
+  readonly stockMix: StockMix[] = [
+    { label: 'Fast Moving', value: 'Rs. 1.96 Cr', share: 42, color: '#2563eb', note: 'Sales-ready stock with steady movement' },
+    { label: 'Production / Project', value: 'Rs. 1.24 Cr', share: 26, color: '#10b981', note: 'BOM, panel and site-linked materials' },
+    { label: 'Seasonal Stock', value: 'Rs. 86 L', share: 18, color: '#f59e0b', note: 'Agro, kitchen and event-linked demand' },
+    { label: 'Hold / Slow', value: 'Rs. 66 L', share: 14, color: '#e11d48', note: 'QC hold, old stock and expiry watch' }
+  ];
+
+  readonly warehouseSnapshots: WarehouseSnapshot[] = [
+    { location: 'HYD Main WH', segment: 'Electronics', fill: 84, stockValue: 'Rs. 1.90 Cr', dispatch: '14 orders', slowMoving: 'Rs. 18.2 L', icon: 'pi pi-box' },
+    { location: 'BLR Store', segment: 'Agro Product', fill: 62, stockValue: 'Rs. 72 L', dispatch: '8 orders', slowMoving: 'Rs. 3.4 L', icon: 'pi pi-map-marker' },
+    { location: 'Kitchen Store', segment: 'Hotel / Restaurant', fill: 78, stockValue: 'Rs. 38 L', dispatch: 'Daily use', slowMoving: 'Rs. 0.8 L', icon: 'pi pi-shopping-bag' },
+    { location: 'Mfg Store', segment: 'Drone Manufacturing', fill: 55, stockValue: 'Rs. 1.22 Cr', dispatch: 'QC 17', slowMoving: 'Rs. 6.2 L', icon: 'pi pi-cog' },
+    { location: 'Co-work Floor 2', segment: 'Co-working Space', fill: 79, stockValue: 'Rs. 28 L', dispatch: '46 seats', slowMoving: 'Rs. 0', icon: 'pi pi-building' }
+  ];
+
+  readonly stockAgeBuckets: StockAgeBucket[] = [
+    { label: '0-15 Days', value: 'Rs. 2.18 Cr', share: 45, tone: 'fresh' },
+    { label: '16-30 Days', value: 'Rs. 1.32 Cr', share: 27, tone: 'moving' },
+    { label: '31-60 Days', value: 'Rs. 82 L', share: 17, tone: 'slow' },
+    { label: '60+ Days', value: 'Rs. 50 L', share: 11, tone: 'blocked' }
   ];
 
   readonly riskRows: RiskRow[] = [
@@ -209,6 +278,27 @@ export class InventoryDashboard {
   readonly filteredTopProducts = computed(() => this.filterRows(this.topProducts));
   readonly filteredSlowProducts = computed(() => this.filterRows(this.slowProducts));
   readonly filteredExpiryAlerts = computed(() => this.filterRows(this.expiryAlerts));
+  readonly criticalRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Critical').length);
+  readonly watchRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Watch').length);
+  readonly goodRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Good').length);
+  readonly stockMixDonutStyle = computed(() => {
+    let start = 0;
+    const stops = this.stockMix.map(item => {
+      const end = start + item.share;
+      const stop = `${item.color} ${start}% ${end}%`;
+      start = end;
+      return stop;
+    });
+
+    return `conic-gradient(${stops.join(', ')})`;
+  });
+  readonly riskDonutStyle = computed(() => {
+    const total = Math.max(this.filteredRiskRows().length, 1);
+    const critical = (this.criticalRiskCount() / total) * 100;
+    const watch = critical + ((this.watchRiskCount() / total) * 100);
+
+    return `conic-gradient(#e11d48 0 ${critical}%, #f59e0b ${critical}% ${watch}%, #10b981 ${watch}% 100%)`;
+  });
 
   readonly topDecision = computed(() => {
     const firstCritical = this.filteredRiskRows().find(row => row.status === 'Critical');
@@ -281,6 +371,10 @@ export class InventoryDashboard {
 
   healthWidth(value: number): string {
     return `${value}%`;
+  }
+
+  chartPercent(value: number): string {
+    return `${Math.max(4, Math.min(100, value))}%`;
   }
 
   fillTone(fill: number): string {

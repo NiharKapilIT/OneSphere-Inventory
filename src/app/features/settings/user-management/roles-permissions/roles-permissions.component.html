@@ -1,0 +1,251 @@
+<div class="perm-page">
+  <div class="erp-card perm-card">
+
+    <!-- Page header -->
+    <div class="card-header">
+      <div>
+        <h4 class="card-title"><i class="pi pi-shield"></i> User Permissions</h4>
+        <p class="card-subtitle">Manage screen-level access per user — Module → Sub-module → Screen</p>
+      </div>
+      <div class="card-actions">
+        <button type="button" class="erp-btn btn-white btn-sm" (click)="loadUsers()" [disabled]="loading()">
+          <i [class]="loading() ? 'pi pi-spin pi-spinner' : 'pi pi-refresh'"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Main two-column layout -->
+    <div class="perm-layout">
+
+      <!-- ── LEFT: User list panel ── -->
+      <aside class="perm-user-panel">
+        <div class="perm-panel-head">
+          <span class="perm-panel-title"><i class="pi pi-users"></i> Users</span>
+          <span class="perm-user-count">{{ users().length }}</span>
+        </div>
+
+        <div class="perm-search-wrap">
+          <i class="pi pi-search perm-search-icon"></i>
+          <input class="perm-search" type="text" placeholder="Search by name or username…"
+            [ngModel]="userQ()" (ngModelChange)="userQ.set($event)" />
+        </div>
+
+        <div class="perm-user-list">
+          @for (user of filteredUsers(); track user.id) {
+          <button type="button" class="perm-user-item" [class.active]="selected()?.id === user.id"
+            (click)="selectUser(user)">
+            <div class="perm-avatar">{{ userInitial(user) }}</div>
+            <div class="perm-user-info">
+              <strong>{{ user.fullName }}</strong>
+              <small>{{ user.username }}</small>
+              <small class="perm-role-label">{{ roleTypeLabel(user) }}</small>
+            </div>
+            @if (user.isSuperAdmin || user.roles[0]?.roleType === 'company_admin') {
+            <span class="perm-crown" title="Company Admin"><i class="pi pi-crown"></i></span>
+            }
+          </button>
+          } @empty {
+          <div class="perm-empty-msg">
+            <i class="pi pi-users"></i><span>No users found</span>
+          </div>
+          }
+        </div>
+      </aside>
+
+      <!-- ── RIGHT: Permission matrix ── -->
+      <section class="perm-matrix-panel">
+
+        <!-- Placeholder when no user selected -->
+        @if (!selected()) {
+        <div class="perm-no-selection">
+          <div class="perm-no-sel-icon"><i class="pi pi-hand-pointer"></i></div>
+          <h5>Select a user</h5>
+          <p>Choose a user from the left panel to view and configure their screen permissions</p>
+        </div>
+        } @else {
+
+        <!-- Selected user header bar -->
+        <div class="perm-user-header">
+          <div class="perm-avatar lg">{{ userInitial(selected()!) }}</div>
+          <div class="perm-user-header-info">
+            <h5>{{ selected()!.fullName }}</h5>
+            <span>{{ selected()!.username }}</span>
+          </div>
+          @if (selected()!.roles[0]) {
+          <span class="perm-role-pill">
+            <i class="pi pi-id-card"></i> {{ selected()!.roles[0].roleName }}
+          </span>
+          }
+          @if (isAdmin()) {
+          <span class="perm-admin-pill"><i class="pi pi-crown"></i> Admin — Full Access</span>
+          }
+        </div>
+
+        <!-- Admin notice -->
+        @if (isAdmin()) {
+        <div class="perm-admin-notice">
+          <i class="pi pi-info-circle"></i>
+          <span>
+            <strong>{{ selected()!.fullName }}</strong> is a Company Admin and has full access to all screens by default.
+            Permissions shown below reflect the current role settings.
+            Only Super Admin can restrict admin accounts.
+          </span>
+        </div>
+        }
+
+        <!-- Module tabs — only modules assigned to this user -->
+        @if (userModules().length) {
+        <div class="perm-module-tabs">
+          @for (mod of userModules(); track mod.id) {
+          <button type="button" class="perm-module-tab"
+            [class.active]="activeTab() === mod.moduleCode"
+            (click)="activeTab.set(mod.moduleCode)">
+            <i class="pi" [ngClass]="mod.icon || 'pi-th-large'"></i>
+            {{ mod.moduleName }}
+          </button>
+          }
+        </div>
+        } @else if (selected()) {
+        <div class="perm-no-modules">
+          <i class="pi pi-info-circle"></i>
+          <span>No modules assigned to this user. Go to <strong>Manage Users</strong> and assign modules first.</span>
+        </div>
+        }
+
+        <!-- Permission matrix body -->
+        @if (loading()) {
+        <div class="perm-loading">
+          <i class="pi pi-spin pi-spinner"></i> Loading permissions…
+        </div>
+        } @else if (!activeModulePerms() || activeModulePerms()!.subGroups.length === 0) {
+        <div class="perm-empty-msg center">
+          <i class="pi pi-info-circle"></i>
+          <span>No screens found for this module</span>
+        </div>
+        } @else {
+
+        <!-- Module-level action bar -->
+        <div class="perm-action-bar">
+          <span class="perm-module-badge">
+            <i class="pi" [ngClass]="activeModulePerms()!.icon"></i>
+            {{ activeModulePerms()!.moduleName }}
+          </span>
+          <div class="perm-action-bar-btns">
+            <button type="button" class="erp-btn btn-white btn-sm" (click)="grantAll()" [disabled]="isAdmin()">
+              <i class="pi pi-check-square"></i> Grant All
+            </button>
+            <button type="button" class="erp-btn btn-danger-outline btn-sm" (click)="revokeAll()" [disabled]="isAdmin()">
+              <i class="pi pi-times-circle"></i> Revoke All
+            </button>
+          </div>
+        </div>
+
+        <!-- Permissions table -->
+        <div class="perm-table-scroll">
+          <table class="perm-table">
+            <thead>
+              <tr>
+                <th class="perm-col-screen">Screen</th>
+                @for (action of ACTIONS; track action.key) {
+                <th class="perm-col-action">
+                  <label class="perm-col-lbl">
+                    <input type="checkbox"
+                      (change)="setColumnForTab(action.key, $any($event.target).checked)"
+                      [disabled]="isAdmin()" />
+                    {{ action.label }}
+                  </label>
+                </th>
+                }
+                <th class="perm-col-quick">Quick</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (sg of activeModulePerms()!.subGroups; track sg.key) {
+
+              <!-- Sub-module group header row -->
+              <tr class="perm-submod-row">
+                <td colspan="8">
+                  <div class="perm-submod-header">
+                    <button type="button" class="perm-submod-toggle" (click)="toggleCollapse(sg.key)">
+                      <i class="pi" [class.pi-chevron-down]="!isCollapsed(sg.key)"
+                        [class.pi-chevron-right]="isCollapsed(sg.key)"></i>
+                      <span>{{ sg.label }}</span>
+                      <em>{{ sg.screens.length }} screen{{ sg.screens.length !== 1 ? 's' : '' }}</em>
+                    </button>
+                    <div class="perm-submod-btns">
+                      <button type="button" class="perm-quick grant" (click)="grantSubModule(sg.key)" [disabled]="isAdmin()">
+                        <i class="pi pi-check-square"></i> All
+                      </button>
+                      <button type="button" class="perm-quick revoke" (click)="revokeSubModule(sg.key)" [disabled]="isAdmin()">
+                        <i class="pi pi-times"></i> None
+                      </button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Screen rows -->
+              @if (!isCollapsed(sg.key)) {
+              @for (screen of sg.screens; track screen.screenId) {
+              <tr class="perm-screen-row">
+                <td class="perm-col-screen">
+                  <strong>{{ screen.screenName }}</strong>
+                  <small>{{ screen.screenCode }}</small>
+                </td>
+                @for (action of ACTIONS; track action.key) {
+                <td class="perm-col-action">
+                  <input class="perm-chk" type="checkbox"
+                    [checked]="screen.permissions[action.key]"
+                    [disabled]="isAdmin()"
+                    (change)="toggle(screen.screenId, action.key, $any($event.target).checked)" />
+                </td>
+                }
+                <td class="perm-col-quick">
+                  <button type="button" class="perm-quick grant sm"
+                    title="Grant full access to this screen"
+                    [disabled]="isAdmin()"
+                    (click)="grantScreen(screen.screenId)">
+                    Full
+                  </button>
+                </td>
+              </tr>
+              }
+              }
+
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (error()) {
+        <div class="settings-error perm-error">
+          <i class="pi pi-exclamation-circle"></i> {{ error() }}
+        </div>
+        }
+
+        <div class="perm-save-row">
+          <button type="button" class="erp-btn btn-primary" (click)="savePermissions()"
+            [disabled]="saving() || isAdmin() || !currentUserIsAdmin() || !(selected()?.roles?.length)">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… }
+            @else { <i class="pi pi-save"></i> Save Permissions }
+          </button>
+          @if (isAdmin()) {
+          <span class="perm-save-note">
+            <i class="pi pi-lock"></i> Admin permissions are controlled by Super Admin
+          </span>
+          } @else if (!currentUserIsAdmin()) {
+          <span class="perm-save-note">
+            <i class="pi pi-lock"></i> Only Company Admin and Branch Admin can edit permissions
+          </span>
+          }
+        </div>
+        }
+
+        }
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<p-toast position="bottom-right" />

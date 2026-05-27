@@ -1,4 +1,4 @@
-<div class="module-page inventory-page">
+﻿<div class="module-page inventory-page">
   <div class="inventory-shell">
     <div class="inventory-header">
       <div>
@@ -126,8 +126,10 @@
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
                     </div>
                   </td>
                   @for (cell of row; track $index) {
@@ -360,8 +362,8 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">Category Details</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">Category Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-                <div class="erp-form-group"><label class="erp-label">Category Name</label><input class="erp-input" type="text" placeholder="Enter category name" /></div>
+                <div class="erp-form-group"><label class="erp-label">Category Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" [ngModel]="formFieldValue({key:'categoryCode', label:'Category Code', type:'text'})" (ngModelChange)="collectFormField('categoryCode', $event)" /></div>
+                <div class="erp-form-group"><label class="erp-label">Category Name</label><input class="erp-input" type="text" placeholder="Enter category name" [ngModel]="formFieldValue({key:'categoryName', label:'Category Name', type:'text'})" (ngModelChange)="collectFormField('categoryName', $event)" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Parent Category</label>
                   <div class="inventory-field-with-add">
@@ -372,14 +374,14 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Status</label>
                   <label class="inventory-labeled-switch status">
-                    <input type="checkbox" checked />
+                    <input type="checkbox" [checked]="fieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']})" (change)="setFieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
                     <span class="inventory-switch-track">
                       <span class="switch-text switch-on">Active</span>
                       <span class="switch-text switch-off">Inactive</span>
                     </span>
                   </label>
                 </div>
-                <div class="erp-form-group span-2"><label class="erp-label">Description</label><textarea class="erp-input" rows="2" placeholder="Enter category description"></textarea></div>
+                <div class="erp-form-group span-2"><label class="erp-label">Description</label><textarea class="erp-input" rows="2" placeholder="Enter category description" [ngModel]="formFieldValue({key:'description', label:'Description', type:'textarea'})" (ngModelChange)="collectFormField('description', $event)"></textarea></div>
               </div>
             </div>
 
@@ -430,45 +432,45 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">Basic Product Details</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">Product Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-                <div class="erp-form-group"><label class="erp-label">Product Name</label><input class="erp-input" type="text" placeholder="Enter product name" /></div>
+                <div class="erp-form-group"><label class="erp-label">Product Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" [ngModel]="formFieldValue({key:'productCode', label:'Product Code', type:'text'})" (ngModelChange)="collectFormField('productCode', $event)" /></div>
+                <div class="erp-form-group"><label class="erp-label">Product Name</label><input class="erp-input" type="text" placeholder="Enter product name" [ngModel]="productName()" (ngModelChange)="onProductNameChange($event)" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Product Type</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="productTypeOptions" [searchable]="true" [clearable]="true" [ngModel]="'Physical Stock'" placeholder="Select Product Type"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="productTypeOptions" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'productType', label:'Product Type', type:'select'}) || 'Product'" (ngModelChange)="collectFormField('productType', $event)" placeholder="Select Product Type"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Product Type" (click)="openAddMaster('Product Type')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Category</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [searchable]="true" [clearable]="true" [ngModel]="'Computers & Devices'" placeholder="Select Category"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [searchable]="true" [clearable]="true" [ngModel]="selectedProductCategory()" (ngModelChange)="onProductCategoryChange($event)" placeholder="Select Category"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Category" (click)="openAddMaster('Category')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Brand</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="brandOptions" [searchable]="true" [clearable]="true" [ngModel]="'House Brand'" placeholder="Select Brand"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="brandOptions" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'brand', label:'Brand', type:'select'})" (ngModelChange)="collectFormField('brand', $event)" placeholder="Select Brand"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Brand" (click)="openAddMaster('Brand')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Variant</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Black Color', '128GB Storage', 'Grade A', 'Medium Spicy', 'Deluxe Room']" [searchable]="true" [clearable]="true" [ngModel]="'Black Color'" placeholder="Select Variant"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Black Color', '128GB Storage', 'Grade A', 'Medium Spicy', 'Deluxe Room']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'variant', label:'Variant', type:'select'})" (ngModelChange)="collectFormField('variant', $event)" placeholder="Select Variant"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Variant" (click)="openAddMaster('Variant')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Valuation Method</label>
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['FIFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost']" [searchable]="true" [clearable]="true" [ngModel]="'FIFO'" placeholder="Select Valuation Method"></ng-select>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['FIFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'valuationMethod', label:'Valuation Method', type:'select'}) || 'FIFO'" (ngModelChange)="collectFormField('valuationMethod', $event)" placeholder="Select Valuation Method"></ng-select>
                 </div>
-                <div class="erp-form-group"><label class="erp-label">SKU</label><input class="erp-input" type="text" placeholder="SKU auto/manual" /></div>
+                <div class="erp-form-group"><label class="erp-label">SKU</label><input class="erp-input" type="text" placeholder="SKU auto/manual" [ngModel]="formFieldValue({key:'sku', label:'SKU', type:'text'})" (ngModelChange)="collectFormField('sku', $event)" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Item Status</label>
                   <label class="inventory-labeled-switch status">
-                    <input type="checkbox" checked />
+                    <input type="checkbox" [checked]="fieldSwitchChecked({key:'status', label:'Item Status', type:'select', options:['Active','Inactive']})" (change)="setFieldSwitchChecked({key:'status', label:'Item Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
                     <span class="inventory-switch-track">
                       <span class="switch-text switch-on">Active</span>
                       <span class="switch-text switch-off">Inactive</span>
@@ -491,21 +493,21 @@
                 <div class="erp-form-group">
                   <label class="erp-label">Base UOM</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [searchable]="true" [clearable]="true" [ngModel]="'Nos'" placeholder="Select Base UOM"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'baseUom', label:'Base UOM', type:'select'})" (ngModelChange)="collectFormField('baseUom', $event)" placeholder="Select Base UOM"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">HSN/SAC Code</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSacOptions" [searchable]="true" [clearable]="true" [ngModel]="'8471'" placeholder="Auto bind from HSN/SAC"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSacOptions" [searchable]="true" [clearable]="true" [ngModel]="hsnSacCode()" (ngModelChange)="onTaxCodeManualSearch($event)" placeholder="Auto bind from HSN/SAC"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add HSN / SAC" (click)="openAddMaster('HSN / SAC')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Tax Category</label>
                   <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['GST 0%', 'GST 5%', 'GST 12%', 'GST 18%', 'GST 28%', 'Exempt']" [searchable]="true" [clearable]="true" [ngModel]="'GST 18%'" placeholder="Select Tax Category"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['GST 0%', 'GST 5%', 'GST 12%', 'GST 18%', 'GST 28%', 'Exempt']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'taxCategory', label:'Tax Category', type:'select'})" (ngModelChange)="collectFormField('taxCategory', $event)" placeholder="Select Tax Category"></ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Tax Category" (click)="openAddMaster('Tax Category')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
@@ -523,9 +525,9 @@
               </div>
               @if (productStockControlsRequired()) {
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Reorder Level</label><input class="erp-input" type="number" placeholder="0" /></div>
+                <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'minStockLevel', label:'Minimum Stock', type:'number'})" (ngModelChange)="collectFormField('minStockLevel', $event)" /></div>
+                <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'maxStockLevel', label:'Maximum Stock', type:'number'})" (ngModelChange)="collectFormField('maxStockLevel', $event)" /></div>
+                <div class="erp-form-group"><label class="erp-label">Reorder Level</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'reorderLevel', label:'Reorder Level', type:'number'})" (ngModelChange)="collectFormField('reorderLevel', $event)" /></div>
                 <div class="erp-form-group"><label class="erp-label">Opening Quantity</label><input class="erp-input" type="number" placeholder="0" /></div>
                 <div class="erp-form-group"><label class="erp-label">Opening Value</label><input class="erp-input" type="number" placeholder="0" /></div>
               </div>
@@ -555,7 +557,7 @@
                   <div class="mt-2">
                     <label class="erp-label">Batch / Lot Policy</label>
                     <div class="inventory-field-with-add">
-                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Food Batch With Expiry', 'Agro Lot Tracking', 'Raw Material Batch']" [searchable]="true" [clearable]="true" [ngModel]="'Food Batch With Expiry'" placeholder="Select Batch / Lot Policy"></ng-select>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Food Batch With Expiry', 'Agro Lot Tracking', 'Raw Material Batch']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'batchPolicyName', label:'Batch / Lot Policy', type:'select'})" (ngModelChange)="collectFormField('batchPolicyName', $event)" placeholder="Select Batch / Lot Policy"></ng-select>
                       <button type="button" class="erp-btn btn-white btn-icon" title="Add Batch / Lot Policy" (click)="openAddMaster('Batch / Lot Policy')"><i class="pi pi-plus"></i></button>
                     </div>
                   </div>
@@ -571,7 +573,7 @@
                   <div class="mt-2">
                     <label class="erp-label">Serial Number Policy</label>
                     <div class="inventory-field-with-add">
-                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['IMEI Required', 'Serial No Required', 'Warranty Serial Tracking']" [searchable]="true" [clearable]="true" [ngModel]="'Serial No Required'" placeholder="Select Serial Policy"></ng-select>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['IMEI Required', 'Serial No Required', 'Warranty Serial Tracking']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'serialPolicyName', label:'Serial Number Policy', type:'select'})" (ngModelChange)="collectFormField('serialPolicyName', $event)" placeholder="Select Serial Policy"></ng-select>
                       <button type="button" class="erp-btn btn-white btn-icon" title="Add Serial Number Policy" (click)="openAddMaster('Serial Number Policy')"><i class="pi pi-plus"></i></button>
                     </div>
                   </div>
@@ -584,7 +586,7 @@
                     <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
                   </label>
                   @if (productExpiryApplicable()) {
-                  <div class="mt-2"><label class="erp-label">Expiry Alert Days</label><input class="erp-input" type="number" placeholder="30" /></div>
+                  <div class="mt-2"><label class="erp-label">Expiry Alert Days</label><input class="erp-input" type="number" placeholder="30" [ngModel]="formFieldValue({key:'expiryAlertDays', label:'Expiry Alert Days', type:'number'})" (ngModelChange)="collectFormField('expiryAlertDays', $event)" /></div>
                   }
                 </div>
                 <div class="erp-form-group">
@@ -632,7 +634,7 @@
                 <div class="erp-form-group"><label class="erp-label">Country of Origin</label><input class="erp-input" type="text" placeholder="India" /></div>
                 <div class="erp-form-group"><label class="erp-label">Weight</label><input class="erp-input" type="text" placeholder="Example: 1.5 KG" /></div>
                 <div class="erp-form-group"><label class="erp-label">Dimensions</label><input class="erp-input" type="text" placeholder="L x W x H" /></div>
-                <div class="erp-form-group span-2"><label class="erp-label">Product Description</label><textarea class="erp-input" rows="2" placeholder="Enter product description"></textarea></div>
+                <div class="erp-form-group span-2"><label class="erp-label">Product Description</label><textarea class="erp-input" rows="2" placeholder="Enter product description" [ngModel]="formFieldValue({key:'description', label:'Product Description', type:'textarea'})" (ngModelChange)="collectFormField('description', $event)"></textarea></div>
               </div>
               }
             </div>
@@ -642,19 +644,19 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">Consumption Setup</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">Consumption Type</label><input class="erp-input" type="text" placeholder="Internal Maintenance / Production Issue" /></div>
+                <div class="erp-form-group"><label class="erp-label">Consumption Type</label><input class="erp-input" type="text" placeholder="Internal Maintenance / Production Issue" [ngModel]="formFieldValue({key:'consumptionType', label:'Consumption Type', type:'text'})" (ngModelChange)="collectFormField('consumptionType', $event)" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Department</label>
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Admin', 'Manufacturing', 'Restaurant', 'Housekeeping', 'Maintenance']" [searchable]="true" [clearable]="true" [ngModel]="'Admin'" placeholder="Select Department"></ng-select>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Admin', 'Manufacturing', 'Restaurant', 'Housekeeping', 'Maintenance']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'department', label:'Department', type:'select'})" (ngModelChange)="collectFormField('department', $event)" placeholder="Select Department"></ng-select>
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Approval Required</label>
                   <label class="inventory-labeled-switch yes-no">
-                    <input type="checkbox" [checked]="consumptionApprovalRequired()" (change)="setConsumptionApprovalRequired($any($event.target).checked)" />
+                    <input type="checkbox" [checked]="consumptionApprovalRequired()" (change)="setConsumptionApprovalRequired($any($event.target).checked); collectFormField('approvalRequired', $any($event.target).checked)" />
                     <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
                   </label>
                 </div>
-                <div class="erp-form-group span-2"><label class="erp-label">Remarks</label><textarea class="erp-input" rows="2" placeholder="Explain when this consumption type is used"></textarea></div>
+                <div class="erp-form-group span-2"><label class="erp-label">Remarks</label><textarea class="erp-input" rows="2" placeholder="Explain when this consumption type is used" [ngModel]="formFieldValue({key:'remarks', label:'Remarks', type:'textarea'})" (ngModelChange)="collectFormField('remarks', $event)"></textarea></div>
               </div>
             </div>
 
@@ -803,7 +805,7 @@
                   </div>
                 </div>
 
-                <div class="erp-form-group"><label class="erp-label">{{ partyLabel() }} Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
+                <div class="erp-form-group"><label class="erp-label">{{ partyLabel() }} Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" [ngModel]="formFieldValue({key:'code', label:'Code', type:'text'})" (ngModelChange)="collectFormField('code', $event)" /></div>
                 <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.gstin || ''" placeholder="Auto bind from Global Contact" readonly /></div>
                 <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.pan || ''" placeholder="Auto bind from Global Contact" readonly /></div>
                 <div class="erp-form-group"><label class="erp-label">Mobile No.</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.mobile || ''" placeholder="Auto bind after selection" readonly /></div>
@@ -875,19 +877,19 @@
                   <label class="erp-label">Payment Terms</label>
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Immediate', '7 Days', '15 Days', '30 Days', '45 Days', 'Advance']" [searchable]="true" [clearable]="true" [ngModel]="'30 Days'" placeholder="Select Payment Terms"></ng-select>
                 </div>
-                <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" /></div>
+                <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'creditLimit', label:'Credit Limit', type:'number'})" (ngModelChange)="collectFormField('creditLimit', $event)" /></div>
                 @if (config.key === 'vendorMaster') {
                   <div class="erp-form-group span-2"><label class="erp-label">Bank Details</label><textarea class="erp-input" rows="2" placeholder="Bank name, account no, IFSC"></textarea></div>
                 } @else {
                   <div class="erp-form-group">
                     <label class="erp-label">Price List</label>
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" [ngModel]="'Retail Price List'" placeholder="Select Price List"></ng-select>
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'priceList', label:'Price List', type:'select'})" (ngModelChange)="collectFormField('priceList', $event)" placeholder="Select Price List"></ng-select>
                   </div>
                 }
                 <div class="erp-form-group">
                   <label class="erp-label">Status</label>
                   <label class="inventory-labeled-switch status">
-                    <input type="checkbox" checked />
+                    <input type="checkbox" [checked]="fieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']})" (change)="setFieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
                     <span class="inventory-switch-track">
                       <span class="switch-text switch-on">Active</span>
                       <span class="switch-text switch-off">Inactive</span>
@@ -909,24 +911,24 @@
           <div class="inventory-form-grid inventory-config-grid">
             <div class="erp-form-group">
               <label class="erp-label">Search Keyword</label>
-              <input class="erp-input" type="text" placeholder="Product, service or HSN/SAC keyword" />
+              <input class="erp-input" type="text" placeholder="Product, service or HSN/SAC keyword" [ngModel]="hsnSacCode()" (ngModelChange)="onTaxCodeManualSearch($event)" />
             </div>
             <div class="erp-form-group">
               <label class="erp-label">Fetch / Entry Mode</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSourceOptions" [searchable]="true" [clearable]="true" [ngModel]="'Government API'" placeholder="Select Source"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSourceOptions" [searchable]="true" [clearable]="true" [ngModel]="selectedTaxSource()" (ngModelChange)="selectedTaxSource.set($event || '')" placeholder="Select Source"></ng-select>
             </div>
             <div class="erp-form-group">
               <label class="erp-label">HSN/SAC Code</label>
-              <input class="erp-input" type="text" placeholder="Fetched code or manual entry" />
+              <input class="erp-input" type="text" placeholder="Fetched code or manual entry" [ngModel]="hsnSacCode()" (ngModelChange)="onTaxCodeManualSearch($event)" />
             </div>
             <div class="erp-form-group">
               <label class="erp-label">GST %</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" [ngModel]="'18'" placeholder="Select GST"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" [ngModel]="gstRate() !== null ? gstRate()?.toString() : null" (ngModelChange)="onGstRateChange($event)" placeholder="Select GST"></ng-select>
             </div>
-            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" /></div>
-            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" /></div>
+            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" [ngModel]="formFieldValue({key:'cgstRate', label:'CGST %', type:'number'})" (ngModelChange)="collectFormField('cgstRate', $event)" /></div>
+            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" [ngModel]="formFieldValue({key:'sgstRate', label:'SGST %', type:'number'})" (ngModelChange)="collectFormField('sgstRate', $event)" /></div>
+            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" [ngModel]="formFieldValue({key:'igstRate', label:'IGST %', type:'number'})" (ngModelChange)="collectFormField('igstRate', $event)" /></div>
+            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'cessRate', label:'Cess %', type:'number'})" (ngModelChange)="collectFormField('cessRate', $event)" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Effective Date</label>
               <div class="inventory-date-wrap">
@@ -937,7 +939,7 @@
             <div class="erp-form-group">
               <label class="erp-label">Status</label>
               <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
+                <input type="checkbox" [checked]="fieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']})" (change)="setFieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
                 <span class="inventory-switch-track">
                   <span class="switch-text switch-on">Active</span>
                   <span class="switch-text switch-off">Inactive</span>
@@ -946,7 +948,7 @@
             </div>
             <div class="erp-form-group span-2">
               <label class="erp-label">Description</label>
-              <textarea class="erp-input" rows="2" placeholder="Fetched government/API description or manual description"></textarea>
+              <textarea class="erp-input" rows="2" placeholder="Fetched government/API description or manual description" [ngModel]="hsnSacDescription()" (ngModelChange)="onTaxDescriptionChange($event)"></textarea>
             </div>
           </div>
           <div class="inventory-duplicate-advice">
@@ -975,9 +977,11 @@
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                        </div>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
+                    </div>
                       </td>
                       @for (cell of row; track $index) {
                         <td>{{ cell }}</td>
@@ -989,6 +993,21 @@
             </div>
           </div>
         } @else {
+        @if (isApiWired()) {
+          <div class="product-segment-bar">
+            <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
+            @if (segmentCount === 1) {
+              <span class="erp-badge badge-info">{{ segmentOptions[0] }}</span>
+            } @else {
+              <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
+                [items]="segmentOptions" [searchable]="false" [clearable]="false"
+                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                placeholder="Select Segment">
+              </ng-select>
+            }
+            <span class="product-segment-bar-hint">Records added here belong to this segment.</span>
+          </div>
+        }
         <div class="inventory-form-grid" [class.inventory-config-grid]="config.key === 'businessSegments' || config.key === 'warehouseMaster'">
           @for (field of displayFields(); track field.key) {
             <div class="erp-form-group" [class.span-2]="field.type === 'textarea' && config.key !== 'warehouseMaster' && config.key !== 'businessSegments'">
@@ -1011,13 +1030,15 @@
                     [clearable]="true"
                     [multiple]="field.type === 'multiselect'"
                     [closeOnSelect]="field.type !== 'multiselect'"
-                    [ngModel]="defaultFieldValue(field)"
+                    [ngModel]="formFieldValue(field)"
+                    (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)"
                     [placeholder]="'Select ' + field.label">
                   </ng-select>
                 } @else if (field.type === 'date') {
                   <div class="inventory-date-wrap">
                     <p-datepicker
-                      [ngModel]="null"
+                      [ngModel]="formFieldValue(field)"
+                      (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)"
                       [ngModelOptions]="{ standalone: true }"
                       dateFormat="dd-M-yy"
                       placeholder="DD-MMM-YYYY"
@@ -1030,16 +1051,16 @@
                     <i class="pi pi-calendar inventory-date-icon"></i>
                   </div>
                 } @else if (field.type === 'number') {
-                  <input class="erp-input" type="number" placeholder="0" />
+                  <input class="erp-input" type="number" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" placeholder="0" />
                 } @else if (field.type === 'file') {
                   <input class="erp-input" type="file" accept="image/*" />
                 } @else if (field.type === 'textarea') {
-                  <textarea class="erp-input" rows="2" [placeholder]="field.key === 'locationAddress' || field.key === 'address' ? 'Fetch from Maps API while typing later or enter address manually' : 'Enter notes'"></textarea>
+                  <textarea class="erp-input" rows="2" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationAddress' || field.key === 'address' ? 'Fetch from Maps API while typing later or enter address manually' : 'Enter notes'"></textarea>
                 } @else {
-                  <input class="erp-input" type="text" [placeholder]="field.key === 'locationCode' ? 'Auto generated from location name + backend code' : 'Enter ' + field.label" />
+                  <input class="erp-input" type="text" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationCode' ? 'Auto generated from location name + backend code' : 'Enter ' + field.label" />
                 }
                 @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster)">
+                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
                     <i class="pi pi-plus"></i>
                   </button>
                 }
@@ -1178,8 +1199,8 @@
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove"><i class="pi pi-trash"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" [attr.data-index]="$index"><i class="pi pi-pencil"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" [attr.data-index]="$index"><i class="pi pi-trash"></i></button>
                         </div>
                       </td>
                       @for (cell of row.slice(0, (config.columns || []).length); track $index) {
@@ -1235,12 +1256,14 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', config.rows || []); track $index) {
+              @for (row of gridRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      @if (isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
                     </div>
                   </td>
                   @for (cell of row.slice(0, (config.columns || []).length); track $index) {
@@ -1411,9 +1434,11 @@
                   <tr>
                     <td class="text-center">
                       <div class="inventory-row-actions">
+                      @if (isAdmin()) {
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      </div>
+                      }
+                    </div>
                     </td>
                     @for (cell of row; track $index) {
                       <td>{{ cell }}</td>
@@ -1424,53 +1449,29 @@
             </table>
           </div>
         } @else if (activeAddMaster() === 'Category') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Category Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-            <div class="erp-form-group"><label class="erp-label">Category Name</label><input class="erp-input" type="text" placeholder="Enter general group name" /></div>
+          <div class="inventory-form-grid inventory-config-grid">
             <div class="erp-form-group">
-              <label class="erp-label">Segment</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [searchable]="true" [clearable]="true" [ngModel]="'Electronics'" placeholder="Select Segment"></ng-select>
+              <label class="erp-label">Category Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" placeholder="Enter category name"
+                [ngModel]="quickAddName()" (ngModelChange)="onQuickAddNameChange($event)" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Available Categories</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultCategorySelections" placeholder="Check existing categories"></ng-select>
+              <label class="erp-label">Category Code <span class="erp-label-hint">auto-generated</span></label>
+              <input class="erp-input" type="text" placeholder="Auto-fills from name"
+                [ngModel]="quickAddCode()" (ngModelChange)="quickAddCode.set($event)" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Business Segment</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="segmentOptions" [searchable]="false" [clearable]="true"
+                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                placeholder="Select Segment">
+              </ng-select>
             </div>
           </div>
-          <div class="inventory-duplicate-advice">
-            <strong>Duplication check</strong>
-            <span>Before saving, compare singular/plural words, abbreviations and similar business meaning.</span>
-          </div>
-          <div class="inventory-mini-table">
-            <div class="inventory-mini-title">Available Similar Categories</div>
-            <table class="erp-table compact">
-              <thead>
-                <tr>
-                  <th class="text-center">Actions</th>
-                  @for (column of ['Existing Category', 'Why it may match']; track column; let columnIndex = $index) {
-                    <th class="inventory-sortable-th">
-                      <button type="button" class="inventory-sort-btn" (click)="sortBy('categoryLookup', columnIndex)">
-                        <span>{{ column }}</span>
-                        <i [class]="sortIcon('categoryLookup', columnIndex)"></i>
-                      </button>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of gridRows('categoryLookup', categorySuggestionRows); track row[0]) {
-                  <tr>
-                    <td class="text-center">
-                      <div class="inventory-row-actions">
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      </div>
-                    </td>
-                    <td>{{ row[0] }}</td><td>{{ row[1] }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          @if (quickAddError()) {
+            <p class="inventory-error-msg">{{ quickAddError() }}</p>
+          }
         } @else if (activeAddMaster() === 'UOM') {
           <div class="inventory-form-grid">
             <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
@@ -1760,7 +1761,12 @@
         }
         <div class="inventory-form-actions">
           <button type="button" class="erp-btn btn-white" (click)="closeAddMaster()"><i class="pi pi-times"></i> Cancel</button>
-          <button type="button" class="erp-btn btn-primary" (click)="closeAddMaster()"><i class="pi pi-check"></i> Save</button>
+          <button type="button" class="erp-btn btn-primary"
+            (click)="activeAddMaster() === 'Category' ? saveQuickCategory() : closeAddMaster()"
+            [disabled]="isSavingQuickAdd()">
+            <i [class]="isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+            {{ isSavingQuickAdd() ? 'Saving...' : 'Save' }}
+          </button>
         </div>
       </div>
     </div>

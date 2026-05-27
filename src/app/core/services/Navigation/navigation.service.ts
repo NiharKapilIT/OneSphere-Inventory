@@ -196,7 +196,8 @@ export class NavigationService {
               screens: [
                 { id: 'business-segments', name: 'Business Segments', route: '/dashboard/inventory/configuration/business-segments' },
                 { id: 'warehouse-location-master', name: 'Warehouse Setup', route: '/dashboard/inventory/configuration/warehouse-location-master' },
-                { id: 'branch-master', name: 'Branch / Store Setup', route: '/dashboard/inventory/configuration/branch-master' }
+                { id: 'branch-master', name: 'Branch / Store Setup', route: '/dashboard/inventory/configuration/branch-master' },
+                { id: 'tax-code-import', name: 'HSN/SAC Tax Code Import', route: '/dashboard/inventory/configuration/tax-code-import' }
               ]
             },
             {
@@ -348,6 +349,7 @@ export class NavigationService {
               id: 'user-management',
               name: 'User Management',
                screens: [
+                { id: 'manage-branches', name: 'Manage Branches', route: '/dashboard/settings/branch-management/manage-branches' },
                 { id: 'manage-users', name: 'Manage Users', route: '/dashboard/settings/user-management/manage-users' },
                 { id: 'roles-permissions', name: 'Roles & Permissions', route: '/dashboard/settings/user-management/roles-permissions' },
                 { id: 'user-activity', name: 'User Activity Log', route: '/dashboard/settings/user-management/user-activity' }
@@ -403,7 +405,9 @@ export class NavigationService {
 //global_ERP
     
       getModules(): Module[] {
-        return this.modulesData;
+        const allowedModuleIds = this.getAllowedModuleIds();
+        if (!allowedModuleIds) return this.modulesData;
+        return this.modulesData.filter(module => allowedModuleIds.has(module.id.toLowerCase()));
       }
 
       /** Add a brand-new top-level module (e.g. a feature module loaded lazily). */
@@ -436,7 +440,7 @@ export class NavigationService {
       findPathByRoute(route: string): NavigationPath | null {
         const currentRoute = this.normalizeRoute(route);
 
-        for (const module of this.modulesData) {
+        for (const module of this.getModules()) {
           for (const subModule of module.subModules) {
             for (const screen of subModule.screens) {
               const screenRoutes = [screen.route, ...(screen.relatedRoutes ?? [])];
@@ -489,6 +493,37 @@ export class NavigationService {
         const pathOnly = (route || '/').split(/[?#]/)[0] || '/';
         const withLeadingSlash = pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`;
         return withLeadingSlash.replace(/\/+$/, '') || '/';
+      }
+
+      private getAllowedModuleIds(): Set<string> | null {
+        try {
+          const user = JSON.parse(sessionStorage.getItem('authUser') || '{}') as {
+            isSuperAdmin?: boolean;
+            modules?: Array<{ moduleCode?: string }>;
+          };
+          const roles = JSON.parse(sessionStorage.getItem('authRoles') || '[]') as Array<{ roleType?: string }>;
+          const isCompanyAdmin = user.isSuperAdmin === true ||
+            roles.some(role => role.roleType?.toLowerCase() === 'company_admin');
+          if (isCompanyAdmin) return null;
+
+          const modules = user.modules ?? [];
+          if (modules.length === 0) return null;
+
+          const codeToModuleId: Record<string, string> = {
+            ACCOUNTS: 'accounts',
+            HRMS: 'hrms',
+            INVENTORY: 'inventory',
+            SETTINGS: 'settings'
+          };
+
+          return new Set(
+            modules
+              .map(module => codeToModuleId[(module.moduleCode || '').toUpperCase()])
+              .filter((value): value is string => !!value)
+          );
+        } catch {
+          return null;
+        }
       }
     
 }

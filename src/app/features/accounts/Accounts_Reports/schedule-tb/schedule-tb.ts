@@ -1,13 +1,14 @@
-
-import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
-import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
-
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DatePickerModule } from 'primeng/datepicker';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+import { Companydetails } from '../../../common/company-details/companydetails/companydetails';
 import { CommonService } from '../../../../core/services/Common/common.service';
-import { DatePickerModule } from 'primeng/datepicker';
+import { AccountsReports } from '../../../../core/services/accounts/accounts-reports';
 
 interface TBRow {
   accountId: string;
@@ -24,358 +25,525 @@ interface TBRow {
   subHeadSortOrder: number;
 }
 
-interface TBResponse {
-  status: string;
-  message?: string;
-  dateLabel?: string;
-  rows?: TBRow[];
+type ReportRowKind = 'group' | 'account' | 'grand-total';
+
+interface ScheduleDisplayRow {
+  id: string;
+  kind: ReportRowKind;
+  level: number;
+  label: string;
+  debitAmount: number;
+  creditAmount: number;
+}
+
+interface ScheduleLevel {
+  field: keyof Pick<TBRow, 'mainName' | 'groupName' | 'subGroupName' | 'subHead'>;
+  sortField: keyof Pick<TBRow, 'mainNameSortOrder' | 'groupSortOrder' | 'subGroupSortOrder' | 'subHeadSortOrder'>;
+  fallback: string;
 }
 
 @Component({
-  selector: "app-schedule-tb",
+  selector: 'app-schedule-tb',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, DatePickerModule],
-  templateUrl: "./schedule-tb.html",
+  imports: [CommonModule, FormsModule, DatePickerModule, Companydetails],
+  templateUrl: './schedule-tb.html',
 })
-
 export class ScheduleTb implements OnInit {
-  pDatepickerMaxDate: Date = new Date();
+  private readonly commonService = inject(CommonService);
+  private readonly reportService = inject(AccountsReports);
+  private readonly destroyRef = inject(DestroyRef);
 
-
-  private http = inject(HttpClient);
-  private commonService = inject(CommonService);
-
-  // ── Signals ──────────────────────────────────────────────────────────
-  readonly loading = signal<boolean>(false);
-  readonly btnPrint = signal<string>('Print');
+  readonly pDatepickerMaxDate: Date = new Date();
+  readonly loading = signal(false);
   readonly errorMsg = signal<string | null>(null);
-  readonly submitted = signal<boolean>(false);
+  readonly submitted = signal(false);
+  readonly rawRows = signal<TBRow[]>([]);
+  readonly displayRows = signal<ScheduleDisplayRow[]>([]);
+  readonly showReport = signal(false);
+  readonly reportDateLabel = signal('');
+  readonly printedDate = true;
 
-  // ── State ─────────────────────────────────────────────────────────────
+  readonly totals = computed(() => {
+    return this.rawRows().reduce(
+      (total, row) => ({
+        debitAmount: total.debitAmount + this.toNumber(row.debitAmount),
+        creditAmount: total.creditAmount + this.toNumber(row.creditAmount),
+      }),
+      { debitAmount: 0, creditAmount: 0 }
+    );
+  });
+
   asOnDate: Date = new Date();
 
-  private readonly apiBase = 'https://localhost:5001/api';
-
-  // ── Datepicker config ─────────────────────────────────────────────────
-  readonly dpConfig: any = {
-    containerClass: 'theme-dark-blue',
-    dateInputFormat: 'DD-MMM-YYYY',
-    maxDate: new Date(),
-    showWeekNumbers: false,
-  };
+  private readonly levels: ScheduleLevel[] = [
+    { field: 'mainName', sortField: 'mainNameSortOrder', fallback: 'Main Head' },
+    { field: 'groupName', sortField: 'groupSortOrder', fallback: 'Group' },
+    { field: 'subGroupName', sortField: 'subGroupSortOrder', fallback: 'Sub Group' },
+    { field: 'subHead', sortField: 'subHeadSortOrder', fallback: 'Sub Head' },
+  ];
 
   ngOnInit(): void {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     this.asOnDate = today;
+    this.reportDateLabel.set(this.formatDisplayDate(today));
   }
 
-  // ── Print / Generate ──────────────────────────────────────────────────
-  print(form: NgForm): void {
+  generateReport(form: NgForm): void {
     this.submitted.set(true);
     this.errorMsg.set(null);
 
-    if (!form.valid || !this.asOnDate) return;
+    if (!form.valid || !this.asOnDate) {
+      return;
+    }
 
-    const toDate = this.formatDate(this.asOnDate);
+    const toDate = this.commonService.getFormatDateNormal(this.asOnDate);
+    if (!toDate) {
+      this.errorMsg.set('Select a valid as on date.');
+      return;
+    }
+
     this.loading.set(true);
-    this.btnPrint.set('Loading...');
+    this.showReport.set(false);
+    this.rawRows.set([]);
+    this.displayRows.set([]);
+    this.reportDateLabel.set(this.formatDisplayDate(this.asOnDate));
 
-    const params = new HttpParams()
-      .set('fromDate', 'null')
-      .set('toDate', toDate);
-
-    this.http
-      .get<any>(`${this.apiBase}/Accounts/GetScheduleTBReport`, { params })
+    this.reportService
+      .GetScheduleTBNestedReport(
+        toDate,
+        this.commonService.getCompanyCode(),
+        this.commonService.getBranchCode()
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
-          let rows: TBRow[] = [];
-          let dateLabel = 'AS ON ' + this.formatDateLabel(this.asOnDate);
+          const rows = Array.isArray(res) ? res.map(row => this.normalizeRow(row)) : [];
+          const activeRows = rows.filter(row => row.accountName && (row.debitAmount || row.creditAmount));
 
-          if (Array.isArray(res)) {
-            rows = res as TBRow[];
-          } else if (res?.status === 'ok' && res.rows) {
-            rows = res.rows;
-            dateLabel = res.dateLabel ?? dateLabel;
-          } else {
-            this.errorMsg.set(res?.message || 'Could not generate report.');
-            this.resetBtn();
-            return;
-          }
-
-          if (!rows?.length) {
+          if (!activeRows.length) {
             this.errorMsg.set('No data found for the selected date.');
-            this.resetBtn();
+            this.loading.set(false);
             return;
           }
 
-          this.generatePdf({ status: 'ok', rows, dateLabel });
-          this.resetBtn();
+          this.rawRows.set(this.sortRows(activeRows));
+          this.displayRows.set(this.buildDisplayRows(this.rawRows()));
+          this.showReport.set(true);
+          this.loading.set(false);
         },
-        error: () => {
-          this.errorMsg.set('An error occurred while fetching report data.');
-          this.resetBtn();
+        error: (err) => {
+          this.errorMsg.set(this.readError(err));
+          this.loading.set(false);
         },
       });
   }
 
-  // ── PDF Generation ────────────────────────────────────────────────────
-  private generatePdf(data: TBResponse): void {
+  rowClass(row: ScheduleDisplayRow): string {
+    if (row.kind === 'account') return 'schedule-row schedule-row-account';
+    if (row.kind === 'grand-total') return 'schedule-row schedule-row-grand';
+    return `schedule-row schedule-row-level schedule-row-level-${Math.min(row.level, 3)}`;
+  }
+
+  rowIndent(row: ScheduleDisplayRow): number {
+    return 16 + row.level * 24;
+  }
+
+  levelLabel(row: ScheduleDisplayRow): string {
+    if (row.kind === 'account') return '';
+    if (row.kind === 'grand-total') return 'Total';
+    return ['Main', 'Group', 'Sub Group', 'Sub Head'][row.level] ?? 'Head';
+  }
+
+  amountText(value: number): string {
+    if (!value) return '';
+    return this.formatAmount(value);
+  }
+
+  exportExcel(): void {
+    if (!this.ensureReport()) return;
+
+    const rows = this.displayRows().map(row => ({
+      Level: row.kind === 'account' ? 'Account' : this.levelLabel(row),
+      Particulars: row.label,
+      Debit: row.debitAmount || '',
+      Credit: row.creditAmount || '',
+    }));
+
+    this.commonService.exportAsExcelFile(rows, `Schedule_TB_${this.formatFileDate(this.asOnDate)}`);
+  }
+
+  exportPdf(): void {
+    if (!this.ensureReport()) return;
+
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const marginL = 14;
-    const marginR = 14;
-    const contentW = pageW - marginL - marginR;
-    const col0W = contentW - 50;
-    const col1W = 25;
-    const col2W = 25;
+    const company = this.commonService._getCompanyDetails() ?? {};
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const marginX = 10;
+    const totalPagesExp = '{total_pages_count_string}';
+    const logo = this.commonService.getKapilGroupLogo();
 
-    const kapilLogo = this.getKapilGroupLogo();
-    const companyDetails = this.commonService._getCompanyDetails();
-    const companyName = companyDetails?.companyName ?? '';
-    const companyAddress = companyDetails?.registrationAddress ?? '';
-
-    const drawPageHeader = (doc: jsPDF): number => {
-      let y = 8;
-      doc.addImage(kapilLogo, 'JPEG', 10, 5, 20, 20);
-
-      doc.setFontSize(13);
-      doc.setFont('helvetica', 'bold');
-      doc.text(companyName, pageW / 2, y, { align: 'center' });
-      y += 5;
-
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(companyAddress, pageW / 2, y, { align: 'center' });
-      y += 4;
-      doc.text('Phone : , Email :', pageW / 2, y, { align: 'center' });
-      y += 10;
-
-      doc.setLineWidth(0.5);
-      doc.line(marginL, y, pageW - marginR, y);
-      y += 4;
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('SCHEDULE TRIAL BALANCE ' + (data.dateLabel ?? ''), marginL, y);
-      doc.text('TEST DIVISION', pageW - marginR, y, { align: 'right' });
-      y += 3;
-
-      doc.setLineWidth(0.5);
-      doc.line(marginL, y, pageW - marginR, y);
-      y += 1;
-
-      autoTable(doc, {
-        startY: y,
-        head: [['Account Name', 'Debit Amount\u20B9', 'Credit Amount\u20B9']],
-        body: [],
-        theme: 'plain',
-        headStyles: {
-          fontStyle: 'bold', fontSize: 9, textColor: 0,
-          fillColor: false, halign: 'center',
-          cellPadding: { top: 2, bottom: 1, left: 2, right: 2 },
-          lineWidth: { bottom: 0.3 }, lineColor: [0, 0, 0],
-        },
-        columnStyles: {
-          0: { cellWidth: col0W, halign: 'center' },
-          1: { cellWidth: col1W, halign: 'center' },
-          2: { cellWidth: col2W, halign: 'center' },
-        },
-        margin: { left: marginL, right: marginR },
-        tableWidth: contentW,
-      });
-
-      return (doc as any).lastAutoTable.finalY + 1;
-    };
-
-    let y = drawPageHeader(doc);
-    const grouped = this.groupRows(data.rows!);
-    let totalDebit = 0;
-    let totalCredit = 0;
-    let rowCount = 0;
-
-    const drawSeparator = () => {
-      const dashes = '-'.repeat(130);
-      autoTable(doc, {
-        startY: y,
-        body: [[{ content: dashes, colSpan: 3, styles: { halign: 'left', fontSize: 6, textColor: 150, cellPadding: { top: 0, bottom: 0, left: 2, right: 2 } } }]],
-        theme: 'plain',
-        columnStyles: { 0: { cellWidth: col0W }, 1: { cellWidth: col1W }, 2: { cellWidth: col2W } },
-        margin: { left: marginL, right: marginR },
-        tableWidth: contentW,
-      });
-      y = (doc as any).lastAutoTable.finalY;
-    };
-
-    for (const [mainname, groups] of Object.entries(grouped)) {
-      autoTable(doc, {
-        startY: y,
-        body: [[{ content: mainname, colSpan: 3, styles: { fontStyle: 'bold', fontSize: 9, textColor: 0, cellPadding: { top: 2, bottom: 1, left: 2, right: 2 } } }]],
-        theme: 'plain',
-        columnStyles: { 0: { cellWidth: col0W }, 1: { cellWidth: col1W }, 2: { cellWidth: col2W } },
-        margin: { left: marginL, right: marginR },
-        tableWidth: contentW,
-      });
-      y = (doc as any).lastAutoTable.finalY;
-
-      for (const [groupname, subgroups] of Object.entries(groups as any)) {
-        autoTable(doc, {
-          startY: y,
-          body: [[{ content: '  ' + groupname, colSpan: 3, styles: { fontStyle: 'bold', fontSize: 9, textColor: 0, cellPadding: { top: 1.5, bottom: 1, left: 2, right: 2 } } }]],
-          theme: 'plain',
-          columnStyles: { 0: { cellWidth: col0W }, 1: { cellWidth: col1W }, 2: { cellWidth: col2W } },
-          margin: { left: marginL, right: marginR },
-          tableWidth: contentW,
-        });
-        y = (doc as any).lastAutoTable.finalY;
-
-        for (const [subgroupname, subheads] of Object.entries(subgroups as any)) {
-          if (subgroupname) {
-            autoTable(doc, {
-              startY: y,
-              body: [[{ content: '    ' + subgroupname, colSpan: 3, styles: { fontStyle: 'bold', fontSize: 9, textColor: 0, cellPadding: { top: 1.5, bottom: 1, left: 2, right: 2 } } }]],
-              theme: 'plain',
-              columnStyles: { 0: { cellWidth: col0W }, 1: { cellWidth: col1W }, 2: { cellWidth: col2W } },
-              margin: { left: marginL, right: marginR },
-              tableWidth: contentW,
-            });
-            y = (doc as any).lastAutoTable.finalY;
-          }
-
-          for (const [subhead, accounts] of Object.entries(subheads as any)) {
-            if (subhead) {
-              autoTable(doc, {
-                startY: y,
-                body: [[{ content: '      ' + subhead, colSpan: 3, styles: { fontStyle: 'bold', fontSize: 9, textColor: 0, cellPadding: { top: 1.5, bottom: 1, left: 2, right: 2 } } }]],
-                theme: 'plain',
-                columnStyles: { 0: { cellWidth: col0W }, 1: { cellWidth: col1W }, 2: { cellWidth: col2W } },
-                margin: { left: marginL, right: marginR },
-                tableWidth: contentW,
-              });
-              y = (doc as any).lastAutoTable.finalY;
-            }
-
-            const bodyRows = (accounts as TBRow[]).map(r => [
-              '        ' + r.accountName,
-              r.debitAmount > 0 ? this.formatAmt(r.debitAmount) : '',
-              r.creditAmount > 0 ? this.formatAmt(r.creditAmount) : '',
-            ]);
-
-            autoTable(doc, {
-              startY: y,
-              body: bodyRows,
-              theme: 'plain',
-              bodyStyles: { fontSize: 8.5, textColor: 0, cellPadding: { top: 1, bottom: 1, left: 2, right: 2 } },
-              columnStyles: {
-                0: { cellWidth: col0W },
-                1: { cellWidth: col1W, halign: 'right' },
-                2: { cellWidth: col2W, halign: 'right' },
-              },
-              margin: { left: marginL, right: marginR },
-              tableWidth: contentW,
-            });
-            y = (doc as any).lastAutoTable.finalY;
-
-            totalDebit += (accounts as TBRow[]).reduce((s, r) => s + (r.debitAmount || 0), 0);
-            totalCredit += (accounts as TBRow[]).reduce((s, r) => s + (r.creditAmount || 0), 0);
-            rowCount++;
-
-            if (rowCount % 8 === 0) drawSeparator();
-          }
-        }
-      }
+    if (logo) {
+      doc.addImage(logo, 'JPEG', 10, 6, 20, 20);
     }
 
-    drawSeparator();
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text(company.companyName ?? '', pageWidth / 2, 11, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(company.registrationAddress ?? '', pageWidth / 2, 17, { align: 'center', maxWidth: 150 });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('Schedule Trial Balance', pageWidth / 2, 31, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`As on: ${this.reportDateLabel()}`, marginX, 39);
+    doc.text(`Branch: ${company.branchName ?? this.commonService.getBranchCode()}`, pageWidth - marginX, 39, { align: 'right' });
+
+    const body = this.displayRows().map(row => this.pdfRow(row));
 
     autoTable(doc, {
-      startY: y + 1,
-      body: [[
-        { content: 'Grand Total :', styles: { fontStyle: 'bold', halign: 'right' } },
-        { content: this.formatAmt(totalDebit), styles: { fontStyle: 'bold', halign: 'right' } },
-        { content: this.formatAmt(totalCredit), styles: { fontStyle: 'bold', halign: 'right' } },
-      ]],
-      theme: 'plain',
-      bodyStyles: { fontSize: 9, textColor: 0, cellPadding: { top: 2, bottom: 2, left: 2, right: 2 } },
-      columnStyles: {
-        0: { cellWidth: col0W },
-        1: { cellWidth: col1W, halign: 'right' },
-        2: { cellWidth: col2W, halign: 'right' },
+      startY: 44,
+      head: [['Particulars', 'Debit Amount', 'Credit Amount']],
+      body,
+      theme: 'grid',
+      margin: { left: marginX, right: marginX, bottom: 16 },
+      headStyles: {
+        fillColor: [12, 74, 110],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center',
+        fontSize: 9,
       },
-      margin: { left: marginL, right: marginR },
-      tableWidth: contentW,
-      didDrawCell: (hookData) => {
-        if (hookData.row.index === 0) {
-          const { x, y: cy, width, height } = hookData.cell;
-          doc.setLineWidth(0.4);
-          doc.line(x, cy, x + width, cy);
-          doc.line(x, cy + height, x + width, cy + height);
-        }
+      styles: {
+        fontSize: 8,
+        cellPadding: 1.8,
+        overflow: 'linebreak',
+        lineColor: [210, 220, 230],
+        lineWidth: 0.1,
+      },
+      columnStyles: {
+        0: { cellWidth: 118 },
+        1: { cellWidth: 36, halign: 'right' },
+        2: { cellWidth: 36, halign: 'right' },
+      },
+      didDrawPage: () => {
+        const page = `Page ${doc.getNumberOfPages()}${typeof doc.putTotalPages === 'function' ? ` of ${totalPagesExp}` : ''}`;
+        doc.setFontSize(8);
+        doc.setTextColor(60, 60, 60);
+        doc.line(marginX, pageHeight - 11, pageWidth - marginX, pageHeight - 11);
+        doc.text(`Printed on: ${this.formatDisplayDate(new Date())}`, marginX, pageHeight - 6);
+        doc.text(page, pageWidth - marginX, pageHeight - 6, { align: 'right' });
       },
     });
 
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    const now = new Date();
-    const printedOn = `Printed On : ${this.formatDateLabel(now)} ${now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
-
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0);
-      doc.text(printedOn, marginL, pageH - 5);
-      doc.text(`Page ${i} of ${pageCount}`, pageW - marginR, pageH - 5, { align: 'right' });
+    if (typeof doc.putTotalPages === 'function') {
+      doc.putTotalPages(totalPagesExp);
     }
 
-    doc.save(`ScheduleTB_${this.formatDateFile(this.asOnDate)}.pdf`);
+    doc.save(`Schedule_TB_${this.formatFileDate(this.asOnDate)}.pdf`);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────
-  private groupRows(rows: TBRow[]): Record<string, any> {
-    const grouped: Record<string, any> = {};
-    for (const row of rows) {
-      const m = row.mainName || '';
-      const g = row.groupName || '';
-      const s = row.subGroupName || '';
-      const h = row.subHead || '';
-      if (!grouped[m]) grouped[m] = {};
-      if (!grouped[m][g]) grouped[m][g] = {};
-      if (!grouped[m][g][s]) grouped[m][g][s] = {};
-      if (!grouped[m][g][s][h]) grouped[m][g][s][h] = [];
-      grouped[m][g][s][h].push(row);
+  printReport(): void {
+    if (!this.ensureReport()) return;
+
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) {
+      this.errorMsg.set('Popup blocked. Allow popups to print the report.');
+      return;
     }
-    return grouped;
+
+    printWindow.document.open();
+    printWindow.document.write(this.buildPrintableHtml());
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
   }
 
-  private formatAmt(val: number): string {
-    return val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  mailReport(): void {
+    if (!this.ensureReport()) return;
+
+    const company = this.commonService._getCompanyDetails() ?? {};
+    const subject = encodeURIComponent(`Schedule Trial Balance - ${this.reportDateLabel()}`);
+    const body = encodeURIComponent([
+      `${company.companyName ?? ''}`,
+      `Schedule Trial Balance`,
+      `As on: ${this.reportDateLabel()}`,
+      `Branch: ${company.branchName ?? this.commonService.getBranchCode()}`,
+      '',
+      this.mailBodyPreview(),
+      '',
+      'Use the ERP PDF or Excel export buttons for the complete report file.',
+    ].join('\n'));
+
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
   }
 
-  private formatDateLabel(date: Date): string {
-    const d = String(date.getDate()).padStart(2, '0');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d}-${months[date.getMonth()]}-${date.getFullYear()}`;
+  private buildDisplayRows(rows: TBRow[]): ScheduleDisplayRow[] {
+    const output: ScheduleDisplayRow[] = [];
+    this.appendLevel(output, rows, 0, 'root', 0);
+
+    output.push({
+      id: 'grand-total',
+      kind: 'grand-total',
+      level: 0,
+      label: 'Grand Total',
+      debitAmount: this.totals().debitAmount,
+      creditAmount: this.totals().creditAmount,
+    });
+
+    return output;
   }
 
-  private formatDate(date: Date): string {
-    const d = String(date.getDate()).padStart(2, '0');
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    return `${d}/${m}/${date.getFullYear()}`;
+  private appendLevel(output: ScheduleDisplayRow[], rows: TBRow[], level: number, path: string, displayLevel: number): void {
+    if (level >= this.levels.length) {
+      rows
+        .slice()
+        .sort((a, b) => a.accountName.localeCompare(b.accountName))
+        .forEach((row, index) => {
+          output.push({
+            id: `${path}-account-${index}-${row.accountId || 'na'}`,
+            kind: 'account',
+            level: displayLevel,
+            label: row.accountName,
+            debitAmount: row.debitAmount,
+            creditAmount: row.creditAmount,
+          });
+        });
+      return;
+    }
+
+    const levelConfig = this.levels[level];
+
+    if (!rows.some(row => this.cleanText(row[levelConfig.field]))) {
+      this.appendLevel(output, rows, level + 1, path, displayLevel);
+      return;
+    }
+
+    const groups = new Map<string, TBRow[]>();
+
+    rows.forEach(row => {
+      const label = this.cleanText(row[levelConfig.field]);
+      const key = label || levelConfig.fallback;
+      const groupRows = groups.get(key) ?? [];
+      groupRows.push(row);
+      groups.set(key, groupRows);
+    });
+
+    Array.from(groups.entries())
+      .sort((a, b) => this.groupSortValue(a[1], levelConfig.sortField) - this.groupSortValue(b[1], levelConfig.sortField) || a[0].localeCompare(b[0]))
+      .forEach(([label, groupedRows], index) => {
+        const totals = this.sumRows(groupedRows);
+        const groupId = `${path}-${level}-${index}`;
+
+        output.push({
+          id: groupId,
+          kind: 'group',
+          level: displayLevel,
+          label,
+          debitAmount: totals.debitAmount,
+          creditAmount: totals.creditAmount,
+        });
+
+        this.appendLevel(output, groupedRows, level + 1, groupId, displayLevel + 1);
+      });
   }
 
-  private formatDateFile(date: Date): string {
-    const d = String(date.getDate()).padStart(2, '0');
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    return `${d}-${m}-${date.getFullYear()}`;
+  private normalizeRow(row: any): TBRow {
+    const accountId = this.cleanText(row.accountId ?? row.account_id1 ?? row.accountid ?? row.accountId1);
+    const accountName = this.cleanText(row.accountName ?? row.account_name1 ?? row.vchaccountname ?? row.accountname ?? row.accountName1);
+
+    return {
+      accountId,
+      accountName: accountName || (accountId ? `Account ${accountId}` : 'Unnamed Account'),
+      debitAmount: this.toNumber(row.debitAmount ?? row.debitamount1 ?? row.debitamount ?? row.debitAmount1),
+      creditAmount: this.toNumber(row.creditAmount ?? row.creditamount1 ?? row.creditamount ?? row.creditAmount1),
+      mainName: this.cleanText(row.mainName ?? row.mainname1 ?? row.mainname ?? row.mainName1),
+      groupName: this.cleanText(row.groupName ?? row.groupname1 ?? row.groupname ?? row.groupName1),
+      subGroupName: this.cleanText(row.subGroupName ?? row.subgroupname1 ?? row.subgroupname ?? row.subGroupName1),
+      subHead: this.cleanText(row.subHead ?? row.subhead1 ?? row.subhead ?? row.subHead1),
+      mainNameSortOrder: this.toNumber(row.mainNameSortOrder ?? row.sortorder1 ?? row.mainnamesortorder ?? row.sortOrder1),
+      groupSortOrder: this.toNumber(row.groupSortOrder ?? row.groupsortorder1 ?? row.groupsortorder ?? row.groupSortOrder1),
+      subGroupSortOrder: this.toNumber(row.subGroupSortOrder ?? row.subgroupsortorder1 ?? row.subgroupsortorder ?? row.subGroupSortOrder1),
+      subHeadSortOrder: this.toNumber(row.subHeadSortOrder ?? row.subheadsortorder1 ?? row.subheadsortorder ?? row.subHeadSortOrder1),
+    };
   }
 
-  private resetBtn(): void {
-    this.loading.set(false);
-    this.btnPrint.set('Print');
+  private sortRows(rows: TBRow[]): TBRow[] {
+    return rows.slice().sort((a, b) =>
+      a.mainNameSortOrder - b.mainNameSortOrder ||
+      a.groupSortOrder - b.groupSortOrder ||
+      a.subGroupSortOrder - b.subGroupSortOrder ||
+      a.subHeadSortOrder - b.subHeadSortOrder ||
+      a.mainName.localeCompare(b.mainName) ||
+      a.groupName.localeCompare(b.groupName) ||
+      a.subGroupName.localeCompare(b.subGroupName) ||
+      a.subHead.localeCompare(b.subHead) ||
+      a.accountName.localeCompare(b.accountName)
+    );
   }
 
-  getKapilGroupLogo(): string {
-    return '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';
+  private pdfRow(row: ScheduleDisplayRow): any[] {
+    const styles: any = this.pdfStylesForRow(row);
+    return [
+      {
+        content: row.label,
+        styles: {
+          ...styles,
+          cellPadding: { top: 1.8, bottom: 1.8, left: 2 + row.level * 4, right: 2 },
+        },
+      },
+      { content: this.amountText(row.debitAmount), styles: { ...styles, halign: 'right' } },
+      { content: this.amountText(row.creditAmount), styles: { ...styles, halign: 'right' } },
+    ];
+  }
+
+  private pdfStylesForRow(row: ScheduleDisplayRow): any {
+    if (row.kind === 'account') {
+      return { textColor: [0, 0, 0], fontStyle: 'normal' };
+    }
+
+    if (row.kind === 'grand-total') {
+      return { textColor: [0, 0, 0], fillColor: [229, 231, 235], fontStyle: 'bold' };
+    }
+
+    const palette = [
+      { text: [4, 120, 87], fill: [220, 252, 231] },
+      { text: [29, 78, 216], fill: [219, 234, 254] },
+      { text: [126, 34, 206], fill: [243, 232, 255] },
+      { text: [180, 83, 9], fill: [254, 243, 199] },
+    ];
+    const color = palette[Math.min(row.level, palette.length - 1)];
+    return { textColor: color.text, fillColor: color.fill, fontStyle: 'bold' };
+  }
+
+  private buildPrintableHtml(): string {
+    const company = this.commonService._getCompanyDetails() ?? {};
+    const rows = this.displayRows().map(row => `
+      <tr class="${this.rowClass(row)}">
+        <td style="padding-left:${this.rowIndent(row)}px">${row.kind === 'account' ? '' : `<span class="print-chip">${this.levelLabel(row)}</span>`}${this.escapeHtml(row.label)}</td>
+        <td class="amount">${this.amountText(row.debitAmount)}</td>
+        <td class="amount">${this.amountText(row.creditAmount)}</td>
+      </tr>
+    `).join('');
+
+    return `<!doctype html>
+      <html>
+      <head>
+        <title>Schedule Trial Balance</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #111827; margin: 20px; }
+          h1, h2, p { margin: 0; }
+          .header { text-align: center; margin-bottom: 14px; }
+          .meta { display: flex; justify-content: space-between; margin: 12px 0; font-size: 12px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          th, td { border: 1px solid #d1d5db; padding: 6px 8px; }
+          th { background: #0c4a6e; color: #fff; text-align: center; }
+          .amount { text-align: right; white-space: nowrap; }
+          .schedule-row-level-0 { background: #dcfce7; color: #047857; font-weight: 700; }
+          .schedule-row-level-1 { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
+          .schedule-row-level-2 { background: #f3e8ff; color: #7e22ce; font-weight: 700; }
+          .schedule-row-level-3 { background: #fef3c7; color: #b45309; font-weight: 700; }
+          .schedule-row-account { color: #000; background: #fff; }
+          .schedule-row-grand { color: #000; background: #e5e7eb; font-weight: 700; }
+          .print-chip { display: inline-block; min-width: 58px; margin-right: 8px; font-size: 10px; text-transform: uppercase; }
+          @page { size: A4 portrait; margin: 12mm; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h2>${this.escapeHtml(company.companyName ?? '')}</h2>
+          <p>${this.escapeHtml(company.registrationAddress ?? '')}</p>
+          <h1>Schedule Trial Balance</h1>
+        </div>
+        <div class="meta">
+          <strong>As on: ${this.escapeHtml(this.reportDateLabel())}</strong>
+          <strong>Branch: ${this.escapeHtml(company.branchName ?? this.commonService.getBranchCode())}</strong>
+        </div>
+        <table>
+          <thead><tr><th>Particulars</th><th>Debit Amount</th><th>Credit Amount</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+      </html>`;
+  }
+
+  private mailBodyPreview(): string {
+    const previewRows = this.displayRows()
+      .slice(0, 60)
+      .map(row => `${'  '.repeat(Math.max(row.level, 0))}${row.label}  Dr: ${this.amountText(row.debitAmount) || '-'}  Cr: ${this.amountText(row.creditAmount) || '-'}`);
+
+    if (this.displayRows().length > 60) {
+      previewRows.push(`... ${this.displayRows().length - 60} more rows`);
+    }
+
+    return previewRows.join('\n');
+  }
+
+  private ensureReport(): boolean {
+    if (!this.displayRows().length) {
+      this.errorMsg.set('Generate the report before exporting.');
+      return false;
+    }
+    return true;
+  }
+
+  private sumRows(rows: TBRow[]): { debitAmount: number; creditAmount: number } {
+    return rows.reduce(
+      (total, row) => ({
+        debitAmount: total.debitAmount + this.toNumber(row.debitAmount),
+        creditAmount: total.creditAmount + this.toNumber(row.creditAmount),
+      }),
+      { debitAmount: 0, creditAmount: 0 }
+    );
+  }
+
+  private groupSortValue(rows: TBRow[], sortField: ScheduleLevel['sortField']): number {
+    const values = rows.map(row => this.toNumber(row[sortField])).filter(value => value > 0);
+    return values.length ? Math.min(...values) : Number.MAX_SAFE_INTEGER;
+  }
+
+  private formatAmount(value: number): string {
+    return value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  private formatDisplayDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    return `${day}-${month}-${date.getFullYear()}`;
+  }
+
+  private formatFileDate(date: Date): string {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+  }
+
+  private cleanText(value: unknown): string {
+    return String(value ?? '').trim();
+  }
+
+  private toNumber(value: unknown): number {
+    const parsed = Number(value ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private readError(err: any): string {
+    if (typeof err === 'string') return err;
+    return err?.error?.message ?? err?.error ?? err?.message ?? 'An error occurred while fetching report data.';
+  }
+
+  private escapeHtml(value: unknown): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 }

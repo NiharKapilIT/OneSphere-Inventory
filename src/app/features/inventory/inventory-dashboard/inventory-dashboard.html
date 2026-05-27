@@ -66,6 +66,188 @@
     }
   </section>
 
+  <section class="inv-visual-grid" aria-label="Inventory visual analytics">
+    <article class="inv-owner-panel inv-chart-panel span-wide">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Segment Value Picture</h2>
+          <p>Stock value and blocked revenue compared by segment.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-chart-bar"></i> Value mix</span>
+      </div>
+
+      <div class="inv-comparison-chart">
+        @for (segment of filteredSegments(); track segment.segment) {
+          <button type="button" class="inv-comparison-row" (click)="openDetail(segment.segment, segment, segment.route)">
+            <span class="inv-comparison-label">
+              <i [class]="segment.icon"></i>
+              <strong>{{ segment.segment }}</strong>
+            </span>
+            <span class="inv-comparison-bars">
+              <i class="stock" [style.width]="chartPercent(segment.stockShare)"></i>
+              <i class="hold" [style.width]="chartPercent(segment.holdShare)"></i>
+            </span>
+            <span class="inv-comparison-values">
+              <strong>{{ segment.stockValue }}</strong>
+              <small>{{ segment.revenueHold }} hold</small>
+            </span>
+          </button>
+        }
+      </div>
+
+      <div class="inv-chart-legend">
+        <span><i class="stock"></i> Stock value</span>
+        <span><i class="hold"></i> Revenue hold</span>
+      </div>
+    </article>
+
+    <article class="inv-owner-panel inv-chart-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Daily Movement</h2>
+          <p>Inward, outward and dispatch rhythm.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-chart-line"></i> 7 days</span>
+      </div>
+
+      <div class="inv-column-chart">
+        @for (point of movementPoints; track point.label) {
+          <button type="button" class="inv-column-group" (click)="openDetail(point.label + ' movement', point)">
+            <span class="inv-column-bars">
+              <i class="inward" [style.height]="chartPercent(point.inward)" [title]="'Inward ' + point.inwardValue"></i>
+              <i class="outward" [style.height]="chartPercent(point.outward)" [title]="'Outward ' + point.outwardValue"></i>
+              <i class="dispatch" [style.height]="chartPercent(point.dispatch)" [title]="'Dispatch ' + point.dispatchValue"></i>
+            </span>
+            <strong>{{ point.label }}</strong>
+          </button>
+        }
+      </div>
+
+      <div class="inv-chart-legend compact">
+        <span><i class="inward"></i> Inward</span>
+        <span><i class="outward"></i> Outward</span>
+        <span><i class="dispatch"></i> Dispatch</span>
+      </div>
+    </article>
+
+    <article class="inv-owner-panel inv-chart-panel inv-risk-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Risk Mix</h2>
+          <p>Current stock alerts by severity.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-exclamation-triangle"></i> Live</span>
+      </div>
+
+      <div class="inv-risk-picture">
+        <div class="inv-risk-donut" [style.background]="riskDonutStyle()">
+          <div>
+            <strong>{{ filteredRiskRows().length }}</strong>
+            <span>alerts</span>
+          </div>
+        </div>
+        <div class="inv-risk-legend">
+          <button type="button" (click)="setActiveTab('owner')">
+            <i class="critical"></i>
+            <span>Critical</span>
+            <strong>{{ criticalRiskCount() }}</strong>
+          </button>
+          <button type="button" (click)="setActiveTab('owner')">
+            <i class="watch"></i>
+            <span>Watch</span>
+            <strong>{{ watchRiskCount() }}</strong>
+          </button>
+          <button type="button" (click)="setActiveTab('owner')">
+            <i class="good"></i>
+            <span>Good</span>
+            <strong>{{ goodRiskCount() }}</strong>
+          </button>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="inv-picture-grid" aria-label="Sample inventory chart dashboard">
+    <article class="inv-owner-panel inv-chart-panel inv-stock-mix-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Stock Mix</h2>
+          <p>Sample value split by movement behavior.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-chart-pie"></i> Sample</span>
+      </div>
+
+      <div class="inv-stock-mix-wrap">
+        <div class="inv-stock-mix-donut" [style.background]="stockMixDonutStyle()">
+          <div>
+            <strong>Rs. 4.82 Cr</strong>
+            <span>Total Stock</span>
+          </div>
+        </div>
+
+        <div class="inv-stock-mix-list">
+          @for (mix of stockMix; track mix.label) {
+            <button type="button" class="inv-stock-mix-item" (click)="openDetail(mix.label, mix)">
+              <i [style.background]="mix.color"></i>
+              <span>
+                <strong>{{ mix.label }}</strong>
+                <small>{{ mix.note }}</small>
+              </span>
+              <em>{{ mix.value }}</em>
+            </button>
+          }
+        </div>
+      </div>
+    </article>
+
+    <article class="inv-owner-panel inv-chart-panel inv-capacity-panel span-2">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Warehouse Capacity</h2>
+          <p>Location fill, dispatch load and blocked value in one visual row.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-building"></i> 5 locations</span>
+      </div>
+
+      <div class="inv-capacity-chart">
+        @for (warehouse of warehouseSnapshots; track warehouse.location) {
+          <button type="button" class="inv-capacity-tower fill-{{ fillTone(warehouse.fill) }}" (click)="openDetail(warehouse.location, warehouse)">
+            <span class="inv-capacity-icon"><i [class]="warehouse.icon"></i></span>
+            <span class="inv-capacity-bar">
+              <i [style.height]="chartPercent(warehouse.fill)"></i>
+            </span>
+            <strong>{{ warehouse.fill }}%</strong>
+            <small>{{ warehouse.location }}</small>
+            <em>{{ warehouse.stockValue }} / {{ warehouse.dispatch }}</em>
+          </button>
+        }
+      </div>
+    </article>
+
+    <article class="inv-owner-panel inv-chart-panel inv-age-panel">
+      <div class="inv-owner-section-head">
+        <div>
+          <h2>Stock Ageing</h2>
+          <p>Where sample stock value is getting older.</p>
+        </div>
+        <span class="inv-chart-chip"><i class="pi pi-history"></i> Age</span>
+      </div>
+
+      <div class="inv-age-chart">
+        @for (bucket of stockAgeBuckets; track bucket.label) {
+          <button type="button" class="inv-age-row tone-{{ bucket.tone }}" (click)="openDetail(bucket.label, bucket)">
+            <span>
+              <strong>{{ bucket.label }}</strong>
+              <small>{{ bucket.value }}</small>
+            </span>
+            <i><b [style.width]="chartPercent(bucket.share)"></b></i>
+            <em>{{ bucket.share }}%</em>
+          </button>
+        }
+      </div>
+    </article>
+  </section>
+
   <nav class="inv-owner-tabs" aria-label="Inventory dashboard sections">
     <button type="button" [class.active]="activeTab() === 'owner'" (click)="setActiveTab('owner')"><i class="pi pi-home"></i> Owner View</button>
     <button type="button" [class.active]="activeTab() === 'segments'" (click)="setActiveTab('segments')"><i class="pi pi-sitemap"></i> Segments</button>

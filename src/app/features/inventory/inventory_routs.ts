@@ -6,8 +6,8 @@ export const inventoryRoutes: Routes = [
     children: [
       {
         path: 'dashboard',
-        loadComponent: () => import('./Inventory_Reports/report-page/inventory-report-page')
-          .then(m => m.InventoryReportPageComponent)
+        loadComponent: () => import('./inventory-dashboard/inventory-dashboard')
+          .then(m => m.InventoryDashboard)
       },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -29,6 +29,11 @@ export const inventoryRoutes: Routes = [
         path: 'branch-master',
         loadComponent: () => import('./Inventory_Config/branch-master/branch-master')
           .then(m => m.InventoryBranchMasterComponent)
+      },
+      {
+        path: 'tax-code-import',
+        loadComponent: () => import('./Inventory_Config/tax-code-import/tax-code-import')
+          .then(m => m.InventoryTaxCodeImportComponent)
       },
       { path: '', redirectTo: 'business-segments', pathMatch: 'full' }
     ]

@@ -9,14 +9,16 @@ import {
   SubModule,
   Screen
 } from '../../../core/services/Navigation/navigation.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { filter } from 'rxjs';
+import { AuthService, LoginTenantOption } from '../../../core/services/auth.service';
+import { filter, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SosHelpComponent } from '../../sos-help/sos-help.component';
 import { VoiceAssistantComponent } from '../../voice-assistant/voice-assistant.component';
 import { ReferenceDataTrayComponent } from '../../reference-data-tray/reference-data-tray.component';
 import { ReferenceDataTrayConfig } from '../../reference-data-tray/reference-data-tray.models';
 import { ReferenceDataTrayService } from '../../reference-data-tray/reference-data-tray.service';
+import { WalkthroughTourComponent } from '../../walkthrough-tour/walkthrough-tour.component';
+import { WalkthroughTourService } from '../../walkthrough-tour/walkthrough-tour.service';
 
 export interface Theme {
   id: string;
@@ -44,7 +46,7 @@ interface FlyoutScreenGroup {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent, ReferenceDataTrayComponent],
+  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent, ReferenceDataTrayComponent, WalkthroughTourComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })
@@ -57,7 +59,19 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   selectedScreen: Screen | null = null;
 
   sidebarCollapsed = true;
+  navbarCollapsed = false;
   username = '';
+  tenantOptions: LoginTenantOption[] = [];
+  selectedSwitchCompanyId: number | null = null;
+  selectedSwitchBranchId: number | null = null;
+  switchingContext = false;
+  showProfilePassword = false;
+  currentPassword = '';
+  newPassword = '';
+  confirmPassword = '';
+  passwordSaving = false;
+  passwordMessage = '';
+  passwordError = '';
   expandedSubModules: Set<string> = new Set<string>();
   expandedFlyoutGroups: Set<string> = new Set<string>();
 
@@ -99,12 +113,18 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     private authService: AuthService,
     private router: Router,
     private referenceDataTrayService: ReferenceDataTrayService,
-    private destroyRef: DestroyRef
+    private destroyRef: DestroyRef,
+    private tourService: WalkthroughTourService
   ) {}
+
+  startTour(): void {
+    this.tourService.start();
+  }
 
   ngOnInit(): void {
     this.modules = this.navigationService.getModules();
     this.username = this.authService.getUsername() || 'User';
+    this.loadTenantSwitchOptions();
 
     const savedTheme = localStorage.getItem('erp-theme');
     this.setTheme(savedTheme || this.activeTheme);
@@ -217,6 +237,108 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.saveSidebarState();
   }
 
+  get currentCompanyLabel(): string {
+    return sessionStorage.getItem('companyCode') || 'Company';
+  }
+
+  get currentBranchLabel(): string {
+    return sessionStorage.getItem('branchCode') || 'No branch';
+  }
+
+  get selectedSwitchBranches() {
+    return this.tenantOptions.find(option => option.companyId === this.selectedSwitchCompanyId)?.branches ?? [];
+  }
+
+  loadTenantSwitchOptions(): void {
+    this.tenantOptions = this.authService.getTenantOptions();
+    const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
+    const currentBranchId = Number(sessionStorage.getItem('branchId') || 0);
+    this.selectedSwitchCompanyId = currentCompanyId || (this.tenantOptions[0]?.companyId ?? null);
+    const branches = this.selectedSwitchBranches;
+    this.selectedSwitchBranchId = currentBranchId || branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
+  }
+
+  toggleAvatarMenu(): void {
+    this.showAvatarMenu = !this.showAvatarMenu;
+    this.showMegaMenu = false;
+    this.showRecentForms = false;
+    if (this.showAvatarMenu) {
+      this.username = this.authService.getUsername() || this.username || 'User';
+      this.loadTenantSwitchOptions();
+    }
+  }
+
+  toggleProfilePassword(): void {
+    this.showProfilePassword = !this.showProfilePassword;
+    this.passwordMessage = '';
+    this.passwordError = '';
+    if (!this.showProfilePassword) {
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.confirmPassword = '';
+    }
+  }
+
+  async saveProfilePassword(): Promise<void> {
+    this.passwordMessage = '';
+    this.passwordError = '';
+    if (this.newPassword.trim().length < 8) {
+      this.passwordError = 'Password must be at least 8 characters.';
+      return;
+    }
+    if (this.newPassword.trim() !== this.confirmPassword.trim()) {
+      this.passwordError = 'New password and confirmation do not match.';
+      return;
+    }
+
+    this.passwordSaving = true;
+    try {
+      const response = await firstValueFrom(
+        this.authService.setMyPassword(this.currentPassword.trim() || null, this.newPassword.trim())
+      );
+      this.passwordMessage = response?.message || 'Password updated.';
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.confirmPassword = '';
+    } catch (err: unknown) {
+      const value = err as { error?: { message?: string }; message?: string };
+      this.passwordError = value.error?.message ?? value.message ?? 'Unable to update password.';
+    } finally {
+      this.passwordSaving = false;
+    }
+  }
+
+  onSwitchCompanyChange(companyId: number | string): void {
+    this.selectedSwitchCompanyId = Number(companyId) || null;
+    const branches = this.selectedSwitchBranches;
+    this.selectedSwitchBranchId = branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
+  }
+
+  async applyTenantSwitch(): Promise<void> {
+    if (!this.selectedSwitchCompanyId) return;
+    if (this.selectedSwitchCompanyId === Number(sessionStorage.getItem('companyId') || 0) && !this.selectedSwitchBranchId) return;
+    this.switchingContext = true;
+    try {
+      const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
+      const response = this.selectedSwitchCompanyId === currentCompanyId
+        ? await firstValueFrom(this.authService.switchBranch(this.selectedSwitchBranchId || 0))
+        : await firstValueFrom(this.authService.switchCompany(this.selectedSwitchCompanyId, this.selectedSwitchBranchId));
+      if (response?.data) {
+        this.authService.setMultiTenantSession(response.data);
+        this.modules = this.navigationService.getModules();
+        this.selectedModule = null;
+        this.selectedSubModule = null;
+        this.selectedScreen = null;
+        this.username = this.authService.getUsername() || this.username;
+        this.loadTenantSwitchOptions();
+        this.showAvatarMenu = false;
+        this.router.navigate(['/dashboard']);
+      }
+    } finally {
+      this.switchingContext = false;
+    }
+  }
+
   private openFirstPageOfModule(module: Module): void {
     this.expandedSubModules.clear();
 
@@ -299,6 +421,13 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     // Ensure sidebar is expanded to show where we are
     this.sidebarCollapsed = false;
     this.saveSidebarState();
+  }
+
+  toggleNavbar(): void {
+    if (!this.navbarCollapsed) {
+      this.closeAllPanels();
+    }
+    this.navbarCollapsed = !this.navbarCollapsed;
   }
 
   toggleSidebar(): void {
@@ -626,17 +755,25 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   navigateFromMega(mod: Module, sub: SubModule, screen: Screen): void {
-    this.navigationService.selectModule(mod);
+    const fullModule = this.modules.find(item => item.id === mod.id) || mod;
+    const fullSubModule = fullModule.subModules.find(item => item.id === sub.id) || sub;
+    const fullScreen =
+      fullSubModule.screens.find(item => item.id === screen.id) ||
+      fullSubModule.screens.find(item => item.route === screen.route) ||
+      screen;
+
+    this.navigationService.selectModule(fullModule);
     this.sidebarCollapsed = false;
     this.saveSidebarState();
     this.expandedSubModules.clear();
 
-    if (this.hasFlyoutItems(sub)) {
-      this.expandedSubModules.add(sub.id);
+    if (this.hasFlyoutItems(fullSubModule)) {
+      this.expandedSubModules.add(fullSubModule.id);
     }
 
-    this.navigationService.selectSubModule(sub);
-    this.selectScreen(screen);
+    this.navigationService.selectSubModule(fullSubModule);
+    this.selectScreen(fullScreen);
+    this.megaMenuSearch = '';
     this.showMegaMenu = false;
   }
 

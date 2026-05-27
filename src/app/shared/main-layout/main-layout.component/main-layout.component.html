@@ -1,4 +1,4 @@
-<div class="app-root" [attr.data-theme]="activeTheme">
+<div class="app-root" [attr.data-theme]="activeTheme" [class.navbar-hidden]="navbarCollapsed">
   <div
     class="global-overlay"
     *ngIf="showMegaMenu || showAvatarMenu || showRecentForms"
@@ -6,15 +6,19 @@
   </div>
 
   <nav class="top-navbar">
+    <button class="navbar-toggle-tab" data-tour="navbar-toggle" (click)="toggleNavbar()" [attr.aria-label]="navbarCollapsed ? 'Show navbar' : 'Hide navbar'" title="Toggle navigation bar">
+      <i class="pi" [ngClass]="navbarCollapsed ? 'pi-chevron-down' : 'pi-chevron-up'"></i>
+    </button>
     <div class="nav-left">
       <button
         class="hamburger"
+        data-tour="sidebar-toggle"
         (click)="toggleSidebar()"
         [attr.aria-label]="sidebarCollapsed ? 'Open sidebar' : 'Close sidebar'">
         <i class="pi" [ngClass]="sidebarCollapsed ? 'pi-bars' : 'pi-times'"></i>
       </button>
 
-      <div class="brand">
+      <div class="brand" data-tour="brand">
         <div class="brand-logo">
           <i class="pi pi-globe"></i>
         </div>
@@ -28,7 +32,7 @@
       </div>
     </div>
 
-    <div class="nav-module-strip">
+    <div class="nav-module-strip" data-tour="module-tabs">
       <button
         *ngIf="showModuleScrollLeft"
         type="button"
@@ -73,6 +77,7 @@
       <div class="nav-action-group">
         <button
           class="nav-icon-btn"
+          data-tour="recent-forms"
           [class.active]="showRecentForms"
           (click)="showRecentForms = !showRecentForms; showMegaMenu = false; showAvatarMenu = false"
           title="Recent Forms">
@@ -118,13 +123,14 @@
         </div>
       </div>
 
-      <div class="nav-action-group voice-nav-action">
+      <div class="nav-action-group voice-nav-action" data-tour="voice-assistant">
         <app-voice-assistant (click)="showRecentForms = false; showMegaMenu = false; showAvatarMenu = false"></app-voice-assistant>
       </div>
 
       <div class="nav-action-group">
         <button
           class="nav-icon-btn"
+          data-tour="contacts"
           routerLink="/dashboard/contacts"
           routerLinkActive="active"
           [routerLinkActiveOptions]="{ exact: true }"
@@ -137,6 +143,7 @@
       <div class="nav-action-group">
         <button
           class="quick-menu-btn"
+          data-tour="quick-menu"
           [class.active]="showMegaMenu"
           (click)="showMegaMenu = !showMegaMenu; showRecentForms = false; showAvatarMenu = false">
           <i class="pi pi-th-large"></i>
@@ -195,8 +202,9 @@
       <div class="nav-action-group">
         <button
           class="avatar-btn"
+          data-tour="avatar-menu"
           [class.active]="showAvatarMenu"
-          (click)="showAvatarMenu = !showAvatarMenu; showMegaMenu = false; showRecentForms = false"
+          (click)="toggleAvatarMenu()"
           [attr.aria-label]="'User menu for ' + username">
           <div class="avatar-ring">
             <div class="avatar-circle">{{ username.charAt(0).toUpperCase() }}</div>
@@ -205,34 +213,96 @@
         </button>
 
         <div class="dropdown-panel avatar-panel" *ngIf="showAvatarMenu" (click)="$event.stopPropagation()">
-          <div class="ap-user-header">
+          <div class="ap-user-header" data-tour="ap-user-header">
             <div class="ap-avatar-lg">{{ username.charAt(0).toUpperCase() }}</div>
 
             <div class="ap-user-info">
               <div class="ap-title">Profile Settings</div>
               <div class="ap-username">{{ username }}</div>
-              <div class="ap-role">Administrator</div>
+              <div class="ap-role">{{ currentCompanyLabel }} / {{ currentBranchLabel }}</div>
             </div>
           </div>
 
-          <div class="ap-section">
-            <button class="ap-menu-item">
-              <i class="pi pi-user"></i>
-              <span>My Profile</span>
-            </button>
+          <div class="ap-section ap-context-switch" data-tour="ap-switch-context" *ngIf="tenantOptions.length > 0">
+            <label>
+              <span>Company</span>
+              <select [ngModel]="selectedSwitchCompanyId" (ngModelChange)="onSwitchCompanyChange($event)">
+                <option *ngFor="let option of tenantOptions" [ngValue]="option.companyId">
+                  {{ option.companyName }} ({{ option.companyCode }})
+                </option>
+              </select>
+            </label>
 
-            <button class="ap-menu-item">
-              <i class="pi pi-cog"></i>
-              <span>Settings</span>
-            </button>
+            <label *ngIf="selectedSwitchBranches.length > 0">
+              <span>Branch</span>
+              <select [(ngModel)]="selectedSwitchBranchId">
+                <option *ngFor="let branch of selectedSwitchBranches" [ngValue]="branch.id">
+                  {{ branch.branchName }} ({{ branch.branchCode }})
+                </option>
+              </select>
+            </label>
 
-            <button class="ap-menu-item" (click)="openSosDashboard()">
-              <i class="pi pi-life-ring"></i>
-              <span>SOS Dashboard</span>
+            <button class="ap-switch-btn" (click)="applyTenantSwitch()" [disabled]="switchingContext">
+              <i class="pi" [ngClass]="switchingContext ? 'pi-spin pi-spinner' : 'pi-sync'"></i>
+              <span>Switch Context</span>
             </button>
           </div>
 
-          <div class="ap-section ap-theme-section">
+          <div class="ap-section">
+            <button class="ap-menu-item" data-tour="ap-reset-pwd" (click)="toggleProfilePassword()">
+              <i class="pi pi-lock"></i>
+              <span>Reset Password</span>
+              <i class="pi ap-menu-chevron" [ngClass]="showProfilePassword ? 'pi-angle-up' : 'pi-angle-down'"></i>
+            </button>
+
+            <div class="ap-password-panel" *ngIf="showProfilePassword">
+              <label>
+                <span>Current Password (if already set)</span>
+                <input type="password" [(ngModel)]="currentPassword" autocomplete="current-password" />
+              </label>
+              <label>
+                <span>New Password</span>
+                <input type="password" [(ngModel)]="newPassword" autocomplete="new-password" />
+              </label>
+              <label>
+                <span>Confirm Password</span>
+                <input type="password" [(ngModel)]="confirmPassword" autocomplete="new-password" />
+              </label>
+              <div class="ap-password-error" *ngIf="passwordError">{{ passwordError }}</div>
+              <div class="ap-password-success" *ngIf="passwordMessage">{{ passwordMessage }}</div>
+              <button class="ap-switch-btn" (click)="saveProfilePassword()" [disabled]="passwordSaving">
+                <i class="pi" [ngClass]="passwordSaving ? 'pi-spin pi-spinner' : 'pi-lock'"></i>
+                <span>Save Password</span>
+              </button>
+            </div>
+
+            <button class="ap-menu-item" (click)="startTour(); showAvatarMenu = false">
+              <i class="pi pi-play-circle"></i>
+              <span>Take a Tour</span>
+            </button>
+
+            <div data-tour="ap-quick-actions">
+              <button class="ap-menu-item">
+                <i class="pi pi-cog"></i>
+                <span>Settings</span>
+              </button>
+
+              <button class="ap-menu-item" (click)="openSosDashboard()">
+                <i class="pi pi-life-ring"></i>
+                <span>SOS Dashboard</span>
+              </button>
+
+              <button class="ap-menu-item ap-upgrade-item"
+                routerLink="/dashboard/admin/subscription"
+                (click)="showAvatarMenu = false">
+                <i class="pi pi-box"></i>
+                <span>Manage Subscription</span>
+                <span class="ap-upgrade-badge">Plan</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="ap-section ap-theme-section" data-tour="ap-theme">
             <button class="theme-dropdown-trigger" (click)="toggleThemeDropdown()">
               <span class="theme-trigger-left">
                 <i class="pi pi-palette"></i>
@@ -261,7 +331,7 @@
           </div>
 
           <div class="ap-section">
-            <button class="ap-menu-item ap-danger" (click)="logout()">
+            <button class="ap-menu-item ap-danger" data-tour="ap-signout" (click)="logout()">
               <i class="pi pi-sign-out"></i>
               <span>Sign Out</span>
             </button>
@@ -463,4 +533,5 @@
   </div>
 
   <app-sos-help></app-sos-help>
+  <app-walkthrough-tour></app-walkthrough-tour>
 </div>

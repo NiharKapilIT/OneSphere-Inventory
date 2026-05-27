@@ -1,0 +1,149 @@
+<div class="module-page inventory-page">
+  <div class="inventory-shell">
+    <div class="inventory-header">
+      <div>
+        <span class="inventory-kicker">Inventory Config</span>
+        <h2><i class="pi pi-upload"></i> HSN/SAC Tax Code Import</h2>
+        <p>Upload official GST/CBIC CSV or XLSX exports, including HSN goods, SAC services and GST rate guide sheets.</p>
+      </div>
+      <button type="button" class="erp-btn btn-white" (click)="loadSourceStatus()" title="Refresh source status">
+        <i class="pi pi-refresh"></i> Refresh
+      </button>
+    </div>
+
+    <section class="inventory-section">
+      <div class="inventory-section-title">
+        <div>
+          <h3>Upload Source File</h3>
+          <p>Use official GST portal or CBIC goods/services rate data exports. The import reads multi-sheet XLSX files, de-duplicates by code and type, and stores GST guide notes for product hints.</p>
+        </div>
+      </div>
+
+      <div class="inventory-form-grid inventory-config-grid">
+        <div class="erp-form-group">
+          <label class="erp-label">Source Name</label>
+          <input
+            class="erp-input"
+            type="text"
+            [ngModel]="sourceName()"
+            (ngModelChange)="sourceName.set($event)"
+            placeholder="CBIC GST rate data, GST portal HSN directory" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">Source Updated Date</label>
+          <input
+            class="erp-input"
+            type="date"
+            [ngModel]="sourceUpdatedAt()"
+            (ngModelChange)="sourceUpdatedAt.set($event)" />
+        </div>
+        <div class="erp-form-group span-2">
+          <label class="erp-label">CSV / XLSX File</label>
+          <input class="erp-input" type="file" accept=".csv,.xlsx" (change)="onFileSelected($event)" />
+        </div>
+      </div>
+
+      <div class="inventory-duplicate-advice tax-compliance-note">
+        <strong>Review required</strong>
+        <span>HSN/SAC suggestion is for assistance only. Please verify classification before filing GST returns.</span>
+      </div>
+
+      @if (error()) {
+        <div class="inventory-save-msg save-err"><i class="pi pi-times-circle"></i> {{ error() }}</div>
+      }
+      @if (message()) {
+        <div class="inventory-save-msg save-ok"><i class="pi pi-check-circle"></i> {{ message() }}</div>
+      }
+
+      <div class="inventory-form-actions">
+        <button type="button" class="erp-btn btn-primary" [disabled]="importing()" (click)="upload()">
+          @if (importing()) {
+            <i class="pi pi-spin pi-spinner"></i> Importing...
+          } @else {
+            <i class="pi pi-upload"></i> Import Tax Codes
+          }
+        </button>
+      </div>
+    </section>
+
+    <section class="inventory-section">
+      <div class="inventory-section-title">
+        <div>
+          <h3>Current Source</h3>
+          <p>Visible source metadata is shown on product/service suggestions for compliance review.</p>
+        </div>
+        @if (loadingStatus()) {
+          <span class="erp-badge badge-info"><i class="pi pi-spin pi-spinner"></i> Loading</span>
+        }
+      </div>
+
+      <div class="tax-admin-summary">
+        <div>
+          <span>Source</span>
+          <strong>{{ sourceStatus()?.source || 'No import yet' }}</strong>
+        </div>
+        <div>
+          <span>Source Updated</span>
+          <strong>{{ formatDate(sourceStatus()?.source_updated_at) }}</strong>
+        </div>
+        <div>
+          <span>Imported At</span>
+          <strong>{{ formatDate(sourceStatus()?.imported_at) }}</strong>
+        </div>
+        <div>
+          <span>Total Codes</span>
+          <strong>{{ sourceStatus()?.total_codes || 0 }}</strong>
+        </div>
+      </div>
+    </section>
+
+    @if (summary()) {
+      <section class="inventory-section">
+        <div class="inventory-section-title">
+          <div>
+            <h3>Import Summary</h3>
+            <p>Skipped rows include invalid rows and duplicate rows merged during the import.</p>
+          </div>
+        </div>
+
+        <div class="tax-admin-summary">
+          <div><span>Total Rows</span><strong>{{ summary()?.total_rows || 0 }}</strong></div>
+          <div><span>Inserted</span><strong>{{ summary()?.imported || 0 }}</strong></div>
+          <div><span>Updated</span><strong>{{ summary()?.updated || 0 }}</strong></div>
+          <div><span>Skipped</span><strong>{{ summary()?.skipped || 0 }}</strong></div>
+          <div><span>Duplicates Removed</span><strong>{{ summary()?.duplicates_removed || 0 }}</strong></div>
+          <div><span>Guide Slabs Added</span><strong>{{ summary()?.gst_guide_slabs_imported || 0 }}</strong></div>
+          <div><span>Guide Slabs Updated</span><strong>{{ summary()?.gst_guide_slabs_updated || 0 }}</strong></div>
+          <div><span>Guide Notes Added</span><strong>{{ summary()?.gst_guide_notes_imported || 0 }}</strong></div>
+          <div><span>Source Updated</span><strong>{{ formatDate(summary()?.source_updated_at) }}</strong></div>
+        </div>
+
+        @if (summary()?.invalid_rows?.length) {
+          <div class="inventory-mini-table">
+            <div class="inventory-mini-title">Skipped / Invalid Rows</div>
+            <div class="tbl-wrap">
+              <table class="erp-table compact">
+                <thead>
+                  <tr>
+                    <th>Row</th>
+                    <th>Code</th>
+                    <th>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of summary()?.invalid_rows; track row.row_number) {
+                    <tr>
+                      <td>{{ row.row_number }}</td>
+                      <td>{{ row.raw_code || '-' }}</td>
+                      <td>{{ row.reason }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      </section>
+    }
+  </div>
+</div>

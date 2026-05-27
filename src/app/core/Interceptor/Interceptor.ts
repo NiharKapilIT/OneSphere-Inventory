@@ -1,8 +1,22 @@
-import { HttpInterceptorFn, HttpResponse } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { HttpErrorResponse, HttpInterceptorFn, HttpResponse } from '@angular/common/http';
+import { Observable, catchError, finalize, map, shareReplay, switchMap, tap, throwError } from 'rxjs';
+import { AuthApiResponse, AuthService } from '../services/auth.service';
+
+let refreshRequest$: Observable<AuthApiResponse> | null = null;
 
 export const responseInterceptor: HttpInterceptorFn = (req, next) => {
-  return next(req).pipe(
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const apiUrl = sessionStorage.getItem('apiURL') || '';
+  const token = sessionStorage.getItem('token') || '';
+  const isApiRequest = !!apiUrl && req.url.startsWith(apiUrl);
+  const request = token && isApiRequest && !isAnonymousAuthEndpoint(req.url) && !req.headers.has('Authorization')
+    ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })
+    : req;
+
+  return next(request).pipe(
     map((event) => {
       if (event instanceof HttpResponse) {
         const body = event.body;
@@ -20,6 +34,66 @@ export const responseInterceptor: HttpInterceptorFn = (req, next) => {
         return event;
       }
       return event;
+    }),
+    catchError((error: unknown) => {
+      if (!(error instanceof HttpErrorResponse) || error.status !== 401 || !isApiRequest || isRefreshExcluded(req.url)) {
+        return throwError(() => error);
+      }
+
+      const refreshToken = authService.getRefreshToken();
+      if (!refreshToken || !authService.hasTenantClaims()) {
+        authService.logout();
+        router.navigate(['/login']);
+        return throwError(() => error);
+      }
+
+      if (!refreshRequest$) {
+        refreshRequest$ = authService.refreshToken(refreshToken).pipe(
+          tap(response => {
+            if (!response.data?.accessToken) {
+              throw new Error('Refresh token response did not include an access token.');
+            }
+            authService.setMultiTenantSession(response.data);
+          }),
+          finalize(() => {
+            refreshRequest$ = null;
+          }),
+          shareReplay(1)
+        );
+      }
+
+      return refreshRequest$.pipe(
+        switchMap(() => {
+          const refreshedToken = authService.getToken();
+          const retriedRequest = request.clone({
+            setHeaders: { Authorization: `Bearer ${refreshedToken}` }
+          });
+          return next(retriedRequest);
+        }),
+        catchError(refreshError => {
+          authService.logout();
+          router.navigate(['/login']);
+          return throwError(() => refreshError);
+        })
+      );
     })
   );
 };
+
+function isAnonymousAuthEndpoint(url: string): boolean {
+  return [
+    '/auth/request-otp',
+    '/auth/verify-otp',
+    '/auth/password-login',
+    '/auth/request-registration-otp',
+    '/auth/verify-registration-otp',
+    '/auth/refresh-token',
+    '/auth/suggest-company-code',
+    '/auth/check-company-code',
+    '/Accounts/login'
+  ].some(path => url.includes(path));
+}
+
+function isRefreshExcluded(url: string): boolean {
+  return isAnonymousAuthEndpoint(url);
+}

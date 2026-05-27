@@ -39,7 +39,7 @@
     margin: 0;
     color: var(--clr-p1, #0c4a6e);
     font-size: 18px;
-    font-weight: 760;
+    font-weight: 600;
     line-height: 1.25;
   }
 
@@ -111,7 +111,7 @@
   background: #ef4444;
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .contacts-tabs {
@@ -142,7 +142,7 @@
   color: #64748b;
   background: #eef2f7;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 600;
 }
 
 .tab-item.active .tab-count {
@@ -219,7 +219,7 @@
   gap: 8px;
   color: var(--clr-p1, #0c4a6e);
   font-size: 13px;
-  font-weight: 720;
+  font-weight: 600;
 }
 
 .filter-subtitle {
@@ -243,7 +243,7 @@
     margin-bottom: 5px;
     color: #475569;
     font-size: 11px;
-    font-weight: 650;
+    font-weight: 600;
   }
 
   .erp-select {
@@ -334,7 +334,7 @@
   color: var(--clr-p1, #0c4a6e);
   background: linear-gradient(135deg, rgba(77, 143, 255, 0.16), rgba(20, 184, 166, 0.12));
   font-size: 15px;
-  font-weight: 760;
+  font-weight: 600;
 
   img {
     width: 100%;
@@ -365,7 +365,7 @@
   overflow: hidden;
   color: var(--clr-p1, #0c4a6e);
   font-size: 14px;
-  font-weight: 760;
+  font-weight: 600;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -387,7 +387,7 @@
   color: #047857;
   background: #dcfce7;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 600;
 
   &.inactive {
     color: #b45309;
@@ -448,7 +448,7 @@
   color: var(--clr-p1, #0c4a6e);
   background: #f8fafc;
   font-size: 11px;
-  font-weight: 680;
+  font-weight: 600;
 
   i {
     color: var(--clr-p2, #0891b2);
@@ -497,7 +497,7 @@
   padding: 5px 8px 8px;
   color: #64748b;
   font-size: 11px;
-  font-weight: 720;
+  font-weight: 600;
 }
 
 .role-menu-item {
@@ -512,7 +512,7 @@
   color: #334155;
   background: transparent;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
 
@@ -679,7 +679,7 @@
   color: #475569;
   background: #fff;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 
@@ -775,7 +775,7 @@
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    font-weight: 700;
+    font-weight: 600;
     color: #fff;
     margin-bottom: 8px;
     overflow: hidden;
@@ -790,7 +790,7 @@
 
 .role-info-name {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--clr-p1, #0c4a6e);
 }
 
