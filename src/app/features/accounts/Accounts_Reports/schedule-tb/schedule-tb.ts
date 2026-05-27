@@ -566,4 +566,8 @@ export class ScheduleTb implements OnInit {
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+  btnPrint(): void {
+    this.printReport();
+  }
 }
