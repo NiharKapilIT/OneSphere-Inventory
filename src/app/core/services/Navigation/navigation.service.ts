@@ -175,7 +175,7 @@ export class NavigationService {
                 { id: 're-print', name: 'Re-Print', route: '/dashboard/accounts/accounts-reports/re-print' },
                 { id: 'bank-entries', name: 'Bank Entries', route: '/dashboard/accounts/accounts-reports/bank-entries' },
                 { id: 'ledger-extract', name: 'Ledger Extract', route: '/dashboard/accounts/accounts-reports/ledger-extract' },
-                { id: 'schedule-tb-report', name: 'Schedule TB', route: '/dashboard/accounts/accounts-reports/schedule-tb-report' }
+                // { id: 'schedule-tb-report', name: 'Schedule TB', route: '/dashboard/accounts/accounts-reports/schedule-tb-report' }
               ]
             }
           ]
