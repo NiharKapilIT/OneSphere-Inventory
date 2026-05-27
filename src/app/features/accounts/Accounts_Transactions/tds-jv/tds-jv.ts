@@ -54,7 +54,7 @@ export class TdsJv implements OnInit {
   totalcreditamount = 0;
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  currencysymbol:  "₹";
+  currencysymbol: "₹";
   // currencysymbol: any;
   showhidetable = false;
   dataisempty = false;
@@ -96,7 +96,7 @@ export class TdsJv implements OnInit {
     private _AccountingTransactionsService: AccountsTransactions,
     private cdr: ChangeDetectorRef,
   ) {
-    this.currencysymbol =  "₹";
+    this.currencysymbol = "₹";
     this.pageCriteria = new PageCriteria();
 
     this.dpConfig1.maxDate = new Date();
@@ -271,22 +271,37 @@ export class TdsJv implements OnInit {
   //   }
   // }
 
+  // CalendarYearMOnth_change_native(selectedId: any): void {
+  //   if (selectedId) {
+  //     const found = this.calendarMonthData.find(
+  //       (m: any) => String(m.calendarPeriodDetailsId) === String(selectedId)
+  //     );
+  //     if (found) {
+  //       this.MonthId = found.calendarPeriodDetailsId;
+  //       // this.MonthName = found.calendarMonth; 
+  //       // // ✅ This sets MonthName
+  //       this.MonthName = `${found.calendarMonth}-${this.CalendarYear.split('-')[1]}`;
+  //     }
+  //     this.tdsJvDetailsForm.controls['pCalendarMonth'].setErrors(null);
+  //     this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsUntouched();
+  //   } else {
+  //     this.MonthName = '';
+  //     this.MonthId = null;
+  //   }
+  // }
+
   CalendarYearMOnth_change_native(selectedId: any): void {
-    if (selectedId) {
-      const found = this.calendarMonthData.find(
-        (m: any) => String(m.calendarPeriodDetailsId) === String(selectedId)
-      );
-      if (found) {
-        this.MonthId = found.calendarPeriodDetailsId;
-        this.MonthName = found.calendarMonth; // ✅ This sets MonthName
-      }
-      this.tdsJvDetailsForm.controls['pCalendarMonth'].setErrors(null);
-      this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsUntouched();
-    } else {
-      this.MonthName = '';
-      this.MonthId = null;
-    }
+  if (selectedId) {
+    this.MonthId = selectedId.calendarPeriodDetailsId;
+    // this.MonthName = `${selectedId.calendarMonth}-${this.CalendarYear.split('-')[1]}`;
+    this.MonthName = selectedId.calendarMonth;
+    this.tdsJvDetailsForm.controls['pCalendarMonth'].setErrors(null);
+    this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsUntouched();
+  } else {
+    this.MonthName = '';
+    this.MonthId = null;
   }
+}
 
   CalendarYearMOnth_change(event: any): void {
     if (event) {
@@ -329,7 +344,7 @@ export class TdsJv implements OnInit {
       .GetTDSJVCalendarYearMonth(this.CalendarId, this._commonService.getschemaname())
       .subscribe({
         next: (res: any) => {
-          this.calendarMonthData = res ? [...res] : []; // spread creates new reference
+          this.calendarMonthData = res ? [...res] : []; 
         },
         error: (error: any) => {
           this.calendarMonthData = [];
@@ -427,7 +442,7 @@ export class TdsJv implements OnInit {
     const debitledger = this.tdsJvDetailsForm.controls['DebitLedger'].value || '';
     const selectedYear = this.tdsJvDetailsForm.controls['pPeriodType'].value;
     const selectedMonth = this.tdsJvDetailsForm.controls['pCalendarMonth'].value;
-    const monthYear = (this.CalendarYear || '').toString().toUpperCase();
+    const monthYear = (this.MonthName || '').toString().toUpperCase();
     // const monthYear = (this.MonthName || '').toString().toUpperCase();
 
     let isValid = true;
@@ -435,25 +450,25 @@ export class TdsJv implements OnInit {
 
 
     if (!debitledger) {
-     // this._commonService.showWarningMessage('Please select Debit Ledger');
+      // this._commonService.showWarningMessage('Please select Debit Ledger');
       this.tdsJvDetailsForm.controls['DebitLedger'].markAsTouched();
       isValid = false;
     }
 
     if (!creditledger) {
-     // this._commonService.showWarningMessage('Please select Credit Ledger');
+      // this._commonService.showWarningMessage('Please select Credit Ledger');
       this.tdsJvDetailsForm.controls['CreditLedger'].markAsTouched();
       isValid = false;
     }
 
     if (!selectedYear) {
-     // this._commonService.showWarningMessage('Please select Year');
+      // this._commonService.showWarningMessage('Please select Year');
       this.tdsJvDetailsForm.controls['pPeriodType'].markAsTouched();
       isValid = false;
     }
 
-    if (!selectedMonth || !this.CalendarYear) {
-     // this._commonService.showWarningMessage('Please select Month');
+    if (!selectedMonth || !this.MonthName) {
+      // this._commonService.showWarningMessage('Please select Month');
       this.tdsJvDetailsForm.controls['pCalendarMonth'].markAsTouched();
       isValid = false;
     }

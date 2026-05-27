@@ -28,6 +28,7 @@
             "allowedCommonJsDependencies": [
               "jspdf-autotable",
               "file-saver",
+              "xlsx",
               "core-js/modules/es.promise.js",
               "core-js/modules/es.string.match.js",
               "core-js/modules/es.string.replace.js",

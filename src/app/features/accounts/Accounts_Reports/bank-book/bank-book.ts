@@ -256,9 +256,9 @@ isGroupExpanded(date: string): boolean {
         rows.push({ isGroupHeader: true, groupLabel });
       }
 
-      const debitamt  = item.pdebitamount  ? this.commonService.convertAmountToPdfFormat(item.pdebitamount)  : '';
-      const creditamt = item.pcreditamount ? this.commonService.convertAmountToPdfFormat(item.pcreditamount) : '';
-      const balance   = item.popeningbal   ? `${this.commonService.convertAmountToPdfFormat(item.popeningbal)}  ${item.pBalanceType}` : '';
+      const debitamt  = item.pdebitamount  ? this.commonService.convertAmountToPdfFormat(item.pdebitamount)  : '0';
+      const creditamt = item.pcreditamount ? this.commonService.convertAmountToPdfFormat(item.pcreditamount) : '0';
+      const balance   = item.popeningbal   ? `${this.commonService.convertAmountToPdfFormat(item.popeningbal)}  ${item.pBalanceType}` : '0';
 
       rows.push({
         transactionNo: item.ptransactionno !== 0 ? item.ptransactionno : '--NA--',

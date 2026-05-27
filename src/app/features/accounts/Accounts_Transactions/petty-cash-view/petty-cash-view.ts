@@ -107,7 +107,7 @@ export class PettyCashView implements OnInit, OnDestroy {
   private setPageModel(): void {
     this.rowsPerPageOptions = this.commonService.setPageModel(
       this.pageCriteria,
-      this.gridView().length 
+      this.gridView().length
     );
   }
 
@@ -194,7 +194,8 @@ export class PettyCashView implements OnInit, OnDestroy {
   // ── View row ───────────────────────────────────────────────────────────────
   viewRow(row: any): void {
     if (!row?.paymentId) return;
-    const receipt = btoa(`${row.paymentId},Petty Cash`);
+    //const receipt = btoa(`${row.paymentId},Petty Cash`);
+    const receipt = btoa(`${row.paymentId},Petty Cash,Reprint`);
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/payment-voucher', receipt]),
     );

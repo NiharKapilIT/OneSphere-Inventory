@@ -115,8 +115,8 @@ export class GeneralReceipt implements OnInit {
       .subscribe({
         next: (res: any) => {
           if (!res?.length) return;
-        
-          
+
+
           this.receiptData.set(res);
 
           const first = res[0];
@@ -165,10 +165,10 @@ export class GeneralReceipt implements OnInit {
   getBankName(bank: any): string {
     return typeof bank === 'string' ? bank : '';
   }
-   getKapilGroupLogo() {
-let img:string='';
-let Company = this.commonService._getCompanyDetails();
-  img = Company.companyLogo;
+  getKapilGroupLogo() {
+    let img: string = '';
+    let Company = this.commonService._getCompanyDetails();
+    img = Company.companyLogo;
     return img;
   }
 
@@ -190,8 +190,8 @@ let Company = this.commonService._getCompanyDetails();
     type: 'Pdf' | 'Print'
   ): void {
     const data = this.receiptData();
-  
-    
+
+
     if (!data.length) return;
 
     const kapilLogo = this.getKapilGroupLogo();
@@ -215,7 +215,9 @@ let Company = this.commonService._getCompanyDetails();
       doc.text(`CIN : ${companyCIN}`, pageWidth / 2, 26, { align: 'center' });
 
       doc.setFontSize(12);
-      doc.text(reportname, 105, 35, { align: 'center' });
+      //doc.text(reportname, 105, 35, { align: 'center' });
+      const pdfTitle = this.duplicate() === 'Reprint' ? `${reportname} (Duplicate)` : reportname;
+      doc.text(pdfTitle, 105, 35, { align: 'center' });
 
       doc.setFontSize(9);
       doc.text(`Receipt No : ${row.receiptid}`, 15, 38);

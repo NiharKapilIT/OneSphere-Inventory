@@ -53,6 +53,7 @@ import { ChangeDetectorRef } from '@angular/core';
     RouterModule,
   ],
   providers: [DecimalPipe, CurrencyPipe, DatePipe],
+  styles: [`:host .erp-badge.badge-danger { background: #fee2e2; color: #dc2626; } :host .erp-badge.badge-success { background: #dcfce7; color: #16a34a; }`],
 })
 export class PaymentVoucherView implements OnInit, OnDestroy {
   pDatepickerMaxDate: any = new Date();
@@ -1382,8 +1383,8 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       const total = Math.round(taxable + gstAmt);
 
       console.log('PV → gstRate:', gstPct, '| gstType:', gstType,
-            '| taxable:', taxable, '| gstAmt:', gstAmt,
-            '| cgst:', cgst, '| sgst:', sgst);
+        '| taxable:', taxable, '| gstAmt:', gstAmt,
+        '| cgst:', cgst, '| sgst:', sgst);
 
       group?.patchValue({
         ptaxableamount: taxable,
@@ -1611,7 +1612,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
 
-  addPaymentDetails(): void {
+  addPaymentDetails(): void { debugger;
 
     const round = (n: number) =>
       Math.round((n + Number.EPSILON) * 100) / 100;
@@ -1718,140 +1719,140 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
 
     const currentRow = {
-  ppartyname: ctrl.get('ppartyname')?.value,
-  pledgername: ctrl.get('pledgername')?.value,
+      ppartyname: ctrl.get('ppartyname')?.value,
+      pledgername: ctrl.get('pledgername')?.value,
 
-  psubledgerid: selectedSub?.subledgerid ?? subledgerid,
-  psubledgername: selectedSub?.subledgername ?? '',
+      psubledgerid: selectedSub?.subledgerid ?? subledgerid,
+      psubledgername: selectedSub?.subledgername ?? '',
 
-  ptotalamount: round(
-    parseFloat(
-      this.commonService.removeCommasInAmount(
-        ctrl.get('ptotalamount')?.value ?? '0'
-      )
-    )
-  ),
-
-  pamount: round(
-    parseFloat(
-      this.commonService.removeCommasInAmount(
-        ctrl.get('pamount')?.value ?? '0'
-      )
-    )
-  ),
-
-  // ───── GST ─────────────────────────────
-
-  pgstcalculationtype: isgst
-    ? ctrl.get('pgstcalculationtype')?.value
-    : null,
-
-  pgsttype: isgst
-    ? ctrl.get('pgsttype')?.value
-    : null,
-
-  pgstpercentage: isgst
-    ? ctrl.get('pgstpercentage')?.value ?? 0
-    : 0,
-
-  pgstamount: isgst
-    ? round(parseFloat(ctrl.get('pgstamount')?.value ?? '0'))
-    : 0,
-
-  // ───── Individual GST Amounts ──────────
-
-  pigstamount: isgst
-    ? round(parseFloat(ctrl.get('pigstamount')?.value ?? '0'))
-    : 0,
-
-  pcgstamount: isgst
-    ? round(parseFloat(ctrl.get('pcgstamount')?.value ?? '0'))
-    : 0,
-
-  psgstamount: isgst
-    ? round(parseFloat(ctrl.get('psgstamount')?.value ?? '0'))
-    : 0,
-
-  putgstamount: isgst
-    ? round(parseFloat(ctrl.get('putgstamount')?.value ?? '0'))
-    : 0,
-
-  // ───── Individual GST Percentages ─────
-
-  pigstpercentage: isgst
-    ? ctrl.get('pigstpercentage')?.value ?? 0
-    : 0,
-
-  pcgstpercentage: isgst
-    ? ctrl.get('pcgstpercentage')?.value ?? 0
-    : 0,
-
-  psgstpercentage: isgst
-    ? ctrl.get('psgstpercentage')?.value ?? 0
-    : 0,
-
-  putgstpercentage: isgst
-    ? ctrl.get('putgstpercentage')?.value ?? 0
-    : 0,
-
-  pisgstapplicable: isgst ?? false,
-
-  // ───── TDS ─────────────────────────────
-
-  pTdsSection: istds
-    ? ctrl.get('pTdsSection')?.value
-    : null,
-
-  pTdsPercentage: istds
-    ? ctrl.get('pTdsPercentage')?.value ?? 0
-    : 0,
-
-  ptdsamount: istds
-    ? round(
+      ptotalamount: round(
         parseFloat(
           this.commonService.removeCommasInAmount(
-            ctrl.get('ptdsamount')?.value ?? '0'
+            ctrl.get('ptotalamount')?.value ?? '0'
           )
         )
-      )
-    : 0,
+      ),
 
-  ptdscalculationtype: istds
-    ? ctrl.get('ptdscalculationtype')?.value
-    : null,
+      pamount: round(
+        parseFloat(
+          this.commonService.removeCommasInAmount(
+            ctrl.get('pamount')?.value ?? '0'
+          )
+        )
+      ),
 
-  pistdsapplicable: istds ?? false,
+      // ───── GST ─────────────────────────────
 
-  // ───── Party / Ledger ──────────────────
+      pgstcalculationtype: isgst
+        ? ctrl.get('pgstcalculationtype')?.value
+        : null,
 
-  ppartyid,
-  pledgerid,
+      pgsttype: isgst
+        ? ctrl.get('pgsttype')?.value
+        : null,
 
-  // ───── State / GST Info ────────────────
+      pgstpercentage: isgst
+        ? ctrl.get('pgstpercentage')?.value ?? 0
+        : 0,
 
-  pStateId: isgst
-    ? ctrl.get('pStateId')?.value ?? 0
-    : 0,
+      pgstamount: isgst
+        ? round(parseFloat(ctrl.get('pgstamount')?.value ?? '0'))
+        : 0,
 
-  pState: isgst
-    ? ctrl.get('pState')?.value ?? ''
-    : '',
+      // ───── Individual GST Amounts ──────────
 
-  pgstno: isgst
-    ? ctrl.get('pgstno')?.value ?? ''
-    : '',
+      pigstamount: isgst
+        ? round(parseFloat(ctrl.get('pigstamount')?.value ?? '0'))
+        : 0,
 
-  // ───── References ──────────────────────
+      pcgstamount: isgst
+        ? round(parseFloat(ctrl.get('pcgstamount')?.value ?? '0'))
+        : 0,
 
-  ppartyreferenceid:
-    ctrl.get('ppartyreferenceid')?.value ?? '',
+      psgstamount: isgst
+        ? round(parseFloat(ctrl.get('psgstamount')?.value ?? '0'))
+        : 0,
 
-  ppartyreftype:
-    ctrl.get('ppartyreftype')?.value ?? '',
+      putgstamount: isgst
+        ? round(parseFloat(ctrl.get('putgstamount')?.value ?? '0'))
+        : 0,
 
-  ppartypannumber:
-    ctrl.get('ppartypannumber')?.value ?? '',
-};
+      // ───── Individual GST Percentages ─────
+
+      pigstpercentage: isgst
+        ? ctrl.get('pigstpercentage')?.value ?? 0
+        : 0,
+
+      pcgstpercentage: isgst
+        ? ctrl.get('pcgstpercentage')?.value ?? 0
+        : 0,
+
+      psgstpercentage: isgst
+        ? ctrl.get('psgstpercentage')?.value ?? 0
+        : 0,
+
+      putgstpercentage: isgst
+        ? ctrl.get('putgstpercentage')?.value ?? 0
+        : 0,
+
+      pisgstapplicable: isgst ?? false,
+
+      // ───── TDS ─────────────────────────────
+
+      pTdsSection: istds
+        ? ctrl.get('pTdsSection')?.value
+        : null,
+
+      pTdsPercentage: istds
+        ? ctrl.get('pTdsPercentage')?.value ?? 0
+        : 0,
+
+      ptdsamount: istds
+        ? round(
+          parseFloat(
+            this.commonService.removeCommasInAmount(
+              ctrl.get('ptdsamount')?.value ?? '0'
+            )
+          )
+        )
+        : 0,
+
+      ptdscalculationtype: istds
+        ? ctrl.get('ptdscalculationtype')?.value
+        : null,
+
+      pistdsapplicable: istds ?? false,
+
+      // ───── Party / Ledger ──────────────────
+
+      ppartyid,
+      pledgerid,
+
+      // ───── State / GST Info ────────────────
+
+      pStateId: isgst
+        ? ctrl.get('pStateId')?.value ?? 0
+        : 0,
+
+      pState: isgst
+        ? ctrl.get('pState')?.value ?? ''
+        : '',
+
+      pgstno: isgst
+        ? ctrl.get('pgstno')?.value ?? ''
+        : '',
+
+      // ───── References ──────────────────────
+
+      ppartyreferenceid:
+        ctrl.get('ppartyreferenceid')?.value ?? '',
+
+      ppartyreftype:
+        ctrl.get('ppartyreftype')?.value ?? '',
+
+      ppartypannumber:
+        ctrl.get('ppartypannumber')?.value ?? '',
+    };
 
     if (!this.validateAddPaymentDetails(currentRow)) {
       this.resetAddButton();
@@ -2386,16 +2387,237 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
   //       });
   //   }
 
+  // savePaymentVoucher(): void {
+
+  //   const narrationEmpty = !this.paymentVoucherForm.get('pnarration')?.value?.trim();
+  //   const gridEmpty = this.paymentsList.length === 0;
+
+  //   // ── Reapply bank validators before checking ──
+  //   this.addModeofPaymentValidations();
+
+  //   // ── Check bank field validity ──
+  //   //const bankFields = ['pbankname', 'pCardNumber', 'pChequenumber', 'ptypeofpayment', 'pUpiname', 'pUpiid'];
+
+  //   const bankFields = ['pbankname', 'pCardNumber', 'pChequenumber', 'ptypeofpayment', 'pUpiname', 'pUpiid', 'pbranchname'];
+  //   const bankInvalid = this.showModeofPayment() && bankFields.some(k => {
+  //     const ctrl = this.paymentVoucherForm.get(k);
+  //     return ctrl?.validator && ctrl?.invalid;
+  //   });
+
+  //   if (narrationEmpty || gridEmpty || bankInvalid) {
+
+  //     // ── Mark bank fields touched to show red borders ──
+  //     if (bankInvalid) {
+  //       bankFields.forEach(k => {
+  //         const ctrl = this.paymentVoucherForm.get(k);
+  //         if (ctrl?.validator) {
+  //           ctrl.markAsTouched();
+  //           ctrl.markAsDirty();
+  //           this.getValidationByControl(this.paymentVoucherForm, k, true);
+  //         }
+  //       });
+  //     }
+
+  //     // ── Show payment details red borders ONLY when grid is empty ──
+  //     if (gridEmpty) {
+  //       this.commonService.showWarningMessage('Add at least one record to the grid!');
+  //       const ctrl = this.paymentVoucherForm.get('ppaymentsslistcontrols') as FormGroup;
+  //       if (ctrl) {
+  //         const fields = ['ppartyid', 'ppartyname', 'pledgerid', 'pledgername', 'pactualpaidamount'];
+  //         if (this.showSubledger()) {
+  //           fields.push('psubledgerid');
+  //         }
+  //         fields.forEach(key => {
+  //           ctrl.get(key)?.markAsTouched();
+  //           ctrl.get(key)?.markAsDirty();
+  //         });
+  //         let isValid = true;
+  //         this.checkValidations(ctrl, isValid);
+  //       }
+  //     }
+
+  //     // ── Show narration red border when empty ──
+  //     if (narrationEmpty) {
+  //       this.paymentVoucherForm.get('pnarration')?.markAsTouched();
+  //     }
+
+  //     return;
+  //   }
+
+  //   // ── All validations passed — clear everything before proceeding ──
+  //   this.paymentVoucherForm.markAsUntouched();
+  //   this.paymentVoucherForm.markAsPristine();
+  //   const lineGroup = this.paymentVoucherForm.get('ppaymentsslistcontrols') as FormGroup;
+  //   if (lineGroup) {
+  //     lineGroup.markAsUntouched();
+  //     lineGroup.markAsPristine();
+  //     Object.keys(lineGroup.controls).forEach(key => {
+  //       lineGroup.get(key)?.markAsUntouched();
+  //       lineGroup.get(key)?.markAsPristine();
+  //     });
+  //   }
+  //   this.formValidationMessages = {};
+
+  //   this.paymentVoucherForm
+  //     .get('ptotalpaidamount')
+  //     ?.setValue(
+  //       this.paymentsList.reduce(
+  //         (s: any, c: any) => s + parseFloat(c.ptotalamount ?? 0),
+  //         0
+  //       )
+  //     );
+
+  //   const accountIds = this.paymentsList.map((p: any) => p.psubledgerid).join(',');
+  //   const transDate = this.commonService.getFormatDateNormal(
+  //     this.paymentVoucherForm.get('ppaymentdate')?.value
+  //   );
+
+  //   this.accountingTxService
+  //     .GetCashAmountAccountWise(
+  //       'PAYMENT VOUCHER',
+  //       this.commonService.getbranchname(),
+  //       accountIds,
+  //       transDate,
+  //       this.commonService.getschemaname(),
+  //       this.commonService.getCompanyCode(),
+  //       this.commonService.getBranchCode()
+  //     )
+  //     .pipe(takeUntil(this.destroy$))
+  //     .subscribe((result: any) => {
+  //       let count = 0;
+  //       const formVal = this.paymentVoucherForm.value;
+
+  //       if (formVal.pmodofpayment === 'CASH' && !this.bankExists()) {
+  //         for (const payment of this.paymentsList) {
+  //           const amount = parseFloat(
+  //             this.commonService.removeCommasInAmount(payment.ptotalamount)
+  //           );
+  //           for (const r of result) {
+  //             if (payment.psubledgerid === r.psubledgerid) {
+  //               if (parseFloat(this.cashRestrictAmount) < r.accountbalance + amount)
+  //                 count = 1;
+  //             }
+  //           }
+  //         }
+  //       }
+
+  //       if (count !== 0) {
+  //         debugger
+  //         this.commonService.showWarningMessage(
+  //           `Subledger per day Cash transactions limit below ${this.commonService.currencyformat(this.cashRestrictAmount)} only`
+  //         );
+  //         this.disableSaveButton.set(false);
+  //         this.saveButtonLabel.set('Save');
+  //         return;
+  //       }
+  //       const bankBalanceNum = parseFloat(String(this.bankBalance).replace(/[^\d.-]/g, '') || '0');
+  //       if (bankBalanceNum == 0) {
+  //         debugger
+  //         this.commonService.showWarningMessage(
+  //           `Bank transactions not allowed as Bank balance is below zero`
+  //         );
+  //         this.disableSaveButton.set(false);
+  //         this.saveButtonLabel.set('Save');
+  //         return;
+  //       }
+  //       const cashBalanceNum = parseFloat(String(this.cashBalance).replace(/[^\d.-]/g, '') || '0');
+  //       if (cashBalanceNum == 0) {
+  //         this.commonService.showWarningMessage(
+  //           `Cash transactions not allowed as Cash balance is negative`
+  //         );
+  //         this.disableSaveButton.set(false);
+  //         this.saveButtonLabel.set('Save');
+  //         return;
+  //       }
+
+  //       if (!confirm('Do You Want To Save ?')) {
+  //         this.disableSaveButton.set(false);
+  //         this.saveButtonLabel.set('Save');
+  //         return;
+  //       }
+
+  //       this.disableSaveButton.set(true);
+  //       this.saveButtonLabel.set('Processing');
+
+  //       if (formVal.pmodofpayment === 'CASH') {
+  //         this.paymentVoucherForm.get('pbankid')?.setValue(0);
+  //       }
+
+  //       this.paymentVoucherForm.get('pipaddress')?.setValue('192.168.2.177');
+  //       this.paymentVoucherForm.get('pCreatedby')?.setValue(9);
+  //       console.log(this.paymentVoucherForm.value, 'formval');
+
+
+
+  //       this.paymentsList.forEach((x: any) => {
+  //         console.log("IGSTSHJD",
+  //           x.pigstamount,
+  //           x.pcgstamount,
+  //           x.psgstamount
+  //         );
+  //       }); const payload = this.buildSavePayload(
+  //         this.paymentVoucherForm.getRawValue()
+  //       );
+
+  //       this.accountingTxService
+  //         .savePaymentVoucher(payload)
+  //         .subscribe({
+  //           next: (res: any) => {
+  //             console.log(res, 'res');
+  //             if (res.success === true) {
+  //               this.jsonDataItem = res;
+  //               this.disableSaveButton.set(false);
+  //               this.saveButtonLabel.set('Save');
+
+  //               this.commonService.showSuccessMessage();
+  //               this.clearPaymentVoucher();
+
+  //               // ── Clear bank validators and validation AFTER clearPaymentVoucher ──
+  //               bankFields.forEach(k => {
+  //                 this.paymentVoucherForm.get(k)?.clearValidators();
+  //                 this.paymentVoucherForm.get(k)?.updateValueAndValidity();
+  //                 this.paymentVoucherForm.get(k)?.markAsUntouched();
+  //                 this.paymentVoucherForm.get(k)?.markAsPristine();
+  //               });
+  //               this.paymentVoucherForm.markAsUntouched();
+  //               this.paymentVoucherForm.markAsPristine();
+  //               const savedLineGroup = this.paymentVoucherForm.get('ppaymentsslistcontrols') as FormGroup;
+  //               if (savedLineGroup) {
+  //                 savedLineGroup.markAsUntouched();
+  //                 savedLineGroup.markAsPristine();
+  //                 Object.keys(savedLineGroup.controls).forEach(key => {
+  //                   savedLineGroup.get(key)?.markAsUntouched();
+  //                   savedLineGroup.get(key)?.markAsPristine();
+  //                 });
+  //               }
+  //               this.formValidationMessages = {};
+
+  //               const receipt = btoa(res.voucherNo + ',' + 'Payment Voucher');
+  //               const url = this.router.serializeUrl(
+  //                 this.router.createUrlTree(['/payment-voucher', receipt])
+  //               );
+  //               window.open(url, '_blank');
+  //               this.commonService.showSuccessMessage();
+  //             } else {
+  //               this.disableSaveButton.set(false);
+  //               this.saveButtonLabel.set('Save');
+  //               this.commonService.showErrorMessage('Error while saving..!');
+  //             }
+  //           },
+  //           error: (err: any) => {
+  //             this.commonService.showErrorMessage(err);
+  //             this.disableSaveButton.set(false);
+  //             this.saveButtonLabel.set('Save');
+  //           },
+  //         });
+  //     });
+  // }
+
   savePaymentVoucher(): void {
 
     const narrationEmpty = !this.paymentVoucherForm.get('pnarration')?.value?.trim();
     const gridEmpty = this.paymentsList.length === 0;
-
-    // ── Reapply bank validators before checking ──
     this.addModeofPaymentValidations();
-
-    // ── Check bank field validity ──
-    //const bankFields = ['pbankname', 'pCardNumber', 'pChequenumber', 'ptypeofpayment', 'pUpiname', 'pUpiid'];
 
     const bankFields = ['pbankname', 'pCardNumber', 'pChequenumber', 'ptypeofpayment', 'pUpiname', 'pUpiid', 'pbranchname'];
     const bankInvalid = this.showModeofPayment() && bankFields.some(k => {
@@ -2405,7 +2627,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
 
     if (narrationEmpty || gridEmpty || bankInvalid) {
 
-      // ── Mark bank fields touched to show red borders ──
       if (bankInvalid) {
         bankFields.forEach(k => {
           const ctrl = this.paymentVoucherForm.get(k);
@@ -2417,7 +2638,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         });
       }
 
-      // ── Show payment details red borders ONLY when grid is empty ──
       if (gridEmpty) {
         this.commonService.showWarningMessage('Add at least one record to the grid!');
         const ctrl = this.paymentVoucherForm.get('ppaymentsslistcontrols') as FormGroup;
@@ -2435,7 +2655,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
       }
 
-      // ── Show narration red border when empty ──
       if (narrationEmpty) {
         this.paymentVoucherForm.get('pnarration')?.markAsTouched();
       }
@@ -2443,7 +2662,7 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       return;
     }
 
-    // ── All validations passed — clear everything before proceeding ──
+
     this.paymentVoucherForm.markAsUntouched();
     this.paymentVoucherForm.markAsPristine();
     const lineGroup = this.paymentVoucherForm.get('ppaymentsslistcontrols') as FormGroup;
@@ -2501,13 +2720,38 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
 
         if (count !== 0) {
-          debugger
           this.commonService.showWarningMessage(
             `Subledger per day Cash transactions limit below ${this.commonService.currencyformat(this.cashRestrictAmount)} only`
           );
           this.disableSaveButton.set(false);
           this.saveButtonLabel.set('Save');
           return;
+        }
+        const mode = this.paymentVoucherForm.get('pmodofpayment')?.value;
+        const totalPaid = parseFloat(
+          this.paymentVoucherForm.get('ptotalpaidamount')?.value ?? '0'
+        ) || 0;
+
+        if (mode === 'CASH') {
+          const cashNum = parseFloat(
+            String(this.cashBalance ?? '').replace(/[^0-9.]/g, '') || '0'
+          );
+          if (totalPaid > cashNum) {
+            this.commonService.showWarningMessage('Insufficient Cash Balance');
+            this.disableSaveButton.set(false);
+            this.saveButtonLabel.set('Save');
+            return;
+          }
+        } else if (mode === 'BANK') {
+          const bankNum = parseFloat(
+            String(this.bankBalance ?? '').replace(/[^0-9.]/g, '') || '0'
+          );
+          if (totalPaid > bankNum) {
+            this.commonService.showWarningMessage('Insufficient Bank Balance');
+            this.disableSaveButton.set(false);
+            this.saveButtonLabel.set('Save');
+            return;
+          }
         }
 
         if (!confirm('Do You Want To Save ?')) {
@@ -2527,15 +2771,15 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         this.paymentVoucherForm.get('pCreatedby')?.setValue(9);
         console.log(this.paymentVoucherForm.value, 'formval');
 
+        this.paymentsList.forEach((x: any) => {
+          console.log("IGSTSHJD",
+            x.pigstamount,
+            x.pcgstamount,
+            x.psgstamount
+          );
+        });
 
-
-     this.paymentsList.forEach((x:any)=>{
-  console.log("IGSTSHJD",
-    x.pigstamount,
-    x.pcgstamount,
-    x.psgstamount
-  );
-});   const payload = this.buildSavePayload(
+        const payload = this.buildSavePayload(
           this.paymentVoucherForm.getRawValue()
         );
 
@@ -2552,7 +2796,6 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
                 this.commonService.showSuccessMessage();
                 this.clearPaymentVoucher();
 
-                // ── Clear bank validators and validation AFTER clearPaymentVoucher ──
                 bankFields.forEach(k => {
                   this.paymentVoucherForm.get(k)?.clearValidators();
                   this.paymentVoucherForm.get(k)?.updateValueAndValidity();
@@ -2649,7 +2892,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
       branchid: str(this.commonService.getbrachid()),
 
       // ── User/System ────────────────────────
-      pCreatedby: 9,
+
+      //pCreatedby: 9,
+      pCreatedby: Number(sessionStorage.getItem('userId') || 0),
       pipaddress: safe(formVal.pipaddress),
 
       // ── File ──────────────────────────────
@@ -2829,8 +3074,12 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         const safe = (v: any) =>
           Number(this.commonService.removeCommasInAmount(v) || 0);
 
+        // const debit = ledgerPayments.reduce(
+        //   (s: any, p: any) => s + safe(p.pamount) + safe(p.ptdsamount),
+        //   0
+        // );
         const debit = ledgerPayments.reduce(
-          (s: any, p: any) => s + safe(p.pamount) + safe(p.ptdsamount),
+          (s: any, p: any) => s + safe(p.pamount)- safe(p.pgstamount),
           0
         );
         this.partyjournalentrylist.push({
@@ -2848,9 +3097,9 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           if (tdsAmt > 0) {
             tdsEntries.push({
               type: `Journal Voucher ${idx}`,
-              accountname: `TDS-${sec} RECEIVABLE`,
-              debitamount: tdsAmt,
-              creditamount: 0,
+              accountname: `TDS-${sec} PAYABLE`,
+              debitamount: 0,
+              creditamount: tdsAmt,
             });
           }
         }
@@ -2863,8 +3112,8 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
           tdsEntries.push({
             type: `Journal Voucher ${idx}`,
             accountname: ledger,
-            debitamount: 0,
-            creditamount: totalTds,
+            debitamount: totalTds,
+            creditamount: 0,
           });
         }
         idx++;
@@ -2891,9 +3140,14 @@ export class PaymentVoucherView implements OnInit, OnDestroy {
         }
       });
 
+      // const totalPaid = (this.paymentsList || []).reduce(
+      //   (s: any, p: any) =>
+      //     s + Number(this.commonService.removeCommasInAmount(p.ptotalamount) || 0),
+      //   0
+      // );
       const totalPaid = (this.paymentsList || []).reduce(
         (s: any, p: any) =>
-          s + Number(this.commonService.removeCommasInAmount(p.ptotalamount) || 0),
+          s + Number(this.commonService.removeCommasInAmount(p.pamount) || 0),
         0
       );
       if (totalPaid > 0) {

@@ -21,7 +21,7 @@
         <div class="inventory-report-filter">
           <label>{{ filter.label }}</label>
           @if (filter.type === 'multiselect') {
-            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
           } @else if (filter.type === 'select') {
             <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
           } @else if (filter.type === 'date') {
@@ -46,7 +46,7 @@
           <div class="inventory-report-filter">
             <label>{{ filter.label }}</label>
             @if (filter.type === 'multiselect') {
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
             } @else if (filter.type === 'select') {
               <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
             } @else if (filter.type === 'date') {

@@ -256,8 +256,16 @@
                     {{ row.ptransactionno === 0 ? '--NA--' : row.ptransactionno }}
                   </td>
 
+                  <!-- <td>
+                    {{ row.pparticulars }}
+                  </td> -->
                   <td>
                     {{ row.pparticulars }}
+                    @if (isNarrationChecked() && row.pdescription) {
+                    <span class="text-muted" style="font-size: 12px;">
+                      ({{ row.pdescription }})
+                    </span>
+                    }
                   </td>
 
                   <td class="td-right">

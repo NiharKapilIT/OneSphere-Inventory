@@ -57,6 +57,11 @@ export class ChequesInbank implements OnInit {
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
 
 
+  onTransactionDateSelect(date: Date) {
+    this.ChequesInBankForm.get('ptransactiondate')?.setValue(date);
+    this.chequeClearMinDate = new Date(date);
+  }
+
   onChequeClearDateSelect(date: Date) {
     this.ChequesInBankForm.get('pchequecleardate')?.setValue(date);
   }
@@ -155,7 +160,9 @@ export class ChequesInbank implements OnInit {
   // brsReturnFromDateModel: Date = new Date(new Date().setDate(new Date().getDate() - 1));
   // brsReturnToDateModel: Date = new Date();
   //chequeClearDateModel: Date = new Date();
+  transactionDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
   chequeClearDateModel: Date = new Date(new Date().setHours(0, 0, 0, 0));
+  chequeClearMinDate: Date = new Date(new Date().setHours(0, 0, 0, 0));
   //today2: Date = new Date(new Date().setHours(0, 0, 0, 0));
   brsFromDateModel: Date = new Date();
   brsToDateModel: Date = new Date();
@@ -224,13 +231,21 @@ export class ChequesInbank implements OnInit {
       this.activeTab = 'cheques';
       this.modeofreceipt = 'ALL';
       this.status = 'all';
+      // } else {
+      //   this.tabsShowOrHideBasedOnfromFormName = true;
+      //   this.displayGridBasedOnFormName = true;
+      //   this.activeTab = 'onlinereceipts';
+      //   this.status = 'onlinereceipts';
+      //   this.modeofreceipt = 'ALL';
+      //   this.selectedTab = 'onlinereceipts';
+      // }
     } else {
       this.tabsShowOrHideBasedOnfromFormName = true;
       this.displayGridBasedOnFormName = true;
-      this.activeTab = 'onlinereceipts';
-      this.status = 'onlinereceipts';
+      this.activeTab = 'all';
+      this.status = 'all';
       this.modeofreceipt = 'ALL';
-      this.selectedTab = 'onlinereceipts';
+      this.selectedTab = 'all';
     }
 
     this.GetBankList();
@@ -470,7 +485,7 @@ export class ChequesInbank implements OnInit {
     this.status = 'all'; this.pdfstatus = 'All'; this.modeofreceipt = 'ALL';
     const grid = this.bankid == 0
       ? [...this.ChequesInBankData]
-      : this.ChequesInBankData.filter((d: any) => d?.pdepositbankid == this.bankid);
+      : this.ChequesInBankData.filter((d: any) => d?.pdepositbankid == this.bankid)
     this.gridData = JSON.parse(JSON.stringify(grid));
     this.gridDatatemp = [...this.gridData];
     this.showicons = this.gridData.length > 0;
@@ -1032,6 +1047,19 @@ export class ChequesInbank implements OnInit {
     const checkbox = event.target as HTMLInputElement;
 
     if (checkbox.checked) {
+      const depositedDate = data.pdepositeddate
+        ? this._commonService.getDateObjectFromDataBase(data.pdepositeddate) : null;
+      const chequeClearDate = this.chequeClearDateModel;
+      if (depositedDate && chequeClearDate) {
+        const dd = new Date(depositedDate).setHours(0, 0, 0, 0);
+        const cd = new Date(chequeClearDate).setHours(0, 0, 0, 0);
+        if (cd < dd) {
+          checkbox.checked = false;
+          this._commonService.showWarningMessage('Cheque Clear Date Should be Greater than or Equal Deposited Date');
+          return;
+        }
+      }
+
       // ── Uncheck Return first if it was checked ──
       data.preturnstatus = false;
       data.pdepositstatus = true;
@@ -1163,46 +1191,61 @@ export class ChequesInbank implements OnInit {
 
   CheckedReturn(event: Event, data: any): void {
 
-  const checked = (event.target as HTMLInputElement).checked;
+    const checked = (event.target as HTMLInputElement).checked;
 
-  this.gridData = this.gridData.map((row: any) => {
-
-    const isSameCheque =
-      row?.pChequenumber === data?.pChequenumber &&
-      row?.cheque_bank === data?.cheque_bank &&
-      row?.receipt_branch_name === data?.receipt_branch_name;
-
-    if (!isSameCheque) {
-      return row;
+    if (checked) {
+      const depositedDate = data.pdepositeddate
+        ? this._commonService.getDateObjectFromDataBase(data.pdepositeddate) : null;
+      const chequeClearDate = this.chequeClearDateModel;
+      if (depositedDate && chequeClearDate) {
+        const dd = new Date(depositedDate).setHours(0, 0, 0, 0);
+        const cd = new Date(chequeClearDate).setHours(0, 0, 0, 0);
+        if (cd < dd) {
+          (event.target as HTMLInputElement).checked = false;
+          this._commonService.showWarningMessage('Cheque Clear Date Should be Greater than or Equal Deposited Date');
+          return;
+        }
+      }
     }
 
-    return {
-      ...row,
-      preturnstatus: checked,
-      pdepositstatus: false,
-      pchequestatus: checked ? 'R' : 'N'
-    };
-  });
+    this.gridData = this.gridData.map((row: any) => {
 
-  if (checked) {
+      const isSameCheque =
+        row?.pChequenumber === data?.pChequenumber &&
+        row?.cheque_bank === data?.cheque_bank &&
+        row?.receipt_branch_name === data?.receipt_branch_name;
 
-    this.PopupData = data;
-    this.returnChargesError = false;
-    this.chequenumber = data?.pChequenumber;
+      if (!isSameCheque) {
+        return row;
+      }
 
-    this.showReturnModal = true;
+      return {
+        ...row,
+        preturnstatus: checked,
+        pdepositstatus: false,
+        pchequestatus: checked ? 'R' : 'N'
+      };
+    });
+
+    if (checked) {
+
+      this.PopupData = data;
+      this.returnChargesError = false;
+      this.chequenumber = data?.pChequenumber;
+
+      this.showReturnModal = true;
+    }
+
+    this.selectedamt = this.gridData.reduce(
+      (sum: number, el: any) =>
+        el?.pdepositstatus
+          ? sum + (el?.ptotalreceivedamount || 0)
+          : sum,
+      0
+    );
+
+    this.cdr.detectChanges();
   }
-
-  this.selectedamt = this.gridData.reduce(
-    (sum: number, el: any) =>
-      el?.pdepositstatus
-        ? sum + (el?.ptotalreceivedamount || 0)
-        : sum,
-    0
-  );
-
-  this.cdr.detectChanges();
-}
 
   selectAllClear(eve: any) {
     this.preferdrows = eve.target.checked;
@@ -1311,7 +1354,7 @@ export class ChequesInbank implements OnInit {
           this._commonService.showWarningMessage('Duplicates Found please enter unique values');
           isvalid = false;
         } else if (isempty) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           isvalid = false;
         } else if (selectrecords.length == 0) {
           this._commonService.showWarningMessage('Please Select records');
@@ -1327,6 +1370,7 @@ export class ChequesInbank implements OnInit {
 
 
   Save() {
+    debugger;
     console.log('Save called, status:', this.status);
     this.DataForSaving = [];
 
@@ -1390,7 +1434,7 @@ export class ChequesInbank implements OnInit {
           .filter(el => el.pchequestatus === 'Y')
           .some(item => !item.preferencetext || item.preferencetext.toString().trim() === '');
         if (emptyRef) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           return;
         }
 
@@ -1489,7 +1533,9 @@ export class ChequesInbank implements OnInit {
 
   private _prepareSaveItems(items: any[], isAuto: boolean) {
     for (const item of items) {
-      item.pCreatedby = '1';
+      //item.pCreatedby = '1';
+
+      item.pCreatedby = sessionStorage.getItem('userId');
       item.pdepositeddate = this._commonService.getFormatDateNormal(
         this._commonService.getDateObjectFromDataBase(item.pdepositeddate));
       item.preceiptdate = this._commonService.getFormatDateNormal(
@@ -1559,8 +1605,12 @@ export class ChequesInbank implements OnInit {
 
     this.gridData = []; this.gridDatatemp = [];
     this.ChequesInBankData = []; this.ChequesClearReturnData = [];
-    this.modeofreceipt = 'ALL'; this.status = 'onlinereceipts';
-    this.selectedTab = 'onlinereceipts';
+    // this.modeofreceipt = 'ALL'; 
+    // this.status = 'onlinereceipts';
+    // this.selectedTab = 'onlinereceipts';
+    this.modeofreceipt = 'ALL';
+    this.status = 'all';
+    this.selectedTab = 'all';
     this._searchText = ''; this.fromdate = ''; this.todate = '';
     this.preferdrows = false;
     this.amounttotal = 0; this.selectedamt = 0;
@@ -1728,10 +1778,10 @@ export class ChequesInbank implements OnInit {
       data.push([
         e?.pChequenumber || '', e?.pbranchname || '',
         this._commonService.convertAmountToPdfFormat(amt), e?.preceiptid || '',
-        e?.preceiptdate ? this.datepipe.transform(e.preceiptdate,'dd-MMM-yyyy') : '',
-        e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate,'dd-MMM-yyyy') : '',
+        e?.preceiptdate ? this.datepipe.transform(e.preceiptdate, 'dd-MMM-yyyy') : '',
+        e?.pdepositeddate ? this.datepipe.transform(e.pdepositeddate, 'dd-MMM-yyyy') : '',
         ...(hasDateCol
-          ? [e?.pCleardate ? this.datepipe.transform(e.pCleardate,'dd-MMM-yyyy') : ''] : []),
+          ? [e?.pCleardate ? this.datepipe.transform(e.pCleardate, 'dd-MMM-yyyy') : ''] : []),
         //   e?.preceiptdate ? this._commonService.getFormatDateGlobal(e.preceiptdate) : '',
         // e?.pdepositeddate ? this._commonService.getFormatDateGlobal(e.pdepositeddate) : '',
         // ...(hasDateCol

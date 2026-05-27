@@ -149,7 +149,7 @@ export class ChequesIssued implements OnInit {
   totalElements = 0;
   page: Page = { totalElements: 0, pageSize: 10, pageNumber: 0, offset: 0, size: 10, totalPages: 0 };
   startindex = 0;
-  endindex = 10;
+  endindex = 9999;
   modeofreceipt = 'ALL';
   _searchText = '';
   fromdate: any = null;
@@ -252,6 +252,7 @@ export class ChequesIssued implements OnInit {
     if (fallback === 'yesterday') d.setDate(d.getDate() - 1);
     return d;
   }
+  
 
   private getBrsFromToDates(): { fromDateVal: Date; toDateVal: Date } {
     const today = new Date();
@@ -376,6 +377,8 @@ export class ChequesIssued implements OnInit {
       offset: 0, pageNumber: 1, footerPageHeight: 50
     }));
   }
+
+  
 
 
   onFooterPageChange(event: { page: number }): void {
@@ -607,7 +610,7 @@ export class ChequesIssued implements OnInit {
 
     this._accountingtransaction.GetChequesIssued(
       bank, this._commonService.getbranchname(),
-      startindex ?? 0, endindex ?? 10, this.modeofreceipt, search,
+      startindex ?? 0, endindex ?? 9999, this.modeofreceipt, search,
       this._commonService.getschemaname(), this._commonService.getBranchCode(),
       this._commonService.getCompanyCode()
     ).subscribe({
@@ -851,9 +854,9 @@ export class ChequesIssued implements OnInit {
     this.brsdateshowhidecancelled.set(false);
     this._hideActionColumns();
 
-    const { fromDateVal, toDateVal } = this.getBrsFromToDates();
-    this.ChequesIssuedForm.patchValue({ pfrombrsdate: fromDateVal, ptobrsdate: toDateVal });
-    this.clearMinToDate = fromDateVal;
+    // const { fromDateVal, toDateVal } = this.getBrsFromToDates();
+    // this.ChequesIssuedForm.patchValue({ pfrombrsdate: fromDateVal, ptobrsdate: toDateVal });
+    // this.clearMinToDate = fromDateVal;
 
     // Only take cleared records from ChequesClearReturnData (they have pCleardate)
     const cleared = this.buildGridByChequeStatus(this.ChequesClearReturnData, 'P');
@@ -908,9 +911,9 @@ export class ChequesIssued implements OnInit {
     this.brsdateshowhidecancelled.set(false);
     this._hideActionColumns();
 
-    const { fromDateVal, toDateVal } = this.getBrsFromToDates();
-    this.BrsReturnForm.patchValue({ frombrsdate: fromDateVal, tobrsdate: toDateVal });
-    this.returnMinToDate = fromDateVal;
+    // const { fromDateVal, toDateVal } = this.getBrsFromToDates();
+    // this.BrsReturnForm.patchValue({ frombrsdate: fromDateVal, tobrsdate: toDateVal });
+    // this.returnMinToDate = fromDateVal;
 
 
     const grid: ChequesIssuedRow[] = this.bankid === 0
@@ -968,9 +971,9 @@ export class ChequesIssued implements OnInit {
     this.brsdateshowhidecancelled.set(true);
     this._hideActionColumns();
 
-    const { fromDateVal, toDateVal } = this.getBrsFromToDates();
-    this.BrsCancelForm.patchValue({ frombrsdate: fromDateVal, tobrsdate: toDateVal });
-    this.cancelMinToDate = fromDateVal;
+    // const { fromDateVal, toDateVal } = this.getBrsFromToDates();
+    // this.BrsCancelForm.patchValue({ frombrsdate: fromDateVal, tobrsdate: toDateVal });
+    // this.cancelMinToDate = fromDateVal;
 
     // ChequesClearReturnData is already populated by _storeApiResponse()
     this.applyGridData(this.buildGridByChequeStatus(this.ChequesClearReturnData, 'C'));
@@ -1126,8 +1129,8 @@ export class ChequesIssued implements OnInit {
     if (fromdate != null && todate != null) {
       this.OnBrsDateChanges(fromdate, todate);
       if (!this.validate) {
-        this.fromdate = this.datepipe.transform(fromdate, 'MM/dd/yyyy') || '';
-        this.todate = this.datepipe.transform(todate, 'MM/dd/yyyy') || '';
+        this.fromdate = this.datepipe.transform(fromdate, 'yyyy-MM-dd') || '';
+        this.todate = this.datepipe.transform(todate, 'yyyy-MM-dd') || '';
         this.validatebrsdatereturn.set(false); this.pageSetUp();
         this.GetDataOnBrsDates(this.fromdate, this.todate, this.bankid);
       } else { this.validatebrsdatereturn.set(true); }
@@ -1141,8 +1144,8 @@ export class ChequesIssued implements OnInit {
     if (fromdate != null && todate != null) {
       this.OnBrsDateChanges(fromdate, todate);
       if (!this.validate) {
-        this.fromdate = this.datepipe.transform(fromdate, 'MM/dd/yyyy') || '';
-        this.todate = this.datepipe.transform(todate, 'MM/dd/yyyy') || '';
+        this.fromdate = this.datepipe.transform(fromdate, 'yyyy-MM-dd') || '';
+        this.todate = this.datepipe.transform(todate, 'yyyy-MM-dd') || '';
         this.validatebrsdatecancel.set(false);
         if (this.tabname === 'Cancelled') {
           this.gridData.set([]); this.cancelled.set(0); this.pageSetUp();
@@ -1450,7 +1453,7 @@ export class ChequesIssued implements OnInit {
         data.pcancelstatus = false; data.pchequestatus = 'P';
       } else {
         data.pclearstatus = false; data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.pdepositstatus = false; data.pclearstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
@@ -1468,7 +1471,7 @@ export class ChequesIssued implements OnInit {
       } else {
         data.pclearstatus = false; data.preturnstatus = false;
         data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.preturnstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
@@ -1486,7 +1489,7 @@ export class ChequesIssued implements OnInit {
       } else {
         data.pclearstatus = false; data.preturnstatus = false;
         data.pcancelstatus = false; data.pchequestatus = 'N'; event.target.checked = false;
-        this._commonService.showWarningMessage('Transaction Date Should be >= Payment Date');
+        this._commonService.showWarningMessage('Transaction Date Should be Greater than Payment Date');
       }
     } else { data.pcancelstatus = false; data.pchequestatus = 'N'; }
     this.gridData.set([...this.gridData()]);
@@ -1569,7 +1572,7 @@ export class ChequesIssued implements OnInit {
           this._commonService.showWarningMessage('Duplicates Found please enter unique values');
           isValid = false;
         } else if (isempty) {
-          this._commonService.showWarningMessage('Please enter all input fields!');
+          this._commonService.showWarningMessage('Please enter Reference Number');
           isValid = false;
         } else if (selrec.length === 0) {
           if (iscancel.length > 0) {

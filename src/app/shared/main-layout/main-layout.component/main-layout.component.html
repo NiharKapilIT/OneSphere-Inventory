@@ -479,7 +479,7 @@
       </div>
     </div>
 
-    <main class="content-area" role="main">
+    <main #contentArea class="content-area" role="main">
       <nav class="breadcrumb-bar" *ngIf="breadcrumbPath.screen" aria-label="Breadcrumb">
         <div class="bc-inner">
           <button class="bc-item bc-link" (click)="selectModule(breadcrumbPath.module!)" [attr.title]="breadcrumbPath.module?.name">

@@ -99,7 +99,7 @@ export class AccountLedger implements OnInit {
   isGroupCollapsed(status: string): boolean {
     return this.collapsedGroups().has(status);
   }
-  
+
 
   // ── Computed Signals ──────────────────────────────────────────────────────
 
@@ -161,15 +161,15 @@ export class AccountLedger implements OnInit {
     this.initForm();
     this.loadLedgers();
     const initialFrom = this.form.get('fromDate')?.value;
-  this.toDateMinDate = initialFrom ?? null;
+    this.toDateMinDate = initialFrom ?? null;
 
-  this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
-    this.toDateMinDate = val ?? null;
-    const toDate = this.form.get('toDate')?.value;
-    if (toDate && val && toDate < val) {
-      this.form.get('toDate')?.setValue(null as unknown as Date);
-    }
-  });
+    this.form.get('fromDate')?.valueChanges.subscribe((val: Date | null) => {
+      this.toDateMinDate = val ?? null;
+      const toDate = this.form.get('toDate')?.value;
+      if (toDate && val && toDate < val) {
+        this.form.get('toDate')?.setValue(null as unknown as Date);
+      }
+    });
   }
 
   private initDatepickers(): void {
@@ -370,15 +370,19 @@ export class AccountLedger implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  formatDate(date: Date | string | null): string {
-    if (!date) return '';
-    if (typeof date === 'string') {
-    const [day, month, year] = date.split('/');
-    date = new Date(+year, +month - 1, +day);
+formatDate(date: Date | string | null): string {
+  if (!date) return '';
+  if (typeof date === 'string') {
+    if (date.includes('/')) {
+      const [day, month, year] = date.split('/');
+      date = new Date(+year, +month - 1, +day);
+    } else {
+      date = new Date(date);
+    }
   }
-    return this.datePipe.transform(date, 'dd-MMM-yyyy') ?? '';
-  }
-
+  if (isNaN((date as Date).getTime())) return '';
+  return this.datePipe.transform(date, 'dd-MMM-yyyy') ?? '';
+}
   onNarrationChange(event: Event): void {
     this.isNarrationChecked.set((event.target as HTMLInputElement).checked);
   }

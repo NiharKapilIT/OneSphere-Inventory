@@ -743,6 +743,28 @@ input {
   color: var(--text-soft);
 }
 
+.ap-company {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ap-company-name,
+.ap-branch-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--clr-p2-soft, #e0f2fe);
+  color: var(--clr-p1, #0c4a6e);
+
+  i { font-size: 9px; }
+}
+
 .ap-section {
   padding: 12px 14px;
   border-bottom: 1px solid var(--panel-border);
@@ -1449,6 +1471,43 @@ input {
   gap: 10px;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
   flex-wrap: wrap;
+}
+
+.bc-spacer {
+  flex: 1;
+}
+
+.bc-company-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.bc-company-pill,
+.bc-branch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+
+  i { font-size: 10px; }
+}
+
+.bc-company-pill {
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 12%, #ffffff);
+  color: var(--clr-p1, #0c4a6e);
+  border: 1px solid color-mix(in srgb, var(--clr-p2, #0891b2) 20%, #ffffff);
+}
+
+.bc-branch-pill {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
 .bc-item {

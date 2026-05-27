@@ -293,7 +293,7 @@
           scrollHeight="500px" responsiveLayout="scroll" [showCurrentPageReport]="true"
           currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" sortMode="single"
           styleClass="gr-table p-datatable-sm p-datatable-gridlines" [resizableColumns]="true"
-          columnResizeMode="expand">
+          columnResizeMode="expand" [tableStyle]="{'min-width': '60rem'}" [scrollHeight]="'400px'">
 
           <!-- HEADER -->
           <ng-template pTemplate="header">
@@ -470,7 +470,7 @@
           <!-- EMPTY -->
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="11">
+              <td [attr.colspan]="!showhidegridcolumns() ? (status() !== 'autobrs' ? 9 : 8) : 6">
                 <div class="tbl-empty">
                   <i class="pi pi-inbox tbl-empty__icon"></i>
                   <p class="tbl-empty__text">No cheques found</p>

@@ -46,33 +46,12 @@
             </div>
           </div>
 
-          @if (errorMsg()) {
-            <div class="mt-3 alert alert-danger erp-alert shadow-sm border-0 d-flex align-items-center">
-              <i class="pi pi-exclamation-triangle me-2"></i>
-              <div>{{ errorMsg() }}</div>
-            </div>
-          }
-        </div>
-      </form>
-
-      @if (showReport()) {
-        <div class="schedule-report-shell">
-          <div class="erp-table-toolbar mb-3 d-print-none">
-            <div class="tb-left">
-              <h6 class="mb-0 font-bold text-primary">Nested Schedule TB</h6>
-            </div>
-            <div class="tb-right">
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="mailReport()" title="Mail">
-                <i class="pi pi-envelope"></i>
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="exportPdf()" title="Export PDF">
-                <i class="pi pi-file-pdf"></i>
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="printReport()" title="Print">
-                <i class="pi pi-print"></i>
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="exportExcel()" title="Export Excel">
-                <i class="pi pi-file-excel"></i>
+          <!-- Print Button -->
+          <div class="col-12 col-md-4">
+            <div class="erp-form-group">
+              <button type="submit" class="erp-btn btn-primary shadow-sm" [disabled]="loading()">
+                <i class="pi" [ngClass]="loading() ? 'pi-spin pi-spinner' : 'pi-print'"></i>
+                {{ loading() ? 'Generating' : btnPrint() }}
               </button>
             </div>
           </div>
@@ -113,12 +92,7 @@
             </div>
           </div>
         </div>
-      } @else {
-        <div class="schedule-empty-note">
-          <i class="pi pi-info-circle"></i>
-          Generate the report to view nested Schedule Trial Balance in HTML.
-        </div>
-      }
+       </form>
     </div>
   </div>
 </div>

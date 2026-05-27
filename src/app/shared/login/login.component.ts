@@ -312,7 +312,8 @@ export class LoginComponent implements OnInit, OnDestroy {
         response.branchId,
         (response as any).ipAddress ?? (response as any).IPAddress ?? '',
       );
-
+      sessionStorage.setItem('moduleName','accounts')
+      // store company details (fire-and-forget, non-blocking)
       this.companyService.GetCompanyData().subscribe({
         next: (d: any) => {
           if (d?.length) sessionStorage.setItem('CompanyDetails', JSON.stringify(d[0]));

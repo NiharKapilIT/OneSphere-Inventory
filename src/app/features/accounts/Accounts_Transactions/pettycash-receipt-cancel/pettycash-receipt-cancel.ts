@@ -107,6 +107,7 @@ export class PettycashReceiptCancel implements OnInit {
     this.getReceiptNumber();
   }
 
+  
 
 
 
@@ -219,7 +220,7 @@ export class PettycashReceiptCancel implements OnInit {
 
     const receiptId = this.PettyCashCancel.value.receiptid;
     if (!receiptId) {
-      this._commonService.showWarningMessage('Select receipt number');
+      //this._commonService.showWarningMessage('Select receipt number');
       return;
     }
 

@@ -162,7 +162,8 @@ export class PaymentVoucher implements OnInit {
   openVoucherReport(row: VoucherRow): void {
     ;
     if (!row?.paymentId) return;
-    const receipt = btoa(`${row.paymentId},Payment Voucher`);
+    //const receipt = btoa(`${row.paymentId},Payment Voucher`);
+    const receipt = btoa(`${row.paymentId},Payment Voucher,Reprint`);
     const url = this.router.serializeUrl(
       this.router.createUrlTree(['/payment-voucher', receipt])
     );

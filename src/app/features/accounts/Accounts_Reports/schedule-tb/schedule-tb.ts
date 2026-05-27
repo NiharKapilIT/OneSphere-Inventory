@@ -137,6 +137,26 @@ export class ScheduleTb implements OnInit {
           this.loading.set(false);
         },
       });
+
+      // this.resetBtn();
+    
+    error: (err: any) => {
+
+      const status = err?.status;
+
+      if (status === 404 || status === 204 || status === 400) {
+
+        alert('No data found for the selected date.');
+
+      } else {
+
+        this.errorMsg.set(
+          'An error occurred while fetching report data.'
+        );
+      }
+
+      // this.resetBtn();
+    }
   }
 
   rowClass(row: ScheduleDisplayRow): string {

@@ -288,182 +288,182 @@
           </div>
         </div>
 
-        <!-- ── TAX TOGGLES (TDS & GST) ── -->
-        <div class="mt-3 mb-3">
-          <div class="d-flex gap-4 align-items-center">
-            <!-- TDS Toggle -->
-            <div class="d-flex align-items-center gap-2">
-              <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">TDS</span>
+        <!-- ── TAX GROUPS (TDS & GST) ── -->
+        <div class="account-tax-groups mt-3">
+
+          <!-- TDS Section -->
+          <section class="account-tax-group" [class.is-expanded]="!showtds">
+            <div class="account-tax-group-header">
+              <div>
+                <h4>TDS Details <span class="erp-badge badge-success pt-1"><i class="pi pi-check-circle"></i> TDS Included</span></h4>
+                <span>Tax deduction setup for this payment line.</span>
+              </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!isPartySelected">
                 <input id="tds-switch" type="checkbox" formControlName="pistdsapplicable"
                   (change)="istdsapplicable_Checked()" />
                 <label for="tds-switch" class="erp-toggle"></label>
               </div>
             </div>
+            @if (!showtds) {
+            <div class="account-tax-group-body">
+              <div class="row g-2">
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">Section <span class="required">*</span></label>
+                    <ng-select appendTo="body" [items]="tdssectionlist" bindLabel="pTdsSection" bindValue="pTdsSection"
+                      placeholder="Select Section" formControlName="pTdsSection" (change)="tdsSection_Change($event)"
+                      (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.markAsTouched()"
+                      aria-placeholder="Select Section"
+                      [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched}">
+                    </ng-select>
+                    @if (formValidationMessages?.['pTdsSection'] &&
+                    paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched) {
+                    <div class="erp-field-error">{{ formValidationMessages['pTdsSection'] }}</div>
+                    }
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">Percentage <span class="required">*</span></label>
+                    <ng-select appendTo="body" [items]="tdspercentagelist" bindLabel="pTdsPercentage"
+                      bindValue="pTdsPercentage" placeholder="Select %" formControlName="pTdsPercentage"
+                      (change)="tds_Change($event)"
+                      (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.markAsTouched()"
+                      [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.touched}">
+                    </ng-select>
+                    @if (formValidationMessages?.['pTdsPercentage'] &&
+                    paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.touched) {
+                    <div class="erp-field-error">{{ formValidationMessages['pTdsPercentage'] }}</div>
+                    }
+                  </div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <div class="erp-form-group">
+                    <label class="erp-label">TDS Amount</label>
+                    <div class="erp-value-pill">
+                      <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.ptdsamount')?.value |
+                        number:'1.2-2' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+          </section>
 
-            <!-- GST Toggle -->
-            <div class="d-flex align-items-center gap-2">
-              <span class="section-title mb-0" style="font-size: 14px; color: #3b82f6;">GST</span>
+          <!-- GST Section -->
+          <section class="account-tax-group" [class.is-expanded]="!showgst">
+            <div class="account-tax-group-header">
+              <div>
+                <h4>GST Details <span class="erp-badge badge-danger pt-1"><i class="pi pi-times-circle"></i> GST Excluded</span></h4>
+                <span>GST state, percentage and calculated breakup.</span>
+              </div>
               <div class="erp-toggle-group" [class.grn-switch--disabled]="!isPartySelected">
                 <input id="gst-switch" type="checkbox" formControlName="pisgstapplicable"
                   (change)="isgstapplicable_Checked()" />
                 <label for="gst-switch" class="erp-toggle"></label>
               </div>
             </div>
-          </div>
-        </div>
+            @if (!showgst) {
+            <div class="account-tax-group-body">
+              <div class="row g-2 mb-2">
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">State <span class="required">*</span></label>
+                  @if (statelist.length === 1) {
+                  <input type="text" class="erp-input" [value]="statelist[0].pState" readonly />
+                  } @else {
+                  <ng-select appendTo="body" [items]="statelist" bindLabel="pState" bindValue="pStateId"
+                    placeholder="Select State" formControlName="pStateId" (change)="state_change($event)"
+                    (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.touched}">
+                  </ng-select>
+                  @if (formValidationMessages?.['pStateId'] &&
+                  paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.touched) {
+                  <div class="erp-field-error">{{ formValidationMessages['pStateId'] }}</div>
+                  }
+                  }
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">GST No.</label>
+                  <input type="text" class="erp-input uppercase" maxlength="15" formControlName="pgstno"
+                    placeholder="Enter GST No" (blur)="gsno_change()" />
+                  @if (formValidationMessages?.['pgstno'] &&
+                  paymentVoucherForm.get('ppaymentsslistcontrols.pgstno')?.touched) {
+                  <div class="erp-field-error">{{ formValidationMessages['pgstno'] }}</div>
+                  }
+                </div>
+                <div class="col-12 col-md-6">
+                  <label class="erp-label">GST (%) <span class="required">*</span></label>
+                  <ng-select appendTo="body" [items]="gstlist" bindLabel="pgstpercentage" bindValue="pgstpercentage"
+                    placeholder="Select %" formControlName="pgstpercentage" [readonly]="disablegst"
+                    (change)="gst_Change($event)" aria-placeholder="Select GST%"
+                    (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.markAsTouched()"
+                    [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.touched}">
+                  </ng-select>
+                  @if (formValidationMessages?.['pgstpercentage'] &&
+                  paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.touched) {
+                  <div class="erp-field-error">{{ formValidationMessages['pgstpercentage'] }}</div>
+                  }
+                </div>
+              </div>
 
-        <!-- ── TDS DETAILS ── -->
-        @if (!showtds) {
-        <div class="row g-2 mb-3">
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label class="erp-label">Section <span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="tdssectionlist" bindLabel="pTdsSection" bindValue="pTdsSection"
-                placeholder="Select Section" formControlName="pTdsSection" (change)="tdsSection_Change($event)"
-                (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.markAsTouched()"
-                aria-placeholder="Select Section"
-                [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched}">
-              </ng-select>
-              @if (formValidationMessages?.['pTdsSection'] &&
-              paymentVoucherForm.get('ppaymentsslistcontrols.pTdsSection')?.touched) {
-              <div class="erp-field-error">{{
-                formValidationMessages['pTdsSection'] }}</div>
-              }
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label class="erp-label">Percentage <span class="required">*</span></label>
-              <ng-select appendTo="body" [items]="tdspercentagelist" bindLabel="pTdsPercentage"
-                bindValue="pTdsPercentage" placeholder="Select %" formControlName="pTdsPercentage"
-                (change)="tds_Change($event)"
-                (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.markAsTouched()"
-                [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.touched}">
-              </ng-select>
-              @if (formValidationMessages?.['pTdsPercentage'] &&
-              paymentVoucherForm.get('ppaymentsslistcontrols.pTdsPercentage')?.touched) {
-              <div class="erp-field-error">{{
-                formValidationMessages['pTdsPercentage'] }}</div>
-              }
-            </div>
-          </div>
-
-          <div class="col-12 col-md-4">
-            <div class="erp-form-group">
-              <label class="erp-label">TDS Amount</label>
-              <div class="erp-value-pill">
-                <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.ptdsamount')?.value |
-                  number:'1.2-2' }}</span>
+              <!-- GST Breakdown -->
+              <div class="row g-2 mt-2">
+                @if (showgstamount) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">GST Amount</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pgstamount')?.value |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showigst) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">IGST ({{
+                    paymentVoucherForm.get('ppaymentsslistcontrols.pigstpercentage')?.value }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pigstamount')?.value |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showcgst) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">CGST ({{
+                    paymentVoucherForm.get('ppaymentsslistcontrols.pcgstpercentage')?.value }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pcgstamount')?.value |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showsgst) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">SGST ({{
+                    paymentVoucherForm.get('ppaymentsslistcontrols.psgstpercentage')?.value }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.psgstamount')?.value |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
+                @if (showutgst) {
+                <div class="col-md-6 mb-2">
+                  <label class="erp-label">UTGST ({{
+                    paymentVoucherForm.get('ppaymentsslistcontrols.putgstpercentage')?.value }}%)</label>
+                  <div class="erp-value-pill">
+                    <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.putgstamount')?.value |
+                      number:'1.2-2' }}</span>
+                  </div>
+                </div>
+                }
               </div>
             </div>
-          </div>
+            }
+          </section>
+
         </div>
-        }
-
-        <!-- ── GST DETAILS ── -->
-        @if (!showgst) {
-        <div class="row g-2 mb-2">
-          <div class="col-12 col-md-4">
-            <label class="erp-label">State <span class="required">*</span></label>
-            @if (statelist.length === 1) {
-            <input type="text" class="erp-input" [value]="statelist[0].pState" readonly />
-            } @else {
-            <ng-select appendTo="body" [items]="statelist" bindLabel="pState" bindValue="pStateId"
-              placeholder="Select State" formControlName="pStateId" (change)="state_change($event)"
-              (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.markAsTouched()"
-              [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.touched}">
-            </ng-select>
-            @if (formValidationMessages?.['pStateId'] &&
-            paymentVoucherForm.get('ppaymentsslistcontrols.pStateId')?.touched) {
-            <div class="erp-field-error">{{
-              formValidationMessages['pStateId'] }}</div>
-            }
-            }
-          </div>
-
-          <div class="col-12 col-md-4">
-            <label class="erp-label">GST No.</label>
-            <input type="text" class="erp-input uppercase" maxlength="15" formControlName="pgstno"
-              placeholder="Enter GST No" (blur)="gsno_change()" />
-            @if (formValidationMessages?.['pgstno'] && paymentVoucherForm.get('ppaymentsslistcontrols.pgstno')?.touched)
-            {
-            <div class="erp-field-error">{{
-              formValidationMessages['pgstno'] }}</div>
-            }
-          </div>
-
-          <div class="col-12 col-md-4">
-            <label class="erp-label">GST (%) <span class="required">*</span></label>
-            <ng-select appendTo="body" [items]="gstlist" bindLabel="pgstpercentage" bindValue="pgstpercentage"
-              placeholder="Select %" formControlName="pgstpercentage" [readonly]="disablegst"
-              (change)="gst_Change($event)" aria-placeholder="Select GST%"
-              (close)="paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.markAsTouched()"
-              [ngClass]="{'ng-invalid': paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.invalid && paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.touched}">
-            </ng-select>
-            @if (formValidationMessages?.['pgstpercentage'] &&
-            paymentVoucherForm.get('ppaymentsslistcontrols.pgstpercentage')?.touched) {
-            <div class="erp-field-error">{{
-              formValidationMessages['pgstpercentage'] }}</div>
-            }
-          </div>
-        </div>
-
-        <!-- GST Breakdown -->
-        <div class="row g-2 mt-2">
-          @if (showgstamount) {
-          <div class="col-md-3 mb-2">
-            <label class="erp-label">GST Amount</label>
-            <div class="erp-value-pill">
-              <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pgstamount')?.value |
-                number:'1.2-2' }}</span>
-            </div>
-          </div>
-          }
-          @if (showigst) {
-          <div class="col-md-3 mb-2">
-            <label class="erp-label">IGST ({{ paymentVoucherForm.get('ppaymentsslistcontrols.pigstpercentage')?.value
-              }}%)</label>
-            <div class="erp-value-pill">
-              <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pigstamount')?.value |
-                number:'1.2-2' }}</span>
-            </div>
-          </div>
-          }
-          @if (showcgst) {
-          <div class="col-md-3 mb-2">
-            <label class="erp-label">CGST ({{ paymentVoucherForm.get('ppaymentsslistcontrols.pcgstpercentage')?.value
-              }}%)</label>
-            <div class="erp-value-pill">
-              <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.pcgstamount')?.value |
-                number:'1.2-2' }}</span>
-            </div>
-          </div>
-          }
-          @if (showsgst) {
-          <div class="col-md-3 mb-2">
-            <label class="erp-label">SGST ({{ paymentVoucherForm.get('ppaymentsslistcontrols.psgstpercentage')?.value
-              }}%)</label>
-            <div class="erp-value-pill">
-              <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.psgstamount')?.value |
-                number:'1.2-2' }}</span>
-            </div>
-          </div>
-          }
-          @if (showutgst) {
-          <div class="col-md-3 mb-2">
-            <label class="erp-label">UTGST ({{
-              paymentVoucherForm.get('ppaymentsslistcontrols.putgstpercentage')?.value
-              }}%)</label>
-            <div class="erp-value-pill">
-              <span>{{ currencyCode }} {{ paymentVoucherForm.get('ppaymentsslistcontrols.putgstamount')?.value |
-                number:'1.2-2' }}</span>
-            </div>
-          </div>
-          }
-        </div>
-        }
 
         <!-- Add / Clear Buttons -->
         <div class="d-flex gap-2 mt-2">
