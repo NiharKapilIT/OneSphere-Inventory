@@ -716,6 +716,7 @@ export class ContactsListComponent implements OnInit {
   allContacts        = signal<Contact[]>([]);
   loading            = signal(false);
   hasMore            = signal(false);
+  isEmployeeSaving   = signal(false);
 
   // ── NEW: pulse signal that tells EmployeeDetailsComponent to save ──
   triggerEmployeeSave = signal(false);
@@ -995,6 +996,25 @@ export class ContactsListComponent implements OnInit {
     this.triggerEmployeeSave.set(false); // reset on close
   }
 
+  // ── Save button in modal footer calls this ────────────────────────────────
+  // saveRoleForm() {
+  //   debugger
+  //   const role = this.roleModalRole();
+
+  //   if (role === 'Employee') {
+  //     // Pulse true → EmployeeDetailsComponent.ngOnChanges fires → saveEmployee()
+  //     this.triggerEmployeeSave.set(true);
+  //     // Reset after tick so next Save click works again
+  //     setTimeout(() => this.triggerEmployeeSave.set(false), 200);
+  //     return;
+  //   }
+
+    // For all other roles, close immediately
+  
+//  saveRoleForm() {
+//   debugger
+//   const contact = this.roleModalContact();
+//   const role = this.roleModalRole();
 
   saveRoleForm() {
     const contact = this.roleModalContact();
@@ -1075,6 +1095,13 @@ export class ContactsListComponent implements OnInit {
 
         });
 
+} else if (role === 'Employee') {
+  this.isEmployeeSaving.set(true);  
+      // Pulse true → EmployeeDetailsComponent.ngOnChanges fires → saveEmployee()
+      this.triggerEmployeeSave.set(true);
+      // Reset after tick so next Save click works again
+      setTimeout(() => this.triggerEmployeeSave.set(false), 200);
+      return;
     } else {
 
       // Local update for other roles
@@ -1097,9 +1124,13 @@ export class ContactsListComponent implements OnInit {
 
   // ── Called by (onSaveSuccess) output from EmployeeDetailsComponent ────────
   onEmployeeSaveSuccess() {
+    this.isEmployeeSaving.set(false); 
     this.closeRoleForm();
     this.loadContacts(); // refresh grid
   }
+  onEmployeeSaveCancelled() {
+  this.isEmployeeSaving.set(false); // just reset spinner, keep modal open
+}
 
   hasRole(contact: Contact, role: ContactRole) {
     return (contact.roles || []).includes(role);

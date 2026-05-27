@@ -688,8 +688,7 @@ export class CommonService {
     return 'global';
   }
   getbranchname(): string {
-    // return sessionStorage.getItem('loginBranchName') ?? '';
-    return 'accounts';
+    return sessionStorage.getItem('moduleName') ?? '';
   }
 
 

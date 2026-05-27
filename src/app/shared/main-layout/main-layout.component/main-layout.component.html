@@ -212,6 +212,12 @@
               <div class="ap-title">Profile Settings</div>
               <div class="ap-username">{{ username }}</div>
               <div class="ap-role">Administrator</div>
+              @if (companyName || branchName) {
+                <div class="ap-company">
+                  @if (companyName) { <span class="ap-company-name"><i class="pi pi-building"></i> {{ companyName }}</span> }
+                  @if (branchName) { <span class="ap-branch-code"><i class="pi pi-tag"></i> {{ branchName }}</span> }
+                </div>
+              }
             </div>
           </div>
 
@@ -430,6 +436,18 @@
             <i [class]="getScreenIcon(breadcrumbPath.screen!.name)"></i>
             <span>{{ breadcrumbPath.screen!.name }}</span>
           </span>
+
+          @if (companyName || branchName) {
+            <span class="bc-spacer"></span>
+            <div class="bc-company-info">
+              @if (companyName) {
+                <span class="bc-company-pill"><i class="pi pi-building"></i> {{ companyName }}</span>
+              }
+              @if (branchName) {
+                <span class="bc-branch-pill"><i class="pi pi-tag"></i> {{ branchName }}</span>
+              }
+            </div>
+          }
         </div>
       </nav>
 

@@ -522,30 +522,30 @@ export class ContactAddComponent implements OnInit, OnChanges {
   buildForm() {
     this.form = this.fb.group({
       // Individual
-      addressType: [null, Validators.required],
-      addressLine: [null, Validators.required],
-      area: [null, Validators.required],
-      city: [null, Validators.required],
-      country: [null, Validators.required],
-      state: [null, Validators.required],
-      district: [null, Validators.required],
-      pincode: [null, Validators.required],
+      addressType: [null],
+      addressLine: [null],
+      area: [null],
+      city: [null],
+      country: [null],
+      state: [null],
+      district: [null],
+      pincode: [null],
       salutation: [null],
-      firstName: ['', Validators.required],
+      firstName: [''],
       surName: [''],
       mailingName: [''],
       gender: ['Male', Validators.required],
       fatherSalutation: [null],
-      fatherName: ['', Validators.required],
+      fatherName: [''],
       dob: [null],
       age: [''],
       panCard: [''],
       aadharCard: [''],
       cntNo: [''],
       // Business
-      enterpriseName: ['', Validators.required],
+      enterpriseName: [''],
       enterpriseEmail: [''],
-      enterpriseContact: ['', Validators.required],
+      enterpriseContact: [''],
       enterprisePan: ['',],
       enterpriseType: [null],
       businessNature: [null],
@@ -562,12 +562,12 @@ export class ContactAddComponent implements OnInit, OnChanges {
       kycExpiryDate: [null],
       kycStatus: ['Pending'],
       kycRemarks: [''],
-      bankName: [null, Validators.required],
+      bankName: [null],
       bankBranch: [''],
       accountHolderName: [''],
-      accountNo: ['', Validators.required],
+      accountNo: [''],
       accountType: [null],
-      ifscCode: ['', Validators.required],
+      ifscCode: [''],
       upiId: [''],
       fabricatedContact: [false],
       fabricatedContactComments: [''],
@@ -575,8 +575,9 @@ export class ContactAddComponent implements OnInit, OnChanges {
       paidGuarantor: [false],
       paidGuarantorComments: [''],
       paidGuarantorDocument: [''],
-      contactPerson: [null, Validators.required],
-      contactPersonDesignation: [null, Validators.required],
+      contactPerson: [null],
+      contactPersonDesignation: [null],
+      contactPersonSearch: [null],
     });
   }
 
@@ -746,9 +747,23 @@ export class ContactAddComponent implements OnInit, OnChanges {
 
 
   saveContact() {
-    debugger
+
     // if (this.form.invalid) {
     //   this.form.markAllAsTouched();
+    //   return;
+    // }
+    if (this.form.invalid) {
+      console.log(
+        Object.entries(this.form.controls)
+          .filter(([, ctrl]) => ctrl.invalid)
+          .map(([key]) => key)
+      );
+      this.commonService.showWarningMessage('Please fill all the required fields.');
+      return;
+    }
+
+    // if (this.form.invalid) {
+    //   this.commonService.showWarningMessage('Please fill all the required fields.');
     //   return;
     // }
 
@@ -798,7 +813,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
       pContactType: this.contactType(),
       pcontactexistingstatus: false,
       pDob: v.dob ? new Date(v.dob).toISOString().split('T')[0] : null,
-      pAge: v.age ? Number(v.age) : null,
+      pAge: v.age ? String(v.age) : null,
       pGender: v.gender || null,
       pGenderCode: v.gender === 'Male' ? 'M' : v.gender === 'Female' ? 'F' : null,
       pIsPanNoAvailable: !!v.panCard,
@@ -880,7 +895,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
         },
       ] : [],
 
-      documentstorelist: v.kycDocumentNo ? [
+      documentstorelist: v.kycReferenceNo ? [
         {
           ...auditFields,
           contactdocumentsid: 0,
@@ -890,7 +905,7 @@ export class ContactAddComponent implements OnInit, OnChanges {
           pDocumentName: v.kycDocumentName?.pDocumentName || null,
           pDocStorePath: null,
           pDocFileType: 'pdf',
-          pDocReferenceno: v.kycDocumentNo || null,
+          pDocReferenceno: v.kycReferenceNo || null,
           pDocIsDownloadable: true,
           pDocumentReferenceMonth: null,
           pDocumentReferenceYear: null,

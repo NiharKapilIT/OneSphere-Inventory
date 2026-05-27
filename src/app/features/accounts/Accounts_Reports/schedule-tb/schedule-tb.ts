@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { DatePickerModule } from 'primeng/datepicker';
+import { AccountsReports } from '../../../../core/services/accounts/accounts-reports';
 
 interface TBRow {
   accountId: string;
@@ -54,8 +55,6 @@ export class ScheduleTb implements OnInit {
   // ── State ─────────────────────────────────────────────────────────────
   asOnDate: Date = new Date();
 
-  private readonly apiBase = 'https://localhost:5001/api';
-
   // ── Datepicker config ─────────────────────────────────────────────────
   readonly dpConfig: any = {
     containerClass: 'theme-dark-blue',
@@ -63,6 +62,7 @@ export class ScheduleTb implements OnInit {
     maxDate: new Date(),
     showWeekNumbers: false,
   };
+  private accountsservice=inject(AccountsReports);
 
   ngOnInit(): void {
     const today = new Date();
@@ -81,49 +81,89 @@ export class ScheduleTb implements OnInit {
     this.loading.set(true);
     this.btnPrint.set('Loading...');
 
-    const params = new HttpParams()
-      .set('fromDate', 'null')
-      .set('toDate', toDate)
-      .set('companycode',this.commonService.getCompanyCode())
-      .set('branchcode',this.commonService.getBranchCode())
-      .set('GlobalSchema',this.commonService.getschemaname());
+    // const params = new HttpParams()
+    //   .set('fromDate', 'null')
+      // .set('toDate', toDate)
+    //   .set('companycode',this.commonService.getCompanyCode())
+    //   .set('branchcode',this.commonService.getBranchCode())
+    //   .set('GlobalSchema',this.commonService.getschemaname());
 
-    this.commonService.getAPI('/Accounts/GetScheduleTBReport', params, 'YES')
-      .subscribe({
-        next: (res) => {
-          let rows: TBRow[] = [];
-          let dateLabel = 'AS ON ' + this.formatDateLabel(this.asOnDate);
+    // this.commonService.getAPI('/Accounts/GetScheduleTBReport', params, 'YES')
+    //   .subscribe({
+    //     next: (res) => {
+    //       let rows: TBRow[] = [];
+    //       let dateLabel = 'AS ON ' + this.formatDateLabel(this.asOnDate);
 
-          if (Array.isArray(res)) {
-            rows = res as TBRow[];
-          } else if (res?.status === 'ok' && res.rows) {
-            rows = res.rows;
-            dateLabel = res.dateLabel ?? dateLabel;
-          } else if (!res || (res?.status && res.status !== 'ok')) {
-        this.errorMsg.set(res?.message || 'No data found for the selected date.');
+    //       if (Array.isArray(res)) {
+    //         rows = res as TBRow[];
+    //       } else if (res?.status === 'ok' && res.rows) {
+    //         rows = res.rows;
+    //         dateLabel = res.dateLabel ?? dateLabel;
+    //       } else if (!res || (res?.status && res.status !== 'ok')) {
+    //     this.errorMsg.set(res?.message || 'No data found for the selected date.');
+    //     this.resetBtn();
+    //     return;
+    //   }
+    this.accountsservice.GetScheduleTBReport(toDate)
+  .subscribe({
+    next: (res: any) => {
+
+      let rows: TBRow[] = [];
+      let dateLabel = 'AS ON ' + this.formatDateLabel(this.asOnDate);
+
+      if (Array.isArray(res)) {
+
+        rows = res as TBRow[];
+
+      } else if (res?.status === 'ok' && res.rows) {
+
+        rows = res.rows;
+        dateLabel = res.dateLabel ?? dateLabel;
+
+      } else if (!res || (res?.status && res.status !== 'ok')) {
+
+        this.errorMsg.set(
+          res?.message || 'No data found for the selected date.'
+        );
+
         this.resetBtn();
         return;
       }
 
-          if (!rows?.length) {
-            this.errorMsg.set('No data found for the selected date.');
-            this.resetBtn();
-            return;
-          }
+      if (!rows?.length) {
 
-          this.generatePdf({ status: 'ok', rows, dateLabel });
-          this.resetBtn();
-        },
-        error: (err) => {
-          const status = err?.status;
-      if (status === 404 || status === 204 || status === 400) {
-        alert('No data found for the selected date.');
-      } else {
-        this.errorMsg.set('An error occurred while fetching report data.');
+        this.errorMsg.set('No data found for the selected date.');
+        this.resetBtn();
+        return;
       }
-          this.resetBtn();
-        },
+
+      this.generatePdf({
+        status: 'ok',
+        rows,
+        dateLabel
       });
+
+      this.resetBtn();
+    },
+
+    error: (err: any) => {
+
+      const status = err?.status;
+
+      if (status === 404 || status === 204 || status === 400) {
+
+        alert('No data found for the selected date.');
+
+      } else {
+
+        this.errorMsg.set(
+          'An error occurred while fetching report data.'
+        );
+      }
+
+      this.resetBtn();
+    }
+  });
   }
 
   // ── PDF Generation ────────────────────────────────────────────────────

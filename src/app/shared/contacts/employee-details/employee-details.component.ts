@@ -211,6 +211,7 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
   @Input() contact: any = null;
   @Input() triggerSave: boolean = false;
   @Output() onSaveSuccess = new EventEmitter<void>();
+  @Output() onSaveCancelled = new EventEmitter<void>();
 
   private fb                   = inject(FormBuilder);
   private contactMasterService = inject(ContactMasterService);
@@ -702,6 +703,48 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
       error: (err: any) => this._commonService.showErrorMessage(err)
     });
   }
+  addFamilyMember() {
+  const fc = this.form.get('FamilyControls');
+  if (!fc) return;
+  fc.markAllAsTouched();
+
+  const member = {
+    precordid:         0,
+    relationshipid:    fc.get('relationshipid')?.value ?? '',
+    relationshipname:  this.relationshipList.find(r => r.relationshipid === fc.get('relationshipid')?.value)?.relationshipname ?? '',
+    pname:             fc.get('pname')?.value ?? '',
+    pdateofbirth:      fc.get('pdateofbirth')?.value ?? '',
+    page:              fc.get('page')?.value ?? '',
+    pgender:           fc.get('pgender')?.value ?? '',
+    pmaritialstatus:   fc.get('pmaritialstatus')?.value ?? '',
+    qualificationid:   fc.get('qualificationid')?.value ?? '',
+    qualificationname: this.qualificationlist.find(q => q.qualificationid === fc.get('qualificationid')?.value)?.qualificationname ?? '',
+    poccupation:       fc.get('poccupation')?.value ?? '',
+    pphoneno:          fc.get('pphoneno')?.value ?? '',
+    ptypeofoperation:  'I',
+  };
+
+  this.familyMembers.update(rows => [...rows, {
+    relation:      member.relationshipname,
+    name:          member.pname,
+    dob:           member.pdateofbirth ? this.formatDate(member.pdateofbirth) : '',
+    age:           member.page,
+    gender:        member.pgender,
+    martialStatus: member.pmaritialstatus,
+    education:     member.qualificationname,
+    occupation:    member.poccupation,
+    phone:         member.pphoneno,
+  }]);
+
+  this.lstemployess.push(member);
+
+  fc.reset();
+}
+private formatDate(date: Date): string {
+  return date instanceof Date
+    ? date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-')
+    : date;
+}
 
   // ─────────────────────────────────────────────────────────────────────────
   // CTC Calculation  (mirrors old ctcCalculation)
@@ -1394,6 +1437,10 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
   // ─────────────────────────────────────────────────────────────────────────
 
   saveEmployee() {
+    if (!confirm(`Do you want to ${this.buttonName}?`)) {
+  this.onSaveCancelled.emit(); 
+  return;
+}
     // ── Salary formatting ────────────────────────────────────────────────
     this.form.controls['pEmploymentBasicSalary'].setValue(
       this._commonService.removeCommasInAmount(this.form.controls['pEmploymentBasicSalary'].value)
@@ -1525,11 +1572,12 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
       this.mapMaritalStatusIn(this.form.controls['pmaritalstatus'].value)
     );
 
-    if (!confirm(`Do you want to ${this.buttonName}?`)) return;
+    // if (!confirm(`Do you want to ${this.buttonName}?`)) return;
 
     this.isLoading = true;
     this.contactMasterService.saveEmployeeDetails(data).subscribe({
-      next: () => {
+      next: (res) => {
+        console.log('✅ save success:', res);
         this._commonService.showInfoMessage(
           this.buttonName === 'Save'
             ? 'Employee Details Saved Successfully'
@@ -1540,6 +1588,7 @@ export class EmployeeDetailsComponent implements OnInit, OnChanges {
         this.onSaveSuccess.emit();      // notify parent to close modal
       },
       error: (err: any) => {
+        console.log('❌ save error:', err);
         this._commonService.showErrorMessage(err);
         this.isLoading = false;
       }

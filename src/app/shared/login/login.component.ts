@@ -499,7 +499,7 @@ export class LoginComponent implements OnInit {
         response.branchId,
         response.ipAddress,
       );
-
+      sessionStorage.setItem('moduleName','accounts')
       // store company details (fire-and-forget, non-blocking)
       this.companyService.GetCompanyData().subscribe({
         next: (d: any) => {
