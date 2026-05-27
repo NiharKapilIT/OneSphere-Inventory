@@ -214,7 +214,7 @@ export class DayBook implements OnInit {
     this.loading.set(true);
     this.receiptsAmount.set(0);
     this.paymentsAmount.set(0);
-    
+
 
     this.reportService
       .GetDayBook(
@@ -347,13 +347,29 @@ export class DayBook implements OnInit {
   }
 
   // ── Cheques on hand ───────────────────────────────────────────────────────────
+
+
   GetChequeonHandDetails(): void {
-    const today = this.commonService.getFormatDateNormal(new Date());
+    const fromDateVal = this.dayBookForm.get('dfromdate')?.value;
+    const toDateVal = this.dayBookForm.get('dtodate')?.value;
+    let asOn: string | null = null;
+    let fromDate: string | null = null;
+    let toDate: string | null = null;
+
+    if (!this.dte && toDateVal) {
+      fromDate = this.commonService.getFormatDateNormal(fromDateVal) ?? null;
+      toDate = this.commonService.getFormatDateNormal(toDateVal) ?? null;
+    } else {
+      asOn = this.commonService.getFormatDateNormal(fromDateVal) ?? null;
+    }
+
     this.loading.set(true);
 
     this.reportTransService
       .GetChequesOnHand(
-        today,
+        asOn,
+        fromDate,
+        toDate,
         this.commonService.getbranchname(),
         this.commonService.getschemaname(),
         this.commonService.getCompanyCode(),
@@ -374,36 +390,36 @@ export class DayBook implements OnInit {
       });
   }
 
+
+
   pdfOrprintChequesOnHand(printOrPdf: 'Print' | 'Pdf'): void {
     const rows: any[] = [];
     this.ChequesAmount = 0;
+    const toDateVal = this.dayBookForm.get('dtodate')?.value;
+    const fromDateVal = this.dayBookForm.get('dfromdate')?.value;
+    const isDateRange = !this.dte && !!toDateVal;
+
+    const parseDate = (val: string | null | undefined): Date | null => {
+      if (!val) return null;
+      const parts = val.split('-');
+      if (parts.length !== 3) return null;
+      return new Date(+parts[2], +parts[1] - 1, +parts[0]);
+    };
 
     this.gridDataCheques().forEach((element: any) => {
       this.ChequesAmount += element?.receiptAmount || 0;
-      // rows.push([
-      //   this.datePipe.transform(element?.chitReceiptDate, 'dd-MMM-yyyy'),
-      //   element?.name,
-      //   element?.referenceNumber,
-      //   this.commonService.currencyformat(element?.receiptAmount),
-      //   element?.chequeDate ? this.datePipe.transform(element.chequeDate, 'dd-MMM-yyyy') : '',
-      //   element?.bankName,
-      //   this.commonService.currencyformat(element?.totalReceivedAmount)
-      // ]);
 
       rows.push([
-        this.datePipe.transform(element?.chitReceiptDate, 'dd-MMM-yyyy'),
+        this.datePipe.transform(parseDate(element?.chitReceiptDate), 'dd-MMM-yyyy') ?? '',
         element?.name,
         element?.referenceNumber,
-        element?.chequeDate
-          ? this.datePipe.transform(element.chequeDate, 'dd-MMM-yyyy')
-          : '',
+        this.datePipe.transform(parseDate(element?.chequeDate), 'dd-MMM-yyyy') ?? '',
         element?.bankName,
         element?.totalReceivedAmount
-          ? `₹ ${this.commonService.convertAmountToPdfFormat(parseFloat(element?.totalReceivedAmount).toFixed(2))}`
+          ? `₹ ${this.commonService.convertAmountToPdfFormat(parseFloat(String(element.totalReceivedAmount)).toFixed(2))}`
           : ''
       ]);
     });
-
 
     this.commonService._downloadChequesOnHandReportsPdf(
       'Cheques On Hand', rows,
@@ -416,16 +432,10 @@ export class DayBook implements OnInit {
         4: { cellWidth: 48 },
         5: { cellWidth: 45, halign: 'left' }
       },
-      // 'landscape',
-      // 'As On',
-      // this.datePipe.transform(this.f['dfromdate'].value, 'dd-MMM-yyyy') ?? '',
-      // this.datePipe.transform(this.f['dtodate'].value, 'dd-MMM-yyyy') ?? '',
       'landscape',
-      (!this.dte && this.f['dtodate'].value) ? 'Between' : 'As On',
-      this.datePipe.transform(this.f['dfromdate'].value, 'dd-MMM-yyyy') ?? '',
-      (!this.dte && this.f['dtodate'].value)
-        ? (this.datePipe.transform(this.f['dtodate'].value, 'dd-MMM-yyyy') ?? '')
-        : '',
+      isDateRange ? 'Between' : 'As On',
+      this.datePipe.transform(fromDateVal, 'dd-MMM-yyyy') ?? '',
+      isDateRange ? (this.datePipe.transform(toDateVal, 'dd-MMM-yyyy') ?? '') : '',
       printOrPdf,
       this.commonService.convertAmountToPdfFormat(String(this.ChequesAmount))
     );

@@ -858,10 +858,35 @@ export class AccountsTransactions {
   //   const params = new HttpParams().set('Ason', strToDate).set('BranchSchema', this._CommonService.getschemaname());
   //   return this._CommonService.getAPI('/Accounting/AccountingReports/GetChequesonHandData', params, 'YES');
   // }
-  GetChequesOnHand(strToDate: any, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any) {
-    const params = new HttpParams().set('Ason', strToDate).set('BranchSchema', BranchSchema).set('GlobalSchema', GlobalSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
-    return this._CommonService.getAPI('/Accounts/ChequesonHandData', params, 'YES');
+  // GetChequesOnHand(strToDate: any, BranchSchema: any, GlobalSchema: any, CompanyCode: any, BranchCode: any) {
+  //   const params = new HttpParams().set('Ason', strToDate).set('BranchSchema', BranchSchema).set('GlobalSchema', GlobalSchema).set('CompanyCode', CompanyCode).set('BranchCode', BranchCode);
+  //   return this._CommonService.getAPI('/Accounts/ChequesonHandData', params, 'YES');
+  // }
+
+  // accounts-transactions service
+GetChequesOnHand(
+  asOn: string | null,
+  fromDate: string | null,   // ← add
+  toDate: string | null,     // ← add
+  branchName: string,
+  schemaName: string,
+  companyCode: string,
+  branchCode: string
+) {
+  let params = new HttpParams()
+    .set('BranchSchema', branchName)
+    .set('GlobalSchema', schemaName)
+    .set('CompanyCode', companyCode)
+    .set('BranchCode', branchCode);
+
+  if (fromDate && toDate) {
+    params = params.set('FromDate', fromDate).set('ToDate', toDate);
+  } else if (asOn) {
+    params = params.set('AsOn', asOn);
   }
+
+  return this._CommonService.getAPI('/Accounts/ChequesonHandData', params, 'YES');
+}
 
   getBranchType() {
     const params = new HttpParams().set('BranchSchema', this._CommonService.getschemaname());
