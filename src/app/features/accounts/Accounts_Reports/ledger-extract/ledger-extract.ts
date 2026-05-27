@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { CommonService } from '../../../../core/services/Common/common.service';
 import { DatePickerModule } from 'primeng/datepicker';
+import { AccountsReports } from '../../../../core/services/accounts/accounts-reports';
 
 interface LedgerRow {
   transDate: string;
@@ -41,6 +42,7 @@ export class LedgerExtract implements OnInit {
   // ── Dependencies via inject() ─────────────────────────────────────────────
   private readonly http = inject(HttpClient);
   private readonly common = inject(CommonService);
+  private accountsservice=inject(AccountsReports);
 
   // ── Signals ───────────────────────────────────────────────────────────────
   submitted = signal(false);
@@ -65,6 +67,7 @@ export class LedgerExtract implements OnInit {
     maxDate: new Date(),
     showWeekNumbers: false,
   };
+
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -91,32 +94,36 @@ export class LedgerExtract implements OnInit {
       alert('From Date Should Be Less Than To Date.');
       return;
     }
-
     const fromApi = this.formatDateForApi(this.rc.FromDate);
     const toApi = this.formatDateForApi(this.rc.ToDate);
     const fromDisplay = this.formatDate(this.rc.FromDate);
     const toDisplay = this.formatDate(this.rc.ToDate);
-    const params = new HttpParams()
-  .set('fromDate', fromApi)
-  .set('toDate', toApi)
-  .set('Narration', this.rc.Narration)
-  .set('BranchSchema', 'accounts');
+    this.accountsservice
+  .GetLedgerExtractReport(
+    fromApi,
+    toApi,
+    this.rc.Narration
+  )
+  .subscribe({
+    next: (data: any) => {
+      if (!data || data.length === 0) {
+        alert('No records found for the selected date range.');
+        return;
+      }
 
-    this.common.getAPI('/Accounts/GetLedgerExtractReport',params,'YES')
-      .subscribe({
-        next: (data) => {
-          if (!data || data.length === 0) {
-            alert('No records found for the selected date range.');
-            return;
-          }
-          if (this.rc.ExportType === 'PDF') {
-            this.generatePDF(data, fromDisplay, toDisplay);
-          } else {
-            this.generateExcel(data, fromDisplay, toDisplay);
-          }
-        },
-        error: () => alert('Failed to fetch report data. Please try again.'),
-      });
+      if (this.rc.ExportType === 'PDF') {
+        this.generatePDF(data, fromDisplay, toDisplay);
+      } else {
+        this.generateExcel(data, fromDisplay, toDisplay);
+      }
+    },
+    error: (err: any) => {
+      console.error(err);
+      alert(
+        'Failed to fetch report data. Please try again.'
+      );
+    }
+  });
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

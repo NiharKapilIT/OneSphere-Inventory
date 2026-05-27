@@ -60,7 +60,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   sidebarCollapsed = true;
   username = '';
   companyName = '';
-  branchCode = '';
+  branchName = '';
   expandedSubModules: Set<string> = new Set<string>();
   expandedFlyoutGroups: Set<string> = new Set<string>();
 
@@ -108,12 +108,12 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   ngOnInit(): void {
     this.modules = this.navigationService.getModules();
     this.username = this.authService.getUsername() || 'User';
-    this.branchCode = this.authService.getBranchCode();
     const raw = sessionStorage.getItem('CompanyDetails');
     if (raw) {
       const parsed = JSON.parse(raw);
       const details = Array.isArray(parsed) ? parsed[0] : parsed;
       this.companyName = details?.companyName ?? '';
+      this.branchName = details?.branchName ?? '';
     }
 
     const savedTheme = localStorage.getItem('erp-theme');
@@ -228,6 +228,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   selectModule(module: Module, event?: Event): void {
+    sessionStorage.setItem('moduleName', module.id);
     this.scrollModuleTabIntoView(event);
 
     this.closeFlyoutSearch();

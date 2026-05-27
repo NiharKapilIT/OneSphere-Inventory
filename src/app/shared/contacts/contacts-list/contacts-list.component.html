@@ -404,9 +404,12 @@
     <i class="pi pi-times-circle"></i> Cancel
   </button>
   <button type="button" class="erp-btn btn-primary btn-sm"
-    (click)="saveRoleForm()"
-    [disabled]="roleModalRole() === 'Employee' && triggerEmployeeSave()">
+    (click)="saveRoleForm()" [disabled]="roleModalRole() === 'Employee' && triggerEmployeeSave()">
+    <!-- @if (isEmployeeSaving()) {
+    <i class="pi pi-spin pi-spinner"></i> Saving...
+  } @else { -->
     <i class="pi pi-check"></i> Save {{ roleModalRole() }}
+  <!-- } -->
   </button>
 </div>
     </div>
