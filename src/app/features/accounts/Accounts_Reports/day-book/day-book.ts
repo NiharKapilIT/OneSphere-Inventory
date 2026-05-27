@@ -44,50 +44,50 @@ export class DayBook implements OnInit {
 
 
   // ── DI ──────────────────────────────────────────────────────────────────────
-  private fb                   = inject(FormBuilder);
-  private datePipe             = inject(DatePipe);
-  private reportService        = inject(AccountsReports);
-  private reportTransService   = inject(AccountsTransactions);
-  private chitService          = inject(AccountsReports);
-  private commonService        = inject(CommonService);
-  private destroyRef           = inject(DestroyRef);
+  private fb = inject(FormBuilder);
+  private datePipe = inject(DatePipe);
+  private reportService = inject(AccountsReports);
+  private reportTransService = inject(AccountsTransactions);
+  private chitService = inject(AccountsReports);
+  private commonService = inject(CommonService);
+  private destroyRef = inject(DestroyRef);
 
   @ViewChild('myTable') table: any;
 
   // ── Signals ──────────────────────────────────────────────────────────────────
-  readonly loading         = signal(false);
-  readonly gridData        = signal<any[]>([]);
+  readonly loading = signal(false);
+  readonly gridData = signal<any[]>([]);
   readonly totalBalanceGrid = signal<any[]>([]);
-  readonly kgmsBranchList  = signal<any[]>([]);
+  readonly kgmsBranchList = signal<any[]>([]);
   readonly gridDataCheques = signal<any[]>([]);
-  readonly receiptsAmount  = signal(0);
-  readonly paymentsAmount  = signal(0);
+  readonly receiptsAmount = signal(0);
+  readonly paymentsAmount = signal(0);
 
   // ── State ────────────────────────────────────────────────────────────────────
-  submitted        = false;
-  printedDate      = true;
-  dte              = true;
-  showdate         = '';
-  currencysymbol   = '₹';
+  submitted = false;
+  printedDate = true;
+  dte = true;
+  showdate = '';
+  currencysymbol = '₹';
   loginBranchschema = '';
-  ChequesAmount    = 0;
+  ChequesAmount = 0;
 
   StartDate: string | null = null;
-  EndDate:   string | null = null;
+  EndDate: string | null = null;
 
   // Sort – main grid
-  mainSortColumn    = '';
+  mainSortColumn = '';
   mainSortDirection: 1 | -1 = 1;
   private rawMainData: any[] = [];
   toDateMinDate: Date | null = null;
 
   // Sort – balance grid
-  balanceSortColumn    = '';
+  balanceSortColumn = '';
   balanceSortDirection: 1 | -1 = 1;
   private rawBalanceData: any[] = [];
 
   pageCriteria = new PageCriteria();
-   collapsedGroups = signal<Set<string>>(new Set());
+  collapsedGroups = signal<Set<string>>(new Set());
 
   toggleGroup(status: string): void {
     this.collapsedGroups.update(groups => {
@@ -122,9 +122,9 @@ export class DayBook implements OnInit {
     today.setHours(0, 0, 0, 0);
     this.dayBookForm = this.fb.group(
       {
-        date:        [today],
-        dfromdate:   [today],
-        dtodate:     [today],
+        date: [today],
+        dfromdate: [today],
+        dtodate: [today],
         branch_code: ['']
       },
       { validators: this.dateRangeValidator }
@@ -134,21 +134,21 @@ export class DayBook implements OnInit {
     this.loadBranches();
     this.setPageModel();
     const initialFrom = this.dayBookForm.get('dfromdate')?.value;
-  this.toDateMinDate = initialFrom ?? null;
+    this.toDateMinDate = initialFrom ?? null;
 
-  this.dayBookForm.get('dfromdate')?.valueChanges.subscribe((val: Date | null) => {
-    this.toDateMinDate = val ?? null;
-    const toDate = this.dayBookForm.get('dtodate')?.value;
-    if (toDate && val && new Date(toDate).getTime() < new Date(val).getTime()) {
-      this.dayBookForm.get('dtodate')?.setValue(null as unknown as Date);
-    }
-  });
+    this.dayBookForm.get('dfromdate')?.valueChanges.subscribe((val: Date | null) => {
+      this.toDateMinDate = val ?? null;
+      const toDate = this.dayBookForm.get('dtodate')?.value;
+      if (toDate && val && new Date(toDate).getTime() < new Date(val).getTime()) {
+        this.dayBookForm.get('dtodate')?.setValue(null as unknown as Date);
+      }
+    });
   }
 
   // ── Validators ───────────────────────────────────────────────────────────────
   private dateRangeValidator(group: AbstractControl): ValidationErrors | null {
     const from = group.get('dfromdate')?.value;
-    const to   = group.get('dtodate')?.value;
+    const to = group.get('dtodate')?.value;
     if (from && to && new Date(from) > new Date(to)) {
       return { dateRangeInvalid: true };
     }
@@ -188,15 +188,15 @@ export class DayBook implements OnInit {
 
   // ── Page model ────────────────────────────────────────────────────────────────
   private setPageModel(): void {
-    this.pageCriteria.pageSize   = this.commonService.pageSize;
+    this.pageCriteria.pageSize = this.commonService.pageSize;
     this.pageCriteria.pageNumber = 1;
-    this.pageCriteria.offset     = 0;
+    this.pageCriteria.offset = 0;
   }
 
   // ── Formatted dates helper ────────────────────────────────────────────────────
   private updateFormattedDates(): void {
     this.StartDate = this.datePipe.transform(this.f['dfromdate'].value, 'dd-MMM-yyyy');
-    this.EndDate   = this.datePipe.transform(this.f['dtodate'].value,   'dd-MMM-yyyy');
+    this.EndDate = this.datePipe.transform(this.f['dtodate'].value, 'dd-MMM-yyyy');
   }
 
   // ── Generate report ───────────────────────────────────────────────────────────
@@ -208,12 +208,13 @@ export class DayBook implements OnInit {
     ) ?? '';
 
     const toDateControl = this.dayBookForm.get('dtodate')?.value;
-    const toDate   = toDateControl ? (this.commonService.getFormatDateNormal(toDateControl) ?? '') : fromDate;
+    const toDate = toDateControl ? (this.commonService.getFormatDateNormal(toDateControl) ?? '') : fromDate;
     const asOnFlag = toDateControl ? 'F' : 'T';
 
     this.loading.set(true);
     this.receiptsAmount.set(0);
     this.paymentsAmount.set(0);
+    
 
     this.reportService
       .GetDayBook(
@@ -253,7 +254,7 @@ export class DayBook implements OnInit {
   private calculateTotals(): void {
     const data = this.gridData();
     this.receiptsAmount.set(data.reduce((sum, item) => sum + Number(item.prcptdebitamount || 0), 0));
-    this.paymentsAmount.set(data.reduce((sum, item) => sum + Number(item.pcreditamount     || 0), 0));
+    this.paymentsAmount.set(data.reduce((sum, item) => sum + Number(item.pcreditamount || 0), 0));
   }
 
   private formatBalances(): void {
@@ -280,23 +281,23 @@ export class DayBook implements OnInit {
     };
 
     const fromDate = fmt(this.f['dfromdate'].value);
-    const toDate   = fmt(this.f['dtodate'].value);
-    this.showdate  = this.f['dtodate'].value ? 'Between' : 'As On';
+    const toDate = fmt(this.f['dtodate'].value);
+    this.showdate = this.f['dtodate'].value ? 'Between' : 'As On';
 
     const firstgridrows: any[] = [];
     const firstgridheaders = ['Transaction\nNo.', 'Particulars', 'Type', 'Amount ', 'Transaction\nNo.', 'Particulars', 'Type  ', 'Amount  '];
     const FirstcolWidthHeight: any = {
       0: { cellWidth: 'auto', halign: 'center' }, 1: { cellWidth: 'auto', halign: 'left' },
-      2: { cellWidth: 'auto' },                   3: { cellWidth: 'auto', halign: 'right' },
-      4: { cellWidth: 'auto' },                   5: { cellWidth: 'auto', halign: 'left' },
-      6: { cellWidth: 'auto', halign: 'left' },   7: { cellWidth: 'auto', halign: 'right' }
+      2: { cellWidth: 'auto' }, 3: { cellWidth: 'auto', halign: 'right' },
+      4: { cellWidth: 'auto' }, 5: { cellWidth: 'auto', halign: 'left' },
+      6: { cellWidth: 'auto', halign: 'left' }, 7: { cellWidth: 'auto', halign: 'right' }
     };
 
     const retungridData = this.commonService._getGroupingGridExportData(this.gridData(), 'prcpttransactiondate', true);
 
     retungridData.forEach((element: any) => {
-      const debitamount  = element.prcptdebitamount ? this.commonService.convertAmountToPdfFormat(parseFloat(element.prcptdebitamount)) : this.commonService.convertAmountToPdfFormat(0);
-      const paycreditamt = element.pcreditamount     ? this.commonService.convertAmountToPdfFormat(parseFloat(element.pcreditamount))     : this.commonService.convertAmountToPdfFormat(0);
+      const debitamount = element.prcptdebitamount ? this.commonService.convertAmountToPdfFormat(parseFloat(element.prcptdebitamount)) : this.commonService.convertAmountToPdfFormat(0);
+      const paycreditamt = element.pcreditamount ? this.commonService.convertAmountToPdfFormat(parseFloat(element.pcreditamount)) : this.commonService.convertAmountToPdfFormat(0);
 
       if (element.group) {
         const parts = element.group.content?.split('/');
@@ -312,9 +313,9 @@ export class DayBook implements OnInit {
       }
       firstgridrows.push([
         element.prcpttransactionno ?? '', element.prcptparticulars ?? '',
-        element.prcptaccountname   ?? '', debitamount,
-        element.ptransactionno     ?? '', element.pparticulars ?? '',
-        element.paccountname       ?? '', paycreditamt
+        element.prcptaccountname ?? '', debitamount,
+        element.ptransactionno ?? '', element.pparticulars ?? '',
+        element.paccountname ?? '', paycreditamt
       ]);
     });
 
@@ -329,7 +330,7 @@ export class DayBook implements OnInit {
       secondgridrows.push([
         element.paccountname ?? '',
         !isNaN(parseFloat(element.popeningbal)) && parseFloat(element.popeningbal) !== 0 ? this.commonService.convertAmountToPdfFormat(parseFloat(element.popeningbal)) : '',
-        Number(element.pdebitamount)  > 0 ? this.commonService.convertAmountToPdfFormat(parseFloat(element.pdebitamount))  : '',
+        Number(element.pdebitamount) > 0 ? this.commonService.convertAmountToPdfFormat(parseFloat(element.pdebitamount)) : '',
         Number(element.pcreditamount) > 0 ? this.commonService.convertAmountToPdfFormat(parseFloat(element.pcreditamount)) : '',
         element.pclosingbal || ''
       ]);
@@ -369,7 +370,7 @@ export class DayBook implements OnInit {
             alert('No Data To Display');
           }
         },
-        error: (err:any) => this.commonService.showErrorMessage(err)
+        error: (err: any) => this.commonService.showErrorMessage(err)
       });
   }
 
@@ -379,33 +380,61 @@ export class DayBook implements OnInit {
 
     this.gridDataCheques().forEach((element: any) => {
       this.ChequesAmount += element?.receiptAmount || 0;
+      // rows.push([
+      //   this.datePipe.transform(element?.chitReceiptDate, 'dd-MMM-yyyy'),
+      //   element?.name,
+      //   element?.referenceNumber,
+      //   this.commonService.currencyformat(element?.receiptAmount),
+      //   element?.chequeDate ? this.datePipe.transform(element.chequeDate, 'dd-MMM-yyyy') : '',
+      //   element?.bankName,
+      //   this.commonService.currencyformat(element?.totalReceivedAmount)
+      // ]);
+
       rows.push([
         this.datePipe.transform(element?.chitReceiptDate, 'dd-MMM-yyyy'),
         element?.name,
         element?.referenceNumber,
-        this.commonService.currencyformat(element?.receiptAmount),
-        element?.chequeDate ? this.datePipe.transform(element.chequeDate, 'dd-MMM-yyyy') : '',
+        element?.chequeDate
+          ? this.datePipe.transform(element.chequeDate, 'dd-MMM-yyyy')
+          : '',
         element?.bankName,
-        this.commonService.currencyformat(element?.totalReceivedAmount)
+        element?.totalReceivedAmount
+          ? `₹ ${this.commonService.convertAmountToPdfFormat(parseFloat(element?.totalReceivedAmount).toFixed(2))}`
+          : ''
       ]);
     });
 
+
     this.commonService._downloadChequesOnHandReportsPdf(
       'Cheques On Hand', rows,
-      ['Receipt Date', 'Received From', 'Cheque No.', 'Cheque Amount', 'Cheque Date', 'Bank Name', 'Receipt Amount'],
-      { 0: { cellWidth: 22 }, 1: { cellWidth: 70 }, 2: { cellWidth: 38 }, 3: { cellWidth: 35, halign: 'left' }, 4: { cellWidth: 22 }, 5: { cellWidth: 48 }, 6: { cellWidth: 35, halign: 'left' } },
-      'landscape', 'As On',
+      ['Receipt Date', 'Received From', 'Cheque No.', 'Cheque Date', 'Bank Name', 'Receipt Amount'],
+      {
+        0: { cellWidth: 28 },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 38 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 48 },
+        5: { cellWidth: 45, halign: 'left' }
+      },
+      // 'landscape',
+      // 'As On',
+      // this.datePipe.transform(this.f['dfromdate'].value, 'dd-MMM-yyyy') ?? '',
+      // this.datePipe.transform(this.f['dtodate'].value, 'dd-MMM-yyyy') ?? '',
+      'landscape',
+      (!this.dte && this.f['dtodate'].value) ? 'Between' : 'As On',
       this.datePipe.transform(this.f['dfromdate'].value, 'dd-MMM-yyyy') ?? '',
-      this.datePipe.transform(this.f['dtodate'].value,   'dd-MMM-yyyy') ?? '',
+      (!this.dte && this.f['dtodate'].value)
+        ? (this.datePipe.transform(this.f['dtodate'].value, 'dd-MMM-yyyy') ?? '')
+        : '',
       printOrPdf,
-      this.commonService.currencyformat(this.ChequesAmount)
+      this.commonService.convertAmountToPdfFormat(String(this.ChequesAmount))
     );
   }
 
   // ── KGMS summary ──────────────────────────────────────────────────────────────
   getSummaryReport(): void {
     const fromDate = this.commonService.getFormatDateNormal(this.dayBookForm.value.dfromdate) ?? '';
-    const toDate   = this.commonService.getFormatDateNormal(this.dayBookForm.value.dtodate)   ?? '';
+    const toDate = this.commonService.getFormatDateNormal(this.dayBookForm.value.dtodate) ?? '';
     const branchCode = this.dayBookForm.value.branch_code || '';
 
     this.loading.set(true);
