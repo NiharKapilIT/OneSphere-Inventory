@@ -382,6 +382,67 @@
         </div>
 
         <div class="account-tax-groups">
+
+          <section class="account-tax-group" [class.is-expanded]="showTds()">
+            <div class="account-tax-group-header">
+              <div>
+                <h4>TDS Details <span class="erp-badge badge-success pt-1"><i class="pi pi-check-circle"></i> TDS Included</span></h4>
+                <span>Tax deduction setup for this payment line.</span>
+              </div>
+              <div class="erp-toggle-group">
+                <input id="tds-switch" name="tds-switch" formControlName="pistdsapplicable" type="checkbox"
+                  (change)="istdsapplicable_Checked()" />
+                <label for="tds-switch" class="erp-toggle"></label>
+              </div>
+            </div>
+            @if (showTds()) {
+            <div class="account-tax-group-body">
+              <div class="row g-2">
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Section <span class="required">*</span></label>
+              <ng-select appendTo="body" formControlName="pTdsSection" [items]="tdsSectionList" bindLabel="pTdsSection"
+                bindValue="pTdsSection" placeholder="Select Section" (change)="tdsSection_Change($event)"
+                (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.markAsTouched()" [ngClass]="{
+                  'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.invalid,
+                  'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.invalid
+                }">
+              </ng-select>
+              @if (formValidationMessages['pTdsSection']) {
+              <div class="erp-field-error">{{ formValidationMessages['pTdsSection'] }}</div>
+              }
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">Percentage <span class="required">*</span></label>
+              <ng-select appendTo="body" formControlName="pTdsPercentage" [items]="tdsPercentageList"
+                bindLabel="pTdsPercentage" bindValue="pTdsPercentage" placeholder="Select %"
+                (change)="tds_Change($event)"
+                (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.markAsTouched()"
+                [ngClass]="{
+                  'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.invalid,
+                  'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.invalid
+                }">
+              </ng-select>
+              @if (formValidationMessages['pTdsPercentage']) {
+              <div class="erp-field-error">{{ formValidationMessages['pTdsPercentage'] }}</div>
+              }
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Amount</label>
+              <div class="erp-value-pill">
+                <span>{{ getLineValue('ptdsamount') | currency:currencyCode:'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+          </div>
+              </div>
+            </div>
+            }
+          </section>
+          
           <section class="account-tax-group" [class.is-expanded]="showGst()">
             <div class="account-tax-group-header">
               <div>
@@ -476,65 +537,7 @@
             }
           </section>
 
-          <section class="account-tax-group" [class.is-expanded]="showTds()">
-            <div class="account-tax-group-header">
-              <div>
-                <h4>TDS Details <span class="erp-badge badge-success pt-1"><i class="pi pi-check-circle"></i> TDS Included</span></h4>
-                <span>Tax deduction setup for this payment line.</span>
-              </div>
-              <div class="erp-toggle-group">
-                <input id="tds-switch" name="tds-switch" formControlName="pistdsapplicable" type="checkbox"
-                  (change)="istdsapplicable_Checked()" />
-                <label for="tds-switch" class="erp-toggle"></label>
-              </div>
-            </div>
-            @if (showTds()) {
-            <div class="account-tax-group-body">
-              <div class="row g-2">
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">Section <span class="required">*</span></label>
-              <ng-select appendTo="body" formControlName="pTdsSection" [items]="tdsSectionList" bindLabel="pTdsSection"
-                bindValue="pTdsSection" placeholder="Select Section" (change)="tdsSection_Change($event)"
-                (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.markAsTouched()" [ngClass]="{
-                  'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.invalid,
-                  'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsSection'])?.invalid
-                }">
-              </ng-select>
-              @if (formValidationMessages['pTdsSection']) {
-              <div class="erp-field-error">{{ formValidationMessages['pTdsSection'] }}</div>
-              }
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">Percentage <span class="required">*</span></label>
-              <ng-select appendTo="body" formControlName="pTdsPercentage" [items]="tdsPercentageList"
-                bindLabel="pTdsPercentage" bindValue="pTdsPercentage" placeholder="Select %"
-                (change)="tds_Change($event)"
-                (close)="paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.markAsTouched()"
-                [ngClass]="{
-                  'ng-invalid': paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.invalid,
-                  'ng-dirty':   paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.touched && paymentVoucherForm.get(['ppaymentsslistcontrols','pTdsPercentage'])?.invalid
-                }">
-              </ng-select>
-              @if (formValidationMessages['pTdsPercentage']) {
-              <div class="erp-field-error">{{ formValidationMessages['pTdsPercentage'] }}</div>
-              }
-            </div>
-          </div>
-          <div class="col-12 col-md-6">
-            <div class="erp-form-group">
-              <label class="erp-label">TDS Amount</label>
-              <div class="erp-value-pill">
-                <span>{{ getLineValue('ptdsamount') | currency:currencyCode:'symbol':'1.2-2' }}</span>
-              </div>
-            </div>
-          </div>
-              </div>
-            </div>
-            }
-          </section>
+          
         </div>
 
         <div class="d-flex gap-2 mt-2">
