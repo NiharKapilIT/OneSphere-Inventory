@@ -7,6 +7,7 @@ import { forkJoin } from 'rxjs';
 import {
   InventoryConfigService, SegmentItem, WarehouseItem
 } from '../../Inventory_Shared/inventory-config.service';
+import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -52,10 +53,19 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
 
   readonly existingMatches = computed(() => {
     const q = this.warehouseName().trim().toLowerCase();
+    const selectedSegmentId = this.segmentId();
     if (q.length < 2) return [];
     return this.savedWarehouses().filter(w =>
+      (!selectedSegmentId || w.segment_id === selectedSegmentId) &&
       w.warehouse_name.toLowerCase().includes(q) && w.id !== this.editingId()
     );
+  });
+
+  readonly visibleSavedWarehouses = computed(() => {
+    const selectedSegmentId = this.segmentId();
+    return selectedSegmentId
+      ? this.savedWarehouses().filter(warehouse => warehouse.segment_id === selectedSegmentId)
+      : this.savedWarehouses();
   });
 
   // ── Page state ────────────────────────────────────────────────────────
@@ -82,10 +92,35 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   }
 
   onNameChange(name: string): void {
-    this.warehouseName.set(name);
+    const normalizedName = toInventoryTitleCase(name ?? '');
+    this.warehouseName.set(normalizedName);
     if (!this.editingId()) {
-      this.warehouseCode.set(this.autoCode(name));
+      this.warehouseCode.set(this.autoCode(normalizedName));
     }
+  }
+
+  onCodeChange(code: string): void {
+    this.warehouseCode.set(String(applyInventoryTextCase(code ?? '', 'upper')));
+  }
+
+  onStateChange(value: string): void {
+    this.state.set(toInventoryTitleCase(value ?? ''));
+  }
+
+  onDistrictChange(value: string): void {
+    this.district.set(toInventoryTitleCase(value ?? ''));
+  }
+
+  onCityChange(value: string): void {
+    this.city.set(toInventoryTitleCase(value ?? ''));
+  }
+
+  onAddressChange(value: string): void {
+    this.address.set(String(applyInventoryTextCase(value ?? '', 'sentence')));
+  }
+
+  onCustomCapacityUnitChange(value: string): void {
+    this.customCapacityUnit.set(toInventoryTitleCase(value ?? ''));
   }
 
   private autoCode(name: string): string {

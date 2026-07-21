@@ -42,6 +42,9 @@ export const responseInterceptor: HttpInterceptorFn = (req, next) => {
 
       const refreshToken = authService.getRefreshToken();
       if (!refreshToken || !authService.hasTenantClaims()) {
+        if (sessionStorage.getItem('authSessionKind') === 'legacy') {
+          return throwError(() => error);
+        }
         authService.logout();
         router.navigate(['/login']);
         return throwError(() => error);

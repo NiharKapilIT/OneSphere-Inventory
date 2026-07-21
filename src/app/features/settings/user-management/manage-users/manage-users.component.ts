@@ -26,7 +26,6 @@ interface UserFormState {
   branchIds: Set<number>;
   defaultBranchId: number | null;
   moduleIds: Set<number>;
-  /** Kept for edit round-trips; not shown in UI for new users */
   roleIds: Set<number>;
   biometricRequired: boolean;
 }
@@ -99,6 +98,14 @@ export class ManageUsersComponent implements OnInit, OnDestroy {
   });
 
   assignableModules = computed(() => this.modules().filter(m => m.status === 'active'));
+  activeRoles = computed(() => this.roles().filter(r => r.status === 'active'));
+
+  /** This form treats role as single-select in the UI (matches how it's already used everywhere
+   *  else — auto-assign, `user.roles[0]`) even though the data model allows more than one. */
+  selectedRoleId = computed((): number | null => {
+    const [first] = this.form().roleIds;
+    return first ?? null;
+  });
 
   filteredUsers = computed(() => {
     const term = this.search().trim().toLowerCase();
@@ -167,7 +174,12 @@ export class ManageUsersComponent implements OnInit, OnDestroy {
     this.clearUsernameState();
     this.resetForm();
     this.resetScan();
-    this.form.update(f => ({ ...f, password: this.generatePassword() }));
+    const defRole = this.defaultRoleId();
+    this.form.update(f => ({
+      ...f,
+      password: this.generatePassword(),
+      roleIds: defRole ? new Set([defRole]) : new Set<number>()
+    }));
     this.showPassword.set(true);
     this.error.set('');
     this.loadCompanyInfo();
@@ -376,6 +388,10 @@ export class ManageUsersComponent implements OnInit, OnDestroy {
     this.form.update(cur => ({ ...cur, defaultBranchId: branchId }));
   }
 
+  setRole(roleId: number | null): void {
+    this.form.update(cur => ({ ...cur, roleIds: roleId ? new Set([roleId]) : new Set<number>() }));
+  }
+
   updateForm<K extends keyof Omit<UserFormState, 'branchIds' | 'moduleIds' | 'roleIds'>>(
     field: K, value: UserFormState[K]
   ): void {
@@ -402,14 +418,13 @@ export class ManageUsersComponent implements OnInit, OnDestroy {
       this.error.set('Password must be at least 8 characters.'); return;
     }
 
-    // Auto-assign role for new users; preserve existing roles on edit
-    let roleIds: number[];
-    if (cur.id) {
-      roleIds = Array.from(cur.roleIds);
-    } else {
+    // Use whatever the admin picked in the Role dropdown; fall back to the default
+    // only if it's somehow empty (the dropdown pre-fills it, so this is defensive).
+    let roleIds = Array.from(cur.roleIds);
+    if (roleIds.length === 0) {
       const defRole = this.defaultRoleId();
       if (defRole === null) {
-        this.error.set('No role available to assign. Please create at least one role first.'); return;
+        this.error.set('No role available to assign. Please create at least one role first, under Roles & Permissions.'); return;
       }
       roleIds = [defRole];
     }

@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, HostBinding, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { SosTicket, SosTicketService } from './sos-ticket.service';
+import { StickyFooterOffsetService } from '../../core/services/Common/sticky-footer-offset.service';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -25,6 +26,9 @@ export class SosHelpComponent {
   private readonly fb = inject(FormBuilder);
   private readonly ticketService = inject(SosTicketService);
   private readonly router = inject(Router);
+  private readonly footerOffset = inject(StickyFooterOffsetService);
+
+  @HostBinding('style.bottom.px') get hostBottom(): number { return 22 + this.footerOffset.offsetPx(); }
 
   readonly open = signal(false);
   readonly submitted = signal(false);

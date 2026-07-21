@@ -142,6 +142,17 @@
 
       <div class="nav-action-group">
         <button
+          class="nav-icon-btn"
+          routerLink="/dashboard/contact-tab-builder"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          title="Contact Tab Builder">
+          <i class="pi pi-table"></i>
+        </button>
+      </div>
+
+      <div class="nav-action-group">
+        <button
           class="quick-menu-btn"
           data-tour="quick-menu"
           [class.active]="showMegaMenu"
@@ -188,7 +199,8 @@
                 <button
                   *ngFor="let screen of sub.screens"
                   class="mm-screen-item"
-                  [attr.title]="screen.name"
+                  [class.disabled]="screen.disabled"
+                  [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
                   (click)="navigateFromMega(mod, sub, screen)">
                   <i [class]="getScreenIcon(screen.name)"></i>
                   <span>{{ screen.name }}</span>
@@ -223,29 +235,34 @@
             </div>
           </div>
 
-          <div class="ap-section ap-context-switch" data-tour="ap-switch-context" *ngIf="tenantOptions.length > 0">
-            <label>
+          <!-- Context panel: same layout as login — always shows company + branch dropdowns -->
+          <div class="ap-section ap-context-summary" data-tour="ap-switch-context">
+
+            <label class="ap-context-select-row">
               <span>Company</span>
               <select [ngModel]="selectedSwitchCompanyId" (ngModelChange)="onSwitchCompanyChange($event)">
-                <option *ngFor="let option of tenantOptions" [ngValue]="option.companyId">
+                <option *ngFor="let option of tenantOptions; trackBy: trackTenantOption" [ngValue]="option.companyId">
                   {{ option.companyName }} ({{ option.companyCode }})
                 </option>
               </select>
             </label>
 
-            <label *ngIf="selectedSwitchBranches.length > 0">
+            <label class="ap-context-select-row">
               <span>Branch</span>
               <select [(ngModel)]="selectedSwitchBranchId">
-                <option *ngFor="let branch of selectedSwitchBranches" [ngValue]="branch.id">
+                <option *ngFor="let branch of selectedSwitchBranches; trackBy: trackSwitchBranch" [ngValue]="branch.id">
                   {{ branch.branchName }} ({{ branch.branchCode }})
                 </option>
               </select>
             </label>
 
-            <button class="ap-switch-btn" (click)="applyTenantSwitch()" [disabled]="switchingContext">
+            <button class="ap-switch-btn" (click)="applyTenantSwitch()"
+              [disabled]="switchingContext || !isContextChanged">
               <i class="pi" [ngClass]="switchingContext ? 'pi-spin pi-spinner' : 'pi-sync'"></i>
               <span>Switch Context</span>
             </button>
+            <div class="ap-password-error" *ngIf="switchError">{{ switchError }}</div>
+            <div class="ap-password-success" *ngIf="switchMessage">{{ switchMessage }}</div>
           </div>
 
           <div class="ap-section">
@@ -321,10 +338,12 @@
                   *ngFor="let theme of themes"
                   class="theme-swatch"
                   [class.active]="activeTheme === theme.id"
+                  [class.dark-swatch]="theme.id === 'dark'"
                   (click)="setTheme(theme.id)"
                   [title]="theme.name"
                   [style.background]="'linear-gradient(135deg, ' + theme.colors[0] + ' 0%, ' + theme.colors[1] + ' 100%)'">
                   <i *ngIf="activeTheme === theme.id" class="pi pi-check swatch-check"></i>
+                  <i *ngIf="theme.id === 'dark' && activeTheme !== 'dark'" class="pi pi-moon swatch-moon"></i>
                 </button>
               </div>
             </div>
@@ -342,7 +361,18 @@
   </nav>
 
   <div class="main-area">
-    <aside class="sidebar" [class.collapsed]="sidebarCollapsed" aria-label="Sub-module navigation">
+    <div
+      class="sidebar-reveal-zone"
+      [class.active]="sidebarCollapsed"
+      (pointerenter)="showSidebarFromEdge()"
+      aria-hidden="true">
+    </div>
+
+    <aside
+      class="sidebar"
+      [class.collapsed]="sidebarCollapsed"
+      (pointerenter)="showSidebarFromEdge()"
+      aria-label="Sub-module navigation">
       <div class="sb-items" *ngIf="!sidebarCollapsed && selectedModule">
         <button
           *ngFor="let sub of selectedModule.subModules"
@@ -357,14 +387,14 @@
             <i [class]="getSubModuleIcon(sub.name)"></i>
           </div>
           <span class="sb-label">{{ sub.name }}</span>
-          <span class="sb-arrow" *ngIf="isSubModuleExpanded(sub.id)">›</span>
+          <span class="sb-arrow" *ngIf="isSubModuleExpanded(sub.id)">&rsaquo;</span>
         </button>
       </div>
     </aside>
 
     <div
       class="flyout"
-      [class.open]="selectedSubModule && hasFlyoutItems(selectedSubModule) && !sidebarCollapsed && isSubModuleExpanded(selectedSubModule.id)"
+      [class.open]="selectedSubModule && hasFlyoutItems(selectedSubModule) && isSubModuleExpanded(selectedSubModule.id)"
       *ngIf="selectedSubModule && hasFlyoutItems(selectedSubModule)">
 
       <div class="fp-header">
@@ -434,7 +464,8 @@
                 *ngFor="let screen of group.screens"
                 class="fp-item"
                 [class.active]="selectedScreen?.id === screen.id"
-                [attr.title]="screen.name"
+                [class.disabled]="screen.disabled"
+                [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
                 (click)="navigateToScreen(screen); $event.stopPropagation()">
                 <span class="fp-screen-icon">
                   <i [class]="getScreenIcon(screen.name)"></i>
@@ -455,7 +486,8 @@
             *ngFor="let screen of filteredFlyoutScreens"
             class="fp-item"
             [class.active]="selectedScreen?.id === screen.id"
-            [attr.title]="screen.name"
+            [class.disabled]="screen.disabled"
+            [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
             (click)="navigateToScreen(screen); $event.stopPropagation()">
             <span class="fp-screen-icon">
               <i [class]="getScreenIcon(screen.name)"></i>
@@ -479,7 +511,7 @@
       </div>
     </div>
 
-    <main #contentArea class="content-area" role="main">
+    <main #contentArea class="content-area" role="main" (click)="hideSidebarForWorkspace()">
       <nav class="breadcrumb-bar" *ngIf="breadcrumbPath.screen" aria-label="Breadcrumb">
         <div class="bc-inner">
           <button class="bc-item bc-link" (click)="selectModule(breadcrumbPath.module!)" [attr.title]="breadcrumbPath.module?.name">
@@ -500,6 +532,19 @@
             <i [class]="getScreenIcon(breadcrumbPath.screen!.name)"></i>
             <span>{{ breadcrumbPath.screen!.name }}</span>
           </span>
+
+          <span class="bc-spacer"></span>
+
+          <div class="bc-pay-toggle" *ngIf="breadcrumbPath.module?.name === 'Inventory'">
+            <button type="button" class="erp-btn btn-sm" routerLink="/dashboard/inventory/transactions/vendor-payment"
+              routerLinkActive="btn-primary" #payActive="routerLinkActive" [class.btn-white]="!payActive.isActive" title="Vendor Payment">
+              <i class="pi pi-arrow-up-right"></i> Pay
+            </button>
+            <button type="button" class="erp-btn btn-sm" routerLink="/dashboard/inventory/transactions/customer-receipt"
+              routerLinkActive="btn-primary" #rcvActive="routerLinkActive" [class.btn-white]="!rcvActive.isActive" title="Customer Receipt">
+              <i class="pi pi-arrow-down-left"></i> Receipt
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -527,8 +572,6 @@
 
         <router-outlet></router-outlet>
       </div>
-
-      <app-reference-data-tray [config]="referenceTrayConfig"></app-reference-data-tray>
     </main>
   </div>
 

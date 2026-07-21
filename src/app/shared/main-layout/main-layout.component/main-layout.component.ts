@@ -14,11 +14,9 @@ import { filter, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SosHelpComponent } from '../../sos-help/sos-help.component';
 import { VoiceAssistantComponent } from '../../voice-assistant/voice-assistant.component';
-import { ReferenceDataTrayComponent } from '../../reference-data-tray/reference-data-tray.component';
-import { ReferenceDataTrayConfig } from '../../reference-data-tray/reference-data-tray.models';
-import { ReferenceDataTrayService } from '../../reference-data-tray/reference-data-tray.service';
 import { WalkthroughTourComponent } from '../../walkthrough-tour/walkthrough-tour.component';
 import { WalkthroughTourService } from '../../walkthrough-tour/walkthrough-tour.service';
+import { CompanyDetailsService } from '../../../core/services/Common/company-details-service';
 
 export interface Theme {
   id: string;
@@ -46,7 +44,7 @@ interface FlyoutScreenGroup {
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent, ReferenceDataTrayComponent, WalkthroughTourComponent],
+  imports: [CommonModule, RouterModule, FormsModule, SosHelpComponent, VoiceAssistantComponent, WalkthroughTourComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.scss'
 })
@@ -66,6 +64,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   selectedSwitchCompanyId: number | null = null;
   selectedSwitchBranchId: number | null = null;
   switchingContext = false;
+  switchMessage = '';
+  switchError = '';
   showProfilePassword = false;
   currentPassword = '';
   newPassword = '';
@@ -96,7 +96,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   activeTheme = 'sky';
 
   recentForms: RecentForm[] = [];
-  referenceTrayConfig: ReferenceDataTrayConfig | null = null;
 
   themes: Theme[] = [
     { id: 'sky', name: 'Sky', colors: ['#7fb3ff', '#4d8fff'] },
@@ -106,16 +105,17 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     { id: 'slate', name: 'Slate', colors: ['#aab8d6', '#7d8fb3'] },
     { id: 'gold', name: 'Gold', colors: ['#f0cf6a', '#c9a227'] },
     { id: 'copper', name: 'Copper', colors: ['#d9996b', '#a85f3a'] },
-    { id: 'pink', name: 'Pink', colors: ['#f7a9c4', '#e26aa5'] }
+    { id: 'pink', name: 'Pink', colors: ['#f7a9c4', '#e26aa5'] },
+    { id: 'dark', name: 'Dark', colors: ['#2a3050', '#0d1117'] }
   ];
 
   constructor(
     private navigationService: NavigationService,
     private authService: AuthService,
     private router: Router,
-    private referenceDataTrayService: ReferenceDataTrayService,
     private destroyRef: DestroyRef,
-    private tourService: WalkthroughTourService
+    private tourService: WalkthroughTourService,
+    private companyDetailsService: CompanyDetailsService
   ) {}
 
   startTour(): void {
@@ -126,6 +126,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.modules = this.navigationService.getModules();
     this.username = this.authService.getUsername() || 'User';
     this.loadTenantSwitchOptions();
+    this.refreshTenantOptionsFromServer();
 
     const savedTheme = localStorage.getItem('erp-theme');
     this.setTheme(savedTheme || this.activeTheme);
@@ -165,7 +166,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       });
 
     this.restoreNavigationFromRoute(this.router.url);
-    this.updateReferenceTray(this.router.url);
 
     this.router.events
       .pipe(
@@ -174,7 +174,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       )
       .subscribe(event => {
         this.restoreNavigationFromRoute(event.urlAfterRedirects);
-        this.updateReferenceTray(event.urlAfterRedirects);
         this.contentArea?.nativeElement.scrollTo({ top: 0 });
       });
 
@@ -254,24 +253,147 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   get currentCompanyLabel(): string {
-    return sessionStorage.getItem('companyCode') || 'Company';
+    const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
+    const option = this.tenantOptions.find(item => item.companyId === currentCompanyId);
+    const storedCompany = this.readSessionJson<{ companyCode?: string; companyName?: string }>('authCompany', {});
+    const companyName = option?.companyName || storedCompany.companyName || '';
+    const companyCode = option?.companyCode || storedCompany.companyCode || sessionStorage.getItem('companyCode') || '';
+
+    return this.formatContextLabel(companyName, companyCode, 'Company');
   }
 
   get currentBranchLabel(): string {
-    return sessionStorage.getItem('branchCode') || 'No branch';
+    const currentBranchId = Number(sessionStorage.getItem('branchId') || 0);
+    const branch = this.tenantOptions
+      .flatMap(option => option.branches || [])
+      .find(item => item.id === currentBranchId)
+      ?? this.readSessionJson<Array<{ id?: number; branchCode?: string; branchName?: string }>>('authBranches', [])
+        .find(item => Number(item.id) === currentBranchId);
+    const branchName = branch?.branchName || '';
+    const branchCode = branch?.branchCode || sessionStorage.getItem('branchCode') || '';
+
+    return this.formatContextLabel(branchName, branchCode, 'No branch');
   }
 
   get selectedSwitchBranches() {
     return this.tenantOptions.find(option => option.companyId === this.selectedSwitchCompanyId)?.branches ?? [];
   }
 
-  loadTenantSwitchOptions(): void {
-    this.tenantOptions = this.authService.getTenantOptions();
+  get hasSwitchContextOptions(): boolean {
+    if (this.tenantOptions.length > 1) return true;
+    return (this.tenantOptions[0]?.branches?.length ?? 0) > 1;
+  }
+
+  get hasMultipleCompanies(): boolean {
+    return this.tenantOptions.length > 1;
+  }
+
+  get currentBranchIdValue(): number {
+    return Number(sessionStorage.getItem('branchId') || 0);
+  }
+
+  get currentCompanyBranches(): LoginTenantOption['branches'] {
+    const companyId = Number(sessionStorage.getItem('companyId') || 0);
+    return this.tenantOptions.find(o => o.companyId === companyId)?.branches ?? [];
+  }
+
+  get hasMultipleBranches(): boolean {
+    return this.currentCompanyBranches.length > 1;
+  }
+
+  get isContextChanged(): boolean {
     const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
     const currentBranchId = Number(sessionStorage.getItem('branchId') || 0);
+    return this.selectedSwitchCompanyId !== currentCompanyId
+      || (!!this.selectedSwitchBranchId && this.selectedSwitchBranchId !== currentBranchId);
+  }
+
+  loadTenantSwitchOptions(): void {
+    const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
+    const currentBranchId = Number(sessionStorage.getItem('branchId') || 0);
+    const authBranches = this.readSessionJson<Array<{ id: number; branchCode: string; branchName: string; isDefault?: boolean }>>('authBranches', []);
+
+    let options = this.normalizeTenantSwitchOptions(this.authService.getTenantOptions());
+
+    if (!options.length) {
+      // No stored tenant options — synthesize from any available session data
+      const company = this.readSessionJson<{ id?: number; companyCode?: string; companyName?: string }>('authCompany', {});
+      const companyDetails = this.readSessionJson<{ companyId?: number; companyCode?: string; companyName?: string }>('CompanyDetails', {});
+      const companyId = company.id || companyDetails.companyId || currentCompanyId;
+      if (companyId) {
+        options = [{
+          userId: Number(sessionStorage.getItem('userId') || 0),
+          companyId,
+          companyCode: company.companyCode || companyDetails.companyCode || sessionStorage.getItem('companyCode') || '',
+          companyName: company.companyName || companyDetails.companyName || '',
+          username: sessionStorage.getItem('username') || '',
+          fullName: sessionStorage.getItem('username') || '',
+          branches: authBranches.map(b => ({ ...b, isDefault: !!b.isDefault }))
+        }];
+      }
+    } else if (authBranches.length > 0 && currentCompanyId) {
+      // Tenant options exist but may only have 1 branch per company (from login selection).
+      // Merge authBranches (full branch list from login) into the current company entry.
+      const currentOpt = options.find(o => o.companyId === currentCompanyId);
+      if (currentOpt && authBranches.length > currentOpt.branches.length) {
+        currentOpt.branches = this.uniqueSwitchBranches([
+          ...currentOpt.branches,
+          ...authBranches.map(b => ({ ...b, isDefault: !!b.isDefault }))
+        ]);
+      }
+    }
+
+    this.tenantOptions = options;
     this.selectedSwitchCompanyId = currentCompanyId || (this.tenantOptions[0]?.companyId ?? null);
     const branches = this.selectedSwitchBranches;
     this.selectedSwitchBranchId = currentBranchId || branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
+  }
+
+  private refreshTenantOptionsFromServer(): void {
+    this.authService.me().subscribe({
+      next: res => {
+        const payload = res?.data;
+        if (!payload) return;
+
+        let updated = false;
+
+        // Always use server's tenant options — they are the authoritative list
+        if (payload.tenantOptions && payload.tenantOptions.length > 0) {
+          sessionStorage.setItem('authTenantOptions', JSON.stringify(payload.tenantOptions));
+          updated = true;
+        }
+
+        // Backfill company data for legacy/old sessions that lack authCompany or companyId
+        if (payload.company?.id) {
+          if (!sessionStorage.getItem('companyId') || sessionStorage.getItem('companyId') === '0') {
+            sessionStorage.setItem('companyId', String(payload.company.id));
+            updated = true;
+          }
+          const existingCompany = this.readSessionJson<{ id?: number }>('authCompany', {});
+          if (!existingCompany.id) {
+            sessionStorage.setItem('authCompany', JSON.stringify(payload.company));
+            updated = true;
+          }
+        }
+
+        // Update branches when server knows about more branches for the current company
+        if (payload.branches && payload.branches.length > this.currentCompanyBranches.length) {
+          sessionStorage.setItem('authBranches', JSON.stringify(payload.branches));
+          updated = true;
+        }
+
+        if (updated) this.loadTenantSwitchOptions();
+      },
+      error: () => undefined
+    });
+  }
+
+  trackTenantOption(_: number, option: LoginTenantOption): number {
+    return option.companyId;
+  }
+
+  trackSwitchBranch(_: number, branch: LoginTenantOption['branches'][number]): number {
+    return branch.id;
   }
 
   toggleAvatarMenu(): void {
@@ -334,13 +456,47 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     if (!this.selectedSwitchCompanyId) return;
     if (this.selectedSwitchCompanyId === Number(sessionStorage.getItem('companyId') || 0) && !this.selectedSwitchBranchId) return;
     this.switchingContext = true;
+    this.switchMessage = '';
+    this.switchError = '';
     try {
       const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
       const response = this.selectedSwitchCompanyId === currentCompanyId
         ? await firstValueFrom(this.authService.switchBranch(this.selectedSwitchBranchId || 0))
         : await firstValueFrom(this.authService.switchCompany(this.selectedSwitchCompanyId, this.selectedSwitchBranchId));
       if (response?.data) {
+        this.preserveTenantOptions(response.data);
         this.authService.setMultiTenantSession(response.data);
+        await this.refreshLegacyCompanyDetails();
+        this.modules = this.navigationService.getModules();
+        this.selectedModule = null;
+        this.selectedSubModule = null;
+        this.selectedScreen = null;
+        this.username = this.authService.getUsername() || this.username;
+        this.loadTenantSwitchOptions();
+        this.switchMessage = 'Company context switched.';
+        this.showAvatarMenu = false;
+        this.router.navigate(['/dashboard']);
+      }
+    } catch (err: unknown) {
+      const value = err as { error?: { message?: string; title?: string }; message?: string };
+      this.switchError = value.error?.message ?? value.error?.title ?? value.message ?? 'Unable to switch company context.';
+    } finally {
+      this.switchingContext = false;
+    }
+  }
+
+  async switchBranchDirectly(branchId: number): Promise<void> {
+    if (branchId === this.currentBranchIdValue || this.switchingContext) return;
+    this.selectedSwitchBranchId = branchId;
+    this.switchingContext = true;
+    this.switchMessage = '';
+    this.switchError = '';
+    try {
+      const response = await firstValueFrom(this.authService.switchBranch(branchId));
+      if (response?.data) {
+        this.preserveTenantOptions(response.data);
+        this.authService.setMultiTenantSession(response.data);
+        await this.refreshLegacyCompanyDetails();
         this.modules = this.navigationService.getModules();
         this.selectedModule = null;
         this.selectedSubModule = null;
@@ -350,8 +506,87 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
         this.showAvatarMenu = false;
         this.router.navigate(['/dashboard']);
       }
+    } catch (err: unknown) {
+      const value = err as { error?: { message?: string; title?: string }; message?: string };
+      this.switchError = value.error?.message ?? value.error?.title ?? value.message ?? 'Unable to switch branch.';
     } finally {
       this.switchingContext = false;
+    }
+  }
+
+  private preserveTenantOptions(incomingPayload: { tenantOptions?: LoginTenantOption[] }): void {
+    if (!incomingPayload.tenantOptions?.length) {
+      const existing = this.authService.getTenantOptions();
+      if (existing.length) incomingPayload.tenantOptions = existing;
+    }
+  }
+
+  private async refreshLegacyCompanyDetails(): Promise<void> {
+    try {
+      const details = await firstValueFrom(this.companyDetailsService.GetCompanyData());
+      if (Array.isArray(details) && details.length) {
+        sessionStorage.setItem('CompanyDetails', JSON.stringify(details[0]));
+      }
+    } catch {
+      // AuthService already wrote a minimal CompanyDetails fallback for screens that read legacy session data.
+    }
+  }
+
+  private normalizeTenantSwitchOptions(options: LoginTenantOption[]): LoginTenantOption[] {
+    const byCompany = new Map<number, LoginTenantOption>();
+
+    for (const option of options || []) {
+      const companyId = Number(option.companyId) || 0;
+      if (!companyId) continue;
+
+      const branches = this.uniqueSwitchBranches(option.branches || []);
+      const existing = byCompany.get(companyId);
+      if (!existing) {
+        byCompany.set(companyId, { ...option, companyId, branches });
+        continue;
+      }
+
+      existing.branches = this.uniqueSwitchBranches([
+        ...(existing.branches || []),
+        ...branches
+      ]);
+    }
+
+    return Array.from(byCompany.values()).sort((a, b) =>
+      (a.companyName || '').localeCompare(b.companyName || '')
+    );
+  }
+
+  private uniqueSwitchBranches(branches: LoginTenantOption['branches']): LoginTenantOption['branches'] {
+    const byBranch = new Map<number, LoginTenantOption['branches'][number]>();
+
+    for (const branch of branches || []) {
+      const branchId = Number(branch.id) || 0;
+      if (!branchId || byBranch.has(branchId)) continue;
+      byBranch.set(branchId, branch);
+    }
+
+    return Array.from(byBranch.values()).sort((a, b) => {
+      if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+      return (a.branchName || '').localeCompare(b.branchName || '');
+    });
+  }
+
+  private formatContextLabel(name: string, code: string, fallback: string): string {
+    const cleanName = (name || '').trim();
+    const cleanCode = (code || '').trim();
+    if (cleanName && cleanCode && cleanName.toLowerCase() !== cleanCode.toLowerCase()) {
+      return `${cleanName} (${cleanCode})`;
+    }
+
+    return cleanName || cleanCode || fallback;
+  }
+
+  private readSessionJson<T>(key: string, fallback: T): T {
+    try {
+      return JSON.parse(sessionStorage.getItem(key) || '') as T;
+    } catch {
+      return fallback;
     }
   }
 
@@ -462,6 +697,27 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     localStorage.setItem('sidebar-collapsed', JSON.stringify(this.sidebarCollapsed));
   }
 
+  showSidebarFromEdge(): void {
+    if (!this.canUseHoverSidebar()) return;
+
+    if (!this.selectedModule && this.modules.length > 0) {
+      this.navigationService.selectModule(this.modules[0]);
+    }
+
+    this.sidebarCollapsed = false;
+  }
+
+  hideSidebarForWorkspace(): void {
+    if (!this.canUseHoverSidebar() || this.sidebarCollapsed) return;
+
+    this.sidebarCollapsed = true;
+  }
+
+  private canUseHoverSidebar(): boolean {
+    return typeof window !== 'undefined'
+      && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
   private restoreNavigationFromRoute(route: string): void {
     const activePath = this.navigationService.findPathByRoute(route);
 
@@ -476,8 +732,48 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     }
 
     if (this.isDashboardHome(route)) {
-      this.applyDefaultMenuState();
+      this.redirectFromDashboardHome();
     }
+  }
+
+  private redirectFromDashboardHome(): void {
+    const setupRoute = this.getInitialSettingsRoute();
+    if (setupRoute) {
+      void this.router.navigateByUrl(setupRoute, { replaceUrl: true });
+      return;
+    }
+
+    const firstDashboardRoute = this.getFirstModuleDashboardRoute();
+    if (firstDashboardRoute) {
+      void this.router.navigateByUrl(firstDashboardRoute, { replaceUrl: true });
+      return;
+    }
+
+    this.applyDefaultMenuState();
+  }
+
+  private getInitialSettingsRoute(): string | null {
+    const branchId = Number(sessionStorage.getItem('branchId') || 0);
+    const branches = this.readSessionJson<Array<{ id?: number }>>('authBranches', []);
+    const setupPending = sessionStorage.getItem('postRegistrationSetupPending') === 'true';
+
+    return setupPending || (!branchId && branches.length === 0)
+      ? '/dashboard/settings/branch-management/manage-branches'
+      : null;
+  }
+
+  private getFirstModuleDashboardRoute(): string | null {
+    const firstModule = this.modules[0] ?? this.navigationService.getModules()[0];
+    if (!firstModule) return null;
+
+    const dashboardSubModule = firstModule.subModules.find(subModule =>
+      subModule.id.toLowerCase().includes('dashboard') ||
+      subModule.name.toLowerCase() === 'dashboard'
+    );
+    const firstScreen = dashboardSubModule?.screens[0] ??
+      firstModule.subModules.find(subModule => subModule.screens.length > 0)?.screens[0];
+
+    return firstScreen?.route ?? null;
   }
 
   private applyNavigationPath(path: NavigationPath): void {
@@ -590,10 +886,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
       this.navigationService.selectSubModule(subModule);
     }
-  }
-
-  private updateReferenceTray(route: string): void {
-    this.referenceTrayConfig = this.referenceDataTrayService.resolveForRoute(route);
   }
 
   private isDashboardHome(route: string): boolean {
@@ -726,6 +1018,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   navigateToScreen(item: any): void {
+    if (item.disabled) return;
     if (item.subModule) {
       this.navigationService.selectSubModule(item.subModule);
       this.expandedSubModules.clear();
@@ -771,6 +1064,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   navigateFromMega(mod: Module, sub: SubModule, screen: Screen): void {
+    if (screen.disabled) return;
     const fullModule = this.modules.find(item => item.id === mod.id) || mod;
     const fullSubModule = fullModule.subModules.find(item => item.id === sub.id) || sub;
     const fullScreen =

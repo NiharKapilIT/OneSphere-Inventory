@@ -11,11 +11,14 @@ import {
   SegmentItem,
   UomItem
 } from '../../Inventory_Shared/inventory-config.service';
+import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
+import { InventoryCategoryMasterComponent } from '../../Inventory_Masters/category-master/category-master';
+import { categoryMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
 
 @Component({
   selector: 'app-inventory-business-segments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryCategoryMasterComponent],
   templateUrl: './business-segments.html'
 })
 export class InventoryBusinessSegmentsComponent implements OnInit {
@@ -47,10 +50,8 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   saveMsg = signal('');
   saveError = signal('');
 
-  showCatPopup = signal(false);
-  newCatName = signal('');
-  addingCat = signal(false);
-  catPopupError = signal('');
+  showCategoryMasterDialog = signal(false);
+  readonly categoryMasterConfig = categoryMasterConfig;
 
   showHsnPopup = signal(false);
   newHsnCode = signal('');
@@ -79,9 +80,9 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
       segments: this.svc.getSegments(true)
     }).subscribe({
       next: ({ categories, hsn, uoms, segments }) => {
-        this.categories.set(categories.data ?? []);
-        this.hsnSacList.set(hsn.data ?? []);
-        this.uomList.set(uoms.data ?? []);
+        this.categories.set(this.dedupeByName(categories.data ?? [], item => item.category_name));
+        this.hsnSacList.set(this.dedupeByName(hsn.data ?? [], item => item.code));
+        this.uomList.set(this.dedupeByName(uoms.data ?? [], item => item.uom_name || item.uom_code));
         this.savedSegments.set(segments.data ?? []);
         this.loading.set(false);
       },
@@ -96,6 +97,10 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     const name = this.segmentName().trim();
     if (!name) {
       this.saveError.set('Business segment is required.');
+      return;
+    }
+    if (this.savedSegments().some(seg => this.normalizeKey(seg.segment_name) === this.normalizeKey(name) && seg.id !== this.editingId())) {
+      this.saveError.set('Business segment already exists. Edit the existing segment instead of adding duplicate.');
       return;
     }
 
@@ -136,24 +141,70 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   }
 
   onSegmentNameChange(name: string): void {
-    this.segmentName.set(name);
-    if (!this.editingId()) {
-      this.segmentCode.set(this.autoCode(name));
+    const normalizedName = toInventoryTitleCase(name ?? '');
+    this.segmentName.set(normalizedName);
+    if (!normalizedName.trim()) {
+      if (this.editingId() !== null) {
+        // Editing a saved segment — name cleared means user wants a fresh form.
+        this.clearForm();
+      } else {
+        // Fresh entry — only clear the auto-generated code.
+        this.segmentCode.set('');
+      }
+      return;
     }
+    if (this.editingId() !== null) return;
+    this.segmentCode.set(this.autoCode(normalizedName));
   }
 
+  onSegmentCodeChange(code: string): void {
+    this.segmentCode.set(String(applyInventoryTextCase(code ?? '', 'upper')));
+  }
+
+  onUsageNoteChange(note: string): void {
+    this.usageNote.set(String(applyInventoryTextCase(note ?? '', 'sentence')));
+  }
+
+  onNewHsnCodeChange(code: string): void {
+    this.newHsnCode.set(String(applyInventoryTextCase(code ?? '', 'upper')));
+  }
+
+  onNewHsnDescChange(description: string): void {
+    this.newHsnDesc.set(String(applyInventoryTextCase(description ?? '', 'sentence')));
+  }
+
+  onNewUomNameChange(name: string): void {
+    this.newUomName.set(toInventoryTitleCase(name ?? ''));
+  }
+
+  onNewUomSymbolChange(symbol: string): void {
+    this.newUomSymbol.set(String(applyInventoryTextCase(symbol ?? '', 'upper')));
+  }
+
+  // Global standard code format: PREFIX (first 3 alnum chars of name) - YY - 5-digit sequence.
+  // Matches generateCodeFromName() in inventory-screen-shell.ts, used across the other master screens.
   private autoCode(name: string): string {
-    const words = name.trim().replace(/[^A-Za-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 0);
-    let base: string;
-    if (words.length >= 2) {
-      base = words.slice(0, 3).map(w => w[0].toUpperCase()).join('');
-    } else if (words.length === 1) {
-      base = words[0].substring(0, 3).toUpperCase();
-    } else {
-      return '';
-    }
-    const seq = String(this.savedSegments().length + 1).padStart(3, '0');
-    return `${base}-${seq}`;
+    const prefix = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    if (!prefix) return '';
+    const yy = new Date().getFullYear().toString().slice(-2);
+    const seq = String(this.savedSegments().length + 1).padStart(5, '0');
+    return `${prefix}-${yy}-${seq}`;
+  }
+
+  private normalizeKey(value: any): string {
+    return String(value ?? '').trim().toLowerCase();
+  }
+
+  private dedupeByName<T>(items: T[], picker: (item: T) => string | undefined): T[] {
+    const seen = new Set<string>();
+    return [...items]
+      .sort((a, b) => String(picker(a) || '').localeCompare(String(picker(b) || '')))
+      .filter(item => {
+        const key = this.normalizeKey(picker(item));
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }
 
   clearForm(): void {
@@ -203,38 +254,19 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     return this.uomIds().length;
   }
 
-  openCatPopup(): void {
-    this.newCatName.set('');
-    this.catPopupError.set('');
-    this.showCatPopup.set(true);
+  openCategoryMasterDialog(): void {
+    this.showCategoryMasterDialog.set(true);
   }
 
-  closeCatPopup(): void {
-    this.showCatPopup.set(false);
+  closeCategoryMasterDialog(): void {
+    this.showCategoryMasterDialog.set(false);
+    this.refreshCategories();
   }
 
-  submitCat(): void {
-    const categoryName = this.newCatName().trim();
-    if (!categoryName) {
-      this.catPopupError.set('Category name is required.');
-      return;
-    }
-
-    this.addingCat.set(true);
-    this.catPopupError.set('');
-    this.svc.quickAddCategory(categoryName).subscribe({
-      next: res => {
-        if (res.data) {
-          this.categories.update(list => [...list, res.data!]);
-          this.categoryIds.update(ids => [...new Set([...ids, res.data!.id])]);
-        }
-        this.addingCat.set(false);
-        this.showCatPopup.set(false);
-      },
-      error: err => {
-        this.addingCat.set(false);
-        this.catPopupError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to add category.');
-      }
+  private refreshCategories(): void {
+    this.svc.getCategories().subscribe({
+      next: res => this.categories.set(this.dedupeByName(res.data ?? [], item => item.category_name)),
+      error: () => undefined
     });
   }
 
@@ -255,6 +287,10 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     const code = this.newHsnCode().trim();
     if (!code) {
       this.hsnPopupError.set('HSN/SAC code is required.');
+      return;
+    }
+    if (this.hsnSacList().some(item => this.normalizeKey(item.code) === this.normalizeKey(code))) {
+      this.hsnPopupError.set('HSN/SAC code already exists. Select it from the list instead.');
       return;
     }
 
@@ -296,10 +332,23 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
       this.uomPopupError.set('UOM name is required.');
       return;
     }
+    const symbol = this.newUomSymbol().trim();
+    const segmentId = this.editingId();
+    if (this.uomList().some(item =>
+      !item.is_system
+      && (segmentId ? Number(item.segment_id) === segmentId || this.uomIds().includes(item.id) : !item.segment_id)
+      && (
+        this.normalizeKey(item.uom_name) === this.normalizeKey(uomName)
+        || (!!symbol && this.normalizeKey(item.uom_symbol) === this.normalizeKey(symbol))
+      )
+    )) {
+      this.uomPopupError.set('UOM already exists in this segment. Select it from the list instead.');
+      return;
+    }
 
     this.addingUom.set(true);
     this.uomPopupError.set('');
-    this.svc.quickAddUom(uomName, this.newUomSymbol().trim() || undefined).subscribe({
+    this.svc.quickAddUom(uomName, this.newUomSymbol().trim() || undefined, segmentId).subscribe({
       next: res => {
         if (res.data) {
           this.uomList.update(list => [...list, res.data!]);

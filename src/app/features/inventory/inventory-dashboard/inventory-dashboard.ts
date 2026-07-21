@@ -1,108 +1,89 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef } from '@angular/core';
+import {
+  DashboardDrilldownRow,
+  DashboardStockRow,
+  DashboardSummary,
+  DashboardTransactionRow,
+  InventoryDashboardService
+} from '../Inventory_Shared/inventory-dashboard.service';
+
+const PAYABLES_COLOR = '#e11d48';
+const RECEIVABLES_COLOR = '#2563eb';
+
+const SECTION_LAYOUT_KEY = 'inv-dashboard-section-layout-v2';
+const WIDTH_OPTIONS = [4, 6, 8, 12] as const;
+
+interface SectionLayoutItem {
+  id: string;
+  width: number; // one of WIDTH_OPTIONS — columns out of 12
+  hidden?: boolean;
+}
+
+// Default order + width (out of 12 columns). Widths are just a starting
+// point — every widget, including the KPI tiles, can be resized/reordered
+// by the user; the result is saved to localStorage.
+const DEFAULT_SECTION_LAYOUT: SectionLayoutItem[] = [
+  { id: 'kpis', width: 12 },
+  { id: 'financials', width: 12 },
+  { id: 'documents', width: 12 },
+  { id: 'ageing', width: 12 },
+  { id: 'movement', width: 8 },
+  { id: 'warehouseStock', width: 4 },
+  { id: 'salesReturnsTrend', width: 8 },
+  { id: 'payablesReceivablesDonut', width: 4 },
+  { id: 'topReturnedProducts', width: 12 },
+  { id: 'productSalesFunnel', width: 6 },
+  { id: 'procurementSalesFunnel', width: 6 },
+  { id: 'stockByProduct', width: 12 },
+  { id: 'recentTransactions', width: 12 }
+];
+
+const SECTION_TITLES: Record<string, { title: string; subtitle: string }> = {
+  kpis: { title: 'Key Metrics', subtitle: 'Stock value, pending documents, and today’s activity.' },
+  financials: { title: 'Payables & Receivables', subtitle: 'Outstanding balances (today) and cash movement.' },
+  documents: { title: 'Purchase, Sales & Returns', subtitle: 'Posted documents for the selected period.' },
+  ageing: { title: 'Ageing', subtitle: 'Outstanding balances as of today, by invoice age.' },
+  movement: { title: 'Movement', subtitle: 'Inward (GRN accepted qty) vs. outward (Sales Invoice qty), by day.' },
+  warehouseStock: { title: 'Warehouse Stock', subtitle: 'Real qty and value per warehouse.' },
+  salesReturnsTrend: { title: 'Sales & Returns', subtitle: 'Posted Sales Invoices vs. Sales Returns, by day.' },
+  payablesReceivablesDonut: { title: 'Payables vs Receivables', subtitle: 'Share of total outstanding, as of today.' },
+  topReturnedProducts: { title: 'Top Selling & Returned Products', subtitle: 'Ranked by value, for the selected period.' },
+  productSalesFunnel: { title: 'Product Sales Funnel', subtitle: 'Top products by sales value, widest first.' },
+  procurementSalesFunnel: { title: 'Procurement vs Sales Funnel', subtitle: 'Document count at each pipeline stage, this period.' },
+  stockByProduct: { title: 'Stock by Product', subtitle: 'Every product currently tracked, with real qty and value.' },
+  recentTransactions: { title: 'Recent Transactions', subtitle: 'Latest documents across purchase and sales, newest first.' }
+};
 
 type DashboardPeriod = 'today' | 'week' | 'month' | 'quarter';
-type DashboardTab = 'owner' | 'segments' | 'actions' | 'transactions' | 'warehouses';
-type GridAction = 'print' | 'mail' | 'export' | 'whatsapp';
-type GridId = 'segments' | 'risk' | 'actions' | 'transactions' | 'warehouses' | 'topProducts' | 'slowProducts' | 'expiryAlerts';
 
-interface OwnerKpi {
+interface FunnelStage {
+  label: string;
+  short: string;
+  count: number;
+  value: number;
+  valueLabel: string;
+  widthPct: number;
+  conversionPct: number;
+}
+
+interface ProductFunnelStage {
+  label: string;
+  amount: number;
+  qty: number;
+  widthPct: number;
+}
+
+interface KpiTile {
   label: string;
   value: string;
   note: string;
   icon: string;
   tone: string;
-  route: string;
-}
-
-interface SegmentMetric {
-  segment: string;
-  icon: string;
-  stockValue: string;
-  revenueHold: string;
-  stockShare: number;
-  holdShare: number;
-  health: number;
-  lowStock: number;
-  pendingApprovals: number;
-  decision: string;
-  route: string;
-}
-
-interface RiskRow {
-  product: string;
-  segment: string;
-  location: string;
-  available: string;
-  reorder: string;
-  coverage: string;
-  impact: string;
-  recommendedAction: string;
-  status: 'Critical' | 'Watch' | 'Good';
-  route: string;
-}
-
-interface ActionRow {
-  priority: 'High' | 'Medium' | 'Low';
-  action: string;
-  segment: string;
-  owner: string;
-  due: string;
-  value: string;
-  status: 'Pending' | 'In Progress' | 'Ready';
-  route: string;
-}
-
-interface TransactionRow {
-  ref: string;
-  type: string;
-  segment: string;
-  party: string;
-  amount: string;
-  date: string;
-  status: 'Posted' | 'Pending' | 'Approved' | 'Draft';
-  nextStep: string;
-  route: string;
-}
-
-interface WarehouseRow {
-  location: string;
-  segment: string;
-  capacity: string;
-  fill: number;
-  stockValue: string;
-  slowMoving: string;
-  pendingDispatch: string;
-  action: string;
-}
-
-interface ProductInsight {
-  product: string;
-  segment: string;
-  qty: string;
-  value: string;
-  note: string;
-  route: string;
-}
-
-interface ExpiryAlert {
-  product: string;
-  segment: string;
-  location: string;
-  batch: string;
-  expiry: string;
-  qty: string;
-  action: string;
-  route: string;
-}
-
-interface DetailModal {
-  title: string;
-  subtitle: string;
-  rows: { label: string; value: string }[];
-  route?: string;
+  key: string;
 }
 
 interface GridPayload {
@@ -111,346 +92,287 @@ interface GridPayload {
   rows: string[][];
 }
 
-interface MovementPoint {
-  label: string;
-  inward: number;
-  outward: number;
-  dispatch: number;
-  inwardValue: string;
-  outwardValue: string;
-  dispatchValue: string;
-}
-
-interface StockMix {
-  label: string;
-  value: string;
-  share: number;
-  color: string;
-  note: string;
-}
-
-interface WarehouseSnapshot {
-  location: string;
-  segment: string;
-  fill: number;
-  stockValue: string;
-  dispatch: string;
-  slowMoving: string;
-  icon: string;
-}
-
-interface StockAgeBucket {
-  label: string;
-  value: string;
-  share: number;
-  tone: 'fresh' | 'moving' | 'slow' | 'blocked';
-}
-
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './inventory-dashboard.html'
 })
 export class InventoryDashboard {
-  readonly selectedPeriod = signal<DashboardPeriod>('month');
-  readonly selectedSegment = signal('All Segments');
-  readonly activeTab = signal<DashboardTab>('owner');
-  readonly searchText = signal('');
-  readonly activeModal = signal<DetailModal | null>(null);
-  readonly toastMessage = signal('');
+  private readonly dashboardService = inject(InventoryDashboardService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly selectedPeriod = signal<DashboardPeriod>('week');
+  readonly loading = signal(false);
+  readonly loadError = signal('');
+  readonly summary = signal<DashboardSummary | null>(null);
   readonly dashboardTime = signal(this.nowLabel());
+  readonly activeModal = signal<GridPayload | null>(null);
 
-  readonly ownerKpis: OwnerKpi[] = [
-    { label: 'Stock Value', value: 'Rs. 4.82 Cr', note: 'Total available inventory value', icon: 'pi pi-chart-bar', tone: 'blue', route: '/dashboard/inventory/reports/segment-summary' },
-    { label: 'Low Stock', value: '14 Items', note: '6 critical, 8 watch items', icon: 'pi pi-exclamation-triangle', tone: 'rose', route: '/dashboard/inventory/reports/stock-availability-report' },
-    { label: 'Pending Orders', value: '86', note: 'Sales orders waiting for stock or approval', icon: 'pi pi-shopping-cart', tone: 'amber', route: '/dashboard/inventory/transactions/sales-order' },
-    { label: 'Pending Dispatch', value: '28', note: 'Approved items not yet delivered', icon: 'pi pi-truck', tone: 'blue', route: '/dashboard/inventory/transactions/delivery-challan' },
-    { label: "Today's Sales", value: 'Rs. 2.1 L', note: '8 invoices and counter bills', icon: 'pi pi-arrow-circle-up', tone: 'green', route: '/dashboard/inventory/transactions/sales-invoice' },
-    { label: "Today's Purchase", value: 'Rs. 3.8 L', note: '12 inward and GRN entries', icon: 'pi pi-arrow-circle-down', tone: 'green', route: '/dashboard/inventory/transactions/goods-receipt' },
-    { label: 'Profit Margin', value: '18.4%', note: 'Weighted margin for today', icon: 'pi pi-percentage', tone: 'amber', route: '/dashboard/inventory/reports/stock-ledger' }
-  ];
+  readonly sectionLayout = signal<SectionLayoutItem[]>(this.loadSectionLayout());
+  readonly dragOverId = signal<string | null>(null);
+  readonly widthOptions = WIDTH_OPTIONS;
+  private draggedId: string | null = null;
 
-  readonly segmentMetrics: SegmentMetric[] = [
-    { segment: 'Electronics', icon: 'pi pi-desktop', stockValue: 'Rs. 2.24 Cr', revenueHold: 'Rs. 18.2 L', stockShare: 100, holdShare: 81, health: 82, lowStock: 6, pendingApprovals: 3, decision: 'Approve reorder for laptop and CCTV items today.', route: '/dashboard/inventory/reports/stock-availability-report' },
-    { segment: 'Agro Product', icon: 'pi pi-sun', stockValue: 'Rs. 86 L', revenueHold: 'Rs. 7.4 L', stockShare: 38, holdShare: 33, health: 68, lowStock: 3, pendingApprovals: 2, decision: 'Season stock is tight. Raise PR for seed and fertilizer.', route: '/dashboard/inventory/transactions/purchase-requisition' },
-    { segment: 'Hotel / Restaurant', icon: 'pi pi-shopping-bag', stockValue: 'Rs. 42 L', revenueHold: 'Rs. 3.1 L', stockShare: 19, holdShare: 14, health: 74, lowStock: 4, pendingApprovals: 1, decision: 'Move expiring stock to kitchen consumption plan.', route: '/dashboard/inventory/transactions/material-consumption' },
-    { segment: 'Drone Manufacturing', icon: 'pi pi-cog', stockValue: 'Rs. 1.22 Cr', revenueHold: 'Rs. 22.6 L', stockShare: 54, holdShare: 100, health: 91, lowStock: 0, pendingApprovals: 4, decision: 'Clear QC hold on battery packs to release finished goods.', route: '/dashboard/inventory/transactions/production-entry' },
-    { segment: 'Co-working Space', icon: 'pi pi-building', stockValue: 'Rs. 28 L', revenueHold: 'Rs. 6.8 L', stockShare: 13, holdShare: 30, health: 94, lowStock: 1, pendingApprovals: 1, decision: 'Review cabin availability and convert bookings to invoices.', route: '/dashboard/inventory/transactions/sales-invoice' }
-  ];
+  readonly visibleSections = computed(() => this.sectionLayout().filter(item => !item.hidden));
+  readonly hiddenSections = computed(() => this.sectionLayout().filter(item => item.hidden));
 
-  readonly movementPoints: MovementPoint[] = [
-    { label: 'Mon', inward: 54, outward: 34, dispatch: 28, inwardValue: 'Rs. 2.8 L', outwardValue: 'Rs. 1.7 L', dispatchValue: '8' },
-    { label: 'Tue', inward: 68, outward: 48, dispatch: 42, inwardValue: 'Rs. 3.6 L', outwardValue: 'Rs. 2.4 L', dispatchValue: '12' },
-    { label: 'Wed', inward: 41, outward: 62, dispatch: 51, inwardValue: 'Rs. 2.1 L', outwardValue: 'Rs. 3.1 L', dispatchValue: '15' },
-    { label: 'Thu', inward: 72, outward: 57, dispatch: 64, inwardValue: 'Rs. 3.8 L', outwardValue: 'Rs. 2.9 L', dispatchValue: '18' },
-    { label: 'Fri', inward: 46, outward: 70, dispatch: 58, inwardValue: 'Rs. 2.4 L', outwardValue: 'Rs. 3.5 L', dispatchValue: '16' },
-    { label: 'Sat', inward: 63, outward: 44, dispatch: 37, inwardValue: 'Rs. 3.3 L', outwardValue: 'Rs. 2.2 L', dispatchValue: '11' },
-    { label: 'Sun', inward: 34, outward: 30, dispatch: 25, inwardValue: 'Rs. 1.8 L', outwardValue: 'Rs. 1.5 L', dispatchValue: '7' }
-  ];
-
-  readonly stockMix: StockMix[] = [
-    { label: 'Fast Moving', value: 'Rs. 1.96 Cr', share: 42, color: '#2563eb', note: 'Sales-ready stock with steady movement' },
-    { label: 'Production / Project', value: 'Rs. 1.24 Cr', share: 26, color: '#10b981', note: 'BOM, panel and site-linked materials' },
-    { label: 'Seasonal Stock', value: 'Rs. 86 L', share: 18, color: '#f59e0b', note: 'Agro, kitchen and event-linked demand' },
-    { label: 'Hold / Slow', value: 'Rs. 66 L', share: 14, color: '#e11d48', note: 'QC hold, old stock and expiry watch' }
-  ];
-
-  readonly warehouseSnapshots: WarehouseSnapshot[] = [
-    { location: 'HYD Main WH', segment: 'Electronics', fill: 84, stockValue: 'Rs. 1.90 Cr', dispatch: '14 orders', slowMoving: 'Rs. 18.2 L', icon: 'pi pi-box' },
-    { location: 'BLR Store', segment: 'Agro Product', fill: 62, stockValue: 'Rs. 72 L', dispatch: '8 orders', slowMoving: 'Rs. 3.4 L', icon: 'pi pi-map-marker' },
-    { location: 'Kitchen Store', segment: 'Hotel / Restaurant', fill: 78, stockValue: 'Rs. 38 L', dispatch: 'Daily use', slowMoving: 'Rs. 0.8 L', icon: 'pi pi-shopping-bag' },
-    { location: 'Mfg Store', segment: 'Drone Manufacturing', fill: 55, stockValue: 'Rs. 1.22 Cr', dispatch: 'QC 17', slowMoving: 'Rs. 6.2 L', icon: 'pi pi-cog' },
-    { location: 'Co-work Floor 2', segment: 'Co-working Space', fill: 79, stockValue: 'Rs. 28 L', dispatch: '46 seats', slowMoving: 'Rs. 0', icon: 'pi pi-building' }
-  ];
-
-  readonly stockAgeBuckets: StockAgeBucket[] = [
-    { label: '0-15 Days', value: 'Rs. 2.18 Cr', share: 45, tone: 'fresh' },
-    { label: '16-30 Days', value: 'Rs. 1.32 Cr', share: 27, tone: 'moving' },
-    { label: '31-60 Days', value: 'Rs. 82 L', share: 17, tone: 'slow' },
-    { label: '60+ Days', value: 'Rs. 50 L', share: 11, tone: 'blocked' }
-  ];
-
-  readonly riskRows: RiskRow[] = [
-    { product: 'Laptop i5 Gen12', segment: 'Electronics', location: 'HYD Main WH', available: '2 Nos', reorder: '10 Nos', coverage: '4 days', impact: 'Sales loss risk Rs. 5.8 L', recommendedAction: 'Raise PR', status: 'Critical', route: '/dashboard/inventory/transactions/purchase-requisition' },
-    { product: 'Paddy Seeds Grade A', segment: 'Agro Product', location: 'BLR Store', available: '240 Bags', reorder: '300 Bags', coverage: '9 days', impact: 'Season demand risk Rs. 7.4 L', recommendedAction: 'Raise PR', status: 'Watch', route: '/dashboard/inventory/transactions/purchase-requisition' },
-    { product: 'Cooking Oil 1L', segment: 'Hotel / Restaurant', location: 'Main Kitchen Store', available: '180 Nos', reorder: '200 Nos', coverage: '6 days', impact: 'Expiry in 18 days', recommendedAction: 'Consume first', status: 'Watch', route: '/dashboard/inventory/transactions/material-consumption' },
-    { product: 'Battery Pack', segment: 'Drone Manufacturing', location: 'QC Store', available: '17 Nos hold', reorder: '0', coverage: 'QC hold', impact: 'Revenue hold Rs. 22.6 L', recommendedAction: 'QC approval', status: 'Critical', route: '/dashboard/inventory/transactions/production-entry' },
-    { product: 'Dedicated Seat', segment: 'Co-working Space', location: 'Co-work Floor 2', available: '46 Seats', reorder: '20 Seats', coverage: 'Good', impact: 'Ready for booking', recommendedAction: 'Invoice bookings', status: 'Good', route: '/dashboard/inventory/transactions/sales-invoice' }
-  ];
-
-  readonly actionRows: ActionRow[] = [
-    { priority: 'High', action: 'Approve laptop reorder', segment: 'Electronics', owner: 'Business Owner', due: 'Today', value: 'Rs. 5.8 L', status: 'Pending', route: '/dashboard/inventory/transactions/purchase-requisition' },
-    { priority: 'High', action: 'Release QC battery packs', segment: 'Drone Manufacturing', owner: 'Operations Head', due: 'Today', value: 'Rs. 22.6 L', status: 'In Progress', route: '/dashboard/inventory/transactions/production-entry' },
-    { priority: 'Medium', action: 'Follow up overdue PO-2241', segment: 'Electronics', owner: 'Purchase Team', due: 'Tomorrow', value: 'Rs. 4.8 L', status: 'Pending', route: '/dashboard/inventory/transactions/purchase-order' },
-    { priority: 'Medium', action: 'Move expiring oil to kitchen plan', segment: 'Hotel / Restaurant', owner: 'Store Manager', due: '18 days', value: 'Rs. 0.8 L', status: 'Ready', route: '/dashboard/inventory/transactions/material-consumption' },
-    { priority: 'Low', action: 'Convert cabin bookings to invoice', segment: 'Co-working Space', owner: 'Billing Team', due: 'This week', value: 'Rs. 6.8 L', status: 'Ready', route: '/dashboard/inventory/transactions/sales-invoice' }
-  ];
-
-  readonly transactionRows: TransactionRow[] = [
-    { ref: 'GRN-1104', type: 'Goods Receipt', segment: 'Electronics', party: 'ElectroMart Supplies', amount: 'Rs. 11.7 L', date: '12-May-2026', status: 'Posted', nextStep: 'Stock available', route: '/dashboard/inventory/transactions/goods-receipt' },
-    { ref: 'SO-2218', type: 'Sales Order', segment: 'Electronics', party: 'Tenant Works Pvt Ltd', amount: 'Rs. 4.2 L', date: '12-May-2026', status: 'Approved', nextStep: 'Dispatch pending', route: '/dashboard/inventory/transactions/sales-order' },
-    { ref: 'PO-2241', type: 'Purchase Order', segment: 'Electronics', party: 'ElectroMart Supplies', amount: 'Rs. 4.8 L', date: '04-May-2026', status: 'Pending', nextStep: 'Follow up vendor', route: '/dashboard/inventory/transactions/purchase-order' },
-    { ref: 'INV-4481', type: 'Sales Invoice', segment: 'Hotel / Restaurant', party: 'Fresh Foods Distributor', amount: 'Rs. 1.8 L', date: '11-May-2026', status: 'Posted', nextStep: 'Accounts posted', route: '/dashboard/inventory/transactions/sales-invoice' },
-    { ref: 'ST-0442', type: 'Stock Transfer', segment: 'Precast Panels', party: 'HYD Main WH to Project Yard A', amount: 'Rs. 12.8 L', date: '10-May-2026', status: 'Posted', nextStep: 'Site receipt', route: '/dashboard/inventory/transactions/stock-transfer' },
-    { ref: 'SA-1094', type: 'Stock Adjustment', segment: 'Electronics', party: 'HYD Main WH', amount: '-Rs. 0.4 L', date: '11-May-2026', status: 'Pending', nextStep: 'Owner approval', route: '/dashboard/inventory/transactions/stock-adjustment' }
-  ];
-
-  readonly warehouseRows: WarehouseRow[] = [
-    { location: 'HYD Main WH', segment: 'Electronics', capacity: '12,000 sq.ft', fill: 84, stockValue: 'Rs. 1.9 Cr', slowMoving: 'Rs. 18.2 L', pendingDispatch: '14 orders', action: 'Dispatch old orders first' },
-    { location: 'BLR Store', segment: 'Agro Product', capacity: '4,800 bags', fill: 62, stockValue: 'Rs. 72 L', slowMoving: 'Rs. 3.4 L', pendingDispatch: '8 orders', action: 'Raise seasonal PR' },
-    { location: 'Main Kitchen Store', segment: 'Hotel / Restaurant', capacity: 'Cold and dry store', fill: 78, stockValue: 'Rs. 38 L', slowMoving: 'Rs. 0.8 L', pendingDispatch: 'Daily consumption', action: 'Consume expiry stock' },
-    { location: 'Manufacturing Store', segment: 'Drone Manufacturing', capacity: 'Component bay', fill: 55, stockValue: 'Rs. 1.22 Cr', slowMoving: 'Rs. 6.2 L', pendingDispatch: 'QC hold 17', action: 'Release QC hold' },
-    { location: 'Co-work Floor 2', segment: 'Co-working Space', capacity: '220 seats', fill: 79, stockValue: 'Rs. 28 L', slowMoving: 'Rs. 0', pendingDispatch: '46 seats free', action: 'Convert bookings' }
-  ];
-
-  readonly topProducts: ProductInsight[] = [
-    { product: 'LED Display 32 inch', segment: 'Electronics', qty: '48 Nos sold', value: 'Rs. 11.7 L', note: 'Margin 21.6%', route: '/dashboard/inventory/transactions/sales-invoice' },
-    { product: 'AMC Support', segment: 'IT Services', qty: '14 contracts', value: 'Rs. 9.6 L', note: 'Margin 42.0%', route: '/dashboard/inventory/masters/product-service-master' },
-    { product: 'Drone Motor 2KW', segment: 'Drone Manufacturing', qty: '220 Nos issued', value: 'Rs. 8.8 L', note: 'Production linked', route: '/dashboard/inventory/transactions/production-entry' },
-    { product: 'Basmati Rice 25KG', segment: 'Hotel / Restaurant', qty: '820 Bags', value: 'Rs. 4.9 L', note: 'Fast kitchen movement', route: '/dashboard/inventory/transactions/material-consumption' }
-  ];
-
-  readonly slowProducts: ProductInsight[] = [
-    { product: 'Laptop i5 Gen12', segment: 'Electronics', qty: '22 Nos', value: 'Rs. 15.4 L', note: 'Slow for 31 days', route: '/dashboard/inventory/reports/stock-availability-report' },
-    { product: 'Cotton Bales', segment: 'Agro Product', qty: '42 Bale', value: 'Rs. 12.6 L', note: 'Move before season closes', route: '/dashboard/inventory/reports/stock-availability-report' },
-    { product: 'Aluminium Frame', segment: 'Drone Manufacturing', qty: '160 Nos', value: 'Rs. 3.2 L', note: 'Production demand dropped', route: '/dashboard/inventory/reports/stock-ledger' },
-    { product: 'Conference Hall Package', segment: 'Co-working Space', qty: '8 slots', value: 'Rs. 2.4 L', note: 'Low booking conversion', route: '/dashboard/inventory/transactions/sales-invoice' }
-  ];
-
-  readonly expiryAlerts: ExpiryAlert[] = [
-    { product: 'Cooking Oil 1L', segment: 'Hotel / Restaurant', location: 'Main Kitchen Store', batch: 'LOT-CLN-441', expiry: '18 days', qty: '80 Nos', action: 'Consume first', route: '/dashboard/inventory/transactions/material-consumption' },
-    { product: 'Agro Seed Premium', segment: 'Agro Product', location: 'BLR Store', batch: 'LOT-AGRO-0526-A', expiry: '35 days', qty: '118 Bags', action: 'Sell / transfer', route: '/dashboard/inventory/transactions/stock-transfer' },
-    { product: 'Basmati Rice 25KG', segment: 'Hotel / Restaurant', location: 'Main Kitchen Store', batch: 'LOT-RICE-0526-K', expiry: '42 days', qty: '60 Bags', action: 'Kitchen plan', route: '/dashboard/inventory/transactions/material-consumption' }
-  ];
-
-  readonly segmentNames = computed(() => ['All Segments', ...this.segmentMetrics.map(item => item.segment)]);
-
-  readonly filteredSegments = computed(() => {
-    const selected = this.selectedSegment();
-    return this.segmentMetrics.filter(row => selected === 'All Segments' || row.segment === selected);
+  readonly kpiTiles = computed<KpiTile[]>(() => {
+    const k = this.summary()?.kpis;
+    if (!k) return [];
+    return [
+      { label: 'Stock Value', value: this.fmt(k.stock_value), note: 'Qty on hand × cost price, all warehouses', icon: 'pi pi-chart-bar', tone: 'blue', key: 'stock_value' },
+      { label: 'Out of Stock', value: String(k.out_of_stock_count), note: 'Products with zero qty on hand', icon: 'pi pi-exclamation-triangle', tone: 'rose', key: 'out_of_stock' },
+      { label: 'Pending Purchase Orders', value: String(k.pending_purchase_orders), note: 'Not yet closed or cancelled', icon: 'pi pi-shopping-cart', tone: 'amber', key: 'pending_purchase_orders' },
+      { label: 'Pending Sales Orders', value: String(k.pending_sales_orders), note: 'Not yet closed or cancelled', icon: 'pi pi-file', tone: 'amber', key: 'pending_sales_orders' },
+      { label: 'Pending Dispatch', value: String(k.pending_dispatch), note: 'Delivery Challans posted, not yet invoiced', icon: 'pi pi-truck', tone: 'blue', key: 'pending_dispatch' },
+      { label: "Today's Purchases", value: this.fmt(k.today_purchase_value), note: 'GRNs dated today', icon: 'pi pi-arrow-circle-down', tone: 'green', key: 'today_purchase_value' },
+      { label: "Today's Sales", value: this.fmt(k.today_sales_value), note: 'Sales invoices dated today', icon: 'pi pi-arrow-circle-up', tone: 'green', key: 'today_sales_value' }
+    ];
   });
 
-  readonly filteredRiskRows = computed(() => this.filterRows(this.riskRows));
-  readonly filteredActionRows = computed(() => this.filterRows(this.actionRows));
-  readonly filteredTransactionRows = computed(() => this.filterRows(this.transactionRows));
-  readonly filteredWarehouseRows = computed(() => this.filterRows(this.warehouseRows));
-  readonly filteredTopProducts = computed(() => this.filterRows(this.topProducts));
-  readonly filteredSlowProducts = computed(() => this.filterRows(this.slowProducts));
-  readonly filteredExpiryAlerts = computed(() => this.filterRows(this.expiryAlerts));
-  readonly criticalRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Critical').length);
-  readonly watchRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Watch').length);
-  readonly goodRiskCount = computed(() => this.filteredRiskRows().filter(row => row.status === 'Good').length);
-  readonly stockMixDonutStyle = computed(() => {
-    let start = 0;
-    const stops = this.stockMix.map(item => {
-      const end = start + item.share;
-      const stop = `${item.color} ${start}% ${end}%`;
-      start = end;
-      return stop;
+  readonly financialCards = computed<KpiTile[]>(() => {
+    const s = this.summary();
+    if (!s) return [];
+    const period = this.selectedPeriod();
+    return [
+      { label: 'Payables', value: this.fmt(s.payables.total), note: 'Outstanding to vendors, as of today', icon: 'pi pi-wallet', tone: 'rose', key: 'payables' },
+      { label: 'Receivables', value: this.fmt(s.receivables.total), note: 'Outstanding from customers, as of today', icon: 'pi pi-inbox', tone: 'blue', key: 'receivables' },
+      { label: 'Paid', value: this.fmt(s.cash_flow.paid), note: `${period}, posted Vendor Payments`, icon: 'pi pi-arrow-circle-up', tone: 'amber', key: 'paid' },
+      { label: 'Received', value: this.fmt(s.cash_flow.received), note: `${period}, posted Customer Receipts`, icon: 'pi pi-arrow-circle-down', tone: 'green', key: 'received' }
+    ];
+  });
+
+  readonly documentCards = computed<KpiTile[]>(() => {
+    const k = this.summary()?.kpis;
+    if (!k) return [];
+    const period = this.selectedPeriod();
+    return [
+      { label: 'Purchases', value: this.fmt(k.purchases), note: `${period}, posted Purchase Invoices`, icon: 'pi pi-arrow-circle-down', tone: 'blue', key: 'purchases' },
+      { label: 'Sales', value: this.fmt(k.sales), note: `${period}, posted Sales Invoices`, icon: 'pi pi-arrow-circle-up', tone: 'green', key: 'sales' },
+      { label: 'Purchase Returns', value: this.fmt(k.purchase_returns), note: `${period}, posted Purchase Returns`, icon: 'pi pi-replay', tone: 'rose', key: 'purchase_returns' },
+      { label: 'Sales Returns', value: this.fmt(k.sales_returns), note: `${period}, posted Sales Returns`, icon: 'pi pi-replay', tone: 'amber', key: 'sales_returns' }
+    ];
+  });
+
+  readonly payablesAgeing = computed(() => this.summary()?.payables?.ageing ?? []);
+  readonly receivablesAgeing = computed(() => this.summary()?.receivables?.ageing ?? []);
+  readonly maxAgeingAmount = computed(() => Math.max(1, ...this.payablesAgeing().map(a => a.amount), ...this.receivablesAgeing().map(a => a.amount)));
+
+  readonly maxMovementQty = computed(() => {
+    const rows = this.summary()?.daily_movement ?? [];
+    return Math.max(1, ...rows.map(r => Math.max(r.inward, r.outward)));
+  });
+
+  readonly salesReturnsTrend = computed(() => this.summary()?.sales_returns_trend ?? []);
+  readonly maxSalesTrendAmount = computed(() => {
+    const rows = this.salesReturnsTrend();
+    return Math.max(1, ...rows.map(r => Math.max(r.sales_amount, r.sales_return_amount)));
+  });
+
+  readonly topSellingProducts = computed(() => this.summary()?.top_selling_products ?? []);
+  readonly maxTopProductAmount = computed(() => Math.max(1, ...this.topSellingProducts().map(p => p.amount)));
+
+  readonly returnedProducts = computed(() => this.summary()?.returned_products ?? []);
+  readonly maxReturnedAmount = computed(() => Math.max(1, ...this.returnedProducts().map(p => p.return_amount)));
+
+  readonly productSalesFunnel = computed<ProductFunnelStage[]>(() => {
+    const rows = this.topSellingProducts().slice(0, 6);
+    const max = Math.max(1, ...rows.map(r => r.amount));
+    return rows.map(r => ({
+      label: r.product_name,
+      amount: r.amount,
+      qty: r.qty,
+      widthPct: Math.max(18, Math.round((r.amount / max) * 100))
+    }));
+  });
+
+  readonly procurementFunnelStages = computed<FunnelStage[]>(() => {
+    const f = this.summary()?.pipeline_funnel?.procurement;
+    const base = Math.max(1, f?.po_count ?? 0);
+    const raw: Array<Omit<FunnelStage, 'widthPct' | 'conversionPct' | 'valueLabel'>> = [
+      { label: 'Purchase Orders', short: 'PO', count: f?.po_count ?? 0, value: f?.po_value ?? 0 },
+      { label: 'Goods Receipts', short: 'GRN', count: f?.grn_count ?? 0, value: f?.grn_value ?? 0 },
+      { label: 'Purchase Invoices', short: 'PI', count: f?.pi_count ?? 0, value: f?.pi_value ?? 0 }
+    ];
+    return raw.map(s => {
+      const pct = Math.round((s.count / base) * 100);
+      return { ...s, widthPct: Math.max(18, pct), conversionPct: pct, valueLabel: s.value > 0 ? ' · ' + this.fmt(s.value) : '' };
     });
-
-    return `conic-gradient(${stops.join(', ')})`;
-  });
-  readonly riskDonutStyle = computed(() => {
-    const total = Math.max(this.filteredRiskRows().length, 1);
-    const critical = (this.criticalRiskCount() / total) * 100;
-    const watch = critical + ((this.watchRiskCount() / total) * 100);
-
-    return `conic-gradient(#e11d48 0 ${critical}%, #f59e0b ${critical}% ${watch}%, #10b981 ${watch}% 100%)`;
   });
 
-  readonly topDecision = computed(() => {
-    const firstCritical = this.filteredRiskRows().find(row => row.status === 'Critical');
-    return firstCritical
-      ? `${firstCritical.recommendedAction}: ${firstCritical.product} at ${firstCritical.location}`
-      : 'No critical stock blocker in the selected segment.';
+  readonly salesFunnelStages = computed<FunnelStage[]>(() => {
+    const f = this.summary()?.pipeline_funnel?.sales;
+    const base = Math.max(1, f?.so_count ?? 0);
+    const raw: Array<Omit<FunnelStage, 'widthPct' | 'conversionPct' | 'valueLabel'>> = [
+      { label: 'Sales Orders', short: 'SO', count: f?.so_count ?? 0, value: 0 },
+      { label: 'Delivery Challans', short: 'DC', count: f?.dc_count ?? 0, value: 0 },
+      { label: 'Sales Invoices', short: 'SI', count: f?.si_count ?? 0, value: f?.si_value ?? 0 }
+    ];
+    return raw.map(s => {
+      const pct = Math.round((s.count / base) * 100);
+      return { ...s, widthPct: Math.max(18, pct), conversionPct: pct, valueLabel: s.value > 0 ? ' · ' + this.fmt(s.value) : '' };
+    });
   });
+
+  readonly payablesReceivablesTotal = computed(() => (this.summary()?.payables?.total ?? 0) + (this.summary()?.receivables?.total ?? 0));
+  readonly payablesShare = computed(() => {
+    const total = this.payablesReceivablesTotal();
+    return total > 0 ? Math.round(((this.summary()?.payables?.total ?? 0) / total) * 100) : 0;
+  });
+  readonly receivablesShare = computed(() => {
+    const total = this.payablesReceivablesTotal();
+    return total > 0 ? 100 - this.payablesShare() : 0;
+  });
+  readonly payablesReceivablesDonutBackground = computed(() => {
+    const share = this.payablesShare();
+    if (this.payablesReceivablesTotal() <= 0) return '#e2e8f0';
+    return `conic-gradient(${PAYABLES_COLOR} 0 ${share}%, ${RECEIVABLES_COLOR} ${share}% 100%)`;
+  });
+
+  readonly filteredStockRows = computed<DashboardStockRow[]>(() => this.summary()?.stock_by_product ?? []);
+
+  readonly filteredTransactions = computed<DashboardTransactionRow[]>(() => this.summary()?.recent_transactions ?? []);
+
+  constructor() {
+    this.loadSummary();
+  }
 
   selectPeriod(period: DashboardPeriod): void {
     this.selectedPeriod.set(period);
-    this.notify(`Dashboard period changed to ${period}.`);
+    this.loadSummary();
   }
 
-  setActiveTab(tab: DashboardTab): void {
-    this.activeTab.set(tab);
-  }
-
-  refreshDashboard(): void {
+  refresh(): void {
     this.dashboardTime.set(this.nowLabel());
-    this.notify('Dashboard refreshed.');
+    this.loadSummary();
   }
 
-  handleGridAction(gridId: GridId, action: GridAction): void {
-    const payload = this.gridPayload(gridId);
-
-    if (action === 'export') {
-      this.exportCsv(payload);
-      return;
-    }
-
-    if (action === 'print') {
-      this.printGrid(payload);
-      return;
-    }
-
-    if (action === 'mail') {
-      this.mailGrid(payload);
-      return;
-    }
-
-    this.whatsappGrid(payload);
+  sectionTitle(id: string): string {
+    return SECTION_TITLES[id]?.title ?? id;
   }
 
-  openKpi(kpi: OwnerKpi): void {
-    this.activeModal.set({
-      title: kpi.label,
-      subtitle: kpi.note,
-      route: kpi.route,
-      rows: [
-        { label: 'Current value', value: kpi.value },
-        { label: 'Period', value: this.selectedPeriod() },
-        { label: 'Segment filter', value: this.selectedSegment() },
-        { label: 'Owner decision', value: this.topDecision() }
-      ]
-    });
+  sectionSubtitle(id: string): string {
+    return SECTION_TITLES[id]?.subtitle ?? '';
   }
 
-  openDetail(title: string, row: object, route?: string): void {
-    this.activeModal.set({
-      title,
-      subtitle: 'Dashboard drill down',
-      route,
-      rows: Object.entries(row).map(([label, value]) => ({ label: this.labelize(label), value: String(value) }))
-    });
+  resetSectionOrder(): void {
+    const layout = DEFAULT_SECTION_LAYOUT.map(item => ({ ...item }));
+    this.sectionLayout.set(layout);
+    this.persistSectionLayout(layout);
+  }
+
+  setWidth(id: string, width: number): void {
+    const layout = this.sectionLayout().map(item => item.id === id ? { ...item, width } : item);
+    this.sectionLayout.set(layout);
+    this.persistSectionLayout(layout);
+  }
+
+  hideSection(id: string): void {
+    const layout = this.sectionLayout().map(item => item.id === id ? { ...item, hidden: true } : item);
+    this.sectionLayout.set(layout);
+    this.persistSectionLayout(layout);
+  }
+
+  showSection(id: string): void {
+    const layout = this.sectionLayout().map(item => item.id === id ? { ...item, hidden: false } : item);
+    this.sectionLayout.set(layout);
+    this.persistSectionLayout(layout);
+  }
+
+  onSectionDragStart(id: string, ev: DragEvent): void {
+    this.draggedId = id;
+    ev.dataTransfer?.setData('text/plain', id);
+    if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
+  }
+
+  onSectionDragEnter(id: string, ev: DragEvent): void {
+    ev.preventDefault();
+    if (this.draggedId && this.draggedId !== id) this.dragOverId.set(id);
+  }
+
+  onSectionDragOver(ev: DragEvent): void {
+    ev.preventDefault();
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+  }
+
+  onSectionDrop(targetId: string, ev: DragEvent): void {
+    ev.preventDefault();
+    const draggedId = this.draggedId;
+    this.dragOverId.set(null);
+    this.draggedId = null;
+    if (!draggedId || draggedId === targetId) return;
+
+    const layout = [...this.sectionLayout()];
+    const from = layout.findIndex(item => item.id === draggedId);
+    const to = layout.findIndex(item => item.id === targetId);
+    if (from === -1 || to === -1) return;
+
+    const [moved] = layout.splice(from, 1);
+    layout.splice(to, 0, moved);
+    this.sectionLayout.set(layout);
+    this.persistSectionLayout(layout);
+  }
+
+  onSectionDragEnd(): void {
+    this.draggedId = null;
+    this.dragOverId.set(null);
+  }
+
+  private loadSectionLayout(): SectionLayoutItem[] {
+    try {
+      const raw = localStorage.getItem(SECTION_LAYOUT_KEY);
+      if (!raw) return DEFAULT_SECTION_LAYOUT.map(item => ({ ...item }));
+
+      const saved: SectionLayoutItem[] = JSON.parse(raw);
+      const defaultsById = new Map(DEFAULT_SECTION_LAYOUT.map(item => [item.id, item]));
+      const merged: SectionLayoutItem[] = saved
+        .filter(item => defaultsById.has(item.id))
+        .map(item => ({
+          id: item.id,
+          width: (WIDTH_OPTIONS as readonly number[]).includes(item.width) ? item.width : defaultsById.get(item.id)!.width,
+          hidden: !!item.hidden
+        }));
+
+      const seen = new Set(merged.map(item => item.id));
+      for (const item of DEFAULT_SECTION_LAYOUT) {
+        if (!seen.has(item.id)) merged.push({ ...item });
+      }
+      return merged;
+    } catch {
+      return DEFAULT_SECTION_LAYOUT.map(item => ({ ...item }));
+    }
+  }
+
+  private persistSectionLayout(layout: SectionLayoutItem[]): void {
+    try { localStorage.setItem(SECTION_LAYOUT_KEY, JSON.stringify(layout)); } catch { /* storage unavailable/full — layout just won't persist */ }
+  }
+
+  exportStockCsv(): void {
+    const rows = this.filteredStockRows();
+    const lines = [
+      'Product,Category,Warehouse,Qty On Hand,Qty Reserved,Value',
+      ...rows.map(r => `"${r.product_name}","${r.category}","${r.warehouse}",${r.qty_on_hand},${r.qty_reserved},${r.value}`)
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'inventory-stock-by-product.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  openCard(card: KpiTile): void {
+    this.activeModal.set(this.buildPayload(card));
   }
 
   closeModal(): void {
     this.activeModal.set(null);
   }
 
-  healthWidth(value: number): string {
-    return `${value}%`;
-  }
-
-  chartPercent(value: number): string {
-    return `${Math.max(4, Math.min(100, value))}%`;
-  }
-
-  fillTone(fill: number): string {
-    if (fill >= 80) return 'high';
-    if (fill >= 55) return 'medium';
-    return 'low';
-  }
-
-  clearSearch(): void {
-    this.searchText.set('');
-    this.selectedSegment.set('All Segments');
-  }
-
-  private filterRows<T extends { segment?: string }>(rows: readonly T[]): T[] {
-    const selected = this.selectedSegment();
-    const search = this.searchText().trim().toLowerCase();
-
-    return rows
-      .filter(row => selected === 'All Segments' || row.segment === selected)
-      .filter(row => !search || Object.values(row as Record<string, unknown>).some(value => String(value).toLowerCase().includes(search)));
-  }
-
-  private gridPayload(gridId: GridId): GridPayload {
-    switch (gridId) {
-      case 'segments':
-        return {
-          title: 'Segment Health',
-          headers: ['Segment', 'Stock Value', 'Revenue Hold', 'Health', 'Low Stock', 'Pending Approvals', 'Decision'],
-          rows: this.filteredSegments().map(row => [row.segment, row.stockValue, row.revenueHold, `${row.health}%`, String(row.lowStock), String(row.pendingApprovals), row.decision])
-        };
-      case 'risk':
-        return {
-          title: 'Stock Risk',
-          headers: ['Product', 'Segment', 'Location', 'Available', 'Reorder', 'Coverage', 'Impact', 'Action', 'Status'],
-          rows: this.filteredRiskRows().map(row => [row.product, row.segment, row.location, row.available, row.reorder, row.coverage, row.impact, row.recommendedAction, row.status])
-        };
-      case 'actions':
-        return {
-          title: 'Owner Action List',
-          headers: ['Priority', 'Action', 'Segment', 'Owner', 'Due', 'Value', 'Status'],
-          rows: this.filteredActionRows().map(row => [row.priority, row.action, row.segment, row.owner, row.due, row.value, row.status])
-        };
-      case 'transactions':
-        return {
-          title: 'Inventory Transactions',
-          headers: ['Ref', 'Type', 'Segment', 'Party / Location', 'Amount', 'Date', 'Status', 'Next Step'],
-          rows: this.filteredTransactionRows().map(row => [row.ref, row.type, row.segment, row.party, row.amount, row.date, row.status, row.nextStep])
-        };
-      case 'warehouses':
-        return {
-          title: 'Warehouse Utilisation',
-          headers: ['Location', 'Segment', 'Capacity', 'Fill', 'Stock Value', 'Slow Moving', 'Pending Dispatch', 'Action'],
-          rows: this.filteredWarehouseRows().map(row => [row.location, row.segment, row.capacity, `${row.fill}%`, row.stockValue, row.slowMoving, row.pendingDispatch, row.action])
-        };
-      case 'topProducts':
-        return {
-          title: 'Top Products',
-          headers: ['Product', 'Segment', 'Qty', 'Value', 'Note'],
-          rows: this.filteredTopProducts().map(row => [row.product, row.segment, row.qty, row.value, row.note])
-        };
-      case 'slowProducts':
-        return {
-          title: 'Slow Products',
-          headers: ['Product', 'Segment', 'Qty', 'Value', 'Note'],
-          rows: this.filteredSlowProducts().map(row => [row.product, row.segment, row.qty, row.value, row.note])
-        };
-      case 'expiryAlerts':
-        return {
-          title: 'Expiry Alerts',
-          headers: ['Product', 'Segment', 'Location', 'Batch', 'Expiry', 'Qty', 'Action'],
-          rows: this.filteredExpiryAlerts().map(row => [row.product, row.segment, row.location, row.batch, row.expiry, row.qty, row.action])
-        };
-    }
-  }
-
-  private exportCsv(payload: GridPayload): void {
+  exportModalCsv(): void {
+    const payload = this.activeModal();
+    if (!payload) return;
     const lines = [
       payload.headers.join(','),
       ...payload.rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
@@ -461,87 +383,93 @@ export class InventoryDashboard {
     link.download = `${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
-    this.notify(`${payload.title} exported.`);
   }
 
-  private printGrid(payload: GridPayload): void {
-    const popup = window.open('', '_blank', 'width=1100,height=760');
-    if (!popup) {
-      this.notify('Popup blocked. Please allow popups to print this grid.');
-      return;
+  fmt(n: number | undefined): string {
+    return '₹ ' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+
+  fmtDate(d?: string): string {
+    return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
+  }
+
+  movementBarHeight(value: number): string {
+    return `${Math.max(2, (value / this.maxMovementQty()) * 100)}%`;
+  }
+
+  ageingBarWidth(value: number): string {
+    return `${Math.max(2, (value / this.maxAgeingAmount()) * 100)}%`;
+  }
+
+  salesTrendBarHeight(value: number): string {
+    return `${Math.max(2, (value / this.maxSalesTrendAmount()) * 100)}%`;
+  }
+
+  topProductBarWidth(value: number): string {
+    return `${Math.max(2, (value / this.maxTopProductAmount()) * 100)}%`;
+  }
+
+  returnedProductBarWidth(value: number): string {
+    return `${Math.max(2, (value / this.maxReturnedAmount()) * 100)}%`;
+  }
+
+  private buildPayload(card: KpiTile): GridPayload {
+    // Stock Value / Out of Stock are derived client-side from the already-fetched
+    // stock_by_product list — no dedicated backend drilldown needed for these two.
+    if (card.key === 'stock_value' || card.key === 'out_of_stock') {
+      const rows = this.summary()?.stock_by_product ?? [];
+      const filtered = card.key === 'out_of_stock' ? rows.filter(r => r.qty_on_hand <= 0) : rows;
+      return {
+        title: card.label,
+        headers: ['Product', 'Category', 'Warehouse', 'Qty On Hand', 'Reserved', 'Value'],
+        rows: filtered.map(r => [r.product_name, r.category, r.warehouse, String(r.qty_on_hand), String(r.qty_reserved), this.fmt(r.value)])
+      };
     }
 
-    popup.document.write(`
-      <html>
-        <head>
-          <title>${payload.title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #111827; }
-            h2 { margin: 0 0 4px; font-size: 20px; }
-            p { margin: 0 0 16px; color: #64748b; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th, td { border: 1px solid #dbe8f9; padding: 8px; text-align: left; vertical-align: top; }
-            th { background: #f8fafc; color: #334155; }
-          </style>
-        </head>
-        <body>
-          <h2>${payload.title}</h2>
-          <p>Inventory dashboard / ${this.selectedPeriod()} / ${this.selectedSegment()}</p>
-          ${this.tableHtml(payload)}
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
-    this.notify(`${payload.title} print opened.`);
+    const isOutstanding = card.key === 'payables' || card.key === 'receivables';
+    const drillRows: DashboardDrilldownRow[] = this.summary()?.drilldowns?.[card.key] ?? [];
+    return {
+      title: card.label,
+      headers: isOutstanding
+        ? ['Document', 'Date', 'Party', 'Outstanding', 'Age']
+        : ['Document', 'Date', 'Party', 'Amount', 'Status'],
+      rows: drillRows.map(r => [r.doc_number || '—', this.fmtDate(r.date), r.party || '—', this.fmt(r.amount), r.status || '—'])
+    };
   }
 
-  private mailGrid(payload: GridPayload): void {
-    const subject = encodeURIComponent(`Inventory Dashboard - ${payload.title}`);
-    const body = encodeURIComponent(this.textSummary(payload));
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
-    this.notify(`${payload.title} mail draft opened.`);
+  private loadSummary(): void {
+    const { from, to } = this.dateRangeFor(this.selectedPeriod());
+    this.loading.set(true);
+    this.loadError.set('');
+    this.dashboardService.getDashboardSummary(from, to)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          this.loading.set(false);
+          if (res.success && res.data) this.summary.set(res.data);
+          else this.loadError.set(res.message || 'Unable to load dashboard.');
+        },
+        error: err => {
+          this.loading.set(false);
+          this.loadError.set(err?.error?.message || 'Unable to load dashboard.');
+        }
+      });
   }
 
-  private whatsappGrid(payload: GridPayload): void {
-    const text = encodeURIComponent(this.textSummary(payload));
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-    this.notify(`${payload.title} WhatsApp share opened.`);
+  private dateRangeFor(period: DashboardPeriod): { from: string; to: string } {
+    const to = new Date();
+    const from = new Date();
+    if (period === 'week') from.setDate(to.getDate() - 6);
+    else if (period === 'month') from.setDate(to.getDate() - 29);
+    else if (period === 'quarter') from.setDate(to.getDate() - 89);
+    return { from: this.isoDate(from), to: this.isoDate(to) };
   }
 
-  private textSummary(payload: GridPayload): string {
-    const rows = payload.rows.slice(0, 12).map(row => row.join(' | ')).join('\n');
-    return `${payload.title}\nPeriod: ${this.selectedPeriod()}\nSegment: ${this.selectedSegment()}\n\n${payload.headers.join(' | ')}\n${rows}`;
-  }
-
-  private tableHtml(payload: GridPayload): string {
-    const head = payload.headers.map(header => `<th>${header}</th>`).join('');
-    const rows = payload.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('');
-    return `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
-  }
-
-  private notify(message: string): void {
-    this.toastMessage.set(message);
-    window.setTimeout(() => {
-      if (this.toastMessage() === message) {
-        this.toastMessage.set('');
-      }
-    }, 2600);
-  }
-
-  private labelize(value: string): string {
-    return value.replace(/([A-Z])/g, ' $1').replace(/^./, first => first.toUpperCase());
-  }
+  private isoDate(d: Date): string { return d.toISOString().slice(0, 10); }
 
   private nowLabel(): string {
     return new Date().toLocaleString('en-IN', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
   }
 }

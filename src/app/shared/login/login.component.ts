@@ -26,6 +26,7 @@ interface CompanySetupDraft {
   companyName: string;
   legalName: string;
   companyCode: string;
+  defaultBranchName: string;
   gstin: string;
   cinNumber: string;
   panNumber: string;
@@ -63,6 +64,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   private readonly biometric = inject(BiometricAuthService);
 
   private _codeDebounce: ReturnType<typeof setTimeout> | null = null;
+  private apiConfigPromise: Promise<boolean> | null = null;
 
   // ── Legacy Password Variables ──────────────────────────────────────
   legacyStep = signal<1 | 2>(1);
@@ -92,6 +94,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   authMode = signal<AuthMode>('otp');
   registerStep = signal<RegisterStep>(1);
   loading = signal(false);
+  apiReady = signal(false);
   errorMessage = signal('');
 
   companyCodeChecking = signal(false);
@@ -99,6 +102,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   companyCodeError = signal('');
 
   loginOtpIdentifier = signal('');
+  readonly loginIdentifierChannel = computed(() => {
+    const id = this.loginOtpIdentifier().trim();
+    if (id.includes('@')) return 'email';
+    if (/^\+?\d[\d\s\-]{7,}$/.test(id)) return 'mobile';
+    return 'username';
+  });
   loginOtpCompanyCode = signal('');
   loginOtp = signal('');
   loginOtpSent = signal(false);
@@ -118,6 +127,12 @@ export class LoginComponent implements OnInit, OnDestroy {
   selectedUseridBranchId = signal<number | null>(null);
 
   registrationIdentity = signal('');
+  readonly registrationIdentifierChannel = computed(() => {
+    const id = this.registrationIdentity().trim();
+    if (id.includes('@')) return 'email';
+    if (/^\+?\d[\d\s\-]{7,}$/.test(id)) return 'mobile';
+    return 'username';
+  });
   registrationOtp = signal('');
   registrationOtpSent = signal(false);
   registrationOtpDeliveryMessage = signal('');
@@ -128,6 +143,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     companyName: '',
     legalName: '',
     companyCode: '',
+    defaultBranchName: 'Head Office',
     gstin: '',
     cinNumber: '',
     panNumber: '',
@@ -185,24 +201,80 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-    let urldata = environment.apiURL;
-    let res = await firstValueFrom(this.http.get<{ apiURL: string; morphoRdUrl?: string }[]>(urldata)).catch(() => undefined);
-    if (res?.length) {
-      if (res[0].apiURL) {
-        let url = new URL(res[0].apiURL);
-        let apiURL = url.origin + '/api';
-        sessionStorage.setItem('apiURL', apiURL);
-      }
-      if (res[0].morphoRdUrl) {
-        sessionStorage.setItem('morphoRdUrl', res[0].morphoRdUrl);
-      }
+    this.loading.set(true);
+    try {
+      await this.ensureApiConfig();
+    } finally {
+      this.loading.set(false);
     }
-    await this.loadCompanyCodes();
+  }
+
+  private async ensureApiConfig(): Promise<boolean> {
+    if (sessionStorage.getItem('apiURL')) {
+      this.apiReady.set(true);
+      return true;
+    }
+
+    if (!this.apiConfigPromise) {
+      this.apiConfigPromise = this.loadApiConfig();
+    }
+
+    const loaded = await this.apiConfigPromise;
+    // Guarantee the invariant callers rely on: never report success unless apiURL is
+    // actually present in sessionStorage right now. (Symptom this closes: request-otp
+    // firing against a relative path like http://localhost:4200/auth/request-otp — a 404
+    // from the dev server itself — because something reported config as "ready" without
+    // apiURL actually being set at call time.)
+    const ready = loaded && !!sessionStorage.getItem('apiURL');
+    if (!ready) {
+      this.apiConfigPromise = null;
+    }
+    this.apiReady.set(ready);
+    return ready;
+  }
+
+  private async loadApiConfig(): Promise<boolean> {
+    const urldata = (environment as any).apiURL || (environment as any).apiUrl;
+    if (!urldata) {
+      return false;
+    }
+
+    // 20s, not 10s: on a cold ng-serve start the first request can be slow
+    // to compile/respond, and a timeout here surfaces as a confusing
+    // "API config failed" error that then disappears on the next refresh
+    // once the dev server has warmed up.
+    const res = await firstValueFrom(
+      this.http.get<{ apiURL: string; morphoRdUrl?: string }[]>(urldata).pipe(timeout(20000))
+    ).catch(() => undefined);
+
+    if (!res?.length || !res[0].apiURL) {
+      return false;
+    }
+
+    try {
+      const url = new URL(res[0].apiURL);
+      const apiURL = url.origin + '/api';
+      sessionStorage.setItem('apiURL', apiURL);
+    } catch {
+      return false;
+    }
+
+    if (res[0].morphoRdUrl) {
+      sessionStorage.setItem('morphoRdUrl', res[0].morphoRdUrl);
+    }
+
+    return true;
   }
 
   // ── Load companies ───────────────────────────────────────────────
   private async loadCompanyCodes(): Promise<void> {
+    if (!await this.ensureApiConfig()) {
+      this.errorMessage.set('Unable to load API configuration. Please refresh and try again.');
+      return;
+    }
+
     const api = sessionStorage.getItem('apiURL') ?? '';
+    this.loading.set(true);
     try {
       const data = await firstValueFrom(
         this.http.get<CompanyCode[]>(`${api}/Accounts/GetUsersCompanyCodes`).pipe(timeout(10000))
@@ -216,6 +288,8 @@ export class LoginComponent implements OnInit, OnDestroy {
       );
     } catch {
       this.showToast('error', 'Error', 'Failed to load company codes');
+    } finally {
+      this.loading.set(false);
     }
   }
 
@@ -275,6 +349,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async onLegacyLogin(): Promise<void> {
     this.errorMessage.set('');
+    if (!await this.ensureApiConfig()) {
+      this.errorMessage.set('Unable to load API configuration. Please refresh and try again.');
+      return;
+    }
     if (!this.selectedCompanyCode() || !this.selectedBranchCode()) {
       this.errorMessage.set('Please select company and branch before password login.');
       this.legacyStep.set(1);
@@ -348,6 +426,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.selectedLoginCompanyId.set(null);
       this.selectedLoginBranchId.set(null);
       this.loginOtpDeliveryMessage.set('');
+      this.loadCompanyCodes();
     }
     if (mode === 'userid') {
       this.useridIdentifier.set('');
@@ -367,10 +446,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.companyCodeAvailable.set(null);
       this.companyCodeError.set('');
       this.companySetup.set({
-        companyName: '', legalName: '', companyCode: '', gstin: '', cinNumber: '',
-        panNumber: '', email: '', contactNo: '', registrationAddress: '',
-        city: '', state: '', country: 'India', pincode: '', financialYear: '',
-        adminPassword: '', confirmAdminPassword: '',
+        companyName: '', legalName: '', companyCode: '', defaultBranchName: 'Head Office',
+        gstin: '', cinNumber: '', panNumber: '', email: '', contactNo: '',
+        registrationAddress: '', city: '', state: '', country: 'India', pincode: '',
+        financialYear: '', adminPassword: '', confirmAdminPassword: '',
       });
       this.selectedModuleIds.set(new Set());
       this.maxBranches.set(5);
@@ -419,8 +498,35 @@ export class LoginComponent implements OnInit, OnDestroy {
       .reduce((sum, m) => sum + m.monthlyPrice, 0);
   }
 
+  // A 404 here means the request went out before apiBaseUrl() actually had the real API
+  // host applied (it fell back to a relative path and hit the Angular dev server itself,
+  // e.g. http://localhost:4200/auth/request-otp instead of http://<api-host>/api/auth/request-otp).
+  // Force a fresh config load and retry exactly once instead of surfacing a confusing 404
+  // that previously only cleared up once the user manually refreshed the page.
+  private async requestOtpWithRetry(id: string, companyCode?: string): Promise<OtpIssueResponse> {
+    try {
+      return await firstValueFrom(this.authService.requestOtp(id, companyCode).pipe(timeout(45000)));
+    } catch (err: any) {
+      if (err?.status === 404 && !sessionStorage.getItem('apiURL')) {
+        this.apiConfigPromise = null;
+        if (await this.ensureApiConfig()) {
+          return await firstValueFrom(this.authService.requestOtp(id, companyCode).pipe(timeout(45000)));
+        }
+      }
+      throw err;
+    }
+  }
+
   async sendLoginOtp(): Promise<void> {
+    if (this.loading()) {
+      return;
+    }
+
     this.errorMessage.set('');
+    if (!await this.ensureApiConfig()) {
+      this.errorMessage.set('Unable to load API configuration. Please refresh and try again.');
+      return;
+    }
     const id = this.loginOtpIdentifier().trim();
     if (!id) {
       this.errorMessage.set('Please enter your email, mobile or username.');
@@ -433,20 +539,26 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginOtpDeliveryMessage.set('');
     this.loading.set(true);
     try {
-      const response = await firstValueFrom(
-        this.authService.requestOtp(id, companyCode).pipe(timeout(20000))
-      );
+      const response = await this.requestOtpWithRetry(id, companyCode);
+      const exposedOtp = this.getExposedOtp(response);
+      if (!this.isOtpDeliveryConfirmed(response) && exposedOtp) {
+        const msg = 'Development OTP generated. Delivery was not acknowledged by SMS or email, so use the auto-filled OTP to continue.';
+        this.loginOtpSent.set(true);
+        this.loginOtpDeliveryFailed.set(false);
+        this.loginOtp.set(exposedOtp);
+        this.loginOtpDeliveryMessage.set(msg);
+        this.showToast('info', 'OTP ready', msg);
+        return;
+      }
       if (!this.isOtpDeliveryConfirmed(response)) {
-        const smsSent = this.readOtpFlag(response.data, 'smsSent', 'SmsSent') === true;
-        const emailSent = this.readOtpFlag(response.data, 'emailSent', 'EmailSent') === true;
-        let channelDetail = '';
-        if (!smsSent && !emailSent) channelDetail = ' Both SMS and email delivery failed.';
-        else if (!smsSent) channelDetail = ' SMS delivery failed.';
-        else if (!emailSent) channelDetail = ' Email delivery failed.';
-        const msg = 'OTP delivery could not be confirmed.' + channelDetail + ' If you received the OTP from your administrator, you may still enter it below.';
+        const msg = this.otpDeliveryFailureMessage(
+          response,
+          'OTP delivery could not be confirmed by the configured SMS or email channel. If you received the OTP from your administrator, you may still enter it below.'
+        );
         this.loginOtpSent.set(true);
         this.loginOtpDeliveryFailed.set(true);
-        this.loginOtp.set('');
+        const fallbackOtp = (response.data as any)?.otp || '';
+        this.loginOtp.set(fallbackOtp);
         this.loginOtpDeliveryMessage.set(msg);
         this.showToast('warn', 'Delivery not confirmed', msg);
         return;
@@ -454,11 +566,16 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.loginOtpDeliveryFailed.set(false);
       const deliveryMessage = this.otpDeliverySuccessMessage(response);
       this.loginOtpSent.set(true);
-      this.loginOtp.set('');
-      this.loginOtpDeliveryMessage.set(deliveryMessage);
-      this.showToast('success', 'OTP sent', deliveryMessage);
+      this.loginOtp.set(exposedOtp || '');
+      const message = exposedOtp
+        ? `${deliveryMessage} Development OTP is auto-filled below.`
+        : deliveryMessage;
+      this.loginOtpDeliveryMessage.set(message);
+      this.showToast('success', 'OTP sent', message);
     } catch (err: any) {
-      const msg = err?.error?.message || 'Unable to send OTP. Please try again.';
+      const msg = err?.status === 0
+        ? 'Cannot connect to the server. Please check your connection and try again.'
+        : err?.error?.message || 'Unable to send OTP. Please try again.';
       this.errorMessage.set(msg);
       this.showToast('error', 'OTP error', msg);
     } finally {
@@ -475,6 +592,16 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (!/^\d{6}$/.test(this.loginOtp().trim())) {
       this.errorMessage.set('Please enter a valid 6-digit OTP.');
       return;
+    }
+    if (this.loginRequiresSelection()) {
+      if (!this.selectedLoginCompanyId()) {
+        this.errorMessage.set('Please select a company.');
+        return;
+      }
+      if (this.selectedLoginBranches().length > 0 && !this.selectedLoginBranchId()) {
+        this.errorMessage.set('Please select a branch.');
+        return;
+      }
     }
     this.loading.set(true);
     try {
@@ -494,21 +621,20 @@ export class LoginComponent implements OnInit, OnDestroy {
 
       if (response.data.requiresSelection) {
         const options = response.data.tenantOptions ?? [];
+        // Store immediately so the switcher works even if the final login response omits tenantOptions
+        if (options.length) sessionStorage.setItem('authTenantOptions', JSON.stringify(options));
         this.prepareTenantSelection(options);
         this.loginRequiresSelection.set(true);
 
-        // If only one company came back (edge-case: backend returned requiresSelection
-        // but the company+branch were already resolved), proceed automatically.
-        if (options.length === 1 && this.selectedLoginBranchId() !== null) {
-          await this.verifyLoginOtp();
-          return;
-        }
-
-        this.showToast('success', 'OTP verified', 'Your account is linked to multiple companies. Select one to continue.');
+        this.showToast('success', 'OTP verified', 'Select company and branch to continue.');
         return;
       }
 
       this.loginRequiresSelection.set(false);
+      // Preserve the full tenant list so the company switcher works after login
+      if (!response.data.tenantOptions?.length && this.loginTenantOptions().length) {
+        response.data = { ...response.data, tenantOptions: this.loginTenantOptions() };
+      }
       this.completeLogin(response.data);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || err?.message || 'Invalid or expired OTP.');
@@ -536,6 +662,10 @@ export class LoginComponent implements OnInit, OnDestroy {
   // ── Login with User ID ────────────────────────────────────────────
   async onUserIdLogin(): Promise<void> {
     this.errorMessage.set('');
+    if (!await this.ensureApiConfig()) {
+      this.errorMessage.set('Unable to load API configuration. Please refresh and try again.');
+      return;
+    }
     const id = this.useridIdentifier().trim();
     const pw = this.useridPassword().trim();
     if (!id) { this.errorMessage.set('Please enter your email or user ID.'); return; }
@@ -559,6 +689,8 @@ export class LoginComponent implements OnInit, OnDestroy {
 
       if (response.data.requiresSelection) {
         const options = response.data.tenantOptions ?? [];
+        // Store immediately so the switcher works even if the final login response omits tenantOptions
+        if (options.length) sessionStorage.setItem('authTenantOptions', JSON.stringify(options));
         this.useridTenantOptions.set(options);
         const first = options[0] ?? null;
         this.selectedUseridCompanyId.set(first?.companyId ?? null);
@@ -571,6 +703,10 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
 
       this.useridRequiresSelection.set(false);
+      // Preserve the full tenant list so the company switcher works after login
+      if (!response.data.tenantOptions?.length && this.useridTenantOptions().length) {
+        response.data = { ...response.data, tenantOptions: this.useridTenantOptions() };
+      }
       this.completeLogin(response.data);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || err?.message || 'Invalid credentials or account not found.');
@@ -670,6 +806,7 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   private async finishLogin(payload: AuthPayload): Promise<void> {
     this.authService.setMultiTenantSession(payload);
+    await this.refreshLegacyCompanyDetails();
     this.showToast('success', 'Welcome!', `Signed in as ${payload.user?.fullName || payload.user?.username}.`);
 
     const isPostReg = sessionStorage.getItem('postRegistrationSetupPending') === 'true';
@@ -692,6 +829,17 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     setTimeout(() => this.router.navigate([route]), 400);
+  }
+
+  private async refreshLegacyCompanyDetails(): Promise<void> {
+    try {
+      const details = await firstValueFrom(this.companyService.GetCompanyData().pipe(timeout(8000)));
+      if (Array.isArray(details) && details.length) {
+        sessionStorage.setItem('CompanyDetails', JSON.stringify(details[0]));
+      }
+    } catch {
+      // AuthService stores a minimal CompanyDetails fallback for multi-tenant sessions.
+    }
   }
 
   // ── Company-setup biometric enrollment ───────────────────────────
@@ -733,6 +881,10 @@ export class LoginComponent implements OnInit, OnDestroy {
 
   async sendRegistrationOtp(): Promise<void> {
     this.errorMessage.set('');
+    if (!await this.ensureApiConfig()) {
+      this.errorMessage.set('Unable to load API configuration. Please refresh and try again.');
+      return;
+    }
     if (!this.registrationIdentity().trim()) {
       this.errorMessage.set('Please enter your email or mobile number.');
       return;
@@ -744,8 +896,18 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     try {
       const response = await firstValueFrom(
-        this.authService.requestRegistrationOtp(this.registrationIdentity().trim()).pipe(timeout(20000))
+        this.authService.requestRegistrationOtp(this.registrationIdentity().trim()).pipe(timeout(45000))
       );
+      const exposedOtp = this.getExposedOtp(response);
+      if (!this.isOtpDeliveryConfirmed(response) && exposedOtp) {
+        const msg = 'Development OTP generated. Delivery was not acknowledged by SMS or email, so use the auto-filled OTP to continue.';
+        this.registrationOtp.set(exposedOtp);
+        this.registrationOtpSent.set(true);
+        this.registrationOtpDeliveryFailed.set(false);
+        this.registrationOtpDeliveryMessage.set(msg);
+        this.showToast('info', 'OTP ready', msg);
+        return;
+      }
       if (!this.isOtpDeliveryConfirmed(response)) {
         const msg = this.otpDeliveryFailureMessage(
           response,
@@ -759,11 +921,14 @@ export class LoginComponent implements OnInit, OnDestroy {
         return;
       }
       const deliveryMessage = this.otpDeliverySuccessMessage(response);
-      this.registrationOtp.set('');
+      this.registrationOtp.set(exposedOtp || '');
       this.registrationOtpSent.set(true);
       this.registrationOtpDeliveryFailed.set(false);
-      this.registrationOtpDeliveryMessage.set(deliveryMessage);
-      this.showToast('success', 'OTP sent', deliveryMessage);
+      const message = exposedOtp
+        ? `${deliveryMessage} Development OTP is auto-filled below.`
+        : deliveryMessage;
+      this.registrationOtpDeliveryMessage.set(message);
+      this.showToast('success', 'OTP sent', message);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || 'Unable to request OTP.');
       this.showToast('error', 'OTP failed', this.errorMessage());
@@ -885,6 +1050,15 @@ export class LoginComponent implements OnInit, OnDestroy {
     return `${firstLetter}${yy}001`;
   }
 
+  // First branch is always the Head Office — code from initials (e.g. "Head Office" -> "HO").
+  private generateDefaultBranchCode(name: string): string {
+    const words = name.trim().replace(/[^A-Za-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+    if (!words.length) return 'HO';
+    return words.length >= 2
+      ? words.slice(0, 3).map(w => w[0].toUpperCase()).join('')
+      : words[0].substring(0, 3).toUpperCase();
+  }
+
   async onCompanyCodeBlur(): Promise<void> {
     const code = this.companySetup().companyCode.trim();
     if (!code) { this.companyCodeAvailable.set(null); this.companyCodeError.set(''); return; }
@@ -950,6 +1124,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         const trimmed = value?.trim() ?? '';
         return trimmed ? trimmed : null;
       };
+      const branchName = (company.defaultBranchName || 'Head Office').trim();
       await firstValueFrom(
         this.http.post(`${api}/companies`, {
           companyCode: company.companyCode.trim(),
@@ -967,6 +1142,22 @@ export class LoginComponent implements OnInit, OnDestroy {
           status: 'active',
           registrationIdentifier: this.registrationIdentity().trim(),
           adminPassword: optionalText(company.adminPassword),
+          // Nested object matching the API's BranchUpsertRequest shape — a flat
+          // defaultBranchName string here is silently dropped by model binding,
+          // which meant no company ever actually got a Head Office branch created.
+          defaultBranch: {
+            branchCode: this.generateDefaultBranchCode(branchName),
+            branchName,
+            email: optionalText(company.email),
+            mobile: optionalText(company.contactNo),
+            address: optionalText(company.registrationAddress),
+            city: optionalText(company.city),
+            state: optionalText(company.state),
+            country: optionalText(company.country),
+            pincode: optionalText(company.pincode),
+            isHeadOffice: true,
+            status: 'active'
+          },
           // Subscription plan fields
           subscribedModuleIds: Array.from(this.selectedModuleIds()),
           maxBranches: this.maxBranches(),
@@ -1091,18 +1282,26 @@ export class LoginComponent implements OnInit, OnDestroy {
     const data = response?.data;
     const smsSent = this.readOtpFlag(data, 'smsSent', 'SmsSent') === true;
     const emailSent = this.readOtpFlag(data, 'emailSent', 'EmailSent') === true;
+    const requestedChannel = this.loginIdentifierChannel();
+
+    if (requestedChannel === 'email' && smsSent && !emailSent) {
+      return 'Email OTP could not be sent. OTP was submitted by SMS to your registered mobile.';
+    }
+    if (requestedChannel === 'mobile' && emailSent && !smsSent) {
+      return 'SMS OTP could not be sent. OTP was submitted by email to your registered email.';
+    }
 
     if (smsSent && emailSent) {
-      return 'SMS and email delivery confirmed.';
+      return 'OTP submitted by SMS and email.';
     }
     if (smsSent) {
-      return 'SMS delivery confirmed.';
+      return 'OTP submitted by SMS.';
     }
     if (emailSent) {
-      return 'Email delivery confirmed.';
+      return 'OTP submitted by email.';
     }
 
-    return 'OTP delivery confirmed.';
+    return 'OTP submitted.';
   }
 
   private otpDeliveryFailureMessage(response: OtpIssueResponse | undefined, fallback: string): string {
@@ -1123,6 +1322,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     return response?.message || fallback;
+  }
+
+  private getExposedOtp(response: OtpIssueResponse | undefined): string {
+    const data = response?.data as Record<string, unknown> | undefined;
+    const otp = String(data?.['otp'] ?? data?.['Otp'] ?? '').trim();
+    return /^\d{6}$/.test(otp) ? otp : '';
   }
 
   private readOtpFlag(data: OtpIssueResponse['data'] | undefined, ...keys: string[]): boolean | undefined {

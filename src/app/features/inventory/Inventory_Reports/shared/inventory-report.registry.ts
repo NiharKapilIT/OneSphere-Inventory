@@ -526,6 +526,38 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       { product: 'AMC Support', category: 'IT Services', salesQuantity: 14, salesValue: 960000, purchaseCost: 556800, grossProfit: 403200, marginPercent: 42 },
       { product: 'Drone Motor 2KW', category: 'Drone Manufacturing', salesQuantity: 220, salesValue: 1100000, purchaseCost: 869000, grossProfit: 231000, marginPercent: 21 }
     ]
+  }),
+  phaseOneReport({
+    key: 'auditTrail',
+    slug: 'inventory-audit-trail',
+    title: 'Inventory Audit Trail Report',
+    groupId: 'auditControl',
+    endpoint: 'inventory-audit-trail',
+    icon: 'pi pi-shield',
+    purpose: 'Chronological trail of create, update, approve and delete actions across inventory masters and transactions for compliance review.',
+    audience: ['Admin', 'Accountant', 'Business Owner'],
+    filters: [...baseFilters, 'createdBy', 'approvedBy'],
+    columns: cols([
+      ['actionDate', 'Date & Time', 'date'],
+      ['module', 'Module'],
+      ['documentType', 'Document Type'],
+      ['documentNo', 'Document No'],
+      ['action', 'Action'],
+      ['fieldChanged', 'Field Changed'],
+      ['oldValue', 'Old Value'],
+      ['newValue', 'New Value'],
+      ['performedBy', 'Performed By'],
+      ['approvedBy', 'Approved By'],
+      ['status', 'Status', 'status'],
+      ['remarks', 'Remarks']
+    ]),
+    defaultGroupBy: 'module',
+    drillDown: true,
+    sampleRows: [
+      { actionDate: '2026-06-30 10:42', module: 'Purchase Order', documentType: 'PO', documentNo: 'PO-2287', action: 'Approved', fieldChanged: 'Status', oldValue: 'Pending', newValue: 'Approved', performedBy: 'Ramesh Kumar', approvedBy: 'Suresh Rao', status: 'Approved', remarks: 'Approved within credit limit' },
+      { actionDate: '2026-06-29 16:05', module: 'Product Master', documentType: 'Product', documentNo: 'ELE-1001', action: 'Updated', fieldChanged: 'Sales Rate', oldValue: '29500', newValue: '31500', performedBy: 'Priya Sharma', approvedBy: '', status: 'Updated', remarks: 'Price revision effective June' },
+      { actionDate: '2026-06-28 09:18', module: 'Stock Adjustment', documentType: 'Adjustment', documentNo: 'ADJ-0091', action: 'Rejected', fieldChanged: 'Quantity', oldValue: '0', newValue: '-25', performedBy: 'Warehouse User', approvedBy: 'Suresh Rao', status: 'Rejected', remarks: 'Insufficient supporting documents' }
+    ]
   })
 ];
 

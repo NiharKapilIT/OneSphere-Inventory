@@ -1,0 +1,337 @@
+:host {
+  display: block;
+  padding-bottom: 110px; // room for the sticky footer (now up to 6 tiles + subtext)
+}
+
+.pay-party-grid {
+  align-items: start;
+}
+
+.pay-party-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: #64748b;
+
+  b { color: #1a2233; font-weight: 600; }
+}
+
+.pay-kpi-grid {
+  margin-top: 14px;
+}
+
+.req { color: #b91c1c; }
+
+.pay-alloc-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin: 10px 0;
+  background: #f8fafc;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+}
+
+.pay-alloc-lbl {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pay-amount-input {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dbe8f9;
+  border-radius: 8px;
+  overflow: hidden;
+
+  span { padding: 6px 8px; color: #8b94a7; font-size: 13px; border-right: 1px solid #eef1f6; }
+  input { border: 0; outline: none; padding: 6px 8px; width: 130px; font-size: 13px; font-weight: 600; text-align: right; }
+}
+
+.pay-inv-link {
+  color: #2456d6;
+  cursor: pointer;
+  font-weight: 600;
+  &:hover { text-decoration: underline; }
+}
+
+.pay-inv-ref {
+  font-size: 11px;
+  color: #8b94a7;
+  margin-top: 1px;
+}
+
+.pay-alloc-cell {
+  input {
+    width: 110px;
+    border: 1px solid #dbe8f9;
+    border-radius: 7px;
+    padding: 5px 7px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    background: #fbfcfe;
+    outline: none;
+
+    &:disabled { background: #f1f5f9; color: #c3c8d4; }
+    &.err { border-color: #b91c1c; box-shadow: 0 0 0 3px #fee2e2; }
+  }
+}
+
+.pay-full-link {
+  display: block;
+  font-size: 10.5px;
+  color: #2456d6;
+  cursor: pointer;
+  margin-top: 3px;
+  text-align: right;
+}
+
+.eye {
+  color: #8b94a7;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  &:hover { color: #2456d6; background: #eff6ff; }
+}
+
+.cb { width: 16px; height: 16px; cursor: pointer; }
+
+.pay-mode-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  margin-bottom: 12px;
+}
+
+.pay-mode-chip {
+  border: 1px solid #e2e6ee;
+  background: #fbfcfe;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #475569;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  cursor: pointer;
+
+  &:hover { border-color: #2456d6; color: #2456d6; }
+}
+
+.pay-mode-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-mode-row {
+  display: grid;
+  grid-template-columns: 170px 160px 1fr 1fr 34px;
+  gap: 10px;
+  align-items: end;
+  background: #fbfcfe;
+  border: 1px solid #eef1f6;
+  border-radius: 9px;
+  padding: 10px 12px;
+}
+
+.pay-notes-section {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.pay-note-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 600;
+
+  i { color: #ca8a04; font-size: 16px; }
+}
+
+.pay-mode-rm {
+  color: #8b94a7;
+  &:hover { color: #b91c1c; background: #fef2f2; }
+}
+
+.pay-mode-total {
+  display: flex;
+  justify-content: flex-end;
+  gap: 24px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e6ee;
+  font-size: 12.5px;
+  color: #64748b;
+
+  b { font-weight: 700; color: #1a2233; }
+}
+
+.pay-ok { color: #047857; font-weight: 600; }
+.pay-warn { color: #b91c1c; font-weight: 600; }
+
+// ── Sticky footer ────────────────────────────────────────────────────────────
+.pay-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #111827;
+  color: #e5e7eb;
+  z-index: 60;
+  box-shadow: 0 -6px 24px rgba(16, 24, 40, .25);
+}
+
+.pay-footer-in {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 22px;
+  padding: 12px 24px;
+  flex-wrap: wrap;
+}
+
+.pay-f-item {
+  min-width: 74px;
+
+  .pay-f-k { font-size: 10.5px; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; font-weight: 600; }
+  .pay-f-v {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 2px;
+    white-space: nowrap;
+    &.hl { color: #7dd3fc; }
+    &.g { color: #6ee7b7; }
+    &.a { color: #fcd34d; }
+    &.w { color: #fca5a5; }
+    &.n { color: #86efac; }
+  }
+  .pay-f-sub {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 1px;
+    white-space: nowrap;
+  }
+}
+
+.pay-footer-actions {
+  margin-left: auto;
+  align-self: center;
+  display: flex;
+  gap: 10px;
+  padding-left: 22px;
+  border-left: 1px solid rgba(255, 255, 255, .12);
+}
+
+@media (max-width: 900px) {
+  .pay-footer-actions {
+    border-left: 0;
+    padding-left: 0;
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+// ── Drawer ───────────────────────────────────────────────────────────────────
+.pay-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+  z-index: 80;
+}
+
+.pay-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(560px, 96vw);
+  height: 100%;
+  background: #fff;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -12px 0 40px rgba(16, 24, 40, .25);
+}
+
+.pay-dr-h {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e6ee;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pay-dr-t { font-size: 16px; font-weight: 700; }
+.pay-dr-s { color: #64748b; font-size: 12.5px; margin-top: 2px; }
+
+.pay-dr-x {
+  margin-left: auto;
+  font-size: 16px;
+  color: #8b94a7;
+  padding: 4px 8px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  &:hover { background: #f3f4f6; color: #1a2233; }
+}
+
+.pay-dr-b { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+.pay-dr-sec {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #8b94a7;
+  margin: 18px 0 8px;
+}
+
+.pay-hist {
+  border: 1px solid #eef1f6;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pay-hist-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eef1f6;
+  font-size: 12.5px;
+
+  &:last-child { border-bottom: 0; }
+  .m { color: #8b94a7; }
+}
+
+.pay-dr-f {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e6ee;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .pay-mode-row { grid-template-columns: 1fr 1fr; }
+  .pay-footer-in { gap: 14px; }
+}

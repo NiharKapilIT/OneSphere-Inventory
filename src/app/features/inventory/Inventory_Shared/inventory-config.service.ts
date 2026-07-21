@@ -16,31 +16,106 @@ export interface SegmentItem {
   usage_note?: string;
   status: string;
   categories: { id: number; category_code: string; category_name: string }[];
-  hsn_sac_codes: { id: number; code: string; description?: string; hsn_type: string; gst_rate: number }[];
+  hsn_sac_codes: { id: number; code: string; description?: string; hsn_type: string; category?: string; remarks?: string; gst_rate: number }[];
   uoms: { id: number; uom_code: string; uom_name: string; uom_symbol?: string }[];
 }
 
 export interface CategoryItem {
   id: number;
+  segment_id?: number;
+  segment_name?: string;
   category_code: string;
   category_name: string;
   parent_id?: number;
   parent_name?: string;
   description?: string;
   serial_applicable?: boolean;
+  serial_policy_id?: number | null;
   serial_policy_name?: string | null;
   batch_applicable?: boolean;
+  batch_policy_id?: number | null;
   batch_policy_name?: string | null;
+  uoms?: CategoryUomItem[];
   status: string;
+}
+
+export interface CategoryUomItem {
+  id: number;
+  uom_code?: string;
+  uom_name?: string;
+  uom_symbol?: string;
 }
 
 export interface UomItem {
   id: number;
+  segment_id?: number;
+  segment_name?: string;
   uom_code: string;
   uom_name: string;
   uom_symbol?: string;
+  decimal_allowed?: boolean;
+  is_base_uom?: boolean;
   is_system: boolean;
+  conversions?: UomConversionItem[];
   status: string;
+}
+
+export interface UomConversionItem {
+  id?: number;
+  from_uom_id?: number;
+  from_uom_name?: string;
+  from_uom_symbol?: string;
+  to_uom_id?: number;
+  to_uom_name?: string;
+  to_uom_symbol?: string;
+  conversion_factor?: number | null;
+  rounding_rule?: string;
+  status?: string;
+}
+
+export interface ProductUomConversion {
+  id?: number;
+  from_uom_id?: number;
+  from_uom_name?: string;
+  from_uom_symbol?: string;
+  to_uom_id?: number;
+  to_uom_name?: string;
+  to_uom_symbol?: string;
+  alt_uom?: string;
+  alt_uom_name?: string;
+  conversion_factor?: number | null;
+  is_purchase_uom?: boolean;
+  is_sales_uom?: boolean;
+  is_default_purchase?: boolean;
+  is_default_sale?: boolean;
+  rounding_rule?: string;
+  status?: string;
+}
+
+export interface ProductUomConversionCalculateRequest {
+  quantity: number;
+  from_uom_id?: number;
+  from_uom_name?: string;
+  to_uom_id?: number;
+  to_uom_name?: string;
+  usage_type?: 'Purchase' | 'Sale' | 'Both';
+}
+
+export interface ProductUomConversionCalculateResult {
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  from_uom_id: number;
+  from_uom_name: string;
+  from_uom_symbol?: string;
+  to_uom_id: number;
+  to_uom_name: string;
+  to_uom_symbol?: string;
+  base_uom_id: number;
+  base_uom_name: string;
+  base_uom_symbol?: string;
+  converted_quantity: number;
+  usage_type: 'Purchase' | 'Sale' | 'Both';
 }
 
 export interface HsnSacItem {
@@ -49,6 +124,7 @@ export interface HsnSacItem {
   description?: string;
   hsn_type: string;
   category?: string;
+  tax_category?: string;
   remarks?: string;
   gst_rate: number;
   cgst_rate: number;
@@ -145,7 +221,7 @@ export interface WarehouseItem {
 }
 
 export interface BranchInvItem {
-  id: number;
+  id?: number;
   company_id: number;
   branch_id?: number;
   segment_id?: number;
@@ -206,11 +282,23 @@ export interface AttributeItem {
   id: number;
   segment_id?: number;
   segment_name?: string;
+  attribute_code?: string;
   attribute_name: string;
   attribute_type: string;
+  display_order?: number;
   possible_values?: string[];
+  values?: AttributeValueItem[];
   is_mandatory: boolean;
   status: string;
+}
+
+export interface AttributeValueItem {
+  id: number;
+  value_code?: string;
+  value_name: string;
+  status: string;
+  sort_order?: number;
+  usage_count?: number;
 }
 
 export interface ProductGroupItem {
@@ -229,13 +317,72 @@ export interface VariantItem {
   id: number;
   segment_id?: number;
   segment_name?: string;
+  product_id?: number;
+  product_code?: string;
+  product_name?: string;
   attribute_id?: number;
   attribute_name?: string;
   variant_code: string;
   variant_name: string;
+  sku?: string;
+  sku_pattern?: string;
+  barcode?: string;
+  price?: number;
+  cost?: number;
+  stock_on_hand?: number;
+  stock?: number;
+  images?: string[];
+  variant_label?: string;
   attribute_value?: string;
+  attributes?: VariantAttributeItem[];
+  combination_hash?: string;
+  is_generated?: boolean;
   description?: string;
   status: string;
+}
+
+export interface VariantAttributeItem {
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value_id?: number;
+  value_code?: string;
+  value_name?: string;
+  attribute_value?: string;
+  value_status?: string;
+  attribute_type?: string;
+  possible_values?: string[];
+  usage_count?: number;
+  display_order?: number;
+}
+
+export interface VariantCombinationRow {
+  variant_id?: number;
+  product_id: number;
+  variant_name: string;
+  sku?: string;
+  combination_hash: string;
+  exists: boolean;
+  created: boolean;
+  attributes: VariantAttributeItem[];
+}
+
+export interface VariantCombinationGenerateResult {
+  product_id: number;
+  product_code?: string;
+  product_name?: string;
+  total: number;
+  new_count: number;
+  existing_count: number;
+  created_count: number;
+  rows: VariantCombinationRow[];
+}
+
+export interface AttributeVariantBulkImportResult {
+  total_rows: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  invalid_rows: Array<Record<string, any>>;
 }
 
 export interface SerialPolicyItem {
@@ -325,6 +472,24 @@ export interface VendorItem {
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
+  contact_id?: number;
+  contact_source?: string;
+  status: string;
+}
+
+export interface ContactItem {
+  id: number;
+  contact_type: string;
+  name: string;
+  mobile?: string;
+  email?: string;
+  gstin?: string;
+  pan?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  is_supplier?: boolean;
   status: string;
 }
 
@@ -351,6 +516,8 @@ export interface CustomerItem {
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
+  contact_id?: number;
+  contact_source?: string;
   status: string;
 }
 
@@ -367,6 +534,7 @@ export interface ProductItem {
   brand_name?: string;
   variant_id?: number;
   variant_name?: string;
+  variant_label?: string;
   hsn_sac_id?: number;
   hsn_sac_code?: string;
   serial_policy_id?: number;
@@ -377,10 +545,26 @@ export interface ProductItem {
   sku: string;
   product_name: string;
   product_type: string;
+  product_nature_id?: number;
+  product_nature_name?: string;
+  tracks_inventory?: boolean;
+  tracks_cost?: boolean;
+  is_service?: boolean;
+  is_asset?: boolean;
+  allows_purchase?: boolean;
+  allows_sale?: boolean;
+  allows_production?: boolean;
   item_status: string;
   valuation_method?: string;
   gst_rate?: number;
   tax_category?: string;
+  mrp?: number | null;
+  selling_price?: number | null;
+  sellingPrice?: number | null;
+  sale_price?: number | null;
+  price?: number | null;
+  cost_price?: number | null;
+  costPrice?: number | null;
   reorder_level: number;
   reorder_qty: number;
   max_stock_level: number;
@@ -389,7 +573,67 @@ export interface ProductItem {
   serial_applicable: boolean;
   expiry_applicable: boolean;
   qc_required: boolean;
+  pricing_type?: string;
+  rental_unit?: string;
   description?: string;
+  uom_conversions?: ProductUomConversion[];
+  applicable_variants?: ProductApplicableVariant[];
+  bundle_composition?: ProductBundleItem[];
+  variant_stock_controls?: ProductVariantStockControl[];
+  status: string;
+}
+
+export interface ProductApplicableVariant {
+  id: number;
+  variant_name: string;
+  variant_label: string;
+  is_default: boolean;
+  attributes?: ProductVariantStockAttribute[];
+}
+
+export interface ProductVariantStockControl {
+  variant_id: number;
+  variant_name?: string;
+  variant_label?: string;
+  attributes: ProductVariantStockAttribute[];
+  min_stock_level: number;
+  max_stock_level: number;
+  reorder_level: number;
+  reorder_qty: number;
+}
+
+export interface ProductVariantStockAttribute {
+  attribute_name: string;
+  attribute_value: string;
+}
+
+export interface ProductBundleItem {
+  item_id: number;
+  item_name: string;
+  quantity: number;
+  condition_tracked: boolean;
+  depreciation_linked: boolean;
+}
+
+export interface ProductTypeItem {
+  id: number;
+  company_id?: number;
+  type_code: string;
+  type_name: string;
+  description?: string;
+  tracks_inventory: boolean;
+  tracks_cost: boolean;
+  is_service: boolean;
+  is_asset: boolean;
+  allows_purchase: boolean;
+  allows_sale: boolean;
+  allows_production: boolean;
+  default_serial_required: boolean;
+  default_batch_required: boolean;
+  default_expiry_required: boolean;
+  requires_hsn_sac: boolean;
+  is_system: boolean;
+  sort_order: number;
   status: string;
 }
 
@@ -437,6 +681,30 @@ export class InventoryConfigService {
     return (source?.[snakeKey] ?? (camelKey ? source?.[camelKey] : undefined) ?? fallback) as T;
   }
 
+  private normalizeStringList(value: any): string[] {
+    if (Array.isArray(value)) {
+      return value.flatMap(item => this.normalizeStringList(item));
+    }
+
+    if (value && typeof value === 'object') {
+      const direct = value.value ?? value.label ?? value.name ?? value.text ?? value.option ?? value.attribute_value ?? value.attributeValue;
+      return direct === undefined ? [] : this.normalizeStringList(direct);
+    }
+
+    const text = String(value ?? '').trim();
+    if (!text) return [];
+
+    if ((text.startsWith('[') && text.endsWith(']')) || (text.startsWith('{') && text.endsWith('}'))) {
+      try {
+        return this.normalizeStringList(JSON.parse(text));
+      } catch {
+        // Fall back to comma splitting below.
+      }
+    }
+
+    return text.split(',').map(item => item.trim()).filter(Boolean);
+  }
+
   private normalizeSegment(item: any): SegmentItem {
     return {
       id: item?.id,
@@ -455,6 +723,8 @@ export class InventoryConfigService {
         code: this.value(h, 'code', 'code', ''),
         description: this.value(h, 'description', 'description'),
         hsn_type: this.value(h, 'hsn_type', 'hsnType', 'HSN'),
+        category: this.value(h, 'category', 'category'),
+        remarks: this.value(h, 'remarks', 'remarks'),
         gst_rate: this.value(h, 'gst_rate', 'gstRate', 0)
       })),
       uoms: (this.value<any[]>(item, 'uoms', 'uoms', []) ?? []).map(u => ({
@@ -469,15 +739,40 @@ export class InventoryConfigService {
   private normalizeCategory(item: any): CategoryItem {
     return {
       id: item?.id,
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      segment_name: this.value(item, 'segment_name', 'segmentName'),
       category_code: this.value(item, 'category_code', 'categoryCode', ''),
       category_name: this.value(item, 'category_name', 'categoryName', ''),
       parent_id: this.value(item, 'parent_id', 'parentId'),
       parent_name: this.value(item, 'parent_name', 'parentName'),
       description: this.value(item, 'description', 'description'),
       serial_applicable: !!(this.value(item, 'serial_applicable', 'serialApplicable', false)),
+      serial_policy_id: this.value(item, 'serial_policy_id', 'serialPolicyId', null),
       serial_policy_name: this.value(item, 'serial_policy_name', 'serialPolicyName', null),
       batch_applicable: !!(this.value(item, 'batch_applicable', 'batchApplicable', false)),
+      batch_policy_id: this.value(item, 'batch_policy_id', 'batchPolicyId', null),
       batch_policy_name: this.value(item, 'batch_policy_name', 'batchPolicyName', null),
+      uoms: (this.value<any[]>(item, 'uoms', 'uoms', []) ?? []).map(u => ({
+        id: u?.id,
+        uom_code: this.value(u, 'uom_code', 'uomCode', ''),
+        uom_name: this.value(u, 'uom_name', 'uomName', ''),
+        uom_symbol: this.value(u, 'uom_symbol', 'uomSymbol')
+      })),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeUomConversion(item: any): UomConversionItem {
+    return {
+      id: item?.id,
+      from_uom_id: this.value(item, 'from_uom_id', 'fromUomId'),
+      from_uom_name: this.value(item, 'from_uom_name', 'fromUomName'),
+      from_uom_symbol: this.value(item, 'from_uom_symbol', 'fromUomSymbol'),
+      to_uom_id: this.value(item, 'to_uom_id', 'toUomId'),
+      to_uom_name: this.value(item, 'to_uom_name', 'toUomName'),
+      to_uom_symbol: this.value(item, 'to_uom_symbol', 'toUomSymbol'),
+      conversion_factor: this.value(item, 'conversion_factor', 'conversionFactor'),
+      rounding_rule: this.value(item, 'rounding_rule', 'roundingRule', 'Exact'),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -485,11 +780,68 @@ export class InventoryConfigService {
   private normalizeUom(item: any): UomItem {
     return {
       id: item?.id,
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      segment_name: this.value(item, 'segment_name', 'segmentName'),
       uom_code: this.value(item, 'uom_code', 'uomCode', ''),
       uom_name: this.value(item, 'uom_name', 'uomName', ''),
       uom_symbol: this.value(item, 'uom_symbol', 'uomSymbol'),
+      decimal_allowed: !!(this.value(item, 'decimal_allowed', 'decimalAllowed', false)),
+      is_base_uom: !!(this.value(item, 'is_base_uom', 'isBaseUom', false)),
       is_system: this.value(item, 'is_system', 'isSystem', false),
+      conversions: (item?.conversions || []).map((c: any) => this.normalizeUomConversion(c)),
       status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeProductUomConversion(item: any): ProductUomConversion {
+    const fromName = this.value<string | undefined>(item, 'from_uom_name', 'fromUomName');
+    const fromSymbol = this.value<string | undefined>(item, 'from_uom_symbol', 'fromUomSymbol');
+    const toName = this.value<string | undefined>(item, 'to_uom_name', 'toUomName');
+    const toSymbol = this.value<string | undefined>(item, 'to_uom_symbol', 'toUomSymbol');
+    const isPurchase = !!(
+      this.value(item, 'is_purchase_uom', 'isPurchaseUom', false)
+      || this.value(item, 'is_default_purchase', 'isDefaultPurchase', false)
+    );
+    const isSales = !!(
+      this.value(item, 'is_sales_uom', 'isSalesUom', false)
+      || this.value(item, 'is_default_sale', 'isDefaultSale', false)
+    );
+    return {
+      id: item?.id,
+      from_uom_id: this.value(item, 'from_uom_id', 'fromUomId'),
+      from_uom_name: fromName,
+      from_uom_symbol: fromSymbol,
+      to_uom_id: this.value(item, 'to_uom_id', 'toUomId'),
+      to_uom_name: toName,
+      to_uom_symbol: toSymbol,
+      alt_uom: this.value(item, 'alt_uom', 'altUom', fromSymbol || fromName),
+      alt_uom_name: this.value(item, 'alt_uom_name', 'altUomName', fromName),
+      conversion_factor: this.value(item, 'conversion_factor', 'conversionFactor'),
+      is_purchase_uom: isPurchase,
+      is_sales_uom: isSales,
+      is_default_purchase: isPurchase,
+      is_default_sale: isSales,
+      rounding_rule: this.value(item, 'rounding_rule', 'roundingRule', 'Exact'),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeProductUomConversionResult(item: any): ProductUomConversionCalculateResult {
+    return {
+      product_id: this.value(item, 'product_id', 'productId', 0),
+      product_name: this.value(item, 'product_name', 'productName', ''),
+      quantity: this.value(item, 'quantity', 'quantity', 0),
+      from_uom_id: this.value(item, 'from_uom_id', 'fromUomId', 0),
+      from_uom_name: this.value(item, 'from_uom_name', 'fromUomName', ''),
+      from_uom_symbol: this.value(item, 'from_uom_symbol', 'fromUomSymbol'),
+      to_uom_id: this.value(item, 'to_uom_id', 'toUomId', 0),
+      to_uom_name: this.value(item, 'to_uom_name', 'toUomName', ''),
+      to_uom_symbol: this.value(item, 'to_uom_symbol', 'toUomSymbol'),
+      base_uom_id: this.value(item, 'base_uom_id', 'baseUomId', 0),
+      base_uom_name: this.value(item, 'base_uom_name', 'baseUomName', ''),
+      base_uom_symbol: this.value(item, 'base_uom_symbol', 'baseUomSymbol'),
+      converted_quantity: this.value(item, 'converted_quantity', 'convertedQuantity', 0),
+      usage_type: this.value(item, 'usage_type', 'usageType', 'Both')
     };
   }
 
@@ -762,9 +1114,9 @@ export class InventoryConfigService {
     ), item => this.normalizeCategory(item));
   }
 
-  quickAddCategory(categoryName: string): Observable<ApiResponse<CategoryItem>> {
+  quickAddCategory(categoryName: string, segmentId?: number | null): Observable<ApiResponse<CategoryItem>> {
     return this.mapItem(this.http.post<ApiResponse<any>>(
-      this.url('categories/quick'), { categoryName }, { headers: this.headers() }
+      this.url('categories/quick'), { categoryName, segmentId }, { headers: this.headers() }
     ), item => this.normalizeCategory(item));
   }
 
@@ -781,16 +1133,18 @@ export class InventoryConfigService {
 
   // ── UOM ─────────────────────────────────────────────────────────────────
 
-  getUoms(includeInactive = false): Observable<ApiResponse<UomItem[]>> {
+  getUoms(includeInactive = false, segmentId?: number | null): Observable<ApiResponse<UomItem[]>> {
+    let params = new HttpParams().set('includeInactive', includeInactive);
+    if (segmentId) params = params.set('segmentId', segmentId);
     return this.mapArray(this.http.get<ApiResponse<any[]>>(
       this.url('uom'),
-      { headers: this.headers(), params: { includeInactive } }
+      { headers: this.headers(), params }
     ), item => this.normalizeUom(item));
   }
 
-  quickAddUom(uomName: string, uomSymbol?: string): Observable<ApiResponse<UomItem>> {
+  quickAddUom(uomName: string, uomSymbol?: string, segmentId?: number | null): Observable<ApiResponse<UomItem>> {
     return this.mapItem(this.http.post<ApiResponse<any>>(
-      this.url('uom/quick'), { uomName, uomSymbol }, { headers: this.headers() }
+      this.url('uom/quick'), { uomName, uomSymbol, segmentId }, { headers: this.headers() }
     ), item => this.normalizeUom(item));
   }
 
@@ -900,13 +1254,24 @@ export class InventoryConfigService {
   }
 
   private normalizeAttribute(item: any): AttributeItem {
+    const values = (this.value<any[]>(item, 'values', 'values', []) ?? []).map(row => ({
+      id: row?.id,
+      value_code: this.value(row, 'value_code', 'valueCode'),
+      value_name: this.value(row, 'value_name', 'valueName', ''),
+      status: this.value(row, 'status', 'status', 'active'),
+      sort_order: this.value(row, 'sort_order', 'sortOrder', 100),
+      usage_count: this.value(row, 'usage_count', 'usageCount', 0)
+    }));
     return {
       id: item?.id,
       segment_id: this.value(item, 'segment_id', 'segmentId'),
       segment_name: this.value(item, 'segment_name', 'segmentName'),
+      attribute_code: this.value(item, 'attribute_code', 'attributeCode'),
       attribute_name: this.value(item, 'attribute_name', 'attributeName', ''),
       attribute_type: this.value(item, 'attribute_type', 'attributeType', 'Text'),
-      possible_values: this.value(item, 'possible_values', 'possibleValues'),
+      display_order: this.value(item, 'display_order', 'displayOrder', 100),
+      possible_values: this.normalizeStringList(this.value(item, 'possible_values', 'possibleValues', [])),
+      values,
       is_mandatory: this.value(item, 'is_mandatory', 'isMandatory', false),
       status: this.value(item, 'status', 'status', 'active')
     };
@@ -927,17 +1292,76 @@ export class InventoryConfigService {
   }
 
   private normalizeVariant(item: any): VariantItem {
+    const attributes = (this.value<any[]>(item, 'attributes', 'attributes', []) ?? []).map(row => ({
+      attribute_id: this.value(row, 'attribute_id', 'attributeId'),
+      attribute_name: this.value(row, 'attribute_name', 'attributeName'),
+      attribute_value_id: this.value(row, 'attribute_value_id', 'attributeValueId'),
+      value_code: this.value(row, 'value_code', 'valueCode'),
+      value_name: this.value(row, 'value_name', 'valueName'),
+      attribute_value: this.value(row, 'attribute_value', 'attributeValue'),
+      value_status: this.value(row, 'value_status', 'valueStatus'),
+      attribute_type: this.value(row, 'attribute_type', 'attributeType', 'Text'),
+      possible_values: this.normalizeStringList(this.value(row, 'possible_values', 'possibleValues', [])),
+      usage_count: this.value(row, 'usage_count', 'usageCount', 0),
+      display_order: this.value(row, 'display_order', 'displayOrder', 1)
+    }));
     return {
       id: item?.id,
       segment_id: this.value(item, 'segment_id', 'segmentId'),
       segment_name: this.value(item, 'segment_name', 'segmentName'),
+      product_id: this.value(item, 'product_id', 'productId'),
+      product_code: this.value(item, 'product_code', 'productCode'),
+      product_name: this.value(item, 'product_name', 'productName'),
       attribute_id: this.value(item, 'attribute_id', 'attributeId'),
       attribute_name: this.value(item, 'attribute_name', 'attributeName'),
       variant_code: this.value(item, 'variant_code', 'variantCode', ''),
       variant_name: this.value(item, 'variant_name', 'variantName', ''),
+      sku: this.value(item, 'sku', 'sku'),
+      sku_pattern: this.value(item, 'sku_pattern', 'skuPattern'),
+      barcode: this.value(item, 'barcode', 'barcode'),
+      price: this.value(item, 'price', 'price', 0),
+      cost: this.value(item, 'cost', 'cost', 0),
+      stock_on_hand: this.value(item, 'stock_on_hand', 'stockOnHand', this.value(item, 'stock', 'stock', 0)),
+      stock: this.value(item, 'stock', 'stock', this.value(item, 'stock_on_hand', 'stockOnHand', 0)),
+      images: this.normalizeStringList(this.value(item, 'images', 'images', [])),
+      variant_label: this.value(item, 'variant_label', 'variantLabel'),
       attribute_value: this.value(item, 'attribute_value', 'attributeValue'),
+      attributes,
+      combination_hash: this.value(item, 'combination_hash', 'combinationHash'),
+      is_generated: this.value(item, 'is_generated', 'isGenerated', false),
       description: this.value(item, 'description', 'description'),
       status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeVariantCombinationResult(item: any): VariantCombinationGenerateResult {
+    const rows = (this.value<any[]>(item, 'rows', 'rows', []) ?? []).map(row => ({
+      variant_id: this.value(row, 'variant_id', 'variantId'),
+      product_id: this.value(row, 'product_id', 'productId', 0),
+      variant_name: this.value(row, 'variant_name', 'variantName', ''),
+      sku: this.value(row, 'sku', 'sku'),
+      combination_hash: this.value(row, 'combination_hash', 'combinationHash', ''),
+      exists: this.value(row, 'exists', 'exists', false),
+      created: this.value(row, 'created', 'created', false),
+      attributes: (this.value<any[]>(row, 'attributes', 'attributes', []) ?? []).map(attr => ({
+        attribute_id: this.value(attr, 'attribute_id', 'attributeId'),
+        attribute_name: this.value(attr, 'attribute_name', 'attributeName'),
+        attribute_value_id: this.value(attr, 'attribute_value_id', 'attributeValueId'),
+        value_code: this.value(attr, 'value_code', 'valueCode'),
+        value_name: this.value(attr, 'value_name', 'valueName'),
+        attribute_value: this.value(attr, 'attribute_value', 'attributeValue'),
+        display_order: this.value(attr, 'display_order', 'displayOrder', 1)
+      }))
+    }));
+    return {
+      product_id: this.value(item, 'product_id', 'productId', 0),
+      product_code: this.value(item, 'product_code', 'productCode'),
+      product_name: this.value(item, 'product_name', 'productName'),
+      total: this.value(item, 'total', 'total', rows.length),
+      new_count: this.value(item, 'new_count', 'newCount', 0),
+      existing_count: this.value(item, 'existing_count', 'existingCount', 0),
+      created_count: this.value(item, 'created_count', 'createdCount', 0),
+      rows
     };
   }
 
@@ -1039,6 +1463,26 @@ export class InventoryConfigService {
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
+      contact_id: this.value(item, 'contact_id', 'contactId'),
+      contact_source: this.value(item, 'contact_source', 'contactSource'),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeContact(item: any): ContactItem {
+    return {
+      id: item?.id,
+      contact_type: this.value(item, 'contact_type', 'contactType', 'Individual'),
+      name: this.value(item, 'name', 'name', ''),
+      mobile: this.value(item, 'mobile', 'mobile'),
+      email: this.value(item, 'email', 'email'),
+      gstin: this.value(item, 'gstin', 'gstin'),
+      pan: this.value(item, 'pan', 'pan'),
+      address: this.value(item, 'address', 'address'),
+      city: this.value(item, 'city', 'city'),
+      state: this.value(item, 'state', 'state'),
+      pincode: this.value(item, 'pincode', 'pincode'),
+      is_supplier: this.value(item, 'is_supplier', 'isSupplier', false),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1067,6 +1511,8 @@ export class InventoryConfigService {
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
+      contact_id: this.value(item, 'contact_id', 'contactId'),
+      contact_source: this.value(item, 'contact_source', 'contactSource'),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1085,6 +1531,7 @@ export class InventoryConfigService {
       brand_name: this.value(item, 'brand_name', 'brandName'),
       variant_id: this.value(item, 'variant_id', 'variantId'),
       variant_name: this.value(item, 'variant_name', 'variantName'),
+      variant_label: this.value(item, 'variant_label', 'variantLabel'),
       hsn_sac_id: this.value(item, 'hsn_sac_id', 'hsnSacId'),
       hsn_sac_code: this.value(item, 'hsn_sac_code', 'hsnSacCode'),
       serial_policy_id: this.value(item, 'serial_policy_id', 'serialPolicyId'),
@@ -1095,10 +1542,26 @@ export class InventoryConfigService {
       sku: this.value(item, 'sku', 'sku', ''),
       product_name: this.value(item, 'product_name', 'productName', ''),
       product_type: this.value(item, 'product_type', 'productType', 'Product'),
+      product_nature_id: this.value(item, 'product_nature_id', 'productNatureId'),
+      product_nature_name: this.value(item, 'product_nature_name', 'productNatureName'),
+      tracks_inventory: this.value(item, 'tracks_inventory', 'tracksInventory'),
+      tracks_cost: this.value(item, 'tracks_cost', 'tracksCost'),
+      is_service: this.value(item, 'is_service', 'isService'),
+      is_asset: this.value(item, 'is_asset', 'isAsset'),
+      allows_purchase: this.value(item, 'allows_purchase', 'allowsPurchase'),
+      allows_sale: this.value(item, 'allows_sale', 'allowsSale'),
+      allows_production: this.value(item, 'allows_production', 'allowsProduction'),
       item_status: this.value(item, 'item_status', 'itemStatus', 'active'),
       valuation_method: this.value(item, 'valuation_method', 'valuationMethod'),
       gst_rate: this.value(item, 'gst_rate', 'gstRate'),
       tax_category: this.value(item, 'tax_category', 'taxCategory'),
+      mrp: this.value(item, 'mrp', 'mrp'),
+      selling_price: this.value(item, 'selling_price', 'sellingPrice'),
+      sellingPrice: this.value(item, 'selling_price', 'sellingPrice'),
+      sale_price: this.value(item, 'sale_price', 'salePrice'),
+      price: this.value(item, 'price', 'price'),
+      cost_price: this.value(item, 'cost_price', 'costPrice'),
+      costPrice: this.value(item, 'cost_price', 'costPrice'),
       reorder_level: this.value(item, 'reorder_level', 'reorderLevel', 0),
       reorder_qty: this.value(item, 'reorder_qty', 'reorderQty', 0),
       max_stock_level: this.value(item, 'max_stock_level', 'maxStockLevel', 0),
@@ -1107,7 +1570,40 @@ export class InventoryConfigService {
       serial_applicable: this.value(item, 'serial_applicable', 'serialApplicable', false),
       expiry_applicable: this.value(item, 'expiry_applicable', 'expiryApplicable', false),
       qc_required: this.value(item, 'qc_required', 'qcRequired', false),
+      pricing_type: this.value(item, 'pricing_type', 'pricingType'),
+      rental_unit: this.value(item, 'rental_unit', 'rentalUnit'),
       description: this.value(item, 'description', 'description'),
+      uom_conversions: (item?.uom_conversions || item?.uomConversions || []).map((c: any) => this.normalizeProductUomConversion(c)),
+      applicable_variants: (item?.applicable_variants || item?.applicableVariants || []).map((v: any) => ({
+        id: this.value(v, 'id', 'id', 0),
+        variant_name: this.value(v, 'variant_name', 'variantName', ''),
+        variant_label: this.value(v, 'variant_label', 'variantLabel', ''),
+        is_default: this.value(v, 'is_default', 'isDefault', false),
+        attributes: (this.value<any[]>(v, 'attributes', 'attributes', []) ?? []).map((a: any) => ({
+          attribute_name: this.value(a, 'attribute_name', 'attributeName', ''),
+          attribute_value: this.value(a, 'attribute_value', 'attributeValue', ''),
+        } as ProductVariantStockAttribute)),
+      } as ProductApplicableVariant)),
+      bundle_composition: (item?.bundle_composition || item?.bundleComposition || []).map((b: any) => ({
+        item_id: this.value(b, 'item_id', 'itemId', 0),
+        item_name: this.value(b, 'item_name', 'itemName', ''),
+        quantity: this.value(b, 'quantity', 'quantity', 1),
+        condition_tracked: this.value(b, 'condition_tracked', 'conditionTracked', false),
+        depreciation_linked: this.value(b, 'depreciation_linked', 'depreciationLinked', false),
+      } as ProductBundleItem)),
+      variant_stock_controls: (item?.variant_stock_controls || item?.variantStockControls || []).map((s: any) => ({
+        variant_id: this.value(s, 'variant_id', 'variantId', 0),
+        variant_name: this.value(s, 'variant_name', 'variantName', ''),
+        variant_label: this.value(s, 'variant_label', 'variantLabel', ''),
+        attributes: (this.value<any[]>(s, 'attributes', 'attributes', []) ?? []).map((a: any) => ({
+          attribute_name: this.value(a, 'attribute_name', 'attributeName', ''),
+          attribute_value: this.value(a, 'attribute_value', 'attributeValue', ''),
+        } as ProductVariantStockAttribute)),
+        min_stock_level: this.value(s, 'min_stock_level', 'minStockLevel', 0),
+        max_stock_level: this.value(s, 'max_stock_level', 'maxStockLevel', 0),
+        reorder_level: this.value(s, 'reorder_level', 'reorderLevel', 0),
+        reorder_qty: this.value(s, 'reorder_qty', 'reorderQty', 0),
+      } as ProductVariantStockControl)),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1198,10 +1694,11 @@ export class InventoryConfigService {
 
   // ── Variants ─────────────────────────────────────────────────────────────
 
-  getVariants(segmentId?: number | null, attributeId?: number | null, includeInactive = false): Observable<ApiResponse<VariantItem[]>> {
+  getVariants(segmentId?: number | null, attributeId?: number | null, includeInactive = false, productId?: number | null): Observable<ApiResponse<VariantItem[]>> {
     let params = new HttpParams().set('includeInactive', includeInactive);
     if (segmentId) params = params.set('segmentId', segmentId);
     if (attributeId) params = params.set('attributeId', attributeId);
+    if (productId) params = params.set('productId', productId);
     return this.mapArray(this.http.get<ApiResponse<any[]>>(
       this.masterUrl('variants'), { headers: this.headers(), params }
     ), item => this.normalizeVariant(item));
@@ -1218,7 +1715,35 @@ export class InventoryConfigService {
     );
   }
 
+  generateVariantCombinations(payload: { product_id: number; sku_pattern?: string | null; create_variants?: boolean; selections: Array<Record<string, any>> }): Observable<ApiResponse<VariantCombinationGenerateResult>> {
+    return this.mapItem(
+      this.http.post<ApiResponse<any>>(
+        this.masterUrl('variants/generate-combinations'),
+        this.toApiValue(payload),
+        { headers: this.headers() }
+      ),
+      item => this.normalizeVariantCombinationResult(item)
+    );
+  }
+
   // ── Serial Policies ──────────────────────────────────────────────────────
+
+  bulkImportAttributeVariants(rows: Array<Record<string, any>>): Observable<ApiResponse<AttributeVariantBulkImportResult>> {
+    return this.http.post<ApiResponse<any>>(
+      this.masterUrl('attribute-variants/bulk-import'),
+      this.toApiValue({ rows }),
+      { headers: this.headers() }
+    ).pipe(map(res => ({
+      ...res,
+      data: {
+        total_rows: this.value(res.data, 'total_rows', 'totalRows', rows.length),
+        imported: this.value(res.data, 'imported', 'imported', 0),
+        updated: this.value(res.data, 'updated', 'updated', 0),
+        skipped: this.value(res.data, 'skipped', 'skipped', 0),
+        invalid_rows: this.value(res.data, 'invalid_rows', 'invalidRows', [])
+      }
+    })));
+  }
 
   getSerialPolicies(segmentId?: number | null, categoryId?: number | null, includeInactive = false): Observable<ApiResponse<SerialPolicyItem[]>> {
     let params = new HttpParams().set('includeInactive', includeInactive);
@@ -1338,6 +1863,45 @@ export class InventoryConfigService {
     );
   }
 
+  // ── Global Contacts ──────────────────────────────────────────────────────
+
+  getContacts(includeInactive = false): Observable<ApiResponse<ContactItem[]>> {
+    const params = new HttpParams().set('includeInactive', includeInactive);
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('contacts'), { headers: this.headers(), params }
+    ), item => this.normalizeContact(item));
+  }
+
+  saveContact(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ContactItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('contacts'), body, { headers: h }),
+      item => this.normalizeContact(item)
+    );
+  }
+
+  // Shared cross-app contacts (global.tbl_mst_contact) — a single pool, not
+  // company/branch-scoped. Same ContactItem shape as getContacts() so
+  // callers can merge both lists. Edits made from Vendor/Customer Master are
+  // written back here via updateGlobalContact(), keeping this the single
+  // source of truth rather than a one-time copy.
+  getGlobalContacts(): Observable<ApiResponse<ContactItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('global-contacts'), { headers: this.headers() }
+    ), item => this.normalizeContact(item));
+  }
+
+  updateGlobalContact(payload: Record<string, any>, id: number): Observable<ApiResponse<ContactItem>> {
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/global/${id}`), body, { headers: this.headers() }),
+      item => this.normalizeContact(item)
+    );
+  }
+
   // ── Customers ────────────────────────────────────────────────────────────
 
   getCustomers(segmentId?: number | null, includeInactive = false): Observable<ApiResponse<CustomerItem[]>> {
@@ -1379,5 +1943,59 @@ export class InventoryConfigService {
         : this.http.post<ApiResponse<any>>(this.masterUrl('products'), body, { headers: h }),
       item => this.normalizeProduct(item)
     );
+  }
+
+  convertProductUom(productId: number, payload: ProductUomConversionCalculateRequest): Observable<ApiResponse<ProductUomConversionCalculateResult>> {
+    return this.mapItem(
+      this.http.post<ApiResponse<any>>(
+        this.masterUrl(`products/${productId}/uom-convert`),
+        this.toApiValue(payload),
+        { headers: this.headers() }
+      ),
+      item => this.normalizeProductUomConversionResult(item)
+    );
+  }
+
+  // ── Product Types ──────────────────────────────────────────────────────────
+
+  getProductTypes(includeSystem = true): Observable<ApiResponse<ProductTypeItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.url('product-types'), { headers: this.headers(), params: { includeSystem } }
+    ), item => this.normalizeProductType(item));
+  }
+
+  saveProductType(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ProductTypeItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`product-types/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('product-types'), body, { headers: h }),
+      item => this.normalizeProductType(item)
+    );
+  }
+
+  private normalizeProductType(item: any): ProductTypeItem {
+    return {
+      id: item?.id,
+      company_id: this.value(item, 'company_id', 'companyId'),
+      type_code: this.value(item, 'type_code', 'typeCode', ''),
+      type_name: this.value(item, 'type_name', 'typeName', ''),
+      description: this.value(item, 'description', 'description'),
+      tracks_inventory: this.value(item, 'tracks_inventory', 'tracksInventory', true),
+      tracks_cost: this.value(item, 'tracks_cost', 'tracksCost', true),
+      is_service: this.value(item, 'is_service', 'isService', false),
+      is_asset: this.value(item, 'is_asset', 'isAsset', false),
+      allows_purchase: this.value(item, 'allows_purchase', 'allowsPurchase', true),
+      allows_sale: this.value(item, 'allows_sale', 'allowsSale', true),
+      allows_production: this.value(item, 'allows_production', 'allowsProduction', false),
+      default_serial_required: this.value(item, 'default_serial_required', 'defaultSerialRequired', false),
+      default_batch_required: this.value(item, 'default_batch_required', 'defaultBatchRequired', false),
+      default_expiry_required: this.value(item, 'default_expiry_required', 'defaultExpiryRequired', false),
+      requires_hsn_sac: this.value(item, 'requires_hsn_sac', 'requiresHsnSac', true),
+      is_system: this.value(item, 'is_system', 'isSystem', false),
+      sort_order: this.value(item, 'sort_order', 'sortOrder', 100),
+      status: this.value(item, 'status', 'status', 'active')
+    };
   }
 }

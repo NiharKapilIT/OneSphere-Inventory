@@ -98,8 +98,8 @@ export const inventoryRoutes: Routes = [
       },
       {
         path: 'substitute-products',
-        loadComponent: () => import('./Inventory_Masters/substitute-products/substitute-products')
-          .then(m => m.InventorySubstituteProductsComponent)
+        redirectTo: 'product-service-master',
+        pathMatch: 'full'
       },
       {
         path: 'opening-inventory-balance',
@@ -142,6 +142,11 @@ export const inventoryRoutes: Routes = [
           .then(m => m.InventoryConsumptionTypeMasterComponent)
       },
       {
+        path: 'product-type-master',
+        loadComponent: () => import('./Inventory_Masters/product-type-master/product-type-master')
+          .then(m => m.InventoryProductTypeMasterComponent)
+      },
+      {
         path: 'approval-workflow-master',
         loadComponent: () => import('./Inventory_Masters/approval-workflow-master/approval-workflow-master')
           .then(m => m.InventoryApprovalWorkflowMasterComponent)
@@ -162,6 +167,19 @@ export const inventoryRoutes: Routes = [
   {
     path: 'transactions',
     children: [
+      // Payments & Receipts
+      {
+        path: 'vendor-payment',
+        loadComponent: () => import('./Inventory_Transactions/payment-receipt-voucher/payment-receipt-voucher')
+          .then(m => m.PaymentReceiptVoucherComponent),
+        data: { mode: 'pay' }
+      },
+      {
+        path: 'customer-receipt',
+        loadComponent: () => import('./Inventory_Transactions/payment-receipt-voucher/payment-receipt-voucher')
+          .then(m => m.PaymentReceiptVoucherComponent),
+        data: { mode: 'receipt' }
+      },
       // Procurement
       {
         path: 'purchase-requisition',
@@ -182,6 +200,11 @@ export const inventoryRoutes: Routes = [
         path: 'goods-receipt',
         loadComponent: () => import('./Inventory_Transactions/goods-receipt/goods-receipt')
           .then(m => m.InventoryGoodsReceiptComponent)
+      },
+      {
+        path: 'purchase-invoice',
+        loadComponent: () => import('./Inventory_Transactions/purchase-invoice/purchase-invoice')
+          .then(m => m.InventoryPurchaseInvoiceComponent)
       },
       {
         path: 'purchase-return',

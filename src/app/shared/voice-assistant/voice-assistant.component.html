@@ -26,38 +26,61 @@
 
     <div class="voice-body">
 
-      <!-- Animated orb -->
-      <div class="voice-orb"
-           [class.listening]="listening()"
-           [class.speaking]="speaking()">
-        <i class="pi"
-           [ngClass]="speaking() ? 'pi-volume-up' : 'pi-microphone'"></i>
+      <!-- Text query input -->
+      <div class="voice-text-row">
+        <input
+          class="voice-query-input"
+          type="text"
+          placeholder="Ask anything… e.g. how to generate GRN"
+          [value]="queryText()"
+          (input)="queryText.set($any($event.target).value)"
+          (keydown.enter)="onTextQuery()" />
+        <button type="button" class="voice-query-btn" (click)="onTextQuery()" title="Ask">
+          <i class="pi pi-send"></i>
+        </button>
       </div>
 
-      <!-- Status + transcript -->
-      <div class="voice-state">
-        <span class="voice-status-badge" [class.active]="listening() || speaking()">
-          {{ status() }}
-        </span>
-        <small>Say <strong>"Kap"</strong> then your command</small>
-
-        @if (transcript()) {
-          <div class="voice-bubble voice-bubble--user">
-            <i class="pi pi-user"></i>
-            <span>{{ transcript() }}</span>
-          </div>
-        }
-
-        @if (matchedLabel()) {
-          <div class="voice-matched">
-            <i class="pi pi-arrow-right"></i>
-            <span>{{ matchedLabel() }}</span>
-          </div>
-        }
+      <!-- Animated orb + status -->
+      <div class="voice-orb-row">
+        <div class="voice-orb"
+             [class.listening]="listening()"
+             [class.speaking]="speaking()">
+          <i class="pi"
+             [ngClass]="speaking() ? 'pi-volume-up' : 'pi-microphone'"></i>
+        </div>
+        <div class="voice-state">
+          <span class="voice-status-badge" [class.active]="listening() || speaking()">
+            {{ status() }}
+          </span>
+          <small>Say <strong>"Kap"</strong> then your command</small>
+        </div>
       </div>
 
-      <!-- Assistant reply -->
-      @if (reply()) {
+      <!-- User transcript -->
+      @if (transcript()) {
+        <div class="voice-bubble voice-bubble--user">
+          <i class="pi pi-user"></i>
+          <span>{{ transcript() }}</span>
+        </div>
+      }
+
+      <!-- Steps guide panel -->
+      @if (currentSteps()) {
+        <div class="voice-steps">
+          <div class="voice-steps-title">
+            <i class="pi pi-list-check"></i>
+            <span>{{ currentSteps()!.title }}</span>
+          </div>
+          <ol class="voice-steps-list">
+            @for (step of currentSteps()!.steps; track $index) {
+              <li class="voice-step-item">{{ step }}</li>
+            }
+          </ol>
+        </div>
+      }
+
+      <!-- Assistant reply (when no steps) -->
+      @if (reply() && !currentSteps()) {
         <div class="voice-reply" [class.speaking]="speaking()">
           <i class="pi pi-volume-up voice-reply__icon"></i>
           <span>{{ reply() }}</span>
@@ -67,11 +90,11 @@
       @if (!supported()) {
         <p class="voice-error">
           <i class="pi pi-exclamation-triangle"></i>
-          Voice recognition is not supported in this browser.
+          Voice recognition is not supported in this browser. Use the text input above.
         </p>
       }
 
-      <!-- Action button -->
+      <!-- Voice action button -->
       <button
         type="button"
         class="voice-action"
@@ -84,15 +107,13 @@
 
       <!-- Command hint chips -->
       <div class="voice-hints">
-        <span class="voice-hint">"Kap trial balance"</span>
+        <span class="voice-hint">"How to generate GRN"</span>
+        <span class="voice-hint">"Steps for purchase order"</span>
+        <span class="voice-hint">"How to create sales invoice"</span>
+        <span class="voice-hint">"How to add a product"</span>
         <span class="voice-hint">"Kap what is trial balance"</span>
         <span class="voice-hint">"Kap explain ledger"</span>
-        <span class="voice-hint">"Kap how to use payment voucher"</span>
-        <span class="voice-hint">"Kap dependencies of general receipt"</span>
-        <span class="voice-hint">"Kap related screens for cheque receipt"</span>
-        <span class="voice-hint">"Kap what is SOS"</span>
-        <span class="voice-hint">"Kap why should we use SOS"</span>
-        <span class="voice-hint">"Kap open SOS"</span>
+        <span class="voice-hint">"Kap open general receipt"</span>
       </div>
 
     </div>

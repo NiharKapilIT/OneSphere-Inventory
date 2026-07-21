@@ -1,0 +1,201 @@
+<div class="inventory-form-grid inventory-config-grid">
+
+  <!-- Category Name -->
+  <div class="erp-form-group">
+    <label class="erp-label">Category Name <span class="text-danger">*</span></label>
+    <input class="erp-input" type="text" placeholder="Enter category name"
+      [ngModel]="catName()" (ngModelChange)="onCatNameChange($event)" />
+  </div>
+
+  <!-- Category Code -->
+  <div class="erp-form-group">
+    <label class="erp-label">Category Code</label>
+    <input class="erp-input" type="text" placeholder="Auto-fills from name"
+      [ngModel]="catCode()" (ngModelChange)="onCatCodeChange($event)" />
+  </div>
+
+  @if (catName().trim().length > 0 && (catNameSuggestions().length > 0 || catNameIsDuplicate())) {
+    <div class="inventory-duplicate-advice inventory-full-span" [class.inventory-duplicate-warn]="catNameIsDuplicate()">
+      @if (catNameIsDuplicate()) {
+        <strong><i class="pi pi-exclamation-triangle"></i> Already exists —</strong>
+        <span>"{{ catName() }}" is already a Category. Save only if this is a genuinely different entry.</span>
+      } @else {
+        <strong>Similar:</strong>
+        <div class="hsn-suggest-pills">
+          @for (s of catNameSuggestions(); track s) {
+            <button type="button" class="hsn-suggest-pill" (click)="onCatNameChange(s)" title="Use this name">{{ s }}</button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Status -->
+  <div class="erp-form-group">
+    <label class="erp-label">Status</label>
+    <label class="inventory-labeled-switch status">
+      <input type="checkbox" [checked]="catStatus() === 'Active'"
+        (change)="catStatus.set($any($event.target).checked ? 'Active' : 'Inactive')" />
+      <span class="inventory-switch-track">
+        <span class="switch-text switch-on">Active</span>
+        <span class="switch-text switch-off">Inactive</span>
+      </span>
+    </label>
+  </div>
+
+  <!-- Description -->
+  <div class="erp-form-group span-2">
+    <label class="erp-label">Description</label>
+    <textarea class="erp-input" rows="2" placeholder="Enter category description"
+      [ngModel]="catDescription()" (ngModelChange)="onCatDescriptionChange($event)"></textarea>
+  </div>
+
+  <!-- Serial No. Policy Applicable -->
+  <div class="erp-form-group">
+    <label class="erp-label">Serial No. Policy Applicable</label>
+    <label class="inventory-labeled-switch yes-no">
+      <input type="checkbox" [checked]="serialApplicable()"
+        (change)="setSerialApplicable($any($event.target).checked)" />
+      <span class="inventory-switch-track">
+        <span class="switch-text switch-on">Yes</span>
+        <span class="switch-text switch-off">No</span>
+      </span>
+    </label>
+    @if (serialApplicable()) {
+      <div class="inventory-switch-reveal">
+        <label class="erp-label">Default Serial Number Policy</label>
+        <div class="inventory-field-with-add">
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="localSerialPolicies()" [searchable]="true" [clearable]="true"
+            [ngModel]="serialPolicyName()" (ngModelChange)="serialPolicyName.set($event)"
+            placeholder="Select Serial Policy"></ng-select>
+          <button type="button" class="erp-btn btn-icon"
+            [class.btn-white]="!showInlineSerialAdd()"
+            [class.btn-primary]="showInlineSerialAdd()"
+            [title]="showInlineSerialAdd() ? 'Close' : 'Add Serial Number Policy'"
+            (click)="toggleInlineSerialAdd()">
+            <i [class]="showInlineSerialAdd() ? 'pi pi-times' : 'pi pi-plus'"></i>
+          </button>
+        </div>
+        @if (showInlineSerialAdd()) {
+          <div class="qac-inline-add">
+            <div class="erp-form-group qac-inline-field">
+              <label class="erp-label">Policy Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" placeholder="e.g. IMEI Required"
+                [ngModel]="inlineSerialName()" (ngModelChange)="onInlineSerialNameChange($event)" />
+            </div>
+            <div class="erp-form-group qac-inline-field">
+              <label class="erp-label">Policy Code</label>
+              <input class="erp-input" type="text" placeholder="SNP-001"
+                [ngModel]="inlineSerialCode()" (ngModelChange)="onInlineSerialCodeChange($event)" />
+            </div>
+            @if (inlineSerialNameIsDuplicate()) {
+              <p class="inventory-duplicate-advice qac-inline-warn">
+                <i class="pi pi-exclamation-triangle"></i>
+                "{{ inlineSerialName() }}" already exists — select it from the dropdown instead.
+              </p>
+            }
+            @if (inlineSerialError()) {
+              <p class="inventory-error-msg qac-inline-error">{{ inlineSerialError() }}</p>
+            }
+            <div class="qac-inline-actions">
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="closeInlineSerialAdd()">
+                <i class="pi pi-times"></i> Cancel
+              </button>
+              <button type="button" class="erp-btn btn-primary btn-sm"
+                [disabled]="savingInlineSerial()" (click)="saveInlineSerialPolicy()">
+                @if (savingInlineSerial()) {
+                  <i class="pi pi-spin pi-spinner"></i> Saving...
+                } @else {
+                  <i class="pi pi-check"></i> Add Policy
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Batch / Lot Policy Applicable -->
+  <div class="erp-form-group">
+    <label class="erp-label">Batch / Lot Policy Applicable</label>
+    <label class="inventory-labeled-switch yes-no">
+      <input type="checkbox" [checked]="batchApplicable()"
+        (change)="setBatchApplicable($any($event.target).checked)" />
+      <span class="inventory-switch-track">
+        <span class="switch-text switch-on">Yes</span>
+        <span class="switch-text switch-off">No</span>
+      </span>
+    </label>
+    @if (batchApplicable()) {
+      <div class="inventory-switch-reveal">
+        <label class="erp-label">Default Batch / Lot Policy</label>
+        <div class="inventory-field-with-add">
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="localBatchPolicies()" [searchable]="true" [clearable]="true"
+            [ngModel]="batchPolicyName()" (ngModelChange)="batchPolicyName.set($event)"
+            placeholder="Select Batch / Lot Policy"></ng-select>
+          <button type="button" class="erp-btn btn-icon"
+            [class.btn-white]="!showInlineBatchAdd()"
+            [class.btn-primary]="showInlineBatchAdd()"
+            [title]="showInlineBatchAdd() ? 'Close' : 'Add Batch / Lot Policy'"
+            (click)="toggleInlineBatchAdd()">
+            <i [class]="showInlineBatchAdd() ? 'pi pi-times' : 'pi pi-plus'"></i>
+          </button>
+        </div>
+        @if (showInlineBatchAdd()) {
+          <div class="qac-inline-add">
+            <div class="erp-form-group qac-inline-field">
+              <label class="erp-label">Policy Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" placeholder="e.g. Food Batch With Expiry"
+                [ngModel]="inlineBatchName()" (ngModelChange)="onInlineBatchNameChange($event)" />
+            </div>
+            <div class="erp-form-group qac-inline-field">
+              <label class="erp-label">Policy Code</label>
+              <input class="erp-input" type="text" placeholder="BLP-001"
+                [ngModel]="inlineBatchCode()" (ngModelChange)="onInlineBatchCodeChange($event)" />
+            </div>
+            @if (inlineBatchNameIsDuplicate()) {
+              <p class="inventory-duplicate-advice qac-inline-warn">
+                <i class="pi pi-exclamation-triangle"></i>
+                "{{ inlineBatchName() }}" already exists — select it from the dropdown instead.
+              </p>
+            }
+            @if (inlineBatchError()) {
+              <p class="inventory-error-msg qac-inline-error">{{ inlineBatchError() }}</p>
+            }
+            <div class="qac-inline-actions">
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="closeInlineBatchAdd()">
+                <i class="pi pi-times"></i> Cancel
+              </button>
+              <button type="button" class="erp-btn btn-primary btn-sm"
+                [disabled]="savingInlineBatch()" (click)="saveInlineBatchPolicy()">
+                @if (savingInlineBatch()) {
+                  <i class="pi pi-spin pi-spinner"></i> Saving...
+                } @else {
+                  <i class="pi pi-check"></i> Add Policy
+                }
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+</div>
+
+@if (error()) {
+  <p class="inventory-error-msg">{{ error() }}</p>
+}
+
+<div class="inventory-form-actions">
+  <button type="button" class="erp-btn btn-white" (click)="cancel()">
+    <i class="pi pi-times"></i> Cancel
+  </button>
+  <button type="button" class="erp-btn btn-primary" [disabled]="saving()" (click)="save()">
+    <i [class]="saving() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+    {{ saving() ? 'Saving...' : 'Save' }}
+  </button>
+</div>

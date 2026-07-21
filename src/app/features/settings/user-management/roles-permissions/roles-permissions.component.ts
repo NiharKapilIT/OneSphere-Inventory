@@ -1,40 +1,57 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { firstValueFrom, timeout } from 'rxjs';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 
 import {
   AccessControlService,
-  ModuleResponse,
   PermissionFlags,
+  RoleResponse,
   RoleScreenPermissionResponse,
+  RoleUpsertRequest,
   SaveRoleScreenPermissionsRequest,
   UserResponse
 } from '../../../../core/services/Settings/access-control.service';
 
 type PermissionAction = keyof PermissionFlags;
 
-export interface SubModuleGroup {
+export interface ScreenGroup {
   key: string;
   label: string;
   screens: RoleScreenPermissionResponse[];
 }
 
-export interface ModulePermissions {
+export interface ModuleTab {
+  moduleId: number;
   moduleCode: string;
   moduleName: string;
   icon: string;
-  subGroups: SubModuleGroup[];
+}
+
+export interface ActiveModulePerms {
+  moduleCode: string;
+  moduleName: string;
+  icon: string;
+  groups: ScreenGroup[];
 }
 
 const FULL_ACCESS: PermissionFlags = { view: true, create: true, update: true, delete: true, approve: true, export: true };
 const NO_ACCESS: PermissionFlags   = { view: false, create: false, update: false, delete: false, approve: false, export: false };
 
+/**
+ * Roles & Permissions — per-screen CRUD (+Approve/Export) access, grouped by
+ * module and, within a module, by the screen's logical group (e.g. Inventory
+ * → "Procurement" → Purchase Invoice). Module tabs are derived entirely from
+ * whatever the API returns for the selected role, so a new microfrontend
+ * (Accounts, HRMS, ...) shows up here automatically the moment its screens
+ * are registered — nothing in this component is Inventory-specific.
+ */
 @Component({
   selector: 'app-roles-permissions',
-  imports: [CommonModule, FormsModule, ToastModule],
+  imports: [CommonModule, FormsModule, RouterModule, ToastModule],
   providers: [MessageService],
   templateUrl: './roles-permissions.component.html',
   styleUrl: './roles-permissions.component.scss'
@@ -52,127 +69,160 @@ export class RolesPermissionsComponent implements OnInit {
     { key: 'export',  label: 'Export'  },
   ];
 
-  loading              = signal(false);
-  saving               = signal(false);
-  error                = signal('');
-  userQ                = signal('');
-  activeTab            = signal('');
-  collapsed            = signal<Set<string>>(new Set());
-  currentUserIsAdmin   = signal(false);
+  loading            = signal(false);
+  saving             = signal(false);
+  error              = signal('');
+  roleQ              = signal('');
+  activeTab          = signal('');
+  collapsed          = signal<Set<string>>(new Set());
+  currentUserIsAdmin = signal(false);
 
+  showAddRole  = signal(false);
+  newRoleName  = signal('');
+  addingRole   = signal(false);
+
+  roles       = signal<RoleResponse[]>([]);
   users       = signal<UserResponse[]>([]);
-  modules     = signal<ModuleResponse[]>([]);
-  selected    = signal<UserResponse | null>(null);
+  selected    = signal<RoleResponse | null>(null);
   permissions = signal<RoleScreenPermissionResponse[]>([]);
 
   // ── Computed ────────────────────────────────────────────────────
-  filteredUsers = computed(() => {
-    const q = this.userQ().trim().toLowerCase();
+  filteredRoles = computed(() => {
+    const q = this.roleQ().trim().toLowerCase();
+    const list = this.roles();
     return q
-      ? this.users().filter(u =>
-          u.fullName.toLowerCase().includes(q) ||
-          u.username.toLowerCase().includes(q)
-        )
-      : this.users();
+      ? list.filter(r => r.roleName.toLowerCase().includes(q) || r.roleCode.toLowerCase().includes(q))
+      : list;
   });
 
-  /** Only the modules that are assigned to the selected user */
-  userModules = computed((): ModuleResponse[] => {
-    const user = this.selected();
-    if (!user) return [];
-    const ids = new Set((user.modules ?? []).map(m => m.id));
-    return this.modules().filter(m => ids.has(m.id));
+  /** Super Admin is the only role type the backend always bypasses (`IsSuperAdmin` short-circuit) —
+   *  every other role type, including Company Admin, is genuinely row-driven and editable here. */
+  isSuperAdminRole = computed(() => this.selected()?.roleType === 'super_admin');
+
+  /** Role ↔ user mapping is owned by Manage Users (a user's `roleIds` there) — this is a read-only
+   *  view of who currently has the selected role, so it's clear where that assignment happens. */
+  usersWithSelectedRole = computed((): UserResponse[] => {
+    const role = this.selected();
+    if (!role) return [];
+    return this.users().filter(u => u.roles.some(r => r.id === role.id));
   });
 
-  isAdmin = computed(() => {
-    const u = this.selected();
-    if (!u) return false;
-    return u.isSuperAdmin || u.roles.some(r =>
-      r.roleType === 'company_admin' || r.roleType === 'super_admin'
-    );
+  /** Module tabs, in the order the API already returns them (module display_order) — first-seen wins. */
+  moduleTabs = computed((): ModuleTab[] => {
+    const seen = new Map<string, ModuleTab>();
+    for (const p of this.permissions()) {
+      if (!seen.has(p.moduleCode)) {
+        seen.set(p.moduleCode, { moduleId: p.moduleId, moduleCode: p.moduleCode, moduleName: p.moduleName, icon: p.moduleIcon || 'pi-th-large' });
+      }
+    }
+    return Array.from(seen.values());
   });
 
-  // Derive sub-module groups for the active module tab
-  activeModulePerms = computed((): ModulePermissions | null => {
+  // Screens for the active module tab, grouped by their real screen_group (not a string-prefix guess).
+  activeModulePerms = computed((): ActiveModulePerms | null => {
     const code = this.activeTab();
     if (!code) return null;
-    const all  = this.permissions();
-    const mod  = this.modules().find(m => m.moduleCode.toUpperCase() === code.toUpperCase());
-    const pfx  = code.toUpperCase();
+    const tab = this.moduleTabs().find(m => m.moduleCode === code);
+    const screens = this.permissions().filter(p => p.moduleCode === code);
 
-    const screens = all.filter(p => {
-      const sc = p.screenCode.toUpperCase();
-      return sc.startsWith(pfx + '_') || sc === pfx;
-    });
-
-    const subMap = new Map<string, RoleScreenPermissionResponse[]>();
+    const groupMap = new Map<string, RoleScreenPermissionResponse[]>();
     for (const s of screens) {
-      const parts  = s.screenCode.toUpperCase().replace(/-/g, '_').split('_');
-      const noMod  = parts[0] === pfx ? parts.slice(1) : parts;
-      const subKey = noMod.length > 1 ? noMod[0] : 'GENERAL';
-      if (!subMap.has(subKey)) subMap.set(subKey, []);
-      subMap.get(subKey)!.push(s);
+      const key = s.screenGroup?.trim() || 'General';
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key)!.push(s);
     }
 
-    const subGroups: SubModuleGroup[] = Array.from(subMap.entries()).map(([key, scr]) => ({
-      key,
-      label: this.toLabel(key),
-      screens: scr
-    }));
+    const groups: ScreenGroup[] = Array.from(groupMap.entries()).map(([key, scr]) => ({ key, label: key, screens: scr }));
 
     return {
       moduleCode: code,
-      moduleName: mod?.moduleName ?? code,
-      icon: mod?.icon ?? 'pi-th-large',
-      subGroups
+      moduleName: tab?.moduleName ?? code,
+      icon: tab?.icon ?? 'pi-th-large',
+      groups
     };
   });
 
   async ngOnInit(): Promise<void> {
     this.currentUserIsAdmin.set(this.readCurrentUserIsAdmin());
-    await Promise.all([this.loadUsers(), this.loadModules()]);
+    await Promise.all([this.loadRoles(), this.loadUsers()]);
   }
 
   // ── Data loaders ─────────────────────────────────────────────────
-  async loadUsers(): Promise<void> {
+  async loadRoles(): Promise<void> {
     this.loading.set(true);
+    try {
+      const r = await firstValueFrom(this.accessControl.getRoles().pipe(timeout(12000)));
+      this.roles.set((r.data ?? []).filter(role => role.status === 'active'));
+    } catch (e: any) {
+      this.showToast('error', 'Load failed', this.errMsg(e, 'Unable to load roles.'));
+    } finally { this.loading.set(false); }
+  }
+
+  /** Only for the read-only "who has this role" panel — errors here are non-fatal to the screen. */
+  async loadUsers(): Promise<void> {
     try {
       const r = await firstValueFrom(this.accessControl.getUsers().pipe(timeout(12000)));
       this.users.set(r.data ?? []);
-    } catch (e: any) {
-      this.showToast('error', 'Load failed', this.errMsg(e, 'Unable to load users.'));
-    } finally { this.loading.set(false); }
+    } catch { /* optional context, fine to skip if it fails */ }
   }
 
-  async loadModules(): Promise<void> {
-    try {
-      const r = await firstValueFrom(this.accessControl.getAssignableModules().pipe(timeout(12000)));
-      const mods = (r.data ?? []).filter(m => m.status === 'active');
-      this.modules.set(mods);
-      if (mods.length && !this.activeTab()) this.activeTab.set(mods[0].moduleCode);
-    } catch { /* tabs are optional */ }
-  }
-
-  // ── User selection ────────────────────────────────────────────────
-  async selectUser(user: UserResponse): Promise<void> {
-    this.selected.set(user);
+  // ── Role selection ────────────────────────────────────────────────
+  async selectRole(role: RoleResponse): Promise<void> {
+    this.selected.set(role);
     this.error.set('');
     this.permissions.set([]);
-    // Auto-select first module tab for this user
-    const firstMod = this.userModules()[0];
-    this.activeTab.set(firstMod?.moduleCode ?? '');
-    const roleId = user.roles[0]?.id;
-    if (!roleId) {
-      this.showToast('warn', 'No role assigned', `${user.fullName} has no role. Add a role via Manage Users.`);
-      return;
-    }
+    this.activeTab.set('');
     this.loading.set(true);
     try {
-      const r = await firstValueFrom(this.accessControl.getRolePermissions(roleId).pipe(timeout(12000)));
+      const r = await firstValueFrom(this.accessControl.getRolePermissions(role.id).pipe(timeout(12000)));
       this.permissions.set(r.data ?? []);
+      const firstTab = this.moduleTabs()[0];
+      if (firstTab) this.activeTab.set(firstTab.moduleCode);
     } catch (e: any) {
       this.showToast('error', 'Load failed', this.errMsg(e, 'Unable to load permissions.'));
     } finally { this.loading.set(false); }
+  }
+
+  // ── Add role ─────────────────────────────────────────────────────
+  toggleAddRole(): void {
+    this.showAddRole.update(v => !v);
+    this.newRoleName.set('');
+  }
+
+  async addRole(): Promise<void> {
+    const name = this.newRoleName().trim();
+    if (!name) return;
+    const code = name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 50) || 'ROLE';
+
+    const request: RoleUpsertRequest = { roleCode: code, roleName: name, roleType: 'custom', description: null, status: 'active' };
+    this.addingRole.set(true);
+    try {
+      const r = await firstValueFrom(this.accessControl.createRole(request).pipe(timeout(12000)));
+      this.showToast('success', 'Role created', `${name} was created.`);
+      this.showAddRole.set(false);
+      this.newRoleName.set('');
+      await this.loadRoles();
+      const created = this.roles().find(x => x.id === r.data.id);
+      if (created) await this.selectRole(created);
+    } catch (e: any) {
+      this.showToast('error', 'Create failed', this.errMsg(e, 'Unable to create role.'));
+    } finally { this.addingRole.set(false); }
+  }
+
+  async deactivateRole(role: RoleResponse, ev: Event): Promise<void> {
+    ev.stopPropagation();
+    if (role.roleType === 'super_admin' || role.roleType === 'company_admin') {
+      this.showToast('warn', 'Not allowed', 'System roles cannot be deactivated.');
+      return;
+    }
+    try {
+      await firstValueFrom(this.accessControl.inactivateRole(role.id).pipe(timeout(12000)));
+      this.showToast('success', 'Role deactivated', `${role.roleName} was deactivated.`);
+      if (this.selected()?.id === role.id) { this.selected.set(null); this.permissions.set([]); }
+      await this.loadRoles();
+    } catch (e: any) {
+      this.showToast('error', 'Deactivate failed', this.errMsg(e, 'Unable to deactivate role.'));
+    }
   }
 
   // ── Permission toggling ───────────────────────────────────────────
@@ -197,20 +247,20 @@ export class RolesPermissionsComponent implements OnInit {
     );
   }
 
-  grantAll(): void    { this.setForIds(this.activeScreenIds(), true);  }
-  revokeAll(): void   { this.setForIds(this.activeScreenIds(), false); }
+  grantAll(): void  { this.setForIds(this.activeScreenIds(), true);  }
+  revokeAll(): void { this.setForIds(this.activeScreenIds(), false); }
 
-  grantSubModule(key: string): void {
-    const sg = this.activeModulePerms()?.subGroups.find(g => g.key === key);
-    if (sg) this.setForIds(new Set(sg.screens.map(s => s.screenId)), true);
+  grantGroup(key: string): void {
+    const g = this.activeModulePerms()?.groups.find(x => x.key === key);
+    if (g) this.setForIds(new Set(g.screens.map(s => s.screenId)), true);
   }
 
-  revokeSubModule(key: string): void {
-    const sg = this.activeModulePerms()?.subGroups.find(g => g.key === key);
-    if (sg) this.setForIds(new Set(sg.screens.map(s => s.screenId)), false);
+  revokeGroup(key: string): void {
+    const g = this.activeModulePerms()?.groups.find(x => x.key === key);
+    if (g) this.setForIds(new Set(g.screens.map(s => s.screenId)), false);
   }
 
-  // ── Sub-module collapse ───────────────────────────────────────────
+  // ── Group collapse ───────────────────────────────────────────────
   toggleCollapse(key: string): void {
     this.collapsed.update(set => {
       const n = new Set(set);
@@ -223,12 +273,11 @@ export class RolesPermissionsComponent implements OnInit {
 
   // ── Save ──────────────────────────────────────────────────────────
   async savePermissions(): Promise<void> {
-    const user   = this.selected();
-    const roleId = user?.roles[0]?.id;
-    if (!roleId) { this.error.set('User has no role to save permissions for.'); return; }
+    const role = this.selected();
+    if (!role) { this.error.set('Select a role first.'); return; }
 
     const request: SaveRoleScreenPermissionsRequest = {
-      roleId,
+      roleId: role.id,
       permissions: this.permissions().map(item => ({
         screenId:   item.screenId,
         canView:    item.permissions.view,
@@ -245,8 +294,7 @@ export class RolesPermissionsComponent implements OnInit {
     try {
       const r = await firstValueFrom(this.accessControl.saveRolePermissions(request).pipe(timeout(12000)));
       this.showToast('success', 'Permissions saved', r.message ?? 'Updated successfully.');
-      // Reload to reflect saved state
-      await this.selectUser(user!);
+      await this.selectRole(role);
     } catch (e: any) {
       this.error.set(this.errMsg(e, 'Unable to save permissions.'));
       this.showToast('error', 'Save failed', this.error());
@@ -258,19 +306,17 @@ export class RolesPermissionsComponent implements OnInit {
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
-  roleTypeLabel(u: UserResponse): string {
-    const r = u.roles[0];
-    if (!r) return 'No role';
-    return r.roleType.replace(/_/g, ' ');
+  roleTypeLabel(role: RoleResponse): string {
+    return role.roleType.replace(/_/g, ' ');
   }
 
-  userInitial(u: UserResponse): string {
-    return (u.fullName || u.username).charAt(0).toUpperCase();
+  roleInitial(role: RoleResponse): string {
+    return role.roleName.charAt(0).toUpperCase();
   }
 
   private activeScreenIds(): Set<number> {
     return new Set(
-      (this.activeModulePerms()?.subGroups ?? []).flatMap(g => g.screens.map(s => s.screenId))
+      (this.activeModulePerms()?.groups ?? []).flatMap(g => g.screens.map(s => s.screenId))
     );
   }
 
@@ -281,10 +327,6 @@ export class RolesPermissionsComponent implements OnInit {
         ids.has(item.screenId) ? { ...item, permissions: { ...flags } } : item
       )
     );
-  }
-
-  private toLabel(code: string): string {
-    return code.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
   }
 
   private errMsg(e: any, fallback: string): string {

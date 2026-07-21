@@ -1,0 +1,829 @@
+@if (host.activeAddMaster()) {
+    <div class="inventory-modal-backdrop">
+      <div class="inventory-modal" [class.inventory-modal--wide]="host.activeAddMaster() === 'Variant'">
+        <div class="inventory-modal-header">
+          <div>
+            <h3>{{ host.activeAddMaster() === 'New Segment' ? 'Add New Segment' : 'Add ' + host.activeAddMaster() }}</h3>
+            <p>
+              @if (host.activeAddMaster() === 'HSN / SAC') {
+                Fetch from government source, use a ready API, or add manually for demo mapping.
+              } @else if (host.activeAddMaster() === 'Category') {
+                Add a clean product category after checking similar existing categories.
+              } @else if (host.activeAddMaster() === 'UOM') {
+                @if (host.isQuickUomMappingContext()) {
+                  Add a new UOM and map it to the selected Base UOM.
+                } @else {
+                  Add UOM with base/alternate conversion guidance for inventory transactions.
+                }
+              } @else if (host.activeAddMaster() === 'Business Segment') {
+                Create or review the business segment with categories, HSN/SAC codes and typical UOMs.
+              } @else if (host.activeAddMaster() === 'New Segment') {
+                Add only the segment title here. Categories, HSN/SAC codes and UOMs are configured on the main screen.
+              } @else if (host.activeAddMaster() === 'Location Address') {
+                Fetch address from Maps API later or enter the warehouse address manually.
+              } @else if (host.activeAddMaster() === 'Contact Person') {
+                Add or select a global contact that can be reused for vendor, customer, employee and branch contact mapping.
+              } @else if (host.activeAddMaster() === 'Manufacturer') {
+                Add only the manufacturer name for brand mapping. More manufacturer details can be added later if required.
+              } @else if (host.activeAddMaster() === 'Serial Number Policy') {
+                Add a reusable serial/IMEI rule. Category can provide the default, and Product Master can override it.
+              } @else if (host.activeAddMaster() === 'Batch / Lot Policy') {
+                Add a reusable batch/lot rule for product-wise lot, expiry and QC tracking.
+              } @else if (host.activeAddMaster() === 'Approval Workflow') {
+                Add a reusable approval workflow with approver role, level, threshold and escalation details.
+              } @else {
+                Inline placeholder for fast master creation from transaction screens.
+              }
+            </p>
+          </div>
+          <button type="button" class="erp-btn btn-white btn-icon" (click)="host.closeAddMaster()"><i class="pi pi-times"></i></button>
+        </div>
+
+        <!-- Duplicate / suggestions — shown when typing a name in any quick-add that uses quickAddName -->
+        @if (host.quickAddName().trim().length > 0 && (host.quickAddSuggestions().length > 0 || host.quickAddIsDuplicate())) {
+          <div class="inventory-duplicate-advice inventory-modal-advice" [class.inventory-duplicate-warn]="host.quickAddIsDuplicate()">
+            @if (host.quickAddIsDuplicate()) {
+              <strong><i class="pi pi-exclamation-triangle"></i> Already exists —</strong>
+              <span>"{{ host.quickAddName() }}" is already in the {{ host.activeAddMaster() }} list. Save anyway only if it is a genuinely different entry.</span>
+            } @else {
+              <strong>Similar:</strong>
+              <div class="hsn-suggest-pills">
+                @for (s of host.quickAddSuggestions(); track s) {
+                  <button type="button" class="hsn-suggest-pill" (click)="host.onQuickAddNameChange(s)" title="Use this name">{{ s }}</button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (host.activeAddMaster() === 'HSN / SAC') {
+          <div class="inventory-lookup-source">
+            @for (source of host.hsnSourceOptions; track source) {
+              <button type="button" class="erp-btn btn-white">
+                <i [class]="source === 'Manual Entry' ? 'pi pi-pencil' : source === 'Ready API' ? 'pi pi-cloud-download' : 'pi pi-globe'"></i>
+                {{ source }}
+              </button>
+            }
+          </div>
+          <div class="inventory-form-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Search Keyword</label>
+              <input class="erp-input" type="text" placeholder="Product, service or code keyword" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">HSN/SAC Code</label>
+              <input class="erp-input" type="text" placeholder="Fetched code or manual entry" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">GST Rate</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" [ngModel]="'18'" placeholder="Select GST"></ng-select>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Source</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.hsnSourceOptions" [searchable]="true" [clearable]="true" [ngModel]="'Government API'" placeholder="Select Source"></ng-select>
+            </div>
+          </div>
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
+            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
+            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" /></div>
+            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" /></div>
+          </div>
+          <div class="inventory-duplicate-advice">
+            <strong>Product auto-binding</strong>
+            <span>When a product category or product is selected later, Product Master should fetch the matching HSN/SAC code and GST breakup from this master.</span>
+          </div>
+          <div class="inventory-mini-table">
+            <div class="inventory-mini-title">Fetched / Available HSN / SAC Codes</div>
+            <table class="erp-table compact">
+              <thead>
+                <tr>
+                  <th class="text-center">Actions</th>
+                  @for (column of ['HSN/SAC Code', 'Description', 'GST %', 'CGST %', 'SGST %', 'IGST %', 'Cess %', 'Effective Date', 'Status']; track column; let columnIndex = $index) {
+                    <th class="inventory-sortable-th">
+                      <button type="button" class="inventory-sort-btn" (click)="host.sortBy('hsnLookup', columnIndex)">
+                        <span>{{ column }}</span>
+                        <i [class]="host.sortIcon('hsnLookup', columnIndex)"></i>
+                      </button>
+                    </th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of host.gridRows('hsnLookup', host.hsnLookupRows); track row[0]) {
+                  <tr>
+                    <td class="text-center">
+                      <div class="inventory-row-actions">
+                      @if (host.isAdmin()) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      }
+                    </div>
+                    </td>
+                    @for (cell of row; track $index) {
+                      <td>{{ cell }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (host.activeAddMaster() === 'Category') {
+          <app-quick-add-category
+            [serialPolicies]="host.serialPolicyOptions"
+            [batchPolicies]="host.batchPolicyOptions"
+            [existingCategoryNames]="host.categoryOptions"
+            [existingCategoryCodes]="host.categoryCodes"
+            [segmentId]="host.currentSegmentId"
+            (saved)="host.onQuickCategorySaved($event)"
+            (cancelled)="host.restoreParentModal()">
+          </app-quick-add-category>
+        } @else if (host.activeAddMaster() === 'UOM') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">UOM Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Numbers, Kilogram, Bag" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">UOM Code
+              </label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="NOS / KG / BAG" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Symbol <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddUomSymbol()"
+                (ngModelChange)="host.onQuickAddUomSymbolChange($event)"
+                placeholder="nos, kg, bag" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">UOM Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="['Base', 'Purchase', 'Sale', 'Billing', 'Capacity']"
+                [searchable]="true" [clearable]="false"
+                [ngModel]="host.quickAddUomType()"
+                (ngModelChange)="host.quickAddUomType.set($event)"
+                placeholder="Select Type">
+              </ng-select>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" [checked]="true" disabled />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+            @if (host.isQuickUomMappingContext()) {
+              <div class="erp-form-group">
+                <label class="erp-label">Map To Base UOM</label>
+                <div class="erp-input" style="background:var(--erp-bg-subtle,#f5f5f5);cursor:default;">{{ host.formValues()['baseUom'] || 'set Base UOM first' }}</div>
+              </div>
+              <div class="erp-form-group">
+                <label class="erp-label">1 New UOM equals Base Qty <span class="text-danger">*</span></label>
+                <input class="erp-input" type="text" inputmode="decimal"
+                  [ngModel]="host.formValues()['convFactor'] || ''"
+                  (ngModelChange)="host.collectFormField('convFactor', $event)"
+                  placeholder="Example: 26 means 1 Bag = 26 KG" />
+              </div>
+              <div class="erp-form-group">
+                <label class="erp-label">Is Purchase UOM</label>
+                <label class="inventory-labeled-switch yes-no">
+                  <input type="checkbox" [checked]="host.formValues()['convIsPurchase'] !== false" (change)="host.collectFormField('convIsPurchase', $any($event.target).checked)" />
+                  <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                </label>
+              </div>
+              <div class="erp-form-group">
+                <label class="erp-label">Is Sales UOM</label>
+                <label class="inventory-labeled-switch yes-no">
+                  <input type="checkbox" [checked]="host.formValues()['convIsSales'] !== false" (change)="host.collectFormField('convIsSales', $any($event.target).checked)" />
+                  <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                </label>
+              </div>
+            }
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'UOM Conversion') {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Product Base UOM</label>
+              <div class="erp-input" style="background:var(--erp-bg-subtle,#f5f5f5);cursor:default;">{{ host.formValues()['baseUom'] || 'set Base UOM on product first' }}</div>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Alternate UOM <span class="text-danger">*</span></label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.uomOptions" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['convAltUom']" (ngModelChange)="host.collectFormField('convAltUom', $event)" placeholder="e.g. Box, Crate, Bag"></ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Quick add UOM" (click)="host.openAddMaster('UOM', 'convAltUom')"><i class="pi pi-plus"></i></button>
+              </div>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">1 Alternate UOM equals Base Qty <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" inputmode="decimal"
+                [ngModel]="host.formValues()['convFactor'] || ''"
+                (ngModelChange)="host.collectFormField('convFactor', $event)"
+                placeholder="Example: 26 means 1 Bag = 26 KG" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Is Purchase UOM</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['convIsPurchase'] !== false" (change)="host.collectFormField('convIsPurchase', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Is Sales UOM</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['convIsSales'] !== false" (change)="host.collectFormField('convIsSales', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+          <div class="inventory-duplicate-advice">
+            <strong>UOM mapping</strong>
+            <span>Base UOM should be the smallest stock unit. Enter each alternate UOM and how many Base units it equals, then stage all required rows before saving.</span>
+          </div>
+        } @else if (host.activeAddMaster() === 'Business Segment') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Categories</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.categoryOptions" [multiple]="true" [searchable]="true" [clearable]="true"
+                  [ngModel]="host.formValues()['segmentCategories'] || []"
+                  (ngModelChange)="host.collectFormField('segmentCategories', $event)"
+                  placeholder="Select Categories"></ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add Category" (click)="host.openAddMaster('Category')">
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Related HSN / SAC Codes</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.hsnSacOptions" [multiple]="true" [searchable]="true" [clearable]="true"
+                  [ngModel]="host.formValues()['segmentHsnCodes'] || []"
+                  (ngModelChange)="host.collectFormField('segmentHsnCodes', $event)"
+                  placeholder="Select HSN / SAC"></ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add HSN / SAC" (click)="host.openAddMaster('HSN / SAC')">
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Typical UOMs</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.uomOptions" [multiple]="true" [searchable]="true" [clearable]="true"
+                  [ngModel]="host.formValues()['segmentUoms'] || []"
+                  (ngModelChange)="host.collectFormField('segmentUoms', $event)"
+                  placeholder="Select UOMs"></ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="host.openAddMaster('UOM')">
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Usage Note</label>
+              <textarea class="erp-input" rows="2" placeholder="Enter usage note"
+                [ngModel]="host.formValues()['segmentUsageNote'] || ''"
+                (ngModelChange)="host.collectFormField('segmentUsageNote', $event)"></textarea>
+            </div>
+          </div>
+        } @else if (host.activeAddMaster() === 'New Segment') {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Segment Title</label>
+              <input class="erp-input" type="text" placeholder="Enter new segment title" />
+            </div>
+          </div>
+        } @else if (host.activeAddMaster() === 'Location Address') {
+          <div class="inventory-lookup-source">
+            <button type="button" class="erp-btn btn-white"><i class="pi pi-map-marker"></i> Fetch From Maps</button>
+            <button type="button" class="erp-btn btn-white"><i class="pi pi-pencil"></i> Add Manual</button>
+          </div>
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">Search Location</label><input class="erp-input" type="text" placeholder="Search location using Maps API later" /></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Fetched or manual address"></textarea></div>
+          </div>
+        } @else if (host.activeAddMaster() === 'Contact Person') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Contact Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="['Individual', 'Company']" [searchable]="false" [clearable]="false"
+                [ngModel]="host.formValues()['quickContactType'] || 'Individual'"
+                (ngModelChange)="host.collectFormField('quickContactType', $event)"
+                placeholder="Select Type">
+              </ng-select>
+            </div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Contact Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Person or business name" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactMobile']"
+                (ngModelChange)="host.collectFormField('quickContactMobile', $event)"
+                placeholder="Enter mobile no" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Email</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactEmail']"
+                (ngModelChange)="host.collectFormField('quickContactEmail', $event)"
+                placeholder="Enter email id" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactGstin']"
+                (ngModelChange)="host.collectFormField('quickContactGstin', $event)"
+                placeholder="22AAAAA0000A1Z5" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">PAN <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactPan']"
+                (ngModelChange)="host.collectFormField('quickContactPan', $event)"
+                placeholder="AAAAA0000A" />
+            </div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address <span class="erp-label-hint">optional</span></label>
+              <textarea class="erp-input" rows="2"
+                [ngModel]="host.formValues()['quickContactAddress']"
+                (ngModelChange)="host.collectFormField('quickContactAddress', $event)"
+                placeholder="Enter address"></textarea>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Product Type') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Product Type Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Physical Stock / Service / Menu Item" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Product Type Code
+              </label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="PT-STOCK" />
+            </div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Behavior</label>
+              <textarea class="erp-input" rows="2" placeholder="Explain how this product type behaves in transactions"></textarea>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Brand') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Brand Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="House Brand / Dell / Samsung" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Brand Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="BR-2600001" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Manufacturer</label>
+              <input class="erp-input" type="text" [ngModel]="host.formValues()['quickManufacturer']" (ngModelChange)="host.collectFormField('quickManufacturer', $event)" placeholder="e.g. Dell Technologies, Samsung" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Website <span class="erp-label-hint">optional</span></label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickWebsite']" (ngModelChange)="host.collectFormField('quickWebsite', $event)" placeholder="https://brand-website.com" /></div>
+            <div class="erp-form-group"><label class="erp-label">Country of Origin</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickCountry']" (ngModelChange)="host.collectFormField('quickCountry', $event)" placeholder="India / USA / China" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Brand Logo <span class="erp-label-hint">optional</span></label><input class="erp-input" type="file" accept="image/*" /></div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Variant') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Variant Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Black Color / 128GB / Deluxe Room" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Variant Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="VA-2600001" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          <div class="inventory-line-items" style="margin-top:12px">
+            <div class="inventory-line-title">
+              <div>
+                <strong>Attributes</strong>
+                <span>Map one or more attributes to this variant.</span>
+              </div>
+              <button type="button" class="erp-btn btn-white btn-sm" title="Create a new attribute in master" (click)="host.openAddMaster('Attribute')">
+                <i class="pi pi-plus"></i> New Attribute
+              </button>
+            </div>
+            <div class="tbl-wrap">
+              <table class="erp-table compact">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width:60px">Remove</th>
+                    <th>Attribute Name</th>
+                    <th>Attribute Value</th>
+                    <th class="text-center" style="width:60px">Add</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (attrRow of host.quickAddVariantRows(); track $index; let attrIdx = $index) {
+                    @let rowView = host.quickAddVariantRowViews()[attrIdx];
+                    <tr>
+                      <td class="text-center">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="host.removeQuickVariantRow(attrIdx)"><i class="pi pi-trash"></i></button>
+                      </td>
+                      <td>
+                        <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
+                          [items]="host.attributeOptions" [searchable]="true" [clearable]="true"
+                          [ngModel]="attrRow.name"
+                          (ngModelChange)="host.setQuickVariantRowName(attrIdx, $event)"
+                          placeholder="Select Attribute">
+                        </ng-select>
+                      </td>
+                      <td>
+                        @if (rowView.options.length) {
+                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
+                            [items]="rowView.options"
+                            [searchable]="true" [clearable]="true"
+                            [addTag]="true" addTagText="Add new value:"
+                            [multiple]="rowView.usesMultiselect"
+                            [closeOnSelect]="!rowView.usesMultiselect"
+                            [ngModel]="rowView.controlValue"
+                            (ngModelChange)="host.setQuickVariantRowValue(attrIdx, $event)"
+                            [placeholder]="rowView.placeholder">
+                          </ng-select>
+                        } @else {
+                          <input class="erp-input inventory-grid-input"
+                            [type]="rowView.inputType"
+                            [ngModel]="rowView.controlValue"
+                            (ngModelChange)="host.setQuickVariantRowValue(attrIdx, $event)"
+                            [placeholder]="rowView.placeholder" />
+                        }
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add attribute row" (click)="host.addQuickVariantRow()"><i class="pi pi-plus"></i></button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Attribute') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Attribute Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Color / Size / Grade" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Product Category</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.categoryOptions" [searchable]="true" [clearable]="true"
+                  [ngModel]="host.formValues()['quickAttributeCategoryName']"
+                  (ngModelChange)="host.collectFormField('quickAttributeCategoryName', $event)"
+                  placeholder="Select Category">
+                </ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add Category" (click)="host.openAddMaster('Category', 'quickAttributeCategoryName')"><i class="pi pi-plus"></i></button>
+              </div>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Attribute Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="['Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes/No']"
+                [searchable]="true" [clearable]="false"
+                [ngModel]="host.formValues()['quickAttributeType'] || 'Text'"
+                (ngModelChange)="host.collectFormField('quickAttributeType', $event)"
+                placeholder="Select Attribute Type">
+              </ng-select>
+            </div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Possible Values</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="host.quickAttributeValuesTags()"
+                [multiple]="true" [addTag]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false"
+                [ngModel]="host.quickAttributeValuesTags()"
+                (ngModelChange)="host.setQuickAttributeValuesTags($event)"
+                addTagText="Add value:"
+                placeholder="Type a value (e.g. Red, new model name) and press Enter to add">
+              </ng-select>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Mandatory Flag</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="['Yes', 'No']" [searchable]="false" [clearable]="false"
+                [ngModel]="host.formValues()['quickAttributeMandatory'] || 'No'"
+                (ngModelChange)="host.collectFormField('quickAttributeMandatory', $event)"
+                placeholder="Select Mandatory Flag">
+              </ng-select>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox"
+                  [checked]="(host.formValues()['quickAttributeStatus'] || 'active') !== 'inactive'"
+                  (change)="host.collectFormField('quickAttributeStatus', $any($event.target).checked ? 'active' : 'inactive')" />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Tax Category') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Tax Category Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="GST 18% / GST 5% / Exempt" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Tax Category Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="TA-2600001" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">GST %</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" placeholder="Select GST %"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
+            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
+            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" /></div>
+            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Product / Service') {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">Product Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
+            <div class="erp-form-group"><label class="erp-label">Product Name</label><input class="erp-input" type="text" placeholder="Enter product name" /></div>
+            <div class="erp-form-group"><label class="erp-label">SKU</label><input class="erp-input" type="text" placeholder="SKU" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        } @else if (host.activeAddMaster() === 'Manufacturer') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Manufacturer Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Dell Technologies / Kitchen Fresh" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Manufacturer Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="MA-2600001" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Website <span class="erp-label-hint">optional</span></label><input class="erp-input" type="text" placeholder="https://manufacturer-website.com" /></div>
+            <div class="erp-form-group"><label class="erp-label">Country</label><input class="erp-input" type="text" placeholder="India / USA / China" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
+        } @else if (host.activeAddMaster() === 'Serial Number Policy') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Policy Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="IMEI Required / Auto Capture" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Policy Code</label>
+              <input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Applicable Category</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.categoryOptions" [searchable]="true" [clearable]="true" [addTag]="true" addTagText="Use as category:" [ngModel]="host.formValues()['quickApplicableCategory']" (ngModelChange)="host.collectFormField('quickApplicableCategory', $event)" placeholder="Select or type category"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Serial Format</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickSerialFormat']" (ngModelChange)="host.collectFormField('quickSerialFormat', $event)" placeholder="15 digit IMEI / alphanumeric serial" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Capture Stage</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickCaptureStage']" (ngModelChange)="host.collectFormField('quickCaptureStage', $event)" placeholder="Select Stage"></ng-select>
+            </div>
+          </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+        } @else if (host.activeAddMaster() === 'Batch / Lot Policy') {
+          <div class="inventory-form-grid inventory-config-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Policy Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Food Batch With Expiry" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Policy Code</label>
+              <input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Applicable For (Category)</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.categoryOptions" [searchable]="true" [clearable]="true" [addTag]="true" addTagText="Use as category:" [ngModel]="host.formValues()['quickApplicableFor']" (ngModelChange)="host.collectFormField('quickApplicableFor', $event)" placeholder="Select or type category"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Batch / Lot Format</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickBatchFormat']" (ngModelChange)="host.collectFormField('quickBatchFormat', $event)" placeholder="YYYYMMDD-SUPPLIER-SEQ" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Expiry Required</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['quickExpiryRequired'] !== false" (change)="host.collectFormField('quickExpiryRequired', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">QC Required</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['quickQcRequired'] !== false" (change)="host.collectFormField('quickQcRequired', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+        } @else if (host.activeAddMaster() === 'Vendor') {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
+            <div class="erp-form-group"><label class="erp-label">Vendor Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Vendor Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickVendorType'] || 'Company'" (ngModelChange)="host.collectFormField('quickVendorType', $event)" placeholder="Select type"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickVendorMobile']" (ngModelChange)="host.collectFormField('quickVendorMobile', $event)" placeholder="Primary contact number" /></div>
+            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickVendorEmail']" (ngModelChange)="host.collectFormField('quickVendorEmail', $event)" placeholder="Vendor email" /></div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorGstin']" (ngModelChange)="host.collectFormField('quickVendorGstin', $event)" placeholder="22AAAAA0000A1Z5" /></div>
+            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorPan']" (ngModelChange)="host.collectFormField('quickVendorPan', $event)" placeholder="AAAAA0000A" /></div>
+            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickVendorCreditLimit']" (ngModelChange)="host.collectFormField('quickVendorCreditLimit', $event)" placeholder="0" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Payment Terms</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickVendorPaymentTerms']" (ngModelChange)="host.collectFormField('quickVendorPaymentTerms', $event)" placeholder="Select payment terms"></ng-select>
+            </div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorAddress']" (ngModelChange)="host.collectFormField('quickVendorAddress', $event)" placeholder="Registered business address"></textarea></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Bank Details</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorBankDetails']" (ngModelChange)="host.collectFormField('quickVendorBankDetails', $event)" placeholder="Bank name, account no., IFSC"></textarea></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" [checked]="host.formValues()['quickVendorStatus'] !== 'Inactive'" (change)="host.collectFormField('quickVendorStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
+              </label>
+            </div>
+          </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+        } @else if (host.activeAddMaster() === 'Customer') {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" placeholder="Auto-generated" /></div>
+            <div class="erp-form-group"><label class="erp-label">Customer Name</label><input class="erp-input" type="text" placeholder="Legal registered name" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Customer Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail', 'Wholesale', 'Corporate', 'Government', 'Export']" [searchable]="true" [clearable]="true" [ngModel]="'Retail'" placeholder="Select type"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" placeholder="Primary contact number" /></div>
+            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" placeholder="Customer email" /></div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Price List</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" placeholder="Assign price list"></ng-select>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Payment Terms</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" placeholder="Select payment terms"></ng-select>
+            </div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Billing / delivery address"></textarea></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
+              </label>
+            </div>
+          </div>
+        } @else {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group"><label class="erp-label">Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
+            <div class="erp-form-group"><label class="erp-label">Name</label><input class="erp-input" type="text" [placeholder]="'Enter ' + host.activeAddMaster() + ' name'" /></div>
+            <div class="erp-form-group">
+              <label class="erp-label">Status</label>
+              <label class="inventory-labeled-switch status">
+                <input type="checkbox" checked />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Active</span>
+                  <span class="switch-text switch-off">Inactive</span>
+                </span>
+              </label>
+            </div>
+          </div>
+        }
+        @if (host.activeAddMaster() !== 'Category') {
+          <div class="inventory-form-actions">
+            <button type="button" class="erp-btn btn-white" (click)="host.closeAddMaster()"><i class="pi pi-times"></i> Cancel</button>
+            <button type="button" class="erp-btn btn-primary"
+              (click)="host.activeAddMaster() === 'UOM' ? host.saveQuickUom() :
+                       host.activeAddMaster() === 'Product Type' ? host.saveQuickProductType() :
+                       host.activeAddMaster() === 'Brand' ? host.saveQuickBrand() :
+                       host.activeAddMaster() === 'Variant' ? host.saveQuickVariant() :
+                       host.activeAddMaster() === 'Attribute' ? host.saveQuickAttribute() :
+                       host.activeAddMaster() === 'Contact Person' ? host.saveQuickContact() :
+                       host.activeAddMaster() === 'Vendor' ? host.saveQuickVendor() :
+                       host.activeAddMaster() === 'Serial Number Policy' ? host.saveQuickSerialPolicy() :
+                       host.activeAddMaster() === 'Batch / Lot Policy' ? host.saveQuickBatchPolicy() :
+                       host.activeAddMaster() === 'UOM Conversion' ? host.addUomConversionRow() :
+                       host.closeAddMaster()"
+              [disabled]="host.isSavingQuickAdd()">
+              <i [class]="host.isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+              {{ host.activeAddMaster() === 'UOM Conversion' ? 'Add Row' : (host.isSavingQuickAdd() ? 'Saving...' : (host.activeAddMaster() === 'UOM' && host.isQuickUomMappingContext() ? 'Save & Map' : 'Save')) }}
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }

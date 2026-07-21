@@ -1,0 +1,101 @@
+@if (host.activeSerialPicker(); as picker) {
+  <div class="inventory-modal-backdrop">
+    <div class="inventory-modal inventory-serial-picker-modal">
+      <div class="inventory-modal-header">
+        <div>
+          <h3>
+            @if (picker.mode === 'capture') {
+              Enter Serial Numbers
+            } @else if (picker.mode === 'inherited') {
+              Reserved Serial Numbers
+            } @else {
+              Select Serial Numbers
+            }
+          </h3>
+          <p>{{ picker.productName }} — {{ host.serialPickerDraftValues().length }} of {{ picker.qtyNeeded }}
+            @if (picker.mode === 'capture') { entered } @else if (picker.mode === 'inherited') { reserved via Delivery Challan } @else { selected }
+          </p>
+        </div>
+        <button type="button" class="erp-btn btn-white btn-icon" (click)="host.closeSerialPicker(false)"><i class="pi pi-times"></i></button>
+      </div>
+
+      @if (host.serialPickerError()) {
+        <div class="inventory-duplicate-advice inventory-duplicate-warn">
+          <strong><i class="pi pi-exclamation-triangle"></i> {{ host.serialPickerError() }}</strong>
+        </div>
+      } @else if (host.serialPickerMessage()) {
+        <div class="inventory-duplicate-advice inventory-duplicate-success">
+          <strong><i class="pi pi-check-circle"></i> {{ host.serialPickerMessage() }}</strong>
+        </div>
+      }
+
+      @if (picker.mode === 'capture') {
+        <div class="inventory-modal-body">
+          <div class="erp-form-group">
+            <label>Serial / IMEI Number</label>
+            <input #captureInput class="erp-input" type="text" [(ngModel)]="captureDraft"
+              (keydown.enter)="addCaptureValue(captureInput)"
+              [disabled]="host.serialPickerDraftValues().length >= picker.qtyNeeded"
+              placeholder="Type a serial number and press Enter" />
+          </div>
+          <div class="inventory-serial-chip-list">
+            @for (serial of host.serialPickerDraftValues(); track serial) {
+              <span class="inventory-serial-chip">
+                {{ serial }}
+                <button type="button" (click)="host.removeSerialPickerCaptureValue(serial)"><i class="pi pi-times"></i></button>
+              </span>
+            } @empty {
+              <span class="inventory-grid-empty-hint">No serial numbers entered yet.</span>
+            }
+          </div>
+        </div>
+      } @else if (picker.mode === 'inherited') {
+        <div class="inventory-modal-body">
+          @if (host.serialPickerLoading()) {
+            <span class="inventory-grid-empty-hint">Loading reserved serials…</span>
+          } @else {
+            <div class="inventory-serial-chip-list">
+              @for (serial of host.serialPickerDraftValues(); track serial) {
+                <span class="inventory-serial-chip inventory-serial-chip--readonly">{{ serial }}</span>
+              } @empty {
+                <span class="inventory-grid-empty-hint">No serials reserved for this line.</span>
+              }
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="inventory-modal-body">
+          @if (host.serialPickerLoading()) {
+            <span class="inventory-grid-empty-hint">Loading available serials…</span>
+          } @else {
+            <div class="inventory-serial-select-list">
+              @for (option of host.serialPickerAvailableOptions(); track option.id) {
+                <label class="inventory-serial-select-row">
+                  <input type="checkbox"
+                    [checked]="host.serialPickerDraftValues().includes(option.serial_no)"
+                    (change)="host.toggleSerialPickerValue(option.serial_no)" />
+                  <span>{{ option.serial_no }}</span>
+                </label>
+              } @empty {
+                <span class="inventory-grid-empty-hint">No serial numbers available to select.</span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <div class="inventory-modal-footer">
+        <button type="button" class="erp-btn btn-white" (click)="host.closeSerialPicker(false)">Cancel</button>
+        @if (picker.mode !== 'inherited') {
+          <button type="button" class="erp-btn btn-primary"
+            [disabled]="host.serialPickerDraftValues().length !== picker.qtyNeeded"
+            (click)="host.closeSerialPicker(true)">
+            Save ({{ host.serialPickerDraftValues().length }}/{{ picker.qtyNeeded }})
+          </button>
+        } @else {
+          <button type="button" class="erp-btn btn-primary" (click)="host.closeSerialPicker(false)">Close</button>
+        }
+      </div>
+    </div>
+  </div>
+}

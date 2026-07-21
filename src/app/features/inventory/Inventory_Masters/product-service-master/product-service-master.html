@@ -1,4 +1,4 @@
-﻿<div class="module-page inventory-page">
+<div class="module-page inventory-page">
   <div class="inventory-shell">
     <div class="inventory-header">
       <div>
@@ -199,13 +199,6 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">Branch Details</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group">
-                  <label class="erp-label">Business Segment</label>
-                  <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [searchable]="true" [clearable]="true" [ngModel]="'Electronics'" placeholder="Select Business Segment"></ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Business Segment" (click)="openAddMaster('Business Segment')"><i class="pi pi-plus"></i></button>
-                  </div>
-                </div>
                 <div class="erp-form-group"><label class="erp-label">Branch Code</label><input class="erp-input" type="text" placeholder="Enter Branch Code" /></div>
                 <div class="erp-form-group"><label class="erp-label">Branch Name</label><input class="erp-input" type="text" placeholder="Enter Branch Name" /></div>
                 <div class="erp-form-group">
@@ -284,7 +277,7 @@
               <div class="inventory-fieldset-title">UOM Definition</div>
               <div class="inventory-form-grid inventory-config-grid">
                 <div class="erp-form-group"><label class="erp-label">UOM Name <span class="text-danger">*</span></label><input class="erp-input" type="text" placeholder="Numbers, Kilogram, Bag" /></div>
-                <div class="erp-form-group"><label class="erp-label">UOM Code <span class="erp-label-hint">auto-generated</span></label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
+                <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">Decimal Allowed</label>
                   <label class="inventory-labeled-switch yes-no">
@@ -360,7 +353,7 @@
         } @else if (config.key === 'categoryMaster') {
           <div class="inventory-branch-form">
 
-            <!-- ── Business Segment context bar ───────────────────────────── -->
+            <!-- -- Business Segment context bar ----------------------------- -->
             <div class="product-segment-bar">
               <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
               @if (segmentCount === 1) {
@@ -368,7 +361,7 @@
               } @else {
                 <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
                   [items]="segmentOptions" [searchable]="false" [clearable]="false"
-                  [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                  [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
                   placeholder="Select Segment">
                 </ng-select>
               }
@@ -383,7 +376,7 @@
                   <input class="erp-input" type="text" placeholder="Enter category name" />
                 </div>
                 <div class="erp-form-group">
-                  <label class="erp-label">Category Code <span class="erp-label-hint">auto-generated</span></label>
+                  <label class="erp-label">Category Code</label>
                   <input class="erp-input" type="text" placeholder="Auto-fills from name" />
                 </div>
                 <div class="erp-form-group">
@@ -448,7 +441,7 @@
         } @else if (config.key === 'productServiceMaster') {
           <div class="inventory-branch-form">
 
-            <!-- ── Business Segment context bar ───────────────────────────── -->
+            <!-- -- Business Segment context bar ----------------------------- -->
             <div class="product-segment-bar">
               <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
               @if (segmentCount === 1) {
@@ -456,51 +449,47 @@
               } @else {
                 <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
                   [items]="segmentOptions" [searchable]="false" [clearable]="false"
-                  [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                  [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
                   placeholder="Select Segment">
                 </ng-select>
               }
               <span class="product-segment-bar-hint">Products added here belong to this segment only.</span>
             </div>
 
-            <!-- ── Fieldset 1: Basic Product Details ──────────────────────── -->
+            <!-- -- Fieldset 1: Basic Product Details ------------------------ -->
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">Basic Product Details</div>
               <div class="inventory-form-grid inventory-config-grid">
 
                 <!-- Product / Service Name -->
-                <div class="erp-form-group tax-suggest-wrap">
+                <div class="erp-form-group">
                   <label class="erp-label">Product / Service Name <span class="text-danger">*</span></label>
-                  <input class="erp-input" type="text" autocomplete="off"
-                    [ngModel]="productName()"
-                    (ngModelChange)="onProductNameChange($event)"
-                    placeholder="Enter product or service name" />
-                  @if (taxCodeSuggesting()) {
-                    <span class="tax-suggest-status"><i class="pi pi-spin pi-spinner"></i> Searching local HSN/SAC</span>
-                  }
-                  @if (taxCodeSuggestions().length || taxCodeSearchMessage()) {
-                    <div class="tax-suggest-panel">
-                      @for (item of taxCodeSuggestions(); track item.id) {
-                        <button type="button" class="tax-suggest-item" (click)="selectTaxCodeSuggestion(item)">
-                          <span class="tax-suggest-code">{{ item.code }}</span>
-                          <span class="tax-suggest-desc">{{ item.description }}</span>
-                          @if (item.category) { <span class="tax-suggest-desc">{{ item.category }}</span> }
-                          <span class="tax-suggest-rate">{{ taxRateLabel(item.gst_rate) }}</span>
-                        </button>
-                      }
-                      @if (taxCodeSearchMessage()) {
-                        <div class="tax-suggest-empty">{{ taxCodeSearchMessage() }}</div>
-                      }
-                    </div>
-                  }
+                  <div class="erp-exist-wrap" style="width:100%">
+                    <input class="erp-input" type="text" autocomplete="off"
+                      [ngModel]="productName()"
+                      (ngModelChange)="onProductNameChange($event); genericNameValue.set($event)"
+                      placeholder="Enter product or service name" />
+                    @if (existingRowMatches().length) {
+                      <div class="erp-exist-panel">
+                        @for (row of existingRowMatches(); track $index) {
+                          <button type="button" class="erp-exist-item" (click)="editRecordByRow(row)">
+                            <span class="erp-exist-code">{{ row[0] }}</span>
+                            <span class="erp-exist-name">{{ row[1] }}</span>
+                            <span class="erp-exist-hint">Already exists · click to edit</span>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
                 </div>
 
                 <!-- Product / Service Code -->
                 <div class="erp-form-group">
-                  <label class="erp-label">Product / Service Code</label>
+                  <label class="erp-label">Product / Service Code
+                  </label>
                   <input class="erp-input" type="text"
                     [ngModel]="formValues()['productCode'] || ''"
-                    (ngModelChange)="collectFormField('productCode', $event)"
+                    (ngModelChange)="onProductCodeManualEdit($event)"
                     placeholder="Auto / manual code" />
                 </div>
 
@@ -517,26 +506,91 @@
                   </div>
                 </div>
 
-                <!-- Product Type -->
+                <!-- Product Nature -->
                 <div class="erp-form-group">
-                  <label class="erp-label">Product Type</label>
+                  <label class="erp-label">Product Nature</label>
                   <div class="inventory-field-with-add">
                     <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                      [items]="productTypeOptions" [searchable]="true" [clearable]="true"
-                      [ngModel]="formValues()['productType'] || null"
-                      (ngModelChange)="collectFormField('productType', $event)"
-                      placeholder="Select Product Type">
+                      [items]="productNatureObjects" [searchable]="true" [clearable]="true"
+                      bindLabel="type_name" bindValue="id"
+                      [ngModel]="formValues()['productNatureId'] || null"
+                      (ngModelChange)="onProductNatureChange($event)"
+                      placeholder="Select Product Nature">
                     </ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Product Type" (click)="openAddMaster('Product Type')"><i class="pi pi-plus"></i></button>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Product Nature" (click)="openAddMaster('Product Type', 'productType')"><i class="pi pi-plus"></i></button>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Product Nature Guide"
+                      [class.active]="productNatureGuideVisible()"
+                      (click)="productNatureGuideVisible.set(!productNatureGuideVisible())">
+                      <i class="pi pi-info-circle"></i>
+                    </button>
                   </div>
                 </div>
 
+                @if (productNatureGuideVisible() && productNatureGuideRows().length) {
+                <div class="erp-form-group span-2">
+                  <div class="product-nature-guide">
+                    <div class="product-nature-guide-title">
+                      <div>
+                        <strong>Product Nature Guide</strong>
+                        <span>Controls stock ledger, costing, purchase, sales, production and service behavior.</span>
+                      </div>
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close"
+                        (click)="productNatureGuideVisible.set(false)">
+                        <i class="pi pi-times"></i>
+                      </button>
+                    </div>
+                    <div class="product-nature-guide-list">
+                      @for (row of productNatureGuideRows(); track row.id) {
+                        <div class="product-nature-guide-item" [class.active]="formValues()['productNatureId'] === row.id">
+                          <div class="product-nature-guide-main">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.impact }}</span>
+                          </div>
+                          <div class="product-nature-guide-flags">
+                            @for (flag of row.flags; track flag) {
+                              <span class="erp-badge badge-neutral">{{ flag }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+                }
+
+                <!-- Pricing Type (Service / Service Bundle / Digital / Subscription only) -->
+                @if (pricingTypeVisible()) {
+                <div class="erp-form-group">
+                  <label class="erp-label">Pricing Type</label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="pricingTypeOptions" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['pricingType'] || null"
+                    (ngModelChange)="onPricingTypeChange($event)"
+                    placeholder="Select Pricing Type">
+                  </ng-select>
+                </div>
+                }
+
+                <!-- Rental Unit (Pricing Type = Rental only) -->
+                @if (rentalUnitVisible()) {
+                <div class="erp-form-group">
+                  <label class="erp-label">Rental Unit</label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="rentalUnitOptions" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['rentalUnit'] || null"
+                    (ngModelChange)="collectFormField('rentalUnit', $event)"
+                    placeholder="Select Rental Unit">
+                  </ng-select>
+                </div>
+                }
+
                 <!-- SKU -->
                 <div class="erp-form-group">
-                  <label class="erp-label">SKU</label>
+                  <label class="erp-label">SKU
+                  </label>
                   <input class="erp-input" type="text"
                     [ngModel]="formValues()['sku'] || ''"
-                    (ngModelChange)="collectFormField('sku', $event)"
+                    (ngModelChange)="onSkuManualEdit($event)"
                     placeholder="SKU auto / manual" />
                 </div>
 
@@ -545,12 +599,12 @@
                   <label class="erp-label">Base UOM</label>
                   <div class="inventory-field-with-add">
                     <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                      [items]="uomOptions" [searchable]="true" [clearable]="true"
+                      [items]="productBaseUomOptions()" [searchable]="true" [clearable]="true"
                       [ngModel]="formValues()['baseUom'] || null"
                       (ngModelChange)="collectFormField('baseUom', $event)"
                       placeholder="Select Base UOM">
                     </ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM')"><i class="pi pi-plus"></i></button>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM', 'baseUom')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
 
@@ -569,72 +623,46 @@
               </div>
             </div>
 
-            <!-- ── Fieldset 2: Brand, Variant & Valuation ─────────────────── -->
-            <div class="inventory-fieldset">
-              <div class="inventory-fieldset-title">Brand, Variant &amp; Valuation</div>
-              <div class="inventory-form-grid inventory-config-grid">
-
-                <!-- Brand -->
-                <div class="erp-form-group">
-                  <label class="erp-label">Brand</label>
-                  <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                      [items]="brandOptions" [searchable]="true" [clearable]="true"
-                      [ngModel]="formValues()['brand'] || null"
-                      (ngModelChange)="collectFormField('brand', $event)"
-                      placeholder="Select Brand">
-                    </ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Brand" (click)="openAddMaster('Brand')"><i class="pi pi-plus"></i></button>
-                  </div>
-                </div>
-
-                <!-- Variant -->
-                <div class="erp-form-group">
-                  <label class="erp-label">Variant</label>
-                  <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                      [items]="variantOptions"
-                      [searchable]="true" [clearable]="true"
-                      [ngModel]="formValues()['variant'] || null"
-                      (ngModelChange)="collectFormField('variant', $event)"
-                      placeholder="Select Variant">
-                    </ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Variant" (click)="openAddMaster('Variant')"><i class="pi pi-plus"></i></button>
-                  </div>
-                </div>
-
-                <!-- Valuation Method -->
-                <div class="erp-form-group">
-                  <label class="erp-label">Valuation Method</label>
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                    [items]="valuationMethods" [searchable]="true" [clearable]="true"
-                    [ngModel]="formValues()['valuationMethod'] || null"
-                    (ngModelChange)="collectFormField('valuationMethod', $event)"
-                    placeholder="Select Valuation Method">
-                  </ng-select>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- ── Fieldset 3: Tax Details ─────────────────────────────────── -->
+            <!-- -- Fieldset 2: Tax Details ----------------------------------- -->
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Tax Details</span>
-                <label class="inventory-labeled-switch yes-no">
-                  <input type="checkbox" [checked]="productTaxUomRequired()" (change)="setProductTaxUomRequired($any($event.target).checked)" />
-                  <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-                </label>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Tax info" (click)="taxInfoVisible.set(!taxInfoVisible())" style="position:relative;">
+                    <i class="pi pi-info-circle"></i>
+                  </button>
+                </div>
               </div>
               @if (productTaxUomRequired()) {
+              @if (categoryHsnSuggestions().length && !hsnSacCode()) {
+                <div class="hsn-category-suggestions">
+                  <div class="hsn-suggest-header">
+                    <i class="pi pi-tag"></i>
+                    HSN/SAC codes for <strong>{{ selectedProductCategory() }}</strong>
+                    <span class="hsn-suggest-hint">Select one to fill the Tax section</span>
+                  </div>
+                  <div class="hsn-suggest-pills">
+                    @for (item of categoryHsnSuggestions(); track item.id) {
+                      <button type="button" class="hsn-suggest-pill" (click)="selectHsnFromCategorySuggestion(item)">
+                        <span class="hsn-pill-code">{{ item.code }}</span>
+                        <span class="hsn-pill-desc">{{ item.description }}</span>
+                        <span class="hsn-pill-rate">{{ item.gst_rate }}% GST</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
               <div class="inventory-form-grid inventory-config-grid">
                 <div class="erp-form-group">
                   <label class="erp-label">HSN/SAC Code</label>
                   <div class="inventory-field-with-add">
-                    <input class="erp-input" type="text" autocomplete="off"
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                      [items]="hsnSacOptions" [searchable]="true" [clearable]="true" [addTag]="true"
+                      addTagText="Use code:"
                       [ngModel]="hsnSacCode()"
                       (ngModelChange)="onTaxCodeManualSearch($event)"
-                      placeholder="Auto suggested or manual code" />
+                      placeholder="Select from suggestions above or type / search code">
+                    </ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add HSN / SAC" (click)="openAddMaster('HSN / SAC')"><i class="pi pi-plus"></i></button>
                   </div>
                 </div>
@@ -643,7 +671,7 @@
                   <input class="erp-input" type="text"
                     [ngModel]="hsnSacDescription()"
                     (ngModelChange)="onTaxDescriptionChange($event)"
-                    placeholder="Suggestion description or manual override" />
+                    placeholder="Auto-fills when HSN code is selected" />
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">GST Rate</label>
@@ -666,24 +694,258 @@
                   </div>
                 </div>
               </div>
-              <div class="inventory-duplicate-advice tax-compliance-note">
-                <strong>Review required</strong>
-                <span>HSN/SAC suggestion is for assistance only. Please verify classification before filing GST returns. Source: {{ taxCodeSourceLabel() }}.</span>
-                <span>{{ selectedTaxHint() }}</span>
-                @if (selectedGstGuideText()) {
-                  <span>{{ selectedGstGuideText() }}</span>
+              }
+            </div>
+            <!-- ------------------------------------------------------------- -->
+
+            <!-- -- Fieldset 3: Brand, Variant & Valuation ------------------- -->
+            <div class="inventory-fieldset">
+              <div class="inventory-fieldset-title inventory-fieldset-title-row">
+                <span>Brand, Variant &amp; Valuation</span>
+                <label class="inventory-labeled-switch yes-no">
+                  <input type="checkbox" [checked]="productBrandVariantValuationRequired()" (change)="setProductBrandVariantValuationRequired($any($event.target).checked)" />
+                  <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                </label>
+              </div>
+              @if (productBrandVariantValuationRequired()) {
+              <div class="inventory-form-grid inventory-config-grid">
+                <div class="erp-form-group">
+                  <label class="erp-label">Brand</label>
+                  <div class="inventory-field-with-add">
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                      [items]="brandOptions" [searchable]="true" [clearable]="true"
+                      [ngModel]="formValues()['brand'] || null"
+                      (ngModelChange)="onBrandChange($event)"
+                      placeholder="Select Brand">
+                    </ng-select>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Brand" (click)="openAddMaster('Brand', 'brand')"><i class="pi pi-plus"></i></button>
+                  </div>
+                </div>
+
+                <div class="erp-form-group">
+                  <label class="erp-label">Applicable Variants</label>
+                  <div class="inventory-field-with-add">
+                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                      [items]="variantObjects()"
+                      [multiple]="true"
+                      [searchable]="true"
+                      [clearable]="true"
+                      bindLabel="variant_label"
+                      bindValue="id"
+                      [ngModel]="selectedApplicableVariantIds()"
+                      (ngModelChange)="onApplicableVariantIdsChange($event)"
+                      placeholder="Select one or more variants...">
+                      <ng-template ng-label-tmp let-item="item">
+                        <span>{{ item.variant_name }}</span>
+                      </ng-template>
+                      <ng-template ng-option-tmp let-item="item">
+                        <div class="inventory-contact-option">
+                          <strong>{{ item.variant_name }}</strong>
+                          @if (item.variant_label && item.variant_label !== item.variant_name) {
+                            <span>{{ item.variant_label }}</span>
+                          }
+                        </div>
+                      </ng-template>
+                    </ng-select>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Create New Variant" (click)="openAddMaster('Variant', 'applicableVariants')"><i class="pi pi-plus"></i></button>
+                  </div>
+                  @if (selectedVariantAttributeHint()) {
+                    <span class="inventory-variant-attr-hint">{{ selectedVariantAttributeHint() }}</span>
+                  }
+                </div>
+
+                @if (selectedProductNature() === null || selectedProductNature()?.tracks_inventory !== false) {
+                <div class="erp-form-group">
+                  <label class="erp-label">Valuation Method</label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="valuationMethods" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['valuationMethod'] || null"
+                    (ngModelChange)="collectFormField('valuationMethod', $event)"
+                    placeholder="Select Valuation Method">
+                  </ng-select>
+                </div>
                 }
               </div>
-              @if (gstGuidePreviewRows().length) {
-                <div class="gst-guide-strip">
-                  @for (slab of gstGuidePreviewRows(); track slab.id) {
-                    <span><strong>{{ slab.label }}</strong>{{ slab.description }}</span>
-                  }
+              @if (selectedApplicableVariantRows().length) {
+                <div class="inventory-line-items inventory-product-variant-map">
+                  <div class="inventory-line-title">
+                    <div>
+                      <strong>Mapped Product Variant Attributes</strong>
+                      <span>Variant attributes selected here become the transaction variant dropdown for this product.</span>
+                    </div>
+                  </div>
+                  <div class="inventory-variant-combo-picker inventory-variant-combo-picker--builder">
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Variant</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="selectedApplicableVariantRows()"
+                        [searchable]="true"
+                        [clearable]="false"
+                        bindLabel="variant_label"
+                        bindValue="id"
+                        [ngModel]="effectiveProductVariantMapVariantId()"
+                        (ngModelChange)="setPendingProductVariantMapVariant($event)"
+                        placeholder="Select Variant">
+                        <ng-template ng-label-tmp let-item="item">
+                          <span>{{ item.variant_name }}</span>
+                        </ng-template>
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="inventory-contact-option">
+                            <strong>{{ item.variant_name }}</strong>
+                            @if (item.attribute_summary) {
+                              <span>{{ item.attribute_summary }}</span>
+                            }
+                          </div>
+                        </ng-template>
+                      </ng-select>
+                    </div>
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Attribute</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="productVariantMapAttributeOptions()"
+                        [searchable]="true"
+                        [clearable]="true"
+                        [ngModel]="pendingProductVariantMapAttribute() || null"
+                        (ngModelChange)="setPendingProductVariantMapAttribute($event)"
+                        placeholder="Select Attribute">
+                      </ng-select>
+                    </div>
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Value</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="productVariantMapValueOptions()"
+                        [searchable]="true"
+                        [clearable]="true"
+                        [ngModel]="pendingProductVariantMapValue() || null"
+                        (ngModelChange)="setPendingProductVariantMapValue($event)"
+                        placeholder="Select Value">
+                      </ng-select>
+                    </div>
+                    <button type="button" class="erp-btn btn-white btn-sm inventory-combo-add"
+                      [disabled]="!effectiveProductVariantMapVariantId() || !pendingProductVariantMapAttribute() || !pendingProductVariantMapValue()"
+                      (click)="addProductVariantAttributeMapping()">
+                      <i class="pi pi-plus"></i> Add
+                    </button>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="erp-table compact">
+                      <thead>
+                        <tr>
+                          <th>Variant</th>
+                          <th>Attribute</th>
+                          <th>Value</th>
+                          <th class="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (row of productVariantAttributeRows(); track row.variant_id + '::' + row.attribute_name + '::' + row.attribute_value + '::' + row.index) {
+                          <tr>
+                            <td class="inventory-variant-col">
+                              <strong>{{ row.variant_name }}</strong>
+                            </td>
+                            <td>
+                              <span class="erp-badge badge-neutral">{{ row.attribute_name }}</span>
+                            </td>
+                            <td>
+                              <span class="erp-badge badge-neutral">{{ row.attribute_value }}</span>
+                            </td>
+                            <td class="text-center">
+                              <div class="inventory-row-actions">
+                                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove Mapping" (click)="removeProductVariantAttributeMapping(row.variant_id, row.index)"><i class="pi pi-trash"></i></button>
+                              </div>
+                            </td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="4" class="text-center erp-label-hint">No product-specific variant attributes mapped yet.</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               }
               }
             </div>
 
+            <!-- -- Bundle Composition (Service Bundle nature only) ------------ -->
+            @if (bundleCompositionVisible()) {
+            <div class="inventory-fieldset">
+              <div class="inventory-fieldset-title inventory-fieldset-title-row">
+                <span>Bundle Composition</span>
+                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Expand / Collapse" (click)="bundleSectionExpanded.set(!bundleSectionExpanded())">
+                  <i class="pi" [class.pi-chevron-down]="bundleSectionExpanded()" [class.pi-chevron-right]="!bundleSectionExpanded()"></i>
+                </button>
+              </div>
+              @if (bundleSectionExpanded()) {
+                <div class="inventory-line-items">
+                  <div class="inventory-line-title">
+                    <div>
+                      <strong>Mapped Assets / Services / Consumables</strong>
+                      <span>Items billed or tracked as part of this Service Bundle. At least one item is required.</span>
+                    </div>
+                    <button type="button" class="erp-btn btn-white btn-sm" (click)="addBundleCompositionRow()"><i class="pi pi-plus"></i> Add Item</button>
+                  </div>
+                  <div class="tbl-wrap">
+                    <table class="erp-table compact">
+                      <thead>
+                        <tr>
+                          <th>Item / Asset Name</th>
+                          <th class="text-center">Quantity</th>
+                          <th class="text-center">Condition Tracked</th>
+                          <th class="text-center">Depreciation Linked</th>
+                          <th class="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of bundleCompositionItems(); track $index) {
+                          <tr>
+                            <td>
+                              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                                [items]="bundleEligibleProductOptions()" [searchable]="true" [clearable]="true"
+                                bindLabel="product_name" bindValue="id"
+                                [ngModel]="item.item_id || null"
+                                (ngModelChange)="onBundleCompositionItemChange($index, findBundleEligibleProductById($event))"
+                                placeholder="Select Item / Asset">
+                              </ng-select>
+                            </td>
+                            <td class="text-center">
+                              <input class="erp-input" type="number" min="1" style="width:90px;text-align:center;"
+                                [ngModel]="item.quantity"
+                                (ngModelChange)="updateBundleCompositionRow($index, { quantity: $event })" />
+                            </td>
+                            <td class="text-center">
+                              <label class="inventory-labeled-switch yes-no">
+                                <input type="checkbox" [checked]="item.condition_tracked" (change)="updateBundleCompositionRow($index, { condition_tracked: $any($event.target).checked })" />
+                                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                              </label>
+                            </td>
+                            <td class="text-center">
+                              <label class="inventory-labeled-switch yes-no">
+                                <input type="checkbox" [checked]="item.depreciation_linked" (change)="updateBundleCompositionRow($index, { depreciation_linked: $any($event.target).checked })" />
+                                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                              </label>
+                            </td>
+                            <td class="text-center">
+                              <div class="inventory-row-actions">
+                                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove Item" (click)="removeBundleCompositionRow($index)"><i class="pi pi-trash"></i></button>
+                              </div>
+                            </td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="5" class="text-center erp-label-hint">No bundle items added yet.</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            </div>
+            }
+
+            @if (selectedProductNature() === null || selectedProductNature()?.tracks_inventory !== false) {
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Stock Controls</span>
@@ -693,13 +955,142 @@
                 </label>
               </div>
               @if (productStockControlsRequired()) {
-              <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" [ngModel]="formValues()['minStockLevel'] || 0" (ngModelChange)="collectFormField('minStockLevel', $event)" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" [ngModel]="formValues()['maxStockLevel'] || 0" (ngModelChange)="collectFormField('maxStockLevel', $event)" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Reorder Level</label><input class="erp-input" type="number" [ngModel]="formValues()['reorderLevel'] || 0" (ngModelChange)="collectFormField('reorderLevel', $event)" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Opening Quantity</label><input class="erp-input" type="number" placeholder="0" /></div>
-                <div class="erp-form-group"><label class="erp-label">Opening Value</label><input class="erp-input" type="number" placeholder="0" /></div>
-              </div>
+                <div class="inventory-optional-hint">
+                  Shared stock values apply to a plain product. Select Applicable Variants here when stock must be controlled variant-wise.
+                </div>
+                <div class="inventory-form-grid inventory-config-grid inventory-stock-variant-grid">
+                  <div class="erp-form-group span-2">
+                    <label class="erp-label">Applicable Variants</label>
+                    <div class="inventory-field-with-add">
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="variantObjects()"
+                        [multiple]="true"
+                        [searchable]="true"
+                        [clearable]="true"
+                        bindLabel="variant_label"
+                        bindValue="id"
+                        [ngModel]="selectedApplicableVariantIds()"
+                        (ngModelChange)="onApplicableVariantIdsChange($event)"
+                        placeholder="Select variants for stock control">
+                        <ng-template ng-label-tmp let-item="item">
+                          <span>{{ item.variant_name }}</span>
+                        </ng-template>
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="inventory-contact-option">
+                            <strong>{{ item.variant_name }}</strong>
+                            @if (item.variant_label && item.variant_label !== item.variant_name) {
+                              <span>{{ item.variant_label }}</span>
+                            }
+                          </div>
+                        </ng-template>
+                      </ng-select>
+                      <button type="button" class="erp-btn btn-white btn-icon" title="Create New Variant" (click)="openAddMaster('Variant', 'applicableVariants')"><i class="pi pi-plus"></i></button>
+                    </div>
+                  </div>
+                </div>
+                @if (variantStockControlsVisible()) {
+                  <div class="inventory-optional-hint">
+                    Pick the exact variant and attribute combination that should carry its own stock levels.
+                  </div>
+
+                  <div class="inventory-variant-combo-picker inventory-variant-combo-picker--builder">
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Variant</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="selectedApplicableVariantRows()"
+                        [searchable]="true"
+                        [clearable]="false"
+                        bindLabel="variant_label"
+                        bindValue="id"
+                        [ngModel]="effectivePendingCombinationVariantId()"
+                        (ngModelChange)="setPendingCombinationVariant($event)"
+                        placeholder="Select Variant">
+                        <ng-template ng-label-tmp let-item="item">
+                          <span>{{ item.variant_name }}</span>
+                        </ng-template>
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="inventory-contact-option">
+                            <strong>{{ item.variant_name }}</strong>
+                            @if (item.attribute_summary) {
+                              <span>{{ item.attribute_summary }}</span>
+                            }
+                          </div>
+                        </ng-template>
+                      </ng-select>
+                    </div>
+                    @for (dim of pendingVariantAttributeDimensions(); track dim.name) {
+                      <div class="erp-form-group inventory-combo-select">
+                        <label class="erp-label">{{ dim.name }}</label>
+                        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                          [items]="dim.values"
+                          [searchable]="true"
+                          [clearable]="true"
+                          [addTag]="true"
+                          addTagText="Use value:"
+                          [ngModel]="pendingCombinationPicks()[effectivePendingCombinationVariantId() || 0]?.[dim.name] || null"
+                          (ngModelChange)="setPendingActiveCombinationPick(dim.name, $event)"
+                          [placeholder]="'Select ' + dim.name">
+                        </ng-select>
+                      </div>
+                    }
+                    <button type="button" class="erp-btn btn-white btn-sm inventory-combo-add" [disabled]="!effectivePendingCombinationVariantId()" (click)="addPendingVariantStockCombination()">
+                      <i class="pi pi-plus"></i> Add{{ pendingVariantAttributeDimensions().length ? ' Combination' : ' Row' }}
+                    </button>
+                  </div>
+
+                  @if (variantStockCombinationRows().length) {
+                    <div class="tbl-wrap">
+                      <table class="erp-table compact">
+                        <thead>
+                          <tr>
+                            <th>Variant</th>
+                            <th>Attribute Combination</th>
+                            <th>Minimum Stock</th>
+                            <th>Maximum Stock</th>
+                            <th>Reorder Level</th>
+                            <th>Reorder Qty</th>
+                            <th class="text-center">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (row of variantStockCombinationRows(); track row.variant_id + '::' + variantStockCombinationLabel(row); let rowIndex = $index) {
+                            <tr>
+                              <td class="inventory-variant-col"><strong>{{ row.variant_name }}</strong></td>
+                              <td>
+                                @if (variantStockCombinationLabel(row)) {
+                                  <span class="erp-badge badge-neutral">{{ variantStockCombinationLabel(row) }}</span>
+                                } @else {
+                                  <span class="erp-label-hint">-</span>
+                                }
+                              </td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'min_stock_level')" [ngModel]="row.min_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'min_stock_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'max_stock_level')" [ngModel]="row.max_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'max_stock_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'reorder_level')" [ngModel]="row.reorder_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'reorder_qty')" [ngModel]="row.reorder_qty" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_qty', $event)" placeholder="0" /></td>
+                              <td class="text-center">
+                                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" (click)="removeVariantStockCombinationRow(rowIndex)"><i class="pi pi-trash"></i></button>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  }
+                } @else {
+                <div class="inventory-form-grid inventory-config-grid">
+                  <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('minStockLevel')" [ngModel]="formValues()['minStockLevel'] || 0" (ngModelChange)="collectFormField('minStockLevel', $event)" placeholder="0" /></div>
+                  <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('maxStockLevel')" [ngModel]="formValues()['maxStockLevel'] || 0" (ngModelChange)="collectFormField('maxStockLevel', $event)" placeholder="0" /></div>
+                  <div class="erp-form-group">
+                    <label class="erp-label">Reorder Level</label>
+                    <input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('reorderLevel')" [ngModel]="formValues()['reorderLevel'] || 0" (ngModelChange)="collectFormField('reorderLevel', $event)" placeholder="0" />
+                    @if (selectedProductNature()?.allows_production) {
+                      <span class="inventory-variant-attr-hint">Raw Material reorder should follow the Production Plan, not direct sales demand.</span>
+                    }
+                  </div>
+                  <div class="erp-form-group"><label class="erp-label">Opening Quantity</label><input class="erp-input" type="number" placeholder="0" /></div>
+                  <div class="erp-form-group"><label class="erp-label">Opening Value</label><input class="erp-input" type="number" placeholder="0" /></div>
+                </div>
+                }
               }
             </div>
 
@@ -726,8 +1117,8 @@
                   <div class="mt-2">
                     <label class="erp-label">Batch / Lot Policy</label>
                     <div class="inventory-field-with-add">
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="batchPolicyOptions" [searchable]="true" [clearable]="true" [ngModel]="formValues()['batchPolicyName'] || null" (ngModelChange)="collectFormField('batchPolicyName', $event)" placeholder="Select Batch / Lot Policy"></ng-select>
-                      <button type="button" class="erp-btn btn-white btn-icon" title="Add Batch / Lot Policy" (click)="openAddMaster('Batch / Lot Policy')"><i class="pi pi-plus"></i></button>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="batchPolicyOptions" [searchable]="true" [clearable]="true" [ngModel]="formValues()['batchPolicyName'] || null" (ngModelChange)="onBatchPolicyChange($event)" placeholder="Select Batch / Lot Policy"></ng-select>
+                      <button type="button" class="erp-btn btn-white btn-icon" title="Add Batch / Lot Policy" (click)="openAddMaster('Batch / Lot Policy', 'batchPolicyName')"><i class="pi pi-plus"></i></button>
                     </div>
                   </div>
                   }
@@ -742,8 +1133,8 @@
                   <div class="mt-2">
                     <label class="erp-label">Serial Number Policy</label>
                     <div class="inventory-field-with-add">
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="serialPolicyOptions" [searchable]="true" [clearable]="true" [ngModel]="formValues()['serialPolicyName'] || null" (ngModelChange)="collectFormField('serialPolicyName', $event)" placeholder="Select Serial Policy"></ng-select>
-                      <button type="button" class="erp-btn btn-white btn-icon" title="Add Serial Number Policy" (click)="openAddMaster('Serial Number Policy')"><i class="pi pi-plus"></i></button>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="serialPolicyOptions" [searchable]="true" [clearable]="true" [ngModel]="formValues()['serialPolicyName'] || null" (ngModelChange)="onSerialPolicyChange($event)" placeholder="Select Serial Policy"></ng-select>
+                      <button type="button" class="erp-btn btn-white btn-icon" title="Add Serial Number Policy" (click)="openAddMaster('Serial Number Policy', 'serialPolicyName')"><i class="pi pi-plus"></i></button>
                     </div>
                   </div>
                   }
@@ -774,6 +1165,7 @@
               </div>
               }
             </div>
+            }
 
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
@@ -786,32 +1178,45 @@
               @if (productAdditionalInfoRequired()) {
               <div class="inventory-form-grid inventory-config-grid">
                 <div class="erp-form-group">
-                  <label class="erp-label">Alternate Product</label>
-                  <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="productOptions" [searchable]="true" [clearable]="true" [ngModel]="'LED Display'" placeholder="Select Alternate Product"></ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Product" (click)="openAddMaster('Product / Service')"><i class="pi pi-plus"></i></button>
-                  </div>
+                  <label class="erp-label">Alternate Product <span class="erp-label-hint">suggested during sales</span></label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="productOptions" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['alternateProduct'] || null"
+                    (ngModelChange)="collectFormField('alternateProduct', $event)"
+                    placeholder="Search existing products">
+                  </ng-select>
                 </div>
                 <div class="erp-form-group"><label class="erp-label">Product Image</label><input class="erp-input" type="file" accept="image/*" /></div>
-                <div class="erp-form-group">
-                  <label class="erp-label">Manufacturer</label>
-                  <div class="inventory-field-with-add">
-                    <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Dell Technologies', 'Kitchen Fresh Foods', 'House Brand', 'Beverage World']" [searchable]="true" [clearable]="true" [ngModel]="'House Brand'" placeholder="Select Manufacturer"></ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Manufacturer" (click)="openAddMaster('Manufacturer')"><i class="pi pi-plus"></i></button>
-                  </div>
-                </div>
-                <div class="erp-form-group"><label class="erp-label">Country of Origin</label><input class="erp-input" type="text" placeholder="India" /></div>
-                <div class="erp-form-group"><label class="erp-label">Weight</label><input class="erp-input" type="text" placeholder="Example: 1.5 KG" /></div>
-                <div class="erp-form-group"><label class="erp-label">Dimensions</label><input class="erp-input" type="text" placeholder="L x W x H" /></div>
                 <div class="erp-form-group span-2"><label class="erp-label">Product Description</label><textarea class="erp-input" rows="2" [ngModel]="formValues()['description'] || ''" (ngModelChange)="collectFormField('description', $event)" placeholder="Enter product description"></textarea></div>
               </div>
               }
+            </div>
+
+            <div class="inventory-fieldset">
+              <div class="inventory-fieldset-title inventory-fieldset-title-row">
+                <span>Product Alternate UOM Mapping</span>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="erp-btn btn-white btn-sm" title="Add UOM mapping row" (click)="addProductUomMappingRow()">
+                    <i class="pi pi-plus"></i> Add Mapping Row
+                  </button>
+                  <button type="button" class="erp-btn btn-white btn-sm" title="Create a new UOM and map it" (click)="openProductUomQuickMap()">
+                    <i class="pi pi-plus"></i> New UOM
+                  </button>
+                  <label class="inventory-labeled-switch yes-no">
+                    <input type="checkbox" [checked]="productUomMappingRequired()" (change)="setProductUomMappingRequired($any($event.target).checked)" />
+                    <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                  </label>
+                </div>
+              </div>
+              <div class="inventory-optional-hint">
+                Use this when purchase or sales UOM differs from Base UOM. Example: Base UOM KG, Alternate UOM Bag, factor 26, Purchase Yes, Sales Yes/No, Active Yes.
+              </div>
             </div>
           </div>
         } @else if (config.key === 'consumptionTypeMaster') {
           <div class="inventory-branch-form">
 
-            <!-- ── Business Segment context bar ───────────────────────────── -->
+            <!-- -- Business Segment context bar ----------------------------- -->
             <div class="product-segment-bar">
               <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
               @if (segmentCount === 1) {
@@ -819,7 +1224,7 @@
               } @else {
                 <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
                   [items]="segmentOptions" [searchable]="false" [clearable]="false"
-                  [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                  [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
                   placeholder="Select Segment">
                 </ng-select>
               }
@@ -902,7 +1307,7 @@
                 <div class="erp-form-group">
                   <label class="erp-label">{{ approvalLevel() === 'Single Level' ? 'Approver' : 'Level 1 Approver' }}</label>
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="globalContacts" bindLabel="name" [searchable]="true" [clearable]="true" [ngModel]="selectedLevelOneApprover()" (ngModelChange)="selectLevelOneApprover($event)" placeholder="Type search employee/contact">
-                    <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span></div></ng-template>
+                    <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} � {{ item.mobile }} � {{ item.email }}</span></div></ng-template>
                   </ng-select>
                 </div>
                 <div class="erp-form-group">
@@ -915,7 +1320,7 @@
                   <div class="erp-form-group">
                     <label class="erp-label">Level 2 Approver</label>
                     <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="globalContacts" bindLabel="name" [searchable]="true" [clearable]="true" [ngModel]="selectedLevelTwoApprover()" (ngModelChange)="selectLevelTwoApprover($event)" placeholder="Type search employee/contact">
-                      <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span></div></ng-template>
+                      <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} � {{ item.mobile }} � {{ item.email }}</span></div></ng-template>
                     </ng-select>
                   </div>
                   <div class="erp-form-group">
@@ -929,7 +1334,7 @@
                   <div class="erp-form-group">
                     <label class="erp-label">Final Approver</label>
                     <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="globalContacts" bindLabel="name" [searchable]="true" [clearable]="true" [ngModel]="selectedFinalApprover()" (ngModelChange)="selectFinalApprover($event)" placeholder="Type search employee/contact">
-                      <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span></div></ng-template>
+                      <ng-template ng-option-tmp let-item="item"><div class="inventory-contact-option"><strong>{{ item.name }}</strong><span>{{ item.type }} � {{ item.mobile }} � {{ item.email }}</span></div></ng-template>
                     </ng-select>
                   </div>
                   <div class="erp-form-group">
@@ -944,7 +1349,7 @@
         } @else if (isPartyMaster()) {
           <div class="inventory-branch-form">
 
-            <!-- ── Business Segment context bar ───────────────────────────── -->
+            <!-- -- Business Segment context bar ----------------------------- -->
             <div class="product-segment-bar">
               <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
               @if (segmentCount === 1) {
@@ -952,7 +1357,7 @@
               } @else {
                 <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
                   [items]="segmentOptions" [searchable]="false" [clearable]="false"
-                  [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                  [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
                   placeholder="Select Segment">
                 </ng-select>
               }
@@ -996,7 +1401,7 @@
                       <ng-template ng-option-tmp let-item="item">
                         <div class="inventory-contact-option">
                           <strong>{{ item.name }}</strong>
-                          <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                          <span>{{ item.type }} � {{ item.mobile }} � {{ item.email }}</span>
                         </div>
                       </ng-template>
                     </ng-select>
@@ -1049,7 +1454,7 @@
                         <ng-template ng-option-tmp let-item="item">
                           <div class="inventory-contact-option">
                             <strong>{{ item.name }}</strong>
-                            <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                            <span>{{ item.type }} � {{ item.mobile }} � {{ item.email }}</span>
                           </div>
                         </ng-template>
                       </ng-select>
@@ -1195,7 +1600,7 @@
             } @else {
               <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
                 [items]="segmentOptions" [searchable]="false" [clearable]="false"
-                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
+                [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
                 placeholder="Select Segment">
               </ng-select>
             }
@@ -1226,7 +1631,7 @@
                     [closeOnSelect]="field.type !== 'multiselect'"
                     [ngModel]="formFieldValue(field)"
                     (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)"
-                    [placeholder]="'Select ' + field.label">
+                    [placeholder]="fieldTypingHint(field)">
                   </ng-select>
                 } @else if (field.type === 'date') {
                   <div class="inventory-date-wrap">
@@ -1245,13 +1650,33 @@
                     <i class="pi pi-calendar inventory-date-icon"></i>
                   </div>
                 } @else if (field.type === 'number') {
-                  <input class="erp-input" type="number" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" placeholder="0" />
+                  <input class="erp-input" type="number" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="fieldTypingHint(field)" />
                 } @else if (field.type === 'file') {
                   <input class="erp-input" type="file" accept="image/*" />
                 } @else if (field.type === 'textarea') {
-                  <textarea class="erp-input" rows="2" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationAddress' || field.key === 'address' ? 'Fetch from Maps API while typing later or enter address manually' : 'Enter notes'"></textarea>
+                  <textarea class="erp-input" rows="2" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="fieldTypingHint(field)"></textarea>
                 } @else {
-                  <input class="erp-input" type="text" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="field.key === 'locationCode' ? 'Auto generated from location name + backend code' : 'Enter ' + field.label" />
+                  @if (isNameField(field)) {
+                    <div class="erp-exist-wrap" style="width:100%">
+                      <input class="erp-input" type="text"
+                        [ngModel]="formFieldValue(field)"
+                        (ngModelChange)="collectFormField(field.key, $event); genericNameValue.set($event); maybeAutoCode(field.key, $event)"
+                        [placeholder]="fieldTypingHint(field)" />
+                      @if (existingRowMatches().length) {
+                        <div class="erp-exist-panel">
+                          @for (row of existingRowMatches(); track $index) {
+                            <button type="button" class="erp-exist-item" (click)="editRecordByRow(row)">
+                              <span class="erp-exist-code">{{ row[0] }}</span>
+                              <span class="erp-exist-name">{{ row[1] }}</span>
+                              <span class="erp-exist-hint">Already exists · click to edit</span>
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <input class="erp-input" type="text" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="fieldTypingHint(field)" />
+                  }
                 }
                 @if (field.addMaster) {
                   <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
@@ -1282,15 +1707,15 @@
           </div>
         }
 
-        @if (config.lineColumns?.length && (config.key !== 'uomMaster' || uomConversionRequired())) {
+        @if (config.lineColumns?.length && (config.key !== 'uomMaster' || uomConversionRequired()) && (config.key !== 'productServiceMaster' || productUomMappingRequired())) {
           <div class="inventory-line-items">
             <div class="inventory-line-title">
               <div>
-                <strong>{{ isPosView() ? 'POS Bill Items' : config.lineTitle || 'Entry Level Grid' }}</strong>
-                <span>Add, edit or remove rows directly here before saving this document.</span>
+                <strong>{{ config.key === 'productServiceMaster' ? 'Product Alternate UOM Mapping' : isPosView() ? 'POS Bill Items' : config.lineTitle || 'Entry Level Grid' }}</strong>
+                <span>{{ config.key === 'productServiceMaster' ? 'Map alternate UOM, conversion factor, purchase/sales usage and active status before saving the product.' : 'Add, edit or remove rows directly here before saving this document.' }}</span>
               </div>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="config.key === 'productServiceMaster' ? openAddMaster('UOM Conversion') : addEntryLineRow()">
-                <i class="pi pi-plus"></i> {{ config.key === 'productServiceMaster' ? "Mapping UOM's" : 'Add Row' }}
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="config.key === 'productServiceMaster' ? addProductUomMappingRow() : addEntryLineRow()">
+                <i class="pi pi-plus"></i> Add Row
               </button>
             </div>
             <div class="tbl-wrap">
@@ -1299,39 +1724,57 @@
                   <tr>
                     <th class="text-center">Actions</th>
                     @for (column of config.lineColumns || []; track column) {
-                      <th>{{ column }}</th>
+                      <th>{{ uomLineColumnHeader(column) }}</th>
                     }
                   </tr>
                 </thead>
                 <tbody>
-                  @for (row of directEntryLineRows(); track row; let rowIndex = $index) {
+                  @for (row of directEntryLineRows(); track $index; let rowIndex = $index) {
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" (click)="config.key === 'productServiceMaster' ? addProductUomMappingRow() : addEntryLineRow()"><i class="pi pi-plus"></i></button>
                           <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                         </div>
                       </td>
                       @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
-                        <td>
-                          @if (lineColumnOptions(column).length) {
+                        <td [class.inventory-hint-anchor]="uomConversionEquivalenceHint(column, row, columnIndex)"
+                            [style.padding-bottom]="uomConversionEquivalenceHint(column, row, columnIndex) ? '20px' : null">
+                          @if (isYesNoLineColumn(column)) {
+                            <label class="inventory-labeled-switch yes-no inventory-grid-switch">
+                              <input
+                                type="checkbox"
+                                [checked]="lineCellYesNoChecked(row[columnIndex])"
+                                (change)="setEntryLineYesNoCell(rowIndex, columnIndex, $any($event.target).checked)" />
+                              <span class="inventory-switch-track">
+                                <span class="switch-text switch-on">Yes</span>
+                                <span class="switch-text switch-off">No</span>
+                              </span>
+                            </label>
+                          } @else if (lineColumnOptions(column, row).length) {
                             <ng-select
                               class="erp-ng-select inventory-ng-select inventory-grid-select"
                               appendTo="body"
-                              [items]="lineColumnOptions(column)"
+                              [items]="lineColumnOptions(column, row)"
                               [searchable]="true"
                               [clearable]="false"
                               [ngModel]="row[columnIndex]"
                               (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                              [placeholder]="'Select ' + column">
+                              [placeholder]="lineColumnTypingHint(column, row)">
                             </ng-select>
                           } @else {
                             <input
                               class="erp-input inventory-grid-input"
-                              [type]="lineCellInputType(column)"
+                              [type]="lineCellInputType(column, row)"
+                              [attr.inputmode]="lineCellInputMode(column)"
                               [ngModel]="row[columnIndex]"
                               (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                              [placeholder]="column" />
+                              [placeholder]="lineColumnTypingHint(column, row)" />
+                          }
+                          @if (uomConversionEquivalenceHint(column, row, columnIndex); as hint) {
+                            <small class="inventory-stock-hint" style="color:var(--primary,#2563eb);font-weight:500">
+                              <i class="pi pi-arrow-right-arrow-left" style="font-size:9px"></i> {{ hint }}
+                            </small>
                           }
                         </td>
                       }
@@ -1351,6 +1794,12 @@
         }
 
         @if (config.key !== 'warehouseMaster' || warehouseRequired()) {
+        @if (config.key === 'productServiceMaster' && saveError()) {
+          <span class="inventory-save-tooltip save-err" style="margin: 12px 0 0;"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
+        }
+        @if (config.key === 'productServiceMaster' && saveMsg()) {
+          <span class="inventory-save-tooltip save-ok" style="margin: 12px 0 0;"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
+        }
         <div class="inventory-form-actions">
           <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Clear</button>
           @if (isPosView()) {
@@ -1359,12 +1808,15 @@
           } @else if (config.kind === 'report') {
             <button type="button" class="erp-btn btn-primary"><i class="pi pi-search"></i> Generate</button>
           } @else {
-            <button type="button" class="erp-btn btn-primary"><i class="pi pi-plus"></i> Add</button>
+            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="config.key === 'productServiceMaster' ? saveConfigRecord() : null">
+              <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : config.key === 'productServiceMaster' && editingId() !== null ? 'pi pi-save' : 'pi pi-plus'"></i>
+              {{ config.key === 'productServiceMaster' ? (editingId() !== null ? 'Update Product' : 'Save Product') : 'Add' }}
+            </button>
           }
         </div>
         }
 
-        @if (config.kind !== 'report' && !isPosView() && config.columns?.length && !config.lineColumns?.length) {
+        @if (config.kind !== 'report' && config.key !== 'productServiceMaster' && !isPosView() && config.columns?.length && (!config.lineColumns?.length || config.key === 'uomMaster' || config.key === 'variantMaster')) {
           <div class="inventory-current-entries">
             <div class="inventory-line-title">
               <div>
@@ -1421,7 +1873,7 @@
           </div>
         </div>
         <div class="erp-table-toolbar tbl-toolbar-flush">
-          <span></span>
+          <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
           <div class="grid-export-actions">
             <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
             @if (isGridSearchOpen('records')) {
@@ -1432,6 +1884,17 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+            <span class="inventory-grid-divider"></span>
+            <div class="inventory-grid-pager">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+              <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+              <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+                <option value="10">10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
           </div>
         </div>
             <div class="tbl-wrap">
@@ -1450,7 +1913,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', liveRows()); track $index) {
+              @for (row of pagedRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
@@ -1487,19 +1950,19 @@
         <div class="inventory-party-kpi-row">
           <div class="inventory-party-kpi">
             <span class="inventory-party-kpi-label">Credit Limit</span>
-            <span class="inventory-party-kpi-value">₹ {{ partySummaryData()!.creditLimit }}</span>
+            <span class="inventory-party-kpi-value">? {{ partySummaryData()!.creditLimit }}</span>
           </div>
           <div class="inventory-party-kpi">
             <span class="inventory-party-kpi-label">Credit Used</span>
-            <span class="inventory-party-kpi-value used">₹ {{ partySummaryData()!.creditUsed }}</span>
+            <span class="inventory-party-kpi-value used">? {{ partySummaryData()!.creditUsed }}</span>
           </div>
           <div class="inventory-party-kpi">
             <span class="inventory-party-kpi-label">Available</span>
-            <span class="inventory-party-kpi-value available">₹ {{ partySummaryData()!.creditAvailable }}</span>
+            <span class="inventory-party-kpi-value available">? {{ partySummaryData()!.creditAvailable }}</span>
           </div>
           <div class="inventory-party-kpi">
             <span class="inventory-party-kpi-label">Overdue</span>
-            <span class="inventory-party-kpi-value overdue">₹ {{ partySummaryData()!.overdueAmount }}</span>
+            <span class="inventory-party-kpi-value overdue">? {{ partySummaryData()!.overdueAmount }}</span>
           </div>
         </div>
         <div class="inventory-party-section-title">Recent Transactions</div>
@@ -1517,7 +1980,7 @@
               <tr>
                 <td><strong>{{ txn.ref }}</strong></td>
                 <td>{{ txn.date }}</td>
-                <td>₹ {{ txn.amount }}</td>
+                <td>? {{ txn.amount }}</td>
                 <td><span class="erp-badge">{{ txn.status }}</span></td>
               </tr>
             }
@@ -1531,438 +1994,7 @@
         </div>
       </div>
     </div>
-  }  @if (activeAddMaster()) {
-    <div class="inventory-modal-backdrop">
-      <div class="inventory-modal">
-        <div class="inventory-modal-header">
-          <div>
-            <h3>{{ activeAddMaster() === 'New Segment' ? 'Add New Segment' : 'Add ' + activeAddMaster() }}</h3>
-            <p>
-              @if (activeAddMaster() === 'HSN / SAC') {
-                Fetch from government source, use a ready API, or add manually for demo mapping.
-              } @else if (activeAddMaster() === 'Category') {
-                Add a clean product category after checking similar existing categories.
-              } @else if (activeAddMaster() === 'UOM') {
-                Add UOM with base/alternate conversion guidance for inventory transactions.
-              } @else if (activeAddMaster() === 'Business Segment') {
-                Create or review the business segment with categories, HSN/SAC codes and typical UOMs.
-              } @else if (activeAddMaster() === 'New Segment') {
-                Add only the segment title here. Categories, HSN/SAC codes and UOMs are configured on the main screen.
-              } @else if (activeAddMaster() === 'Location Address') {
-                Fetch address from Maps API later or enter the warehouse address manually.
-              } @else if (activeAddMaster() === 'Contact Person') {
-                Add or select a global contact that can be reused for vendor, customer, employee and branch contact mapping.
-              } @else if (activeAddMaster() === 'Manufacturer') {
-                Add only the manufacturer name for brand mapping. More manufacturer details can be added later if required.
-              } @else if (activeAddMaster() === 'Serial Number Policy') {
-                Add a reusable serial/IMEI rule. Category can provide the default, and Product Master can override it.
-              } @else if (activeAddMaster() === 'Batch / Lot Policy') {
-                Add a reusable batch/lot rule for product-wise lot, expiry and QC tracking.
-              } @else if (activeAddMaster() === 'Approval Workflow') {
-                Add a reusable approval workflow with approver role, level, threshold and escalation details.
-              } @else {
-                Inline placeholder for fast master creation from transaction screens.
-              }
-            </p>
-          </div>
-          <button type="button" class="erp-btn btn-white btn-icon" (click)="closeAddMaster()"><i class="pi pi-times"></i></button>
-        </div>
+  }  
+  <app-inventory-quick-add-modal [host]="quickAddHost"></app-inventory-quick-add-modal>
 
-        @if (activeAddMaster() === 'HSN / SAC') {
-          <div class="inventory-lookup-source">
-            @for (source of hsnSourceOptions; track source) {
-              <button type="button" class="erp-btn btn-white">
-                <i [class]="source === 'Manual Entry' ? 'pi pi-pencil' : source === 'Ready API' ? 'pi pi-cloud-download' : 'pi pi-globe'"></i>
-                {{ source }}
-              </button>
-            }
-          </div>
-          <div class="inventory-form-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Search Keyword</label>
-              <input class="erp-input" type="text" placeholder="Product, service or code keyword" />
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">HSN/SAC Code</label>
-              <input class="erp-input" type="text" placeholder="Fetched code or manual entry" />
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">GST Rate</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" [ngModel]="'18'" placeholder="Select GST"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Source</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSourceOptions" [searchable]="true" [clearable]="true" [ngModel]="'Government API'" placeholder="Select Source"></ng-select>
-            </div>
-          </div>
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" /></div>
-            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" /></div>
-          </div>
-          <div class="inventory-duplicate-advice">
-            <strong>Product auto-binding</strong>
-            <span>When a product category or product is selected later, Product Master should fetch the matching HSN/SAC code and GST breakup from this master.</span>
-          </div>
-          <div class="inventory-mini-table">
-            <div class="inventory-mini-title">Fetched / Available HSN / SAC Codes</div>
-            <table class="erp-table compact">
-              <thead>
-                <tr>
-                  <th class="text-center">Actions</th>
-                  @for (column of ['HSN/SAC Code', 'Description', 'GST %', 'CGST %', 'SGST %', 'IGST %', 'Cess %', 'Effective Date', 'Status']; track column; let columnIndex = $index) {
-                    <th class="inventory-sortable-th">
-                      <button type="button" class="inventory-sort-btn" (click)="sortBy('hsnLookup', columnIndex)">
-                        <span>{{ column }}</span>
-                        <i [class]="sortIcon('hsnLookup', columnIndex)"></i>
-                      </button>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of gridRows('hsnLookup', hsnLookupRows); track row[0]) {
-                  <tr>
-                    <td class="text-center">
-                      <div class="inventory-row-actions">
-                      @if (isAdmin()) {
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      }
-                    </div>
-                    </td>
-                    @for (cell of row; track $index) {
-                      <td>{{ cell }}</td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else if (activeAddMaster() === 'Category') {
-          <div class="inventory-form-grid inventory-config-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Category Name <span class="text-danger">*</span></label>
-              <input class="erp-input" type="text" placeholder="Enter category name"
-                [ngModel]="quickAddName()" (ngModelChange)="onQuickAddNameChange($event)" />
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Category Code <span class="erp-label-hint">auto-generated</span></label>
-              <input class="erp-input" type="text" placeholder="Auto-fills from name"
-                [ngModel]="quickAddCode()" (ngModelChange)="quickAddCode.set($event)" />
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Business Segment</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                [items]="segmentOptions" [searchable]="false" [clearable]="true"
-                [ngModel]="selectedSegment()" (ngModelChange)="selectedSegment.set($event)"
-                placeholder="Select Segment">
-              </ng-select>
-            </div>
-          </div>
-          @if (quickAddError()) {
-            <p class="inventory-error-msg">{{ quickAddError() }}</p>
-          }
-        } @else if (activeAddMaster() === 'UOM') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" /></div>
-            <div class="erp-form-group"><label class="erp-label">UOM Name</label><input class="erp-input" type="text" placeholder="Numbers, Kilogram, Bag" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">UOM Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Base', 'Purchase', 'Sale', 'Billing', 'Capacity']" [searchable]="true" [clearable]="true" [ngModel]="'Base'" placeholder="Select Type"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Existing UOMs</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultUomSelections" placeholder="Check existing UOMs"></ng-select>
-            </div>
-          </div>
-          <div class="inventory-duplicate-advice">
-            <strong>UOM note</strong>
-            <span>Add only the UOM name/code here for segment setup. Detailed conversion will be maintained in UOM Master.</span>
-          </div>
-        } @else if (activeAddMaster() === 'UOM Conversion') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Base UOM</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [searchable]="true" [clearable]="true" [ngModel]="'Nos'" placeholder="Select Base UOM"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Purchase UOM</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [searchable]="true" [clearable]="true" [ngModel]="'Box'" placeholder="Select Purchase UOM"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM')"><i class="pi pi-plus"></i></button>
-              </div>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Purchase Conversion</label><input class="erp-input" type="text" placeholder="Example: 1 Box = 4 Nos" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Saleable UOM</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [searchable]="true" [clearable]="true" [ngModel]="'Nos'" placeholder="Select Saleable UOM"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM')"><i class="pi pi-plus"></i></button>
-              </div>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Sale Conversion</label><input class="erp-input" type="text" placeholder="Example: 1 Nos = 1 Nos" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Default Purchase</label>
-              <label class="inventory-labeled-switch yes-no">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-              </label>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Default Sale</label>
-              <label class="inventory-labeled-switch yes-no">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-              </label>
-            </div>
-          </div>
-          <div class="inventory-duplicate-advice">
-            <strong>UOM mapping</strong>
-            <span>This maps how the product is purchased and sold while stock remains maintained in the selected Base UOM.</span>
-          </div>
-        } @else if (activeAddMaster() === 'Business Segment') {
-          <div class="inventory-form-grid inventory-config-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Business Segment</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [searchable]="true" [clearable]="true" [ngModel]="'Electronics'" placeholder="Select Segment"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Categories</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultCategorySelections" placeholder="Select Categories"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add Category" (click)="openAddMaster('Category')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Related HSN / SAC Codes</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="hsnSacOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultHsnSacSelections" placeholder="Select HSN / SAC"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add HSN / SAC" (click)="openAddMaster('HSN / SAC')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Typical UOMs</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="uomOptions" [multiple]="true" [searchable]="true" [clearable]="true" [ngModel]="defaultUomSelections" placeholder="Select UOMs"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="openAddMaster('UOM')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="erp-form-group span-2">
-              <label class="erp-label">Usage Note</label>
-              <textarea class="erp-input" rows="2" placeholder="Enter usage note"></textarea>
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'New Segment') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group span-2">
-              <label class="erp-label">Segment Title</label>
-              <input class="erp-input" type="text" placeholder="Enter new segment title" />
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Location Address') {
-          <div class="inventory-lookup-source">
-            <button type="button" class="erp-btn btn-white"><i class="pi pi-map-marker"></i> Fetch From Maps</button>
-            <button type="button" class="erp-btn btn-white"><i class="pi pi-pencil"></i> Add Manual</button>
-          </div>
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Search Location</label><input class="erp-input" type="text" placeholder="Search location using Maps API later" /></div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Fetched or manual address"></textarea></div>
-          </div>
-        } @else if (activeAddMaster() === 'Contact Person') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Existing Contact</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Rajesh Kumar', 'Priya Sharma', 'Anil Reddy', 'Meera Nair']" [searchable]="true" [clearable]="true" [ngModel]="'Rajesh Kumar'" placeholder="Select global contact"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Contact Name</label><input class="erp-input" type="text" placeholder="Enter contact name" /></div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="text" placeholder="Enter mobile no" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="text" placeholder="Enter email id" /></div>
-          </div>
-        } @else if (activeAddMaster() === 'Product Type') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Product Type Code</label><input class="erp-input" type="text" placeholder="PT-STOCK" /></div>
-            <div class="erp-form-group"><label class="erp-label">Product Type Name</label><input class="erp-input" type="text" placeholder="Physical Stock / Service / Menu Item" /></div>
-            <div class="erp-form-group span-2"><label class="erp-label">Behavior</label><textarea class="erp-input" rows="2" placeholder="Explain how this product type behaves in transactions"></textarea></div>
-          </div>
-        } @else if (activeAddMaster() === 'Brand') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Brand Code</label><input class="erp-input" type="text" placeholder="BR-HSE" /></div>
-            <div class="erp-form-group"><label class="erp-label">Brand Name</label><input class="erp-input" type="text" placeholder="House Brand" /></div>
-            <div class="erp-form-group"><label class="erp-label">Manufacturer</label><input class="erp-input" type="text" placeholder="Manufacturer / owner" /></div>
-            <div class="erp-form-group"><label class="erp-label">Brand Logo (Optional)</label><input class="erp-input" type="file" accept="image/*" /></div>
-          </div>
-        } @else if (activeAddMaster() === 'Variant') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Variant Code</label><input class="erp-input" type="text" placeholder="VAR-COLOR-BLK" /></div>
-            <div class="erp-form-group"><label class="erp-label">Variant Name</label><input class="erp-input" type="text" placeholder="Black Color" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Attribute Name</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Color', 'Storage Capacity', 'Grade', 'Spice Level', 'Meal Type', 'Room Type']" [searchable]="true" [clearable]="true" [ngModel]="'Color'" placeholder="Select Attribute"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Attribute Value</label><input class="erp-input" type="text" placeholder="Black / Medium Spicy / Deluxe" /></div>
-          </div>
-        } @else if (activeAddMaster() === 'Tax Category') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Tax Category Name</label><input class="erp-input" type="text" placeholder="GST 18%" /></div>
-            <div class="erp-form-group"><label class="erp-label">GST %</label><input class="erp-input" type="number" placeholder="18" /></div>
-            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-          </div>
-        } @else if (activeAddMaster() === 'Product / Service') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Product Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-            <div class="erp-form-group"><label class="erp-label">Product Name</label><input class="erp-input" type="text" placeholder="Enter product name" /></div>
-            <div class="erp-form-group"><label class="erp-label">SKU</label><input class="erp-input" type="text" placeholder="SKU" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Status</label>
-              <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track">
-                  <span class="switch-text switch-on">Active</span>
-                  <span class="switch-text switch-off">Inactive</span>
-                </span>
-              </label>
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Manufacturer') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group span-2">
-              <label class="erp-label">Manufacturer Name</label>
-              <input class="erp-input" type="text" placeholder="Enter manufacturer name" />
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Serial Number Policy') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Policy Code</label><input class="erp-input" type="text" placeholder="SNP-IMEI" /></div>
-            <div class="erp-form-group"><label class="erp-label">Policy Name</label><input class="erp-input" type="text" placeholder="IMEI Required" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Applicable Category</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [searchable]="true" [clearable]="true" [ngModel]="'Mobile & Accessories'" placeholder="Select Category"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Serial Format</label><input class="erp-input" type="text" placeholder="15 digit IMEI / alphanumeric serial" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Capture Stage</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration']" [searchable]="true" [clearable]="true" [ngModel]="'Both Inward and Sale'" placeholder="Select Stage"></ng-select>
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Batch / Lot Policy') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Policy Code</label><input class="erp-input" type="text" placeholder="BLP-FOOD" /></div>
-            <div class="erp-form-group"><label class="erp-label">Policy Name</label><input class="erp-input" type="text" placeholder="Food Batch With Expiry" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Applicable For</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Product Wise', 'Category Default', 'Food / Restaurant', 'Agro Product', 'Manufacturing Raw Material']" [searchable]="true" [clearable]="true" [ngModel]="'Product Wise'" placeholder="Select Applicability"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Batch / Lot Format</label><input class="erp-input" type="text" placeholder="YYYYMMDD-SUPPLIER-SEQ" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Expiry Required</label>
-              <label class="inventory-labeled-switch yes-no">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-              </label>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">QC Required</label>
-              <label class="inventory-labeled-switch yes-no">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-              </label>
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Vendor') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Vendor Name</label><input class="erp-input" type="text" placeholder="Legal registered name" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Vendor Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Supplier', 'Contractor', 'Service Provider', 'Manufacturer']" [searchable]="true" [clearable]="true" [ngModel]="'Supplier'" placeholder="Select type"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" placeholder="Vendor email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" placeholder="22AAAAA0000A1Z5" /></div>
-            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" placeholder="AAAAA0000A" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Payment Terms</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" placeholder="Select payment terms"></ng-select>
-            </div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Registered business address"></textarea></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Status</label>
-              <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
-              </label>
-            </div>
-          </div>
-        } @else if (activeAddMaster() === 'Customer') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Customer Name</label><input class="erp-input" type="text" placeholder="Legal registered name" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Customer Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail', 'Wholesale', 'Corporate', 'Government', 'Export']" [searchable]="true" [clearable]="true" [ngModel]="'Retail'" placeholder="Select type"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" placeholder="Customer email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Price List</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" placeholder="Assign price list"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Payment Terms</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" placeholder="Select payment terms"></ng-select>
-            </div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Billing / delivery address"></textarea></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Status</label>
-              <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
-              </label>
-            </div>
-          </div>
-        } @else {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
-            <div class="erp-form-group"><label class="erp-label">Name</label><input class="erp-input" type="text" [placeholder]="'Enter ' + activeAddMaster() + ' name'" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Segment</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="segmentOptions" [searchable]="true" [clearable]="true" [ngModel]="'Electronics'" placeholder="Select Segment"></ng-select>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Status</label>
-              <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
-                <span class="inventory-switch-track">
-                  <span class="switch-text switch-on">Active</span>
-                  <span class="switch-text switch-off">Inactive</span>
-                </span>
-              </label>
-            </div>
-          </div>
-        }
-        <div class="inventory-form-actions">
-          <button type="button" class="erp-btn btn-white" (click)="closeAddMaster()"><i class="pi pi-times"></i> Cancel</button>
-          <button type="button" class="erp-btn btn-primary"
-            (click)="activeAddMaster() === 'Category' ? saveQuickCategory() : closeAddMaster()"
-            [disabled]="isSavingQuickAdd()">
-            <i [class]="isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
-            {{ isSavingQuickAdd() ? 'Saving...' : 'Save' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  }
 </div>
-
-

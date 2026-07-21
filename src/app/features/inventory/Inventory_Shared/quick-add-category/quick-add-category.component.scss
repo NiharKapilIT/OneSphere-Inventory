@@ -1,0 +1,68 @@
+// Full-width inputs and selects inside grid cells.
+.erp-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.erp-ng-select {
+  width: 100%;
+}
+
+// Revealed policy section.
+.inventory-switch-reveal {
+  width: 100%;
+
+  .inventory-field-with-add {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+
+    .erp-ng-select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}
+
+// Inline add box.
+.qac-inline-add {
+  margin-top: 8px;
+  padding: 10px 12px 8px;
+  background: var(--clr-bg-2, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.qac-inline-field {
+  margin-bottom: 8px;
+
+  &:last-of-type { margin-bottom: 0; }
+}
+
+.qac-inline-warn {
+  font-size: 12px;
+  margin: 4px 0 0;
+  color: var(--clr-warning, #92400e);
+  background: var(--clr-warning-bg, #fffbeb);
+  border: 1px solid var(--clr-warning-border, #fcd34d);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qac-inline-error {
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+
+.qac-inline-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}

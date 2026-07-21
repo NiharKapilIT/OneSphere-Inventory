@@ -7,6 +7,7 @@ import {
   TaxCodeImportSummary,
   TaxCodeSourceStatus
 } from '../../Inventory_Shared/inventory-config.service';
+import { toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 
 @Component({
   selector: 'app-inventory-tax-code-import',
@@ -37,6 +38,10 @@ export class InventoryTaxCodeImportComponent implements OnInit {
     this.summary.set(null);
     this.message.set('');
     this.error.set('');
+  }
+
+  onSourceNameChange(value: string): void {
+    this.sourceName.set(toInventoryTitleCase(value ?? ''));
   }
 
   upload(): void {

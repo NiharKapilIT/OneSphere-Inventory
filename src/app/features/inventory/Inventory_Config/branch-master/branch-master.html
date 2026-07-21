@@ -39,8 +39,8 @@
     <div class="inventory-info-note">
       <i class="pi pi-info-circle"></i>
       Branches are created and managed in <strong>Settings → Branch Management</strong>.
-      Here the Admin selects a branch, assigns it to a <strong>Segment</strong> and sets its
-      <strong>Activity Types</strong> so warehouse, procurement and sales flows are scoped correctly.
+      Here the Admin selects a branch, assigns it to a <strong>Segment</strong> and links its
+      <strong>Default Warehouse</strong> so procurement and sales flows are scoped correctly.
     </div>
 
     <!-- ── Form card ────────────────────────────────────────────────────── -->
@@ -81,7 +81,7 @@
                 [searchable]="true"
                 [clearable]="true"
                 [ngModel]="selectedSettingsBranchId()"
-                (ngModelChange)="selectedSettingsBranchId.set($event)"
+                (ngModelChange)="onSettingsBranchSelected($event)"
                 placeholder="Select a branch">
                 <ng-template ng-option-tmp let-item="item">
                   <span class="erp-badge badge-info me-1">{{ item.branchCode }}</span>
@@ -131,11 +131,10 @@
                 </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Branch Code
-                    <span class="erp-label-hint">auto-generated</span>
                   </label>
                   <input class="erp-input" type="text"
                     [ngModel]="quickBranchCode()"
-                    (ngModelChange)="quickBranchCode.set($event)"
+                    (ngModelChange)="onQuickCodeChange($event)"
                     placeholder="e.g. CSB-001" />
                 </div>
               </div>
@@ -185,6 +184,40 @@
           </ng-select>
         </div>
 
+        <!-- Default Warehouse -->
+        <div class="erp-form-group">
+          <label class="erp-label">
+            Default Warehouse
+            <span class="erp-label-hint">links this branch to a warehouse</span>
+          </label>
+          <div class="inventory-field-with-add">
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+              [items]="warehouses()"
+              bindLabel="warehouse_name"
+              bindValue="id"
+              [searchable]="true"
+              [clearable]="true"
+              [ngModel]="warehouseId()"
+              (ngModelChange)="warehouseId.set($event)"
+              placeholder="Select warehouse (optional)">
+              <ng-template ng-option-tmp let-item="item">
+                <span class="erp-badge badge-info me-1">{{ item.warehouse_code }}</span>
+                {{ item.warehouse_name }}
+                @if (item.branch_id && item.branch_id !== selectedSettingsBranchId()) {
+                  <span class="erp-badge badge-warning ms-1">linked to {{ branchDisplayLabel(item.branch_id) }}</span>
+                }
+              </ng-template>
+            </ng-select>
+            <button type="button" class="erp-btn btn-white btn-icon"
+              title="Set up warehouses" routerLink="/dashboard/inventory/configuration/warehouse-location-master">
+              <i class="pi pi-plus"></i>
+            </button>
+          </div>
+          @if (!warehouses().length) {
+            <small class="erp-field-hint">No warehouses yet — add one in Warehouse Setup.</small>
+          }
+        </div>
+
         <!-- Status -->
         <div class="erp-form-group">
           <label class="erp-label">Status</label>
@@ -198,22 +231,6 @@
           </label>
         </div>
 
-      </div>
-
-      <!-- ── Activity Types ──────────────────────────────────────────── -->
-      <div class="inventory-sub-section-label">
-        <i class="pi pi-briefcase"></i> Branch Activity Types
-        <span class="erp-label-hint">Select all inventory functions this branch performs</span>
-      </div>
-      <div class="inventory-activity-grid">
-        @for (opt of activityOptions; track opt.key) {
-          <label class="inventory-activity-chip" [class.selected]="hasActivity(opt.key)">
-            <input type="checkbox" [checked]="hasActivity(opt.key)"
-              (change)="toggleActivity(opt.key)" />
-            <i [class]="opt.icon"></i>
-            <span>{{ opt.label }}</span>
-          </label>
-        }
       </div>
 
       @if (saveError()) {
@@ -251,7 +268,7 @@
                 <th>Branch Code</th>
                 <th>Branch Name</th>
                 <th>Segment</th>
-                <th>Activity Types</th>
+                <th>Warehouse</th>
                 <th>Status</th>
                 <th class="text-center">Remove</th>
               </tr>
@@ -264,7 +281,7 @@
                     @if (row._editId) { <span class="erp-badge badge-warning ms-1">edit</span> }
                   </td>
                   <td>{{ row._segment_name || '—' }}</td>
-                  <td><small>{{ row._activity_labels }}</small></td>
+                  <td>{{ row._warehouse_name || '—' }}</td>
                   <td>
                     <span [class]="'erp-badge ' + (row.status === 'active' ? 'badge-success' : 'badge-neutral')">
                       {{ row.status }}
@@ -305,7 +322,7 @@
       </div>
       @if (loading()) {
         <div class="inventory-loading"><i class="pi pi-spin pi-spinner"></i> Loading…</div>
-      } @else if (!savedBranches().length) {
+      } @else if (!visibleSavedBranches().length) {
         <div class="inventory-empty-state"><i class="pi pi-inbox"></i> No branches configured yet.</div>
       } @else {
         <div class="tbl-wrap">
@@ -315,18 +332,18 @@
                 <th>Branch Code</th>
                 <th>Branch Name</th>
                 <th>Segment</th>
-                <th>Activity Types</th>
+                <th>Warehouse</th>
                 <th>Status</th>
                 <th class="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              @for (br of savedBranches(); track br.id) {
+              @for (br of visibleSavedBranches(); track br.id ?? br.branch_id) {
                 <tr>
                   <td><span class="erp-badge badge-info">{{ br.branch_code }}</span></td>
                   <td><strong>{{ br.branch_name }}</strong></td>
                   <td>{{ br.segment_name || segmentName(br.segment_id) || '—' }}</td>
-                  <td><small>{{ br.activity_types.length ? br.activity_types.join(', ') : '—' }}</small></td>
+                  <td>{{ warehouseNameForBranch(br.branch_id) }}</td>
                   <td>
                     <span [class]="'erp-badge ' + (br.status.toLowerCase() === 'active' ? 'badge-success' : 'badge-neutral')">
                       {{ br.status }}

@@ -35,6 +35,8 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
   readonly status       = signal('Ready');
   readonly matchedLabel = signal('');
   readonly supported    = signal(true);
+  readonly queryText    = signal('');
+  readonly currentSteps = signal<{ title: string; steps: string[] } | null>(null);
 
   private recognition: any;
   private commands: VoiceCommandTarget[] = [];
@@ -47,6 +49,318 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
   // 'cap' / 'cop' / 'cup' are common speech-recognition outputs for spoken "Kap"
   private readonly wakePhrases = ['kap', 'cap', 'cop', 'cup', 'కాప్', 'క్యాప్'];
+
+  private readonly stepTriggers = [
+    'how can i generate', 'how can i create', 'how can i add', 'how can i raise',
+    'how can i make', 'how do i generate', 'how do i create', 'how do i add',
+    'how to generate', 'how to create', 'how to add', 'how to make', 'how to raise',
+    'steps to generate', 'steps to create', 'steps to add', 'steps for', 'steps to',
+    'guide me to', 'guide me through', 'walk me through', 'show me how to',
+    'how to post', 'how to save', 'how to enter', 'how to record',
+    'help me generate', 'help me create', 'help me add', 'process to create',
+    'process for', 'procedure for', 'procedure to'
+  ];
+
+  private readonly stepGuides: Record<string, { title: string; steps: string[] }> = {
+    'goods receipt': {
+      title: 'Generate a Goods Receipt (GRN)',
+      steps: [
+        'Go to Inventory → Transactions → Goods Receipt.',
+        'Select the Business Segment and Warehouse where stock is received.',
+        'Select the Vendor / Supplier from the party field.',
+        'Enter GRN date. Link the Purchase Order number if applicable.',
+        'Add item rows — select Product, enter Received Quantity, Rate and UOM.',
+        'Verify HSN code, GST breakup and total invoice amount.',
+        'Click Save to post the GRN. Stock increases in the selected warehouse.'
+      ]
+    },
+    'grn': {
+      title: 'Generate a GRN (Goods Receipt Note)',
+      steps: [
+        'Go to Inventory → Transactions → Goods Receipt.',
+        'Select Business Segment, Warehouse and Vendor.',
+        'Link the Purchase Order number if goods are against a PO.',
+        'Enter the receipt date and any reference or vehicle details.',
+        'Add item rows — Product, Received Quantity, Rate, UOM and Tax.',
+        'Verify the total amount and tax summary.',
+        'Click Save. Stock quantity increases in the selected warehouse.'
+      ]
+    },
+    'general receipt': {
+      title: 'Create a General Receipt',
+      steps: [
+        'Go to Accounts → Transactions → General Receipt.',
+        'Select the Party from whom payment is received.',
+        'Enter the receipt date and amount collected.',
+        'Choose Payment Mode — Cash, Cheque, NEFT, RTGS, or UPI.',
+        'If Cheque: enter cheque number, cheque date and bank name.',
+        'Add a narration describing the payment purpose.',
+        'Click Save. For cheque receipts, go to Cheques On Hand as next step.'
+      ]
+    },
+    'receipt': {
+      title: 'Create a Receipt (General Receipt)',
+      steps: [
+        'Go to Accounts → Transactions → General Receipt.',
+        'Select the Party from whom the amount is received.',
+        'Enter receipt date and amount.',
+        'Select the Payment Mode — Cash, Cheque, NEFT, or UPI.',
+        'Add bank details if payment is by cheque or bank transfer.',
+        'Enter a narration and save.',
+        'For cheques: track them under Cheques On Hand next.'
+      ]
+    },
+    'payment voucher': {
+      title: 'Create a Payment Voucher',
+      steps: [
+        'Go to Accounts → Transactions → Payment Voucher.',
+        'Select the Party you are paying — vendor, employee or other.',
+        'Enter the payment date and the amount to pay.',
+        'Choose Payment Mode — Cheque, NEFT, Cash, or UPI.',
+        'Select the bank account or cash account for the payment.',
+        'Add a narration explaining the payment purpose.',
+        'Save. For cheque payments, track them under Cheques Issued.'
+      ]
+    },
+    'journal voucher': {
+      title: 'Create a Journal Voucher',
+      steps: [
+        'Go to Accounts → Transactions → Journal Voucher.',
+        'Enter the voucher date and a clear narration.',
+        'Add the first entry row — select the Debit ledger and enter the amount.',
+        'Add the second entry row — select the Credit ledger with the same amount.',
+        'Total Debit must equal Total Credit before you can save.',
+        'Click Save. The JV is posted to both ledger accounts immediately.'
+      ]
+    },
+    'purchase order': {
+      title: 'Create a Purchase Order',
+      steps: [
+        'Go to Inventory → Transactions → Purchase Order.',
+        'Select Business Segment, Branch and the Vendor.',
+        'Enter PO date, expected delivery date and payment terms.',
+        'Add item rows — Product, Quantity, Rate, UOM and applicable Tax.',
+        'Review the total amount and GST breakup.',
+        'Save to generate the PO with a unique PO number.',
+        'The vendor can be notified from the saved PO screen.'
+      ]
+    },
+    'sales invoice': {
+      title: 'Create a Sales Invoice',
+      steps: [
+        'Go to Inventory → Transactions → Sales Invoice.',
+        'Select Business Segment, Branch and the Customer.',
+        'Enter invoice date and payment due date.',
+        'Add item rows — Product, Quantity, Rate, UOM and GST.',
+        'Price auto-fills from Price List if configured for the customer.',
+        'Review the total, GST breakup and net receivable amount.',
+        'Save to post the invoice. Receivable balance is updated.'
+      ]
+    },
+    'purchase requisition': {
+      title: 'Raise a Purchase Requisition',
+      steps: [
+        'Go to Inventory → Transactions → Purchase Requisition.',
+        'Select Business Segment, Branch and Department.',
+        'Enter the required date and reason for purchase.',
+        'Add item rows — Product, Required Quantity and UOM.',
+        'Save the requisition. It goes for approval if approval workflow is set.',
+        'After approval, a Purchase Order is raised against the approved requisition.'
+      ]
+    },
+    'stock transfer': {
+      title: 'Transfer Stock Between Warehouses',
+      steps: [
+        'Go to Inventory → Transactions → Stock Transfer.',
+        'Select the Business Segment.',
+        'Select the Source Warehouse (where stock is moving from).',
+        'Select the Destination Warehouse (where stock is moving to).',
+        'Enter the transfer date.',
+        'Add item rows — Product, Transfer Quantity and UOM.',
+        'Save. Stock is deducted from the source and added to the destination.'
+      ]
+    },
+    'stock adjustment': {
+      title: 'Adjust Stock',
+      steps: [
+        'Go to Inventory → Transactions → Stock Adjustment.',
+        'Select Business Segment and the Warehouse to adjust.',
+        'Enter the adjustment date and select the adjustment reason.',
+        'Add item rows — Product, Quantity (positive to add stock, negative to reduce).',
+        'Review the adjustment entries carefully before saving.',
+        'Save to post. Stock levels are updated immediately in the selected warehouse.'
+      ]
+    },
+    'add product': {
+      title: 'Add a New Product / Service',
+      steps: [
+        'Go to Inventory → Masters → Product / Service Master.',
+        'Select the Business Segment for this product.',
+        'Enter the Product Name — code generates automatically.',
+        'Select Category, Product Type (Physical/Service) and Base UOM.',
+        'In Tax Details: select the Category — HSN codes will be suggested.',
+        'Pick the matching HSN code from the green suggestion panel.',
+        'Set Stock Controls (min, max, reorder level) if needed.',
+        'Click Save Product.'
+      ]
+    },
+    'add category': {
+      title: 'Add a Product Category',
+      steps: [
+        'Go to Inventory → Masters → Category Master.',
+        'Select the Business Segment.',
+        'Enter the Category Name — code fills automatically.',
+        'Add a description if needed.',
+        'Enable Serial or Batch policy defaults if applicable.',
+        'Click Add, then Save All to save the category.'
+      ]
+    },
+    'add uom': {
+      title: 'Add a Unit of Measure (UOM)',
+      steps: [
+        'Go to Inventory → Masters → UOM Master.',
+        'Select the Business Segment.',
+        'Enter the UOM Name (e.g. Kilogram) and Symbol (e.g. KG).',
+        'Select the UOM Type — Base, Purchase, Sale, or Billing.',
+        'Enable Conversion if this UOM needs to convert to a base UOM.',
+        'Click Save UOM to make it available in Product Master and transactions.'
+      ]
+    },
+    'add vendor': {
+      title: 'Add a Vendor / Supplier',
+      steps: [
+        'Go to Inventory → Masters → Vendor Master.',
+        'Select the Business Segment.',
+        'Search and select the vendor from Global Contact, or type a new name.',
+        'Mobile, Email, GSTIN, PAN and Address auto-fill from Global Contact.',
+        'Select Vendor Category and Payment Terms.',
+        'Enter Credit Limit if applicable.',
+        'Save to add the vendor for use in Purchase Orders and GRN.'
+      ]
+    },
+    'add customer': {
+      title: 'Add a Customer',
+      steps: [
+        'Go to Inventory → Masters → Customer Master.',
+        'Select the Business Segment.',
+        'Search and select from Global Contact or enter a new name.',
+        'Mobile, Email, GSTIN, PAN and Address auto-fill from the contact.',
+        'Select Customer Category, Payment Terms and Price List.',
+        'Enter Credit Limit if applicable.',
+        'Save to add the customer for use in Sales Orders and Invoices.'
+      ]
+    },
+    'hsn code': {
+      title: 'Add / Map an HSN Code',
+      steps: [
+        'Go to Inventory → Masters → Tax Classification Master.',
+        'Enter the HSN or SAC code (e.g. 8471 for computers).',
+        'Select the Product Category to map this code to.',
+        'Enter the GST percentage — CGST, SGST and IGST are auto-split.',
+        'Add description and effective date.',
+        'Save. When this Category is selected in Product Master, the HSN code auto-fills.'
+      ]
+    },
+    'business segment': {
+      title: 'Set Up a Business Segment',
+      steps: [
+        'Go to Inventory → Configuration → Business Segments.',
+        'Enter the Segment Name (e.g. Electronics, Food, Real Estate).',
+        'Map the related Product Categories for this segment.',
+        'Map related HSN/SAC codes and typical UOMs.',
+        'Save. The segment is now available in all masters and transactions.',
+        'Each master and transaction screen filters data by selected segment.'
+      ]
+    },
+    'estimation': {
+      title: 'Create an Estimation / Quotation',
+      steps: [
+        'Go to Inventory → Transactions → Estimation.',
+        'Select Business Segment, Branch and Customer.',
+        'Enter the estimation date and valid-until date.',
+        'Add item rows — Product, Quantity, Rate, UOM and applicable Tax.',
+        'Review the total and tax breakup.',
+        'Save to generate the estimation. It can be converted to a Sales Order later.'
+      ]
+    },
+    'proforma invoice': {
+      title: 'Create a Proforma Invoice',
+      steps: [
+        'Go to Inventory → Transactions → Proforma Invoice.',
+        'Select Business Segment, Branch and Customer.',
+        'Enter the proforma date.',
+        'Add item rows — Product, Quantity, Rate, UOM and Tax.',
+        'Review the amount and GST details.',
+        'Save. A proforma invoice can be converted to a Sales Invoice on confirmation.'
+      ]
+    },
+    'vendor payment': {
+      title: 'Record a Vendor Payment',
+      steps: [
+        'Go to Inventory → Transactions → Vendor Payment.',
+        'Select the Vendor — their outstanding Purchase Invoices load automatically.',
+        'Tick the invoices being settled, or type a part amount against any invoice.',
+        'If a Debit Note is available for this vendor (from a Purchase Return), a hint appears — tick it to apply it and reduce what you owe.',
+        'Add one or more payment modes — Cash, UPI, Card, Cheque, NEFT/RTGS, or IMPS — with the amount for each.',
+        'If TDS applies, switch TDS Applicable to Yes, enter the amount, and pick the TDS section.',
+        'Click Save & Post Payment. The invoice is marked settled and the voucher appears in the list below — posted vouchers cannot be edited or cancelled.'
+      ]
+    },
+    'customer receipt': {
+      title: 'Record a Customer Receipt',
+      steps: [
+        'Go to Inventory → Transactions → Customer Receipt.',
+        'Select the Customer — their outstanding Sales Invoices load automatically.',
+        'Tick the invoices being settled, or type a part amount against any invoice.',
+        'If a Credit Note is available for this customer (from a Sales Return), a hint appears — tick it to apply it and reduce what they owe.',
+        'Add one or more payment modes — Cash, UPI, Cheque, NEFT, or IMPS — with the amount for each.',
+        'Click Save & Post Receipt. The invoice is marked received and the voucher appears in the list below.'
+      ]
+    },
+    'purchase return': {
+      title: 'Create a Purchase Return',
+      steps: [
+        'Go to Inventory → Transactions → Purchase Return.',
+        'Select the Vendor and the Purchase Invoice or GRN the return is against.',
+        'Add item rows — Product, Return Quantity, and the Reason for return.',
+        'Review the taxable value and GST reversal.',
+        'Save and Post. Stock reduces in the warehouse.',
+        'A Debit Note is generated automatically for the returned value — it will show up as a hint next time you open Vendor Payment for this vendor.'
+      ]
+    },
+    'sales return': {
+      title: 'Create a Sales Return',
+      steps: [
+        'Go to Inventory → Transactions → Sales Return.',
+        'Select the Customer and the Sales Invoice the return is against.',
+        'Add item rows — Product, Return Quantity, and the Reason for return.',
+        'Review the taxable value and GST reversal.',
+        'Save and Post. Stock increases back in the warehouse.',
+        'A Credit Note is generated automatically for the returned value — it will show up as a hint next time you open Customer Receipt for this customer.'
+      ]
+    },
+    'debit note': {
+      title: 'Raise a Debit Note',
+      steps: [
+        'A Debit Note is usually created automatically when a Purchase Return is posted — post the return first if one exists.',
+        'To raise one manually, go to Inventory → Transactions → Debit Note.',
+        'Select the Vendor and, if related, the Purchase Return or Purchase Invoice.',
+        'Enter the reason and add item or amount rows, with GST if applicable.',
+        'Save. The note becomes available to apply against that vendor\'s next payment in Vendor Payment.'
+      ]
+    },
+    'credit note': {
+      title: 'Raise a Credit Note',
+      steps: [
+        'A Credit Note is usually created automatically when a Sales Return is posted — post the return first if one exists.',
+        'To raise one manually, go to Inventory → Transactions → Credit Note.',
+        'Select the Customer and, if related, the Sales Return or Sales Invoice.',
+        'Enter the reason and add item or amount rows, with GST if applicable.',
+        'Save. The note becomes available to apply against that customer\'s next receipt in Customer Receipt.'
+      ]
+    }
+  };
+
 
   // Explanation trigger phrases — longest first so specific ones match before short ones
   private readonly explanationTriggers = [
@@ -146,7 +460,33 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
 
     'cheque management':
       'Cheque Management is a setup dependency for cheque payments. ' +
-      'Configure cheque books and cheque number ranges here before issuing cheques from Payment Voucher.'
+      'Configure cheque books and cheque number ranges here before issuing cheques from Payment Voucher.',
+
+    'vendor payment':
+      'Vendor Payment depends on posted Purchase Invoices for that vendor to know what is outstanding, ' +
+      'and on any Debit Note raised against that vendor (usually from a Purchase Return) which can be applied to reduce the payable. ' +
+      'Its totals also feed the Payables and Paid figures on the Inventory Dashboard.',
+
+    'customer receipt':
+      'Customer Receipt depends on posted Sales Invoices for that customer to know what is outstanding, ' +
+      'and on any Credit Note raised against that customer (usually from a Sales Return) which can be applied to reduce the receivable. ' +
+      'Its totals also feed the Receivables and Received figures on the Inventory Dashboard.',
+
+    'debit note':
+      'Debit Note depends on a posted Purchase Return (it is created automatically when the return posts) or can be raised manually against a Purchase Invoice. ' +
+      'Once created, it becomes available to apply in Vendor Payment for that vendor.',
+
+    'credit note':
+      'Credit Note depends on a posted Sales Return (it is created automatically when the return posts) or can be raised manually against a Sales Invoice. ' +
+      'Once created, it becomes available to apply in Customer Receipt for that customer.',
+
+    'purchase return':
+      'Purchase Return depends on an existing Purchase Invoice or GRN for that vendor. ' +
+      'Posting it reduces warehouse stock and automatically raises a Debit Note, which is the next related screen — applied later in Vendor Payment.',
+
+    'sales return':
+      'Sales Return depends on an existing Sales Invoice for that customer. ' +
+      'Posting it increases warehouse stock back and automatically raises a Credit Note, which is the next related screen — applied later in Customer Receipt.'
   };
 
   // ── Knowledge base ─────────────────────────────────────────────────────────
@@ -414,6 +754,56 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       'Salary is the fixed monthly compensation paid to an employee. ' +
       'It consists of earnings like basic, HRA, and allowances, minus deductions like PF, ESI, and TDS. ' +
       'The net salary is what is actually paid to the employee.',
+
+    // ── Inventory: Payments, Notes and Dashboard ────────────────────────────────
+
+    'vendor payment':
+      'Vendor Payment is used to settle what you owe a vendor. Select the vendor, tick the Purchase Invoices being paid, ' +
+      'and optionally apply a Debit Note from a Purchase Return to reduce the amount. ' +
+      'You can split the payment across Cash, UPI, Card, Cheque, NEFT or IMPS, and deduct TDS with the correct section before posting.',
+
+    'customer receipt':
+      'Customer Receipt is used to record money received from a customer against their Sales Invoices. Select the customer, tick the invoices being settled, ' +
+      'and optionally apply a Credit Note from a Sales Return to reduce the amount receivable. ' +
+      'You can split the receipt across Cash, UPI, Cheque, NEFT or IMPS before posting.',
+
+    'debit note':
+      'A Debit Note reduces the amount you owe a vendor. It is created automatically when a Purchase Return is posted, ' +
+      'for the returned value, and can then be applied against that vendor in Vendor Payment. It can also be raised manually.',
+
+    'credit note':
+      'A Credit Note reduces the amount a customer owes you. It is created automatically when a Sales Return is posted, ' +
+      'for the returned value, and can then be applied against that customer in Customer Receipt. It can also be raised manually.',
+
+    'purchase return':
+      'Purchase Return records goods sent back to a vendor against a Purchase Invoice or GRN. ' +
+      'Posting it reduces stock in the warehouse and automatically raises a Debit Note for the returned value.',
+
+    'sales return':
+      'Sales Return records goods received back from a customer against a Sales Invoice. ' +
+      'Posting it increases stock back in the warehouse and automatically raises a Credit Note for the returned value.',
+
+    'inventory dashboard':
+      'Inventory Dashboard is a live summary of the business, built entirely from real data — nothing on it is a placeholder. ' +
+      'It shows Stock Value, Out of Stock count, pending Purchase and Sales Orders, pending Dispatch, Payables and Receivables with ageing, ' +
+      'Paid versus Received, and period totals for Purchases, Sales, Purchase Returns and Sales Returns. ' +
+      'Every card can be clicked to drill down into the actual documents behind the number, and the Today, Week, Month and Quarter toggle changes the period shown.',
+
+    'payables':
+      'Payables is the total amount currently owed to vendors — the sum of every posted Purchase Invoice not yet fully paid. ' +
+      'On the Inventory Dashboard it is shown as of today, broken down by how long each invoice has been outstanding.',
+
+    'receivables':
+      'Receivables is the total amount currently owed by customers — the sum of every posted Sales Invoice not yet fully received. ' +
+      'On the Inventory Dashboard it is shown as of today, broken down by how long each invoice has been outstanding.',
+
+    'ageing':
+      'Ageing groups outstanding Payables and Receivables by how many days old each invoice is — 0 to 30, 31 to 60, 61 to 90, and over 90 days. ' +
+      'It helps you see which balances are recent and which need to be chased or paid urgently.',
+
+    'tds section':
+      'TDS Section identifies which Income Tax section a Tax Deducted at Source deduction falls under, such as 194C for contractors or 194H for commission. ' +
+      'It is selected on Vendor Payment whenever TDS Applicable is set to Yes, and determines which TDS ledger the deduction is posted to.',
   };
 
   constructor(
@@ -464,9 +854,19 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
     this.stopListeningCompletely();
     this.reply.set('');
     this.matchedLabel.set('');
+    this.currentSteps.set(null);
+    this.queryText.set('');
     window.speechSynthesis?.cancel();
     this.speaking.set(false);
     this.clearSynthWatchdog();
+  }
+
+  onTextQuery(): void {
+    const text = this.queryText().trim();
+    if (!text) return;
+    this.transcript.set(text);
+    this.handleCommand(text);
+    this.queryText.set('');
   }
 
   startListening(): void {
@@ -684,6 +1084,13 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Step-guide mode — "how to generate GRN", "steps for purchase order"
+    const stepsTopic = this.extractStepsTopic(command);
+    if (stepsTopic !== null) {
+      this.handleStepsGuide(stepsTopic);
+      return;
+    }
+
     const dependencyTopic = this.extractDependencyTopic(command);
     if (dependencyTopic !== null) {
       this.handleDependency(dependencyTopic);
@@ -775,6 +1182,55 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
     }
 
     return bestKey ? this.screenDependencies[bestKey] : null;
+  }
+
+  // ── Step Guides ──────────────────────────────────────────────────────────────
+
+  private extractStepsTopic(command: string): string | null {
+    for (const trigger of this.stepTriggers) {
+      const norm = this.normalizeText(trigger);
+      if (command.startsWith(`${norm} `)) {
+        return command.slice(norm.length).trim();
+      }
+    }
+    return null;
+  }
+
+  private handleStepsGuide(topic: string): void {
+    const guide = this.findStepsGuide(topic);
+    if (guide) {
+      this.currentSteps.set(guide);
+      this.status.set('Step guide');
+      this.matchedLabel.set(guide.title);
+      this.speak(`Here are the steps to ${guide.title}.`);
+    } else {
+      this.currentSteps.set(null);
+      this.status.set('No guide found');
+      this.matchedLabel.set('');
+      this.speak(`Sorry, I do not have a step guide for ${topic}. Try asking about GRN, purchase order, sales invoice, general receipt, or adding a product.`);
+    }
+  }
+
+  private findStepsGuide(topic: string): { title: string; steps: string[] } | null {
+    if (!topic) return null;
+    if (this.stepGuides[topic]) return this.stepGuides[topic];
+
+    let bestKey: string | null = null;
+    let bestScore = 0;
+
+    for (const key of Object.keys(this.stepGuides)) {
+      const keyNorm = this.normalizeText(key);
+      const score = Math.max(
+        this.scoreAlias(topic, keyNorm),
+        this.scoreAlias(keyNorm, topic)
+      );
+      if (score > bestScore && score >= 55) {
+        bestScore = score;
+        bestKey = key;
+      }
+    }
+
+    return bestKey ? this.stepGuides[bestKey] : null;
   }
 
   // ── Explanation ─────────────────────────────────────────────────────────────

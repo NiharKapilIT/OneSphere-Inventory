@@ -43,13 +43,105 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  width: min(340px, calc(100vw - 28px));
+  width: min(400px, calc(100vw - 28px));
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
   border: 1px solid #dbe8f9;
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
-  overflow: hidden;
   z-index: 602;
+}
+
+// ── Text query input ──────────────────────────────────────────────────────────
+
+.voice-text-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+}
+
+.voice-query-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dbe8f9;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+
+  &::placeholder { color: #94a3b8; }
+  &:focus { border-color: #0891b2; }
+}
+
+.voice-query-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dbe8f9;
+  border-radius: 10px;
+  background: #ecfeff;
+  color: #0891b2;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+
+  &:hover { background: #cffafe; }
+  i { font-size: 13px; }
+}
+
+// ── Orb + status row ──────────────────────────────────────────────────────────
+
+.voice-orb-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+// ── Step guide panel ──────────────────────────────────────────────────────────
+
+.voice-steps {
+  width: 100%;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  overflow: hidden;
+}
+
+.voice-steps-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-bottom: 1px solid #bbf7d0;
+
+  i { color: #16a34a; font-size: 14px; flex-shrink: 0; }
+  span { line-height: 1.4; }
+}
+
+.voice-steps-list {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  list-style: decimal;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.voice-step-item {
+  font-size: 12px;
+  color: #1e293b;
+  line-height: 1.5;
+  padding-left: 2px;
 }
 
 // ── Header ────────────────────────────────────────────────────────────────────
@@ -108,8 +200,9 @@
 // ── Orb ───────────────────────────────────────────────────────────────────────
 
 .voice-orb {
-  width: 72px;
-  height: 72px;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: #ecfeff;
   color: #0891b2;
@@ -119,7 +212,7 @@
   border: 1px solid #a5f3fc;
   transition: background 0.3s, color 0.3s, box-shadow 0.3s;
 
-  i { font-size: 28px; }
+  i { font-size: 22px; }
 
   &.listening {
     color: #fff;
@@ -139,16 +232,14 @@
 // ── Status ────────────────────────────────────────────────────────────────────
 
 .voice-state {
-  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
+  gap: 4px;
 
   small {
     color: #64748b;
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 500;
 
     strong { color: #0c4a6e; }

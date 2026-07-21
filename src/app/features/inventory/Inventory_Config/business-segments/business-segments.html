@@ -42,12 +42,12 @@
         </div>
 
         <div class="erp-form-group">
-          <label class="erp-label">Segment Code <span class="erp-label-hint">auto-generated</span></label>
+          <label class="erp-label">Segment Code</label>
           <input
             class="erp-input"
             type="text"
             [ngModel]="segmentCode()"
-            (ngModelChange)="segmentCode.set($event)"
+            (ngModelChange)="onSegmentCodeChange($event)"
             placeholder="Auto-fills from name" />
         </div>
 
@@ -73,7 +73,7 @@
               (ngModelChange)="categoryIds.set($event ?? [])"
               placeholder="Select categories">
             </ng-select>
-            <button type="button" class="erp-btn btn-white btn-icon" (click)="openCatPopup()" title="Add category">
+            <button type="button" class="erp-btn btn-white btn-icon" (click)="openCategoryMasterDialog()" title="Manage categories">
               <i class="pi pi-plus"></i>
             </button>
           </div>
@@ -157,7 +157,7 @@
             class="erp-input"
             rows="2"
             [ngModel]="usageNote()"
-            (ngModelChange)="usageNote.set($event)"
+            (ngModelChange)="onUsageNoteChange($event)"
             placeholder="Enter usage note"></textarea>
         </div>
       </div>
@@ -240,36 +240,17 @@
   </div>
 </div>
 
-@if (showCatPopup()) {
-  <div class="inv-popup-backdrop" (click)="closeCatPopup()"></div>
-  <div class="inv-popup-box">
+@if (showCategoryMasterDialog()) {
+  <div class="inv-popup-backdrop" (click)="closeCategoryMasterDialog()"></div>
+  <div class="inv-popup-box inv-popup-box--full">
     <div class="inv-popup-head">
-      <h4><i class="pi pi-tag"></i> Add Category</h4>
-      <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closeCatPopup()">
+      <h4><i class="pi pi-tag"></i> Manage Categories</h4>
+      <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closeCategoryMasterDialog()">
         <i class="pi pi-times"></i>
       </button>
     </div>
-    <div class="inv-popup-body">
-      <div class="erp-form-group">
-        <label class="erp-label">Category Name <span class="text-danger">*</span></label>
-        <input
-          class="erp-input"
-          type="text"
-          autofocus
-          [ngModel]="newCatName()"
-          (ngModelChange)="newCatName.set($event)"
-          placeholder="e.g. Computers & Devices" />
-      </div>
-      @if (catPopupError()) {
-        <div class="inventory-save-msg save-err"><i class="pi pi-times-circle"></i> {{ catPopupError() }}</div>
-      }
-    </div>
-    <div class="inv-popup-foot">
-      <button type="button" class="erp-btn btn-white" (click)="closeCatPopup()">Cancel</button>
-      <button type="button" class="erp-btn btn-primary" [disabled]="addingCat()" (click)="submitCat()">
-        @if (addingCat()) { <i class="pi pi-spin pi-spinner"></i> Adding... }
-        @else { <i class="pi pi-check"></i> Add Category }
-      </button>
+    <div class="inv-popup-body inv-popup-body--full">
+      <app-inventory-category-master [config]="categoryMasterConfig"></app-inventory-category-master>
     </div>
   </div>
 }
@@ -292,7 +273,7 @@
             type="text"
             autofocus
             [ngModel]="newHsnCode()"
-            (ngModelChange)="newHsnCode.set($event)"
+            (ngModelChange)="onNewHsnCodeChange($event)"
             placeholder="e.g. 8471, 998313" />
         </div>
         <div class="erp-form-group">
@@ -309,7 +290,7 @@
           class="erp-input"
           type="text"
           [ngModel]="newHsnDesc()"
-          (ngModelChange)="newHsnDesc.set($event)"
+          (ngModelChange)="onNewHsnDescChange($event)"
           placeholder="Brief description of goods or service" />
       </div>
       <div class="inv-popup-grid">
@@ -354,7 +335,7 @@
             type="text"
             autofocus
             [ngModel]="newUomName()"
-            (ngModelChange)="newUomName.set($event)"
+            (ngModelChange)="onNewUomNameChange($event)"
             placeholder="e.g. Nos, Box, Set" />
         </div>
         <div class="erp-form-group">
@@ -363,7 +344,7 @@
             class="erp-input"
             type="text"
             [ngModel]="newUomSymbol()"
-            (ngModelChange)="newUomSymbol.set($event)"
+            (ngModelChange)="onNewUomSymbolChange($event)"
             placeholder="e.g. NOS, BOX" />
         </div>
       </div>

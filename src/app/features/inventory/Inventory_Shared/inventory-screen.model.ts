@@ -3,9 +3,10 @@ export type InventoryScreenKind = 'dashboard' | 'master' | 'transaction' | 'repo
 export interface InventoryField {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'textarea' | 'file';
+  type?: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'tags' | 'textarea' | 'file';
   options?: string[];
   addMaster?: string;
+  allowCustomValue?: boolean;
 }
 
 export interface InventoryDependency {
@@ -265,6 +266,8 @@ export const INVENTORY_OPTIONS = {
   suppliers: ['ElectroMart Supplies', 'Aero Labs', 'BuildWell Contractors', 'Agro Fresh Traders', 'Fresh Foods Distributor', 'Beverage World'],
   customers: ['Walk-in Customer', 'Tenant Works Pvt Ltd', 'Metro Projects', 'Green County Buyer', 'Restaurant Walk-in Guest', 'Banquet Customer'],
   products: ['LED Display', 'Agro Seed', 'Dedicated Seat', 'Drone Motor', 'Precast Panel', 'Flat A-1204', 'Basmati Rice', 'Paneer Tikka', 'Deluxe Room 304'],
+  rawMaterialProducts: ['Agro Seed', 'Precast Panel', 'Basmati Rice'],
+  finishedGoodsProducts: ['LED Display', 'Dedicated Seat', 'Drone Motor', 'Flat A-1204', 'Paneer Tikka', 'Deluxe Room 304'],
   brands: ['Dell', 'Samsung', 'AgroFresh', 'AeroTech', 'BuildCast', 'Own Brand', 'Kitchen Fresh', 'House Brand'],
   uoms: ['Nos', 'Box', 'Set', 'KG', 'Bag', 'Quintal', 'Ton', 'Litre', 'Bottle', 'Crate', 'Plate', 'Portion', 'Room-Night', 'Sq Ft', 'Seat-Day', 'Seat-Month', 'Hour', 'Day', 'Month', 'Unit', 'Set'],
   hsnSac: ['8471', '8517', '8504', '1006', '1209', '1508', '2106', '2202', '996331', '996332', '997212', '998599', '998313', '998314', '997331', '8806', '8507', '8537', '6810', '2523', '7214', '9954'],
@@ -274,7 +277,7 @@ export const INVENTORY_OPTIONS = {
   customerTypes: ['Dealer', 'Corporate Client', 'Tenant', 'Property Buyer', 'Project Client', 'Restaurant Guest', 'Banquet Client', 'Hotel Guest'],
   vendorTypes: ['Supplier', 'Service Provider', 'Contractor', 'Manufacturer', 'Broker', 'Channel Partner', 'Food Supplier', 'Beverage Supplier'],
   trackingMethods: ['None', 'Batch', 'Serial / IMEI', 'Unit / Plot', 'Seat / Space', 'Room / Table', 'Recipe / BOM Component', 'BOM Component'],
-  valuationMethods: ['FIFO', 'FEFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost'],
+  valuationMethods: ['None', 'FIFO', 'FEFO', 'LIFO', 'Weighted Average', 'Specific Identification', 'Batch Cost'],
   hsnTypes: ['HSN', 'SAC'],
   gstRates: ['0', '5', '12', '18', '28'],
   uomTypes: ['Base', 'Purchase', 'Sale', 'Billing', 'Capacity'],
@@ -285,7 +288,10 @@ export const INVENTORY_OPTIONS = {
   status: ['Active', 'Inactive'],
   behavior: ['Stock In/Out', 'Service Billing Only', 'Availability Booking', 'BOM Consumption', 'Recipe Consumption', 'Project Issue', 'Unit Sale', 'Room Booking'],
   inventoryBehavior: ['Physical Stock', 'Service Billing', 'Space Availability', 'Manufacturing Components', 'Project Materials', 'Real Estate Units', 'Restaurant Recipe Stock', 'Hotel Room Inventory'],
-  productTypes: ['Physical Stock', 'Service', 'Space / Seat', 'Manufacturing Component', 'Project Material', 'Real Estate Unit', 'Restaurant Menu Item', 'Hotel Room']
+  productTypes: ['Physical Stock', 'Raw Material', 'Consumable', 'Fixed Asset', 'Service', 'Service Bundle', 'Digital / Subscription'],
+  productNatures: ['Physical Stock', 'Raw Material', 'Consumable', 'Fixed Asset', 'Service', 'Service Bundle', 'Digital / Subscription'],
+  pricingTypes: ['One-time', 'Rental', 'Subscription', 'Per Use'],
+  rentalUnits: ['Per Hour', 'Per Day', 'Per Week', 'Per Month', 'Per Year']
 };
 
 const transactionFields: InventoryField[] = [
@@ -322,16 +328,11 @@ const reportFields: InventoryField[] = [
   { key: 'segment', label: 'Segment', type: 'select', options: ['All', ...INVENTORY_OPTIONS.segments] },
   { key: 'location', label: 'Location', type: 'select', options: ['All', ...INVENTORY_OPTIONS.locations] },
   { key: 'category', label: 'Product Category', type: 'select', options: ['All', ...INVENTORY_OPTIONS.categories] },
+  { key: 'productNature', label: 'Product Nature', type: 'select', options: ['All', ...INVENTORY_OPTIONS.productNatures] },
   { key: 'item', label: 'Item / Service', type: 'select', options: ['All', ...INVENTORY_OPTIONS.products] },
   { key: 'fromDate', label: 'From Date', type: 'date' },
   { key: 'toDate', label: 'To Date', type: 'date' },
   { key: 'asOnDate', label: 'As-on Date', type: 'date' }
-];
-
-const transactionRows = [
-  ['08-May-2026', 'Electronics', 'ElectroMart', 'HYD Main WH', 'LED Display', '24', 'Nos', 'Draft'],
-  ['08-May-2026', 'Co-working Space', 'Tenant Works', 'Co-work Floor 2', 'Dedicated Seat', '12', 'Seat-Day', 'Ready'],
-  ['07-May-2026', 'Drone Manufacturing', 'Aero Labs', 'Manufacturing Store', 'Drone Motor', '8', 'Set', 'Pending QC']
 ];
 
 const reportRows = [
@@ -344,20 +345,6 @@ const reportRows = [
 const reportColumns = ['Segment', 'Location', 'Item', 'Opening', 'Inward', 'Outward', 'Available', 'Value'];
 const transactionColumns = ['Date', 'Segment', 'Party', 'Location', 'Item', 'Qty', 'UOM', 'Status'];
 const lineColumns = ['Item / SKU', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Amount'];
-const lineRows = [
-  ['LED Display', 'Nos', '2', '24,500', '0', '18%', '57,820'],
-  ['AMC Support', 'Month', '1', '12,000', '0', '18%', '14,160']
-];
-const posLineRows = [
-  ['LED Display', 'Nos', '1', '24,500', '0', '18%', '28,910'],
-  ['Cable Roll', 'Roll', '2', '1,850', '0', '18%', '4,366']
-];
-const productUomColumns = ['UOM', 'Type', 'Conversion', 'Display', 'Default Purchase', 'Default Sale'];
-const productUomRows = [
-  ['Nos', 'Base', '1 Nos = 1 Nos', 'Nos', 'No', 'Yes'],
-  ['Box', 'Purchase', '1 Box = 4 Nos', 'Box', 'Yes', 'No'],
-  ['Set', 'Sale', '1 Set = 2 Nos', 'Set', 'No', 'Yes']
-];
 
 function partyMaster(key: string, title: string, subtitle: string, icon: string): InventoryScreenConfig {
   const isVendor = key === 'vendorMaster';
@@ -376,7 +363,6 @@ function partyMaster(key: string, title: string, subtitle: string, icon: string)
       { key: 'name', label: `${isVendor ? 'Vendor' : 'Customer'} Name / Company Name`, type: 'select', options: ['ElectroMart Supplies Pvt Ltd', 'Tenant Works Pvt Ltd', 'Rajesh Kumar', 'Priya Sharma', 'Fresh Foods Distributor'], addMaster: 'Contact Person' },
       { key: 'code', label: `${isVendor ? 'Vendor' : 'Customer'} Code` },
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
-      { key: 'type', label: `${isVendor ? 'Vendor' : 'Customer'} Type`, type: 'select', options: ['Company', 'Individual'] },
       { key: 'gstin', label: 'GSTIN' },
       { key: 'pan', label: 'PAN' },
       { key: 'contactPerson', label: 'Contact Person Mapping', type: 'select', options: INVENTORY_OPTIONS.contactPersons, addMaster: 'Contact Person' },
@@ -424,9 +410,9 @@ function transaction(
     posMode: options.posMode || 'none',
     lineTitle: options.lineTitle || 'Item Lines',
     lineColumns: options.lineColumns || lineColumns,
-    lineRows: options.lineRows || lineRows,
+    lineRows: [],
     columns: options.columns || transactionColumns,
-    rows: options.rows || transactionRows
+    rows: []
   };
 }
 
@@ -483,16 +469,16 @@ export const businessSegmentsConfig: InventoryScreenConfig = {
     { key: 'typicalUoms', label: 'Typical UOMs', type: 'multiselect', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
     { key: 'usageNote', label: 'Usage Note', type: 'textarea' }
   ],
-  columns: ['Segment', 'Categories', 'Related HSN / SAC Codes', 'Typical UOMs', 'Usage Note'],
+  columns: ['Segment', 'Categories', 'Related HSN / SAC Codes', 'Typical UOMs', 'Usage Note', 'Status'],
   rows: [
-    ['Electronics', 'Computers & Devices, Mobile & Accessories', '8471, 8517, 8504', 'Nos, Box, Set, Year', 'Stock products, accessories, warranties, serial tracking.'],
-    ['Agro Product', 'Agro Commodities, Fertilizers & Chemicals', '1006, 1209, 1508', 'Kg, Bag, Quintal, Ton, Litre', 'Flexible UOM, e.g., Rice can be purchased/sold in Kg or Bag = 26 Kg.'],
-    ['Co-working Space', 'Workspace Resources, IT Services', '997212, 998599', 'Seat, Cabin, Hour, Day, Month, Sq.Ft', 'Space/seat availability, subscription and time-based billing.'],
-    ['IT Services', 'IT Services', '998313, 998314, 997331', 'Hour, Day, Month, License, Milestone', 'Service billing, milestones, support contracts and license billing.'],
-    ['Drone Manufacturing', 'Drone Components, Computers & Devices', '8806, 8507, 8537', 'Nos, Kit, Set, Batch, Flight Hour', 'Components, finished goods, batch/serial tracking, manufacturing stock.'],
-    ['Precast Panels', 'Precast Materials', '6810, 2523, 7214', 'Panel, Sq.Ft, Cubic Meter, Ton, Kg', 'Project material, raw material, panel dispatch, project/site location tracking.'],
-    ['Real Estate Inventory', 'Real Estate Units, Workspace Resources', '9954, 997212', 'Unit, Sq.Ft, Sq.Yd, Acre, Month', 'Unit inventory, saleable/leasable area, booking hold and release.'],
-    ['Hotel / Restaurant', 'Raw Ingredients, Beverages, Menu Items, Rooms', '2106, 2202, 996331, 996332', 'KG, Litre, Bottle, Crate, Plate, Room-Night', 'Kitchen stock, recipe consumption, restaurant POS, room minibar and room-night billing.']
+    ['Electronics', 'Computers & Devices, Mobile & Accessories', '8471, 8517, 8504', 'Nos, Box, Set, Year', 'Stock products, accessories, warranties, serial tracking.', 'Active'],
+    ['Agro Product', 'Agro Commodities, Fertilizers & Chemicals', '1006, 1209, 1508', 'Kg, Bag, Quintal, Ton, Litre', 'Flexible UOM, e.g., Rice can be purchased/sold in Kg or Bag = 26 Kg.', 'Active'],
+    ['Co-working Space', 'Workspace Resources, IT Services', '997212, 998599', 'Seat, Cabin, Hour, Day, Month, Sq.Ft', 'Space/seat availability, subscription and time-based billing.', 'Active'],
+    ['IT Services', 'IT Services', '998313, 998314, 997331', 'Hour, Day, Month, License, Milestone', 'Service billing, milestones, support contracts and license billing.', 'Active'],
+    ['Drone Manufacturing', 'Drone Components, Computers & Devices', '8806, 8507, 8537', 'Nos, Kit, Set, Batch, Flight Hour', 'Components, finished goods, batch/serial tracking, manufacturing stock.', 'Active'],
+    ['Precast Panels', 'Precast Materials', '6810, 2523, 7214', 'Panel, Sq.Ft, Cubic Meter, Ton, Kg', 'Project material, raw material, panel dispatch, project/site location tracking.', 'Active'],
+    ['Real Estate Inventory', 'Real Estate Units, Workspace Resources', '9954, 997212', 'Unit, Sq.Ft, Sq.Yd, Acre, Month', 'Unit inventory, saleable/leasable area, booking hold and release.', 'Active'],
+    ['Hotel / Restaurant', 'Raw Ingredients, Beverages, Menu Items, Rooms', '2106, 2202, 996331, 996332', 'KG, Litre, Bottle, Crate, Plate, Room-Night', 'Kitchen stock, recipe consumption, restaurant POS, room minibar and room-night billing.', 'Active']
   ]
 };
 
@@ -565,7 +551,7 @@ export const warehouseLocationMasterConfig: InventoryScreenConfig = {
 export const uomMasterConfig: InventoryScreenConfig = {
   key: 'uomMaster',
   title: 'UOM Master',
-  subtitle: 'Define UOMs first. Enable conversion only when this UOM needs conversion mapping.',
+  subtitle: 'Define segment-wise units such as KG, Bag, Box, Litre and Nos. Product-wise purchase/sales conversion is configured in Product Master.',
   kind: 'master',
   icon: 'pi pi-sort-alt',
   dependsOn: [
@@ -578,49 +564,34 @@ export const uomMasterConfig: InventoryScreenConfig = {
     { key: 'uomName', label: 'UOM Name' },
     { key: 'uomCode', label: 'UOM Code' },
     { key: 'decimalAllowed', label: 'Decimal Allowed', type: 'select', options: ['Yes', 'No'] },
-    { key: 'isBaseUom', label: 'Is Base UOM', type: 'select', options: ['Yes', 'No'] },
-    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status },
-    { key: 'fromUom', label: 'Alt. UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
-    { key: 'baseUom', label: 'To / Base UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
-    { key: 'conversionFactor', label: 'Conversion Factor', type: 'number' },
-    { key: 'roundingRule', label: 'Rounding Rule', type: 'select', options: ['Exact', '2 Decimals', 'Whole Number', 'Commercial Rounding'] }
+    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['UOM Code', 'UOM Name', 'Decimal Allowed', 'Is Base UOM', 'Conversion', 'Status'],
+  columns: ['UOM Code', 'UOM Name', 'Decimal Allowed', 'Status'],
   rows: [
-    ['NOS', 'Numbers', 'No', 'Yes', 'No', 'Active'],
-    ['BAG', 'Bag', 'Yes', 'No', '1 Bag = 26 KG', 'Active'],
-    ['SFT', 'Square Feet', 'Yes', 'Yes', 'No', 'Active'],
-    ['PLT', 'Plate', 'No', 'Yes', 'No', 'Active'],
-    ['RNT', 'Room-Night', 'No', 'Yes', 'No', 'Active']
-  ],
-  lineTitle: 'UOM Conversion Rules',
-  lineColumns: ['Alt. UOM', 'To / Base UOM', 'Conversion Factor', 'Rounding Rule'],
-  lineRows: [
-    ['Bag', 'KG', '26', 'Exact'],
-    ['Box', 'Nos', '4', 'Whole Number'],
-    ['Seat-Month', 'Seat-Day', '30', '2 Decimals'],
-    ['Crate', 'Bottle', '24', 'Whole Number'],
-    ['Bag', 'KG', '25', 'Exact']
+    ['NOS', 'Numbers', 'No', 'Active'],
+    ['BAG', 'Bag', 'Yes', 'Active'],
+    ['KG', 'Kilogram', 'Yes', 'Active'],
+    ['SFT', 'Square Feet', 'Yes', 'Active'],
+    ['LTR', 'Litre', 'Yes', 'Active']
   ]
 };
 
 export const hsnSacMappingConfig: InventoryScreenConfig = {
   key: 'hsnSacMapping',
-  title: 'HSN / SAC Finder & Mapping',
-  subtitle: 'Fetch from government/API source or add manually. Product Master can auto-bind HSN/SAC and GST from this master.',
+  title: 'Tax Classification Master',
+  subtitle: 'Define HSN/SAC codes with GST rates and map them to Product Categories. Product Master auto-binds HSN/SAC when a Category is selected.',
   kind: 'master',
-  icon: 'pi pi-search',
+  icon: 'pi pi-percentage',
   dependsOn: [
     { name: 'Business Segment', status: 'Ready' },
-    { name: 'Product/service keyword', status: 'Required' },
-    { name: 'HSN/SAC API or internal source', status: 'Pending Setup' }
+    { name: 'Category Master', status: 'Ready' }
   ],
-  outputImpact: 'Verified HSN/SAC and GST split is used by Product Master auto-binding, invoices, POS billing and HSN/SAC reports.',
-  screenMode: 'Finder and mapping',
+  outputImpact: 'HSN/SAC code and GST rate auto-bind to Product Master on category selection. Used in invoices, POS billing and HSN/SAC compliance reports.',
+  screenMode: 'Master setup',
   fields: [
-    { key: 'lookupSource', label: 'Fetch / Entry Mode', type: 'select', options: ['Government API', 'Ready API', 'Manual Entry'] },
     { key: 'code', label: 'HSN/SAC Code' },
-    { key: 'description', label: 'Description' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'category', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'gstRate', label: 'GST %', type: 'select', options: INVENTORY_OPTIONS.gstRates },
     { key: 'cgstRate', label: 'CGST %', type: 'number' },
     { key: 'sgstRate', label: 'SGST %', type: 'number' },
@@ -629,13 +600,13 @@ export const hsnSacMappingConfig: InventoryScreenConfig = {
     { key: 'effectiveDate', label: 'Effective Date', type: 'date' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['HSN/SAC Code', 'Description', 'GST %', 'CGST %', 'SGST %', 'IGST %', 'Cess %', 'Effective Date', 'Status'],
+  columns: ['HSN/SAC Code', 'Description', 'Category', 'GST %', 'CGST %', 'SGST %', 'IGST %', 'Cess %', 'Effective Date', 'Status'],
   rows: [
-    ['8471', 'Laptop and data processing machines', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
-    ['998313', 'Software implementation services', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
-    ['9954', 'Construction and real estate services', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
-    ['996331', 'Restaurant and food serving services', '5%', '2.5%', '2.5%', '5%', '0%', '01-Apr-2025', 'Active'],
-    ['996332', 'Hotel accommodation services', '12%', '6%', '6%', '12%', '0%', '01-Apr-2025', 'Active']
+    ['8471', 'Laptop and data processing machines', 'Computers & Devices', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
+    ['998313', 'Software implementation services', 'IT Services', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
+    ['9954', 'Construction and real estate services', 'Real Estate Units', '18%', '9%', '9%', '18%', '0%', '01-Apr-2025', 'Active'],
+    ['996331', 'Restaurant and food serving services', 'Menu Items', '5%', '2.5%', '2.5%', '5%', '0%', '01-Apr-2025', 'Active'],
+    ['996332', 'Hotel accommodation services', 'Rooms', '12%', '6%', '6%', '12%', '0%', '01-Apr-2025', 'Active']
   ]
 };
 
@@ -897,62 +868,63 @@ export const attributeMasterConfig: InventoryScreenConfig = {
   icon: 'pi pi-sliders-h',
   dependsOn: [
     { name: 'Business Segment', status: 'Ready' },
-    { name: 'Product Category', status: 'Required' },
+    { name: 'Variant Master', status: 'Required' },
     { name: 'Product / Service Master', status: 'Pending Setup' }
   ],
-  outputImpact: 'Attributes can be mapped to product categories and products for SKU definition, filtering, reporting and transaction validation.',
+  outputImpact: 'Attributes are mapped to variants. The attribute type controls how input is captured at transaction level (text, number, dropdown, yes/no etc.).',
   screenMode: 'Master setup',
   fields: [
     { key: 'attributeName', label: 'Attribute Name' },
-    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'attributeType', label: 'Attribute Type', type: 'select', options: ['Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes / No'] },
-    { key: 'possibleValues', label: 'Possible Values', type: 'textarea' },
+    { key: 'attributeCode', label: 'Attribute Code' },
+    { key: 'attributeType', label: 'Data Type', type: 'select', options: ['List', 'Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes/No'] },
+    { key: 'displayOrder', label: 'Display Order', type: 'number' },
     { key: 'mandatoryFlag', label: 'Mandatory Flag', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Attribute Name', 'Attribute Type', 'Possible Values', 'Mandatory Flag', 'Status'],
+  columns: ['Attribute Code', 'Attribute Name', 'Data Type', 'Values (Usage)', 'Usage Count', 'Display Order', 'Status'],
   rows: [
-    ['Color', 'Dropdown', 'Black, White, Silver, Blue', 'No', 'Active'],
-    ['Storage Capacity', 'Dropdown', '64GB, 128GB, 256GB, 512GB', 'Yes', 'Active'],
-    ['Expiry Date', 'Date', 'Date picker value', 'No', 'Active'],
-    ['Grade', 'Dropdown', 'A, B, C, Premium', 'Yes', 'Active'],
-    ['Spice Level', 'Dropdown', 'Mild, Medium, Spicy', 'No', 'Active'],
-    ['Meal Type', 'Dropdown', 'Veg, Non-Veg, Vegan', 'Yes', 'Active'],
-    ['Room Type', 'Dropdown', 'Standard, Deluxe, Suite', 'Yes', 'Active']
-  ]
+    ['ATTR-COLOR', 'Color', 'List', 'Black, White, Silver, Blue', '0', '10', 'Active'],
+    ['ATTR-STORAGE', 'Storage Capacity', 'List', '64GB, 128GB, 256GB, 512GB', '0', '20', 'Active'],
+    ['ATTR-EXPIRY', 'Expiry Date', 'Date', 'Date picker value', '0', '30', 'Active'],
+    ['ATTR-GRADE', 'Grade', 'List', 'A, B, C, Premium', '0', '40', 'Active'],
+    ['ATTR-SPICE', 'Spice Level', 'List', 'Mild, Medium, Spicy', '0', '50', 'Active'],
+    ['ATTR-MEAL', 'Meal Type', 'List', 'Veg, Non-Veg, Vegan', '0', '60', 'Active'],
+    ['ATTR-ROOM', 'Room Type', 'List', 'Standard, Deluxe, Suite', '0', '70', 'Active']
+  ],
+  lineTitle: 'Attribute Values',
+  lineColumns: ['Value Code', 'Value Name', 'Status', 'Sort Order']
 };
 
 export const variantMasterConfig: InventoryScreenConfig = {
   key: 'variantMaster',
   title: 'Variant Master',
-  subtitle: 'Define product variants by selecting an attribute name and its usable value for SKU clarity',
+  subtitle: 'Define product variants with one or more mapped attributes for SKU clarity',
   kind: 'master',
   icon: 'pi pi-sitemap',
   dependsOn: [
     { name: 'Attribute Master', status: 'Required' },
-    { name: 'Product Category', status: 'Ready' },
-    { name: 'Product / Service Master', status: 'Pending Setup' }
+    { name: 'Product Category', status: 'Ready' }
   ],
-  outputImpact: 'Variant values can be used for product SKU creation, alternate item identification, stock grouping and product search.',
+  outputImpact: 'Variant values are reusable definitions. They are mapped to specific items later in Product / Service Master.',
   screenMode: 'Master setup',
   fields: [
     { key: 'variantName', label: 'Variant Name' },
     { key: 'variantCode', label: 'Variant Code' },
-    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'attributeName', label: 'Attribute Name', type: 'select', options: ['Color', 'Storage Capacity', 'Grade', 'Size', 'Material', 'Expiry Date', 'Spice Level', 'Meal Type', 'Room Type'], addMaster: 'Attribute' },
-    { key: 'attributeValue', label: 'Attribute Value (Optional)', type: 'select', options: ['Black', 'White', '64GB', '128GB', 'Premium', 'Grade A', 'Large', 'Medium Spicy', 'Veg', 'Deluxe'] },
-    { key: 'description', label: 'Description', type: 'textarea' }
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Variant Code', 'Variant Name', 'Attribute Name', 'Attribute Value', 'Description'],
+  columns: ['Variant Code', 'Variant Name', 'Attributes', 'Status'],
   rows: [
-    ['VAR-COLOR-BLK', 'Black Color', 'Color', 'Black', 'Used for electronics, furniture and finish selection'],
-    ['VAR-STOR-128', '128GB Storage', 'Storage Capacity', '128GB', 'Storage capacity variant for devices'],
-    ['VAR-GRADE-A', 'Grade A', 'Grade', 'Grade A', 'Quality grade used in agro and project materials'],
-    ['VAR-SIZE-L', 'Large Size', 'Size', 'Large', 'Size variant for stock and sale grouping'],
-    ['VAR-SPICE-MED', 'Medium Spicy', 'Spice Level', 'Medium Spicy', 'Restaurant menu variant for kitchen preparation'],
-    ['VAR-MEAL-VEG', 'Vegetarian', 'Meal Type', 'Veg', 'Menu classification for restaurant items'],
-    ['VAR-ROOM-DLX', 'Deluxe Room', 'Room Type', 'Deluxe', 'Hotel room variant for room-night billing']
-  ]
+    ['VAR-COLOR-BLK', 'Black Color', 'Color: Black', 'Active'],
+    ['VAR-STOR-128', '128GB Storage', 'Storage Capacity: 128GB', 'Active'],
+    ['VAR-GRADE-A', 'Grade A', 'Grade: A', 'Active'],
+    ['VAR-SIZE-L', 'Large Size', 'Size: Large', 'Active'],
+    ['VAR-SPICE-MED', 'Medium Spicy', 'Spice Level: Medium', 'Active'],
+    ['VAR-MEAL-VEG', 'Vegetarian', 'Meal Type: Veg', 'Active'],
+    ['VAR-ROOM-DLX', 'Deluxe Room', 'Room Type: Deluxe', 'Active']
+  ],
+  lineTitle: 'Variant Attributes',
+  lineColumns: ['Attribute Name', 'Attribute Value']
 };
 
 export const serialNumberPolicyConfig: InventoryScreenConfig = {
@@ -1023,9 +995,9 @@ export const bomMasterConfig: InventoryScreenConfig = {
   screenMode: 'Master setup',
   fields: [
     { key: 'bomCode', label: 'BOM Code' },
-    { key: 'finishedProduct', label: 'Finished Product', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
+    { key: 'finishedProduct', label: 'Finished Product', type: 'select', options: INVENTORY_OPTIONS.finishedGoodsProducts, addMaster: 'Product / Service' },
     { key: 'version', label: 'Version' },
-    { key: 'rawMaterials', label: 'Raw Materials', type: 'multiselect', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
+    { key: 'rawMaterials', label: 'Raw Materials', type: 'multiselect', options: INVENTORY_OPTIONS.rawMaterialProducts, addMaster: 'Product / Service' },
     { key: 'quantity', label: 'Quantity', type: 'number' },
     { key: 'wastagePercent', label: 'Wastage %', type: 'number' },
     { key: 'productionCost', label: 'Production Cost', type: 'number' },
@@ -1084,6 +1056,33 @@ export const consumptionTypeMasterConfig: InventoryScreenConfig = {
     ['Internal Maintenance', 'Admin', 'Yes', 'Admin Department Head Approval', 'Office and facility consumption'],
     ['Production Issue', 'Manufacturing', 'Yes', 'Production Manager Approval', 'Raw material issued to production'],
     ['Kitchen Consumption', 'Restaurant', 'No', 'Kitchen Auto Approval', 'Daily recipe consumption']
+  ]
+};
+
+export const productTypeMasterConfig: InventoryScreenConfig = {
+  key: 'productTypeMaster',
+  title: 'Product Nature Master',
+  subtitle: 'Define product natures and configure behavior flags that control purchase, sale, inventory tracking, asset allocation and services.',
+  kind: 'master',
+  icon: 'pi pi-box',
+  outputImpact: 'Product Nature controls which transactions are allowed per product, how stock and cost are tracked, and whether serial, batch or expiry defaults apply.',
+  screenMode: 'Company-wide setup',
+  fields: [
+    { key: 'typeName', label: 'Type Name' },
+    { key: 'typeCode', label: 'Type Code' },
+    { key: 'description', label: 'Description', type: 'textarea' },
+    { key: 'sortOrder', label: 'Sort Order', type: 'number' },
+    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
+  ],
+  columns: ['Type Code', 'Type Name', 'Purchase', 'Sale', 'Tracks Inventory', 'Service', 'Asset', 'Kind', 'Status'],
+  rows: [
+    ['PHY_STOCK', 'Physical Stock', 'Yes', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['SERVICE', 'Service', 'Yes', 'Yes', 'No', 'Yes', 'No', 'System', 'Active'],
+    ['FIXED_ASSET', 'Fixed Asset', 'Yes', 'No', 'Yes', 'No', 'Yes', 'System', 'Active'],
+    ['CONSUMABLE', 'Consumable', 'Yes', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['SEMI_FINISHED', 'Semi-Finished Goods', 'No', 'No', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['FINISHED', 'Finished Goods', 'No', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['RAW_MAT', 'Raw Material', 'Yes', 'No', 'Yes', 'No', 'No', 'System', 'Active']
   ]
 };
 
@@ -1167,7 +1166,6 @@ export const productServiceMasterConfig: InventoryScreenConfig = {
     { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
     { key: 'sku', label: 'Product / Service SKU' },
     { key: 'name', label: 'Product / Service Name (Specific Item)' },
-    { key: 'productType', label: 'Inventory Behavior', type: 'select', options: INVENTORY_OPTIONS.productTypes },
     { key: 'category', label: 'Product Category (Group)', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'brand', label: 'Brand', type: 'select', options: INVENTORY_OPTIONS.brands, addMaster: 'Brand' },
     { key: 'description', label: 'Description', type: 'textarea' },
@@ -1186,24 +1184,18 @@ export const productServiceMasterConfig: InventoryScreenConfig = {
     { key: 'saleUom', label: 'Saleable / Billable UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
     { key: 'behavior', label: 'Transaction Behavior', type: 'select', options: INVENTORY_OPTIONS.behavior }
   ],
-  columns: ['Product Code', 'SKU', 'Name', 'Product Category', 'Base UOM', 'Valuation', 'HSN/SAC', 'GST %', 'Status'],
+  columns: ['Product Code', 'SKU', 'Name', 'Product Category', 'Base UOM', 'Variants', 'Mapped UOMs', 'Valuation', 'HSN/SAC', 'GST %', 'Status'],
   rows: [
-    ['ITM-1001', 'LED Display', 'Computers & Devices', 'Nos', 'FIFO', '8471', '18', 'Serial / IMEI'],
-    ['SRV-2090', 'AMC Support', 'IT Services', 'Month', 'Weighted Average', '998313', '18', 'None'],
-    ['UNT-A1204', 'Flat A-1204', 'Real Estate Units', 'Unit', 'Specific Identification', '9954', '18', 'Unit / Plot'],
-    ['FOD-1001', 'Basmati Rice', 'Raw Ingredients', 'KG', 'FIFO', '1006', '5', 'Batch'],
-    ['MENU-204', 'Paneer Tikka', 'Menu Items', 'Plate', 'Recipe Cost', '996331', '5', 'Recipe / BOM Component'],
-    ['ROOM-304', 'Deluxe Room 304', 'Rooms', 'Room-Night', 'Specific Identification', '996332', '12', 'Room / Table']
+    ['ITM-1001', 'LED Display', 'LED Display', 'Computers & Devices', 'Nos', '', '', 'FIFO', '8471', '18', 'Active'],
+    ['SRV-2090', 'AMC Support', 'AMC Support', 'IT Services', 'Month', '', '', 'Weighted Average', '998313', '18', 'Active'],
+    ['UNT-A1204', 'Flat A-1204', 'Flat A-1204', 'Real Estate Units', 'Unit', '', '', 'Specific Identification', '9954', '18', 'Active'],
+    ['FOD-1001', 'Basmati Rice', 'Basmati Rice', 'Raw Ingredients', 'KG', '', 'Bag x 25 (Purchase)', 'FIFO', '1006', '5', 'Active'],
+    ['MENU-204', 'Paneer Tikka', 'Paneer Tikka', 'Menu Items', 'Plate', '', '', 'Recipe Cost', '996331', '5', 'Active'],
+    ['ROOM-304', 'Deluxe Room 304', 'Deluxe Room 304', 'Rooms', 'Room-Night', '', '', 'Specific Identification', '996332', '12', 'Active']
   ],
-  lineTitle: 'Multiple Purchase / Sale UOM Mapping',
-  lineColumns: ['Base UOM', 'Purchase UOM', 'Purchase Conversion', 'Saleable UOM', 'Sale Conversion', 'Default Purchase', 'Default Sale'],
-  lineRows: [
-    ['Nos', 'Box', '1 Box = 4 Nos', 'Nos', '1 Nos = 1 Nos', 'Yes', 'Yes'],
-    ['Nos', 'Box', '1 Box = 4 Nos', 'Set', '1 Set = 2 Nos', 'Yes', 'No'],
-    ['KG', 'Bag', '1 Bag = 25 KG', 'Plate', 'Recipe consumes base KG', 'Yes', 'Yes'],
-    ['Bottle', 'Crate', '1 Crate = 24 Bottles', 'Bottle', '1 Bottle = 1 Bottle', 'Yes', 'Yes'],
-    ['Room-Night', 'Room-Night', '1 Room-Night = 1 Room-Night', 'Room-Night', '1 Room-Night = 1 booked night', 'Yes', 'Yes']
-  ]
+  lineTitle: 'Alternate UOM Conversion Mapping',
+  lineColumns: ['Alternate UOM', 'Conversion Factor', 'Is Purchase', 'Is Sales', 'Active'],
+  lineRows: []
 };
 
 export const estimationConfig = transaction(
@@ -1218,7 +1210,8 @@ export const estimationConfig = transaction(
     { name: 'HSN/SAC mapping', status: 'Ready' },
     { name: 'Pricing rules', status: 'Pending Setup' }
   ],
-  'Estimate record that may become a Proforma Invoice.'
+  'Estimate record that may become a Proforma Invoice.',
+  { columns: ['Est. No', 'Date', 'Segment', 'Customer', 'Items', 'Status'] }
 );
 
 export const proformaInvoiceConfig = transaction(
@@ -1232,7 +1225,8 @@ export const proformaInvoiceConfig = transaction(
     { name: 'Product / Service Master', status: 'Ready' },
     { name: 'GST and pricing', status: 'Pending Setup' }
   ],
-  'Proforma record that may become Sales Invoice without stock impact until converted.'
+  'Proforma record that may become Sales Invoice without stock impact until converted.',
+  { columns: ['Proforma No', 'Date', 'Segment', 'Customer', 'Items', 'Status'] }
 );
 
 export const purchaseOrderConfig = transaction(
@@ -1253,7 +1247,7 @@ export const purchaseOrderConfig = transaction(
       { key: 'poNo', label: 'PO No' },
       { key: 'poDate', label: 'PO Date', type: 'date' },
       { key: 'expectedDelivery', label: 'Expected Delivery', type: 'date' },
-      { key: 'linkedPr', label: 'Linked PR' },
+      { key: 'linkedPr', label: 'RFQ Reference' },
       { key: 'supplier', label: 'Supplier', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
       { key: 'receivingWarehouse', label: 'Receiving WH', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'currency', label: 'Currency', type: 'select', options: INVENTORY_OPTIONS.currencies },
@@ -1262,13 +1256,13 @@ export const purchaseOrderConfig = transaction(
       { key: 'terms', label: 'Terms & Conditions', type: 'textarea' }
     ],
     lineTitle: 'Purchase Items',
-    lineColumns: ['Item / SKU', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Warehouse', 'Amount'],
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Warehouse', 'Amount'],
     lineRows: [
-      ['LED Display 32 inch', 'Box', '5', '90,000', '2', '18%', 'HYD Main WH', '5,31,000'],
+      ['LED Display 32 inch', '', '', 'Box', '5', '90,000', '2', '18%', 'HYD Main WH', '5,31,000'],
       ['Agro Seed Premium', 'Bag', '120', '1,850', '0', '5%', 'BLR Store', '2,33,100'],
       ['Basmati Rice 25KG', 'Bag', '60', '2,250', '1', '5%', 'Main Kitchen Store', '1,40,333']
     ],
-    columns: ['PO No', 'PO Date', 'Supplier', 'Receiving WH', 'Items', 'Amount', 'Status'],
+    columns: ['PO No', 'PO Date', 'Supplier', 'RFQ Ref', 'Receiving WH', 'Items', 'Amount', 'Status'],
     rows: [
       ['PO-1001', '08-May-2026', 'ElectroMart Supplies', 'HYD Main WH', '2', 'Rs. 6,51,360', 'Draft'],
       ['PO-1002', '07-May-2026', 'Aero Labs', 'Manufacturing Store', '1', 'Rs. 1,20,360', 'Approved']
@@ -1279,41 +1273,81 @@ export const purchaseOrderConfig = transaction(
 export const goodsReceiptConfig = transaction(
   'goodsReceipt',
   'Goods Receipt Note (GRN)',
-  'Record inward goods with vendor invoice, accepted/rejected quantities, batch and serial capture',
+  'Record inward goods against a Purchase Order reference or directly against a vendor invoice, with accepted/rejected quantities and batch/serial capture.',
   'pi pi-download',
   [
-    { name: 'Purchase Order reference', status: 'Required' },
     { name: 'Vendor Master', status: 'Ready' },
     { name: 'Location / Warehouse Master', status: 'Ready' },
     { name: 'Product Master with UOM', status: 'Ready' },
-    { name: 'Batch / Serial policy', status: 'Pending Setup' }
+    { name: 'Purchase Order reference', status: 'Ready' }
   ],
   'GRN posts stock into selected warehouse. Accepted qty updates stock ledger. Rejected qty triggers quality hold.',
   {
     screenMode: 'Goods receipt entry',
     fields: [
+      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'grnNo', label: 'GRN Number' },
       { key: 'grnDate', label: 'GRN Date', type: 'date' },
       { key: 'vendor', label: 'Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
-      { key: 'poReference', label: 'PO Reference', type: 'select', options: ['PO-1001', 'PO-1002', 'PO-0998', 'Direct Inward'] },
-      { key: 'warehouse', label: 'Receiving Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'vehicleNo', label: 'Vehicle No / Transporter' },
+      { key: 'poReference', label: 'PO Reference / Direct' },
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
+      { key: 'receivingLocation', label: 'Receiving Branch / Warehouse', type: 'select', options: [] },
+      { key: 'hasTransportDetails', label: 'Transport Details', type: 'select', options: ['Yes', 'No'] },
+      { key: 'transportVehicleNo', label: 'Vehicle No' },
+      { key: 'transportDriverName', label: 'Driver Name' },
+      { key: 'transportContactNo', label: 'Driver Contact No' },
+      { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Received Items',
-    lineColumns: ['Product', 'PO Qty', 'Received Qty', 'Accepted Qty', 'Rejected Qty', 'Batch No', 'Serial No', 'Expiry Date', 'Warehouse'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
     lineRows: [
-      ['LED Display 32 inch', '5 Box', '5 Box', '4 Box', '1 Box damaged', 'NA', 'SN-1042..46', 'NA', 'HYD Main WH'],
-      ['Agro Seed Premium', '120 Bag', '118 Bag', '116 Bag', '2 Bag moisture hold', 'LOT-AGRO-0526-A', 'NA', '18-Dec-2026', 'BLR Store'],
-      ['Basmati Rice 25KG', '60 Bag', '60 Bag', '60 Bag', '0', 'LOT-RICE-0526-K', 'NA', '30-Nov-2026', 'Main Kitchen Store']
+      ['LED Display 32 inch', '', '', 'Box', '5', '4', '90,000', '2', '18%', 'NA', 'SN-1042..46', 'NA', '3,53,808'],
+      ['Agro Seed Premium', '', '', 'Bag', '120', '118', '1,850', '0', '5%', 'LOT-AGRO-0526-A', 'NA', '18-Dec-2026', '2,29,509'],
+      ['Basmati Rice 25KG', '', '', 'Bag', '60', '60', '2,250', '1', '5%', 'LOT-RICE-0526-K', 'NA', '30-Nov-2026', '1,40,333']
     ],
     columns: ['GRN No', 'GRN Date', 'Vendor', 'PO Ref', 'Warehouse', 'Items', 'Status'],
     rows: [
-      ['GRN-1042', '08-May-2026', 'ElectroMart Supplies', 'PO-1001', 'HYD Main WH', '2', 'Posted'],
-      ['GRN-1043', '07-May-2026', 'Aero Labs', 'PO-1002', 'Manufacturing Store', '1', 'Pending QC']
+      ['GRN-1042', '08-May-2026', 'ElectroMart Supplies', 'PO-1001', 'HYD Main WH', '2', 'Draft'],
+      ['GRN-1043', '07-May-2026', 'Aero Labs', 'PO-1002', 'Manufacturing Store', '1', 'Draft']
     ]
+  }
+);
+
+export const purchaseInvoiceConfig = transaction(
+  'purchaseInvoice',
+  'Purchase Invoice',
+  'Record supplier invoice against GRN or enter a direct purchase invoice without reference',
+  'pi pi-receipt',
+  [
+    { name: 'Vendor Master', status: 'Ready' },
+    { name: 'Product / Service Master', status: 'Ready' },
+    { name: 'GRN reference', status: 'Ready' },
+    { name: 'Payment Terms Master', status: 'Ready' }
+  ],
+  'Purchase Invoice stores supplier bill details in Inventory only. Accounts posting is intentionally not touched here. Posting a direct invoice (no GRN Reference) receives stock into the selected Branch / Warehouse; a GRN-linked invoice does not move stock again since the GRN already posted it.',
+  {
+    screenMode: 'Purchase invoice entry',
+    fields: [
+      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
+      { key: 'piNo', label: 'PI Number' },
+      { key: 'piDate', label: 'PI Date', type: 'date' },
+      { key: 'vendor', label: 'Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
+      { key: 'grnReference', label: 'GRN Reference / Direct' },
+      { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
+      { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
+      { key: 'receivingLocation', label: 'Branch / Warehouse', type: 'select', options: [] },
+      { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
+      { key: 'dueDate', label: 'Due Date', type: 'date' },
+      { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
+      { key: 'remarks', label: 'Remarks', type: 'textarea' }
+    ],
+    lineTitle: 'Invoice Items',
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    lineRows: [],
+    columns: ['PI No', 'PI Date', 'Vendor', 'Branch / Warehouse', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
+    rows: []
   }
 );
 
@@ -1329,29 +1363,34 @@ export const salesInvoiceConfig = transaction(
     { name: 'Sale / billing UOM', status: 'Required' },
     { name: 'Stock/capacity availability', status: 'Pending Setup' }
   ],
-  'Invoice record with stock/capacity reservation or reduction and receivables/accounting integration.',
+  'Posting a Sales Invoice decrements stock at the selected Warehouse — either directly, or against a picked Sales Order (its line items pull in automatically).',
   {
     posMode: 'switch',
     fields: [
       { key: 'invoiceNo', label: 'Invoice No' },
       { key: 'invoiceDate', label: 'Date', type: 'date' },
+      { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms, addMaster: 'Payment Terms' },
       { key: 'dueDate', label: 'Due Date', type: 'date' },
+      { key: 'soReference', label: 'Reference', type: 'select', options: [] },
+      { key: 'referenceNo', label: 'Reference' },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
       { key: 'placeOfSupply', label: 'Place of Supply', type: 'select', options: ['Telangana', 'Karnataka', 'Andhra Pradesh', 'Maharashtra'] },
       { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'transportMode', label: 'Transport Mode', type: 'select', options: ['Road', 'Rail', 'Air', 'Hand Delivery', 'Not Applicable'] },
       { key: 'vehicleNo', label: 'Vehicle No' },
+      { key: 'deliveryAddress', label: 'Delivery Address', type: 'textarea' },
       { key: 'customerNotes', label: 'Customer Notes', type: 'textarea' },
       { key: 'internalNotes', label: 'Internal Notes', type: 'textarea' }
     ],
     posFields,
     lineTitle: 'Sales Items',
-    lineColumns: ['Item / SKU', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Batch / Serial', 'Expiry Date', 'Warehouse', 'Amount'],
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Warehouse', 'Amount'],
     lineRows: [
-      ['LED Display 32 inch', 'Nos', '2', '24,500', '0', '18%', 'SN-1042, SN-1043', 'NA', 'HYD Main WH', '57,820'],
-      ['Agro Seed Premium', 'Bag', '10', '2,150', '1', '5%', 'LOT-AGRO-0526-A', '18-Dec-2026', 'BLR Store', '22,349'],
-      ['Basmati Rice 25KG', 'Bag', '6', '2,650', '0', '5%', 'LOT-RICE-0526-K', '30-Nov-2026', 'Main Kitchen Store', '16,695']
-    ]
+      ['LED Display 32 inch', '', '', 'Nos', '2', '24,500', '26,000', '24,500', '0', '18%', 'NA', 'SN-1042, SN-1043', 'NA', 'HYD Main WH', '57,820'],
+      ['Agro Seed Premium', '', '', 'Bag', '10', '2,150', '2,300', '2,150', '1', '5%', 'LOT-AGRO-0526-A', 'NA', '18-Dec-2026', 'BLR Store', '22,349'],
+      ['Basmati Rice 25KG', '', '', 'Bag', '6', '2,650', '2,800', '2,650', '0', '5%', 'LOT-RICE-0526-K', 'NA', '30-Nov-2026', 'Main Kitchen Store', '16,695']
+    ],
+    columns: ['Invoice No', 'Date', 'Segment', 'Customer', 'Proforma Ref', 'Status']
   }
 );
 
@@ -1372,7 +1411,7 @@ export const posBillingConfig = transaction(
     posMode: 'pos',
     fields: posFields,
     lineColumns,
-    lineRows: posLineRows,
+    lineRows: [],
     columns: ['Bill Date', 'Counter', 'Customer', 'Item', 'Qty', 'Payment', 'Net Amount', 'Status'],
     rows: [
       ['08-May-2026', 'HYD Main WH', 'Walk-in Customer', 'LED Display', '1', 'UPI', 'Rs. 28,910', 'Completed'],
@@ -1499,28 +1538,24 @@ export const purchaseRequisitionConfig = transaction(
   {
     screenMode: 'Procurement request entry',
     fields: [
+      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments },
       { key: 'prNo', label: 'PR Number' },
       { key: 'prDate', label: 'PR Date', type: 'date' },
-      { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
+      { key: 'branch', label: 'Branch', type: 'select', options: [] },
       { key: 'department', label: 'Department', type: 'select', options: ['Admin', 'Production', 'Sales', 'Kitchen', 'IT', 'Maintenance', 'Finance', 'Operations'] },
-      { key: 'requestedBy', label: 'Requested By', type: 'select', options: INVENTORY_OPTIONS.contactPersons, addMaster: 'Contact Person' },
+      { key: 'requestedBy', label: 'Requested By', type: 'select', options: [] },
       { key: 'priority', label: 'Priority', type: 'select', options: ['High', 'Medium', 'Low'] },
       { key: 'requiredDate', label: 'Required Date', type: 'date' },
-      { key: 'approvalStatus', label: 'Approval Status', type: 'select', options: ['Draft', 'Submitted', 'Approved', 'Rejected'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Requested Items',
-    lineColumns: ['Product', 'Description', 'UOM', 'Requested Qty', 'Approved Qty', 'Rate', 'Remarks'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'Description', 'UOM', 'Request Qty'],
     lineRows: [
-      ['LED Display', '32-inch 4K Display', 'Nos', '5', '4', '24,500', 'Conference room'],
-      ['Drone Motor', 'Brushless 2212 Motor', 'Set', '12', '12', '8,500', 'Production req.']
+      ['LED Display 32"', '', '', '32-inch 4K LED Display', 'Nos', '5'],
+      ['Drone Motor (2212)', '', '', 'Brushless 2212 Motor Set', 'Set', '12']
     ],
     columns: ['PR No', 'PR Date', 'Branch', 'Department', 'Requested By', 'Priority', 'Status'],
-    rows: [
-      ['PR-1001', '08-May-2026', 'Head Office', 'Production', 'Rajesh Kumar', 'High', 'Approved'],
-      ['PR-1002', '07-May-2026', 'Restaurant Outlet', 'Kitchen', 'Meera Nair', 'Medium', 'Submitted'],
-      ['PR-1003', '06-May-2026', 'Bengaluru Store', 'IT', 'Priya Sharma', 'Low', 'Draft']
-    ]
+    rows: []
   }
 );
 
@@ -1538,6 +1573,7 @@ export const requestForQuotationConfig = transaction(
   {
     screenMode: 'Vendor quotation request',
     fields: [
+      { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'rfqNo', label: 'RFQ Number' },
       { key: 'rfqDate', label: 'RFQ Date', type: 'date' },
       { key: 'validTill', label: 'Valid Till', type: 'date' },
@@ -1545,13 +1581,15 @@ export const requestForQuotationConfig = transaction(
       { key: 'prReference', label: 'PR Reference' },
       { key: 'currency', label: 'Currency', type: 'select', options: INVENTORY_OPTIONS.currencies },
       { key: 'deliveryLocation', label: 'Delivery Location', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
+      { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Sent', 'Response Received', 'Accepted', 'Closed'] },
       { key: 'termsConditions', label: 'Terms & Conditions', type: 'textarea' }
     ],
     lineTitle: 'Quoted Items',
-    lineColumns: ['Product', 'Qty', 'UOM', 'Target Rate', 'Vendor Rate', 'Lead Time', 'Remarks'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'Qty', 'UOM', 'Target Rate', 'Vendor Rate', 'Lead Time'],
     lineRows: [
-      ['LED Display', '5', 'Nos', '24,500', '23,800', '7 Days', 'As per PR-1001'],
-      ['Drone Motor', '12', 'Set', '8,500', '8,200', '10 Days', 'As per PR-1001']
+      ['LED Display', '', '', '5', 'Nos', '24,500', '23,800', '7 Days'],
+      ['Drone Motor', '', '', '12', 'Set', '8,500', '8,200', '10 Days']
     ],
     columns: ['RFQ No', 'RFQ Date', 'Valid Till', 'Vendor', 'Items', 'Status'],
     rows: [
@@ -1564,36 +1602,35 @@ export const requestForQuotationConfig = transaction(
 export const purchaseReturnConfig = transaction(
   'purchaseReturn',
   'Purchase Return',
-  'Return rejected or excess goods to vendor with debit note reference',
+  'Return rejected or excess goods to vendor against a posted PI or direct return',
   'pi pi-reply',
   [
-    { name: 'GRN Reference', status: 'Required' },
+    { name: 'Posted Purchase Invoice reference', status: 'Required' },
     { name: 'Vendor Master', status: 'Ready' },
     { name: 'Product Master', status: 'Ready' }
   ],
-  'Purchase return reduces stock. Debit note is created for vendor account adjustment.',
+  'Purchase return reduces stock when posted. It can be raised against a posted Purchase Invoice or entered directly when needed.',
   {
     screenMode: 'Purchase return entry',
     fields: [
       { key: 'returnNo', label: 'Return Number' },
       { key: 'returnDate', label: 'Return Date', type: 'date' },
       { key: 'vendor', label: 'Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
-      { key: 'grnReference', label: 'GRN Reference', type: 'select', options: ['GRN-1042', 'GRN-1043', 'GRN-1040'] },
-      { key: 'debitNoteRef', label: 'Debit Note Ref' },
-      { key: 'warehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'piReference', label: 'PI Reference', type: 'select', options: [] },
+      { key: 'warehouse', label: 'From Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
       { key: 'returnReason', label: 'Return Reason', type: 'select', options: ['Damaged in Transit', 'Quality Failure', 'Wrong Item Delivered', 'Excess Quantity', 'Expired on Arrival'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Return Items',
-    lineColumns: ['Product', 'GRN Qty', 'Return Qty', 'UOM', 'Rate', 'Return Amount', 'Return Reason'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No', 'Return Reason'],
     lineRows: [
-      ['LED Display', '5', '1', 'Nos', '24,500', '24,500', 'Damaged in Transit'],
-      ['Drone Motor', '12', '2', 'Set', '8,500', '17,000', 'Quality Failure']
+      ['LED Display', '', '', 'Nos', '5', '1', '24,500', '18', '28,910', '', 'Damaged in Transit'],
+      ['Drone Motor', '', '', 'Set', '12', '2', '8,500', '18', '20,060', '', 'Quality Failure']
     ],
-    columns: ['Return No', 'Return Date', 'Vendor', 'GRN Ref', 'Items', 'Return Amount', 'Status'],
+    columns: ['Return No', 'Return Date', 'Vendor', 'PI Ref', 'Items', 'Return Amount', 'Status'],
     rows: [
-      ['PR-RET-001', '09-May-2026', 'ElectroMart Supplies', 'GRN-1042', '1', 'Rs. 24,500', 'Posted'],
-      ['PR-RET-002', '08-May-2026', 'Aero Labs', 'GRN-1043', '2', 'Rs. 17,000', 'Draft']
+      ['PR-RET-001', '09-May-2026', 'ElectroMart Supplies', 'PI-1042', '1', 'Rs. 24,500', 'Posted'],
+      ['PR-RET-002', '08-May-2026', 'Aero Labs', 'PI-1043', '2', 'Rs. 17,000', 'Draft']
     ]
   }
 );
@@ -1617,6 +1654,7 @@ export const salesEnquiryConfig = transaction(
     fields: [
       { key: 'enquiryNo', label: 'Enquiry Number' },
       { key: 'enquiryDate', label: 'Enquiry Date', type: 'date' },
+      { key: 'referenceNo', label: 'Reference' },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
       { key: 'contactPerson', label: 'Contact Person', type: 'select', options: INVENTORY_OPTIONS.contactPersons, addMaster: 'Contact Person' },
       { key: 'expectedDelivery', label: 'Expected Delivery', type: 'date' },
@@ -1625,10 +1663,10 @@ export const salesEnquiryConfig = transaction(
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Enquired Products',
-    lineColumns: ['Product', 'Description', 'UOM', 'Quantity', 'Expected Price', 'Remarks'],
+    lineColumns: ['Product', 'Description', 'UOM', 'Quantity', 'Expected Price'],
     lineRows: [
-      ['LED Display', '55-inch 4K commercial display', 'Nos', '10', '22,000', 'Conference rooms'],
-      ['AMC Support', 'Annual maintenance 50 systems', 'Year', '1', '3,00,000', 'IT department']
+      ['LED Display', '55-inch 4K commercial display', 'Nos', '10', '22,000'],
+      ['AMC Support', 'Annual maintenance 50 systems', 'Year', '1', '3,00,000']
     ],
     columns: ['Enquiry No', 'Enquiry Date', 'Customer', 'Items', 'Expected Delivery', 'Status'],
     rows: [
@@ -1686,8 +1724,7 @@ export const salesOrderConfig = transaction(
   [
     { name: 'Customer Master', status: 'Ready' },
     { name: 'Warehouse / Location Master', status: 'Ready' },
-    { name: 'Product Master with stock', status: 'Required' },
-    { name: 'Sales Quotation reference', status: 'Pending Setup' }
+    { name: 'Product Master with stock', status: 'Required' }
   ],
   'SO reserves stock in warehouse and drives delivery challan, invoice and receivables.',
   {
@@ -1696,23 +1733,20 @@ export const salesOrderConfig = transaction(
       { key: 'soNo', label: 'SO Number' },
       { key: 'soDate', label: 'SO Date', type: 'date' },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
-      { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
-      { key: 'warehouse', label: 'Dispatch Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms, addMaster: 'Payment Terms' },
+      { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
+      { key: 'dueDate', label: 'Due Date', type: 'date' },
       { key: 'deliveryDate', label: 'Delivery Date', type: 'date' },
-      { key: 'quotationRef', label: 'Quotation Reference' },
+      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'placeOfSupply', label: 'Place of Supply' },
       { key: 'deliveryAddress', label: 'Delivery Address', type: 'textarea' }
     ],
     lineTitle: 'Order Items',
-    lineColumns: ['Product', 'UOM', 'Qty', 'Rate', 'Discount %', 'GST %', 'Amount'],
-    lineRows: [
-      ['LED Display', 'Nos', '10', '23,275', '5', '18%', '2,74,645'],
-      ['AMC Support', 'Year', '1', '3,00,000', '0', '18%', '3,54,000']
-    ],
-    columns: ['SO No', 'SO Date', 'Customer', 'Warehouse', 'Amount', 'Delivery Date', 'Status'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST %', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    lineRows: [],
+    columns: ['SO No', 'SO Date', 'Customer', 'Amount', 'Delivery Date', 'Status'],
     rows: [
-      ['SO-4001', '09-May-2026', 'Tenant Works Pvt Ltd', 'HYD Main WH', 'Rs. 6,28,645', '25-May-2026', 'Confirmed'],
-      ['SO-4002', '08-May-2026', 'Metro Projects', 'Manufacturing Store', 'Rs. 3,54,000', '30-May-2026', 'Partially Delivered']
+      ['SO-4001', '09-May-2026', 'Tenant Works Pvt Ltd', 'Rs. 6,28,645', '25-May-2026', 'Posted'],
+      ['SO-4002', '08-May-2026', 'Metro Projects', 'Rs. 3,54,000', '30-May-2026', 'Partially Delivered']
     ]
   }
 );
@@ -1734,19 +1768,19 @@ export const deliveryChallanConfig = transaction(
     fields: [
       { key: 'dcNo', label: 'DC Number' },
       { key: 'dcDate', label: 'DC Date', type: 'date' },
-      { key: 'soReference', label: 'SO Reference', type: 'select', options: ['SO-4001', 'SO-4002', 'Direct Dispatch'] },
+      { key: 'soReference', label: 'Reference (SO / Invoice)', type: 'select', options: [] },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
-      { key: 'fromWarehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'fromWarehouse', label: 'From Warehouse / Branch', type: 'select', options: [], addMaster: 'Location' },
       { key: 'vehicle', label: 'Vehicle', type: 'select', options: ['TS09AB1234', 'KA03CD7788', 'TS10RF4421'], addMaster: 'Vehicle' },
       { key: 'transporter', label: 'Transporter', type: 'select', options: ['BuildWell Logistics', 'Fresh Cold Chain', 'Own Fleet'], addMaster: 'Transporter' },
       { key: 'lrNo', label: 'LR No' },
       { key: 'deliveryAddress', label: 'Delivery Address', type: 'textarea' }
     ],
     lineTitle: 'Dispatched Items',
-    lineColumns: ['Product', 'SO Qty', 'Dispatch Qty', 'UOM', 'Batch / Serial', 'Remarks'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'SO Qty', 'Dispatch Qty', 'UOM', 'Serial No'],
     lineRows: [
-      ['LED Display', '10', '6', 'Nos', 'SN-1042..SN-1047', 'Partial dispatch'],
-      ['AMC Support', '1', '1', 'Year', 'NA', 'Service on delivery']
+      ['LED Display', '', '', '10', '6', 'Nos', ''],
+      ['AMC Support', '', '', '1', '1', 'Year', '']
     ],
     columns: ['DC No', 'DC Date', 'Customer', 'Vehicle', 'Items', 'SO Ref', 'Status'],
     rows: [
@@ -1773,17 +1807,16 @@ export const salesReturnConfig = transaction(
       { key: 'returnNo', label: 'Return Number' },
       { key: 'returnDate', label: 'Return Date', type: 'date' },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
-      { key: 'invoiceReference', label: 'Invoice Reference', type: 'select', options: ['INV-6001', 'INV-6002', 'INV-5998'] },
-      { key: 'creditNoteRef', label: 'Credit Note Ref' },
+      { key: 'invoiceReference', label: 'Invoice Reference', type: 'select', options: [] },
       { key: 'returnToWarehouse', label: 'Return To Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'returnReason', label: 'Return Reason', type: 'select', options: ['Wrong Product Delivered', 'Damaged in Delivery', 'Customer Cancelled', 'Quality Issue', 'Excess Quantity'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Returned Items',
-    lineColumns: ['Product', 'Invoiced Qty', 'Return Qty', 'UOM', 'Rate', 'Return Amount', 'Reason'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'Invoiced Qty', 'Return Qty', 'UOM', 'Rate', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Return Amount', 'Reason'],
     lineRows: [
-      ['LED Display', '6', '1', 'Nos', '28,910', '28,910', 'Damaged in Delivery'],
-      ['AMC Support', '1', '0', 'Year', 'NA', 'NA', 'No Return']
+      ['LED Display', '', '', '6', '1', 'Nos', '28,910', '18%', 'NA', 'SN-1042', 'NA', '34,114', 'Damaged in Delivery'],
+      ['AMC Support', '', '', '1', '0', 'Year', '0', '0%', 'NA', 'NA', 'NA', '0', 'No Return']
     ],
     columns: ['Return No', 'Return Date', 'Customer', 'Invoice Ref', 'Amount', 'Status'],
     rows: [
@@ -1927,18 +1960,18 @@ export const materialIssueProductionConfig = transaction(
     fields: [
       { key: 'issueNo', label: 'Issue Number' },
       { key: 'issueDate', label: 'Issue Date', type: 'date' },
-      { key: 'productionRef', label: 'Production Plan Ref', type: 'select', options: ['PP-001', 'PP-002', 'PP-003'] },
+      { key: 'productionRef', label: 'Production Plan Ref', type: 'select', options: [] },
       { key: 'fromWarehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'toWorkCenter', label: 'To Work Center', type: 'select', options: ['Assembly Line', 'Quality Check', 'Kitchen Station'], addMaster: 'Work Center' },
       { key: 'issuedBy', label: 'Issued By', type: 'select', options: INVENTORY_OPTIONS.contactPersons },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Issued Materials',
-    lineColumns: ['Raw Material', 'UOM', 'Required Qty', 'Issued Qty', 'Batch / Serial', 'Remarks'],
+    lineColumns: ['Raw Material', 'UOM', 'Required Qty', 'Issued Qty', 'Batch / Serial'],
     lineRows: [
-      ['Drone Motor', 'Nos', '48', '48', 'LOT-DRN-001', 'As per PP-001'],
-      ['Flight Controller', 'Nos', '12', '12', 'NA', 'As per PP-001'],
-      ['Basmati Rice', 'KG', '20', '20', 'LOT-7781', 'Kitchen batch']
+      ['Drone Motor', 'Nos', '48', '48', 'LOT-DRN-001'],
+      ['Flight Controller', 'Nos', '12', '12', 'NA'],
+      ['Basmati Rice', 'KG', '20', '20', 'LOT-7781']
     ],
     columns: ['Issue No', 'Issue Date', 'Production Ref', 'From WH', 'Items', 'Status'],
     rows: [
@@ -1964,7 +1997,7 @@ export const productionEntryConfig = transaction(
     fields: [
       { key: 'productionNo', label: 'Production Number' },
       { key: 'productionDate', label: 'Production Date', type: 'date' },
-      { key: 'planRef', label: 'Production Plan Ref', type: 'select', options: ['PP-001', 'PP-002'] },
+      { key: 'planRef', label: 'Production Plan Ref', type: 'select', options: [] },
       { key: 'finishedProduct', label: 'Finished Product', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
       { key: 'producedQty', label: 'Produced Qty', type: 'number' },
       { key: 'rejectedQty', label: 'Rejected Qty', type: 'number' },
@@ -2003,17 +2036,17 @@ export const productionReturnConfig = transaction(
     fields: [
       { key: 'returnNo', label: 'Return Number' },
       { key: 'returnDate', label: 'Return Date', type: 'date' },
-      { key: 'issueRef', label: 'Material Issue Ref', type: 'select', options: ['MI-001', 'MI-002', 'MI-003'] },
+      { key: 'issueRef', label: 'Material Issue Ref', type: 'select', options: [] },
       { key: 'productionRef', label: 'Production Ref' },
       { key: 'toWarehouse', label: 'Return To Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'reason', label: 'Return Reason', type: 'select', options: ['Excess Issued', 'Production Cancelled', 'Recipe Changed', 'Quality Rejected'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Returned Materials',
-    lineColumns: ['Material', 'Issued Qty', 'Consumed Qty', 'Returned Qty', 'UOM', 'Batch', 'Remarks'],
+    lineColumns: ['Material', 'Issued Qty', 'Consumed Qty', 'Returned Qty', 'UOM', 'Batch'],
     lineRows: [
-      ['Drone Motor', '48 Nos', '44 Nos', '4 Nos', 'Nos', 'LOT-DRN-001', 'Excess per plan'],
-      ['Battery Pack', '12 Nos', '11 Nos', '1 Nos', 'Nos', 'NA', 'QC reject returned']
+      ['Drone Motor', '48 Nos', '44 Nos', '4 Nos', 'Nos', 'LOT-DRN-001'],
+      ['Battery Pack', '12 Nos', '11 Nos', '1 Nos', 'Nos', 'NA']
     ],
     columns: ['Return No', 'Return Date', 'Issue Ref', 'To Warehouse', 'Items', 'Status'],
     rows: [
@@ -2089,10 +2122,10 @@ export const internalIssueSlipConfig = transaction(
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Issued Items',
-    lineColumns: ['Product', 'UOM', 'Qty', 'Returnable', 'Purpose', 'Remarks'],
+    lineColumns: ['Product', 'UOM', 'Qty', 'Returnable', 'Purpose'],
     lineRows: [
-      ['LED Display', 'Nos', '1', 'No', 'Permanent installation', 'Conference room A'],
-      ['Cable Roll', 'Roll', '2', 'No', 'Network cabling', 'Office expansion']
+      ['LED Display', 'Nos', '1', 'No', 'Permanent installation'],
+      ['Cable Roll', 'Roll', '2', 'No', 'Network cabling']
     ],
     columns: ['Issue No', 'Issue Date', 'Issued To', 'Department', 'Items', 'Status'],
     rows: [
@@ -2122,7 +2155,7 @@ export const shipmentEntryConfig = transaction(
     fields: [
       { key: 'shipmentNo', label: 'Shipment Number' },
       { key: 'shipmentDate', label: 'Shipment Date', type: 'date' },
-      { key: 'dcReference', label: 'DC Reference', type: 'select', options: ['DC-5001', 'DC-5002', 'DC-5003'] },
+      { key: 'dcReference', label: 'DC Reference', type: 'select', options: [] },
       { key: 'vehicle', label: 'Vehicle', type: 'select', options: ['TS09AB1234', 'KA03CD7788', 'TS10RF4421'], addMaster: 'Vehicle' },
       { key: 'driver', label: 'Driver Name' },
       { key: 'driverMobile', label: 'Driver Mobile' },
@@ -2162,7 +2195,7 @@ export const gatePassConfig = transaction(
       { key: 'gatePassNo', label: 'Gate Pass Number' },
       { key: 'gatePassDate', label: 'Gate Pass Date', type: 'date' },
       { key: 'gatePassType', label: 'Gate Pass Type', type: 'select', options: ['Inward', 'Outward', 'Returnable Outward', 'Returnable Inward'] },
-      { key: 'reference', label: 'Reference (GRN / DC)', type: 'select', options: ['GRN-1042', 'DC-5001', 'DC-5002', 'Direct Movement'] },
+      { key: 'reference', label: 'Reference (GRN / DC)', type: 'select', options: ['Direct Movement'] },
       { key: 'vehicle', label: 'Vehicle No', type: 'select', options: ['TS09AB1234', 'KA03CD7788', 'TS10RF4421'], addMaster: 'Vehicle' },
       { key: 'driver', label: 'Driver / Person Name' },
       { key: 'securityApproval', label: 'Security Approval By', type: 'select', options: INVENTORY_OPTIONS.contactPersons },
@@ -2170,10 +2203,10 @@ export const gatePassConfig = transaction(
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Items Covered',
-    lineColumns: ['Product', 'Qty', 'UOM', 'Purpose', 'Remarks'],
+    lineColumns: ['Product', 'Qty', 'UOM', 'Purpose'],
     lineRows: [
-      ['LED Display', '6', 'Nos', 'Customer Delivery', 'As per DC-5001'],
-      ['Drone Motor', '12', 'Set', 'Purchase Inward', 'As per PO-1002']
+      ['LED Display', '6', 'Nos', 'Customer Delivery'],
+      ['Drone Motor', '12', 'Set', 'Purchase Inward']
     ],
     columns: ['Gate Pass No', 'Date', 'Type', 'Vehicle', 'Reference', 'Security By', 'Status'],
     rows: [
@@ -2190,26 +2223,25 @@ export const gatePassConfig = transaction(
 export const debitNoteConfig = transaction(
   'debitNote',
   'Debit Note',
-  'Raise debit note to vendor for purchase returns, price adjustments or short supply',
+  'Settle purchase returns or raise a vendor debit adjustment without moving stock',
   'pi pi-minus-circle',
   [
     { name: 'Vendor Master', status: 'Ready' },
     { name: 'Purchase Return or price adjustment reference', status: 'Required' }
   ],
-  'Debit note reduces vendor payables. Posted to accounts for vendor ledger adjustment.',
+  'Debit note is the financial settlement document for Purchase Return or direct vendor adjustment. It does not move stock; later Accounts posting should use this note as the payable reduction / vendor debit source.',
   {
-    screenMode: 'Debit note entry',
+    screenMode: 'Debit note settlement',
     fields: [
       { key: 'debitNoteNo', label: 'Debit Note Number' },
       { key: 'debitNoteDate', label: 'Debit Note Date', type: 'date' },
       { key: 'vendor', label: 'Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
-      { key: 'reference', label: 'Reference (PR Return / PO)', type: 'select', options: ['PR-RET-001', 'PR-RET-002', 'PO-1001', 'Direct Adjustment'] },
-      { key: 'reason', label: 'Reason', type: 'select', options: ['Purchase Return', 'Price Difference', 'Short Supply', 'Quality Deduction', 'Freight Overcharge'] },
-      { key: 'amount', label: 'Debit Amount', type: 'number' },
+      { key: 'reference', label: 'Settlement Reference', type: 'select', options: ['Direct Debit Note'] },
+      { key: 'reason', label: 'Reason', type: 'select', options: ['Purchase Return Settlement', 'Price Difference', 'Short Supply', 'Quality Deduction', 'Freight Overcharge', 'Direct Vendor Adjustment'] },
       { key: 'gstAdjustment', label: 'GST Adjustment', type: 'select', options: ['Yes', 'No'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
-    lineTitle: 'Debit Note Lines',
+    lineTitle: 'Settlement / Adjustment Lines',
     lineColumns: ['Description', 'Reference', 'Amount', 'GST %', 'GST Amount', 'Total Amount'],
     lineRows: [
       ['Purchase Return - LED Display', 'GRN-1042', '24,500', '18%', '4,410', '28,910'],
@@ -2226,26 +2258,25 @@ export const debitNoteConfig = transaction(
 export const creditNoteConfig = transaction(
   'creditNote',
   'Credit Note',
-  'Issue credit note to customer for sales returns, pricing corrections or goodwill adjustments',
+  'Settle sales returns or raise a customer credit adjustment without moving stock',
   'pi pi-plus-circle',
   [
     { name: 'Customer Master', status: 'Ready' },
     { name: 'Sales Return or invoice reference', status: 'Required' }
   ],
-  'Credit note reduces customer receivables. Posted to accounts for customer ledger adjustment.',
+  'Credit note is the financial settlement document for Sales Return or direct customer adjustment. It does not move stock; later Accounts posting should use this note as the receivable reduction / customer credit source.',
   {
-    screenMode: 'Credit note entry',
+    screenMode: 'Credit note settlement',
     fields: [
       { key: 'creditNoteNo', label: 'Credit Note Number' },
       { key: 'creditNoteDate', label: 'Credit Note Date', type: 'date' },
       { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
-      { key: 'reference', label: 'Reference (Sales Return / Invoice)', type: 'select', options: ['SR-RET-001', 'SR-RET-002', 'INV-6001', 'Direct Adjustment'] },
-      { key: 'reason', label: 'Reason', type: 'select', options: ['Sales Return', 'Price Correction', 'Discount Adjustment', 'Goodwill Credit', 'Short Delivery'] },
-      { key: 'amount', label: 'Credit Amount', type: 'number' },
+      { key: 'reference', label: 'Settlement Reference', type: 'select', options: ['Direct Credit Note'] },
+      { key: 'reason', label: 'Reason', type: 'select', options: ['Sales Return Settlement', 'Price Correction', 'Discount Adjustment', 'Goodwill Credit', 'Short Delivery', 'Direct Customer Adjustment'] },
       { key: 'gstAdjustment', label: 'GST Adjustment', type: 'select', options: ['Yes', 'No'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
-    lineTitle: 'Credit Note Lines',
+    lineTitle: 'Settlement / Adjustment Lines',
     lineColumns: ['Description', 'Reference', 'Amount', 'GST %', 'GST Amount', 'Total Amount'],
     lineRows: [
       ['Sales Return - LED Display', 'INV-6001', '24,500', '18%', '4,410', '28,910'],

@@ -62,11 +62,10 @@
         <!-- Warehouse Code (auto-generated) -->
         <div class="erp-form-group">
           <label class="erp-label">Warehouse Code
-            <span class="erp-label-hint">auto-generated</span>
           </label>
           <input class="erp-input" type="text"
             [ngModel]="warehouseCode()"
-            (ngModelChange)="warehouseCode.set($event)"
+            (ngModelChange)="onCodeChange($event)"
             placeholder="Auto-fills from name" />
         </div>
 
@@ -78,7 +77,7 @@
             [searchable]="true"
             [clearable]="true"
             [ngModel]="state()"
-            (ngModelChange)="state.set($event)"
+            (ngModelChange)="onStateChange($event)"
             placeholder="Select state">
           </ng-select>
         </div>
@@ -87,7 +86,7 @@
         <div class="erp-form-group">
           <label class="erp-label">District</label>
           <input class="erp-input" type="text"
-            [ngModel]="district()" (ngModelChange)="district.set($event)"
+            [ngModel]="district()" (ngModelChange)="onDistrictChange($event)"
             placeholder="Enter district" />
         </div>
 
@@ -95,7 +94,7 @@
         <div class="erp-form-group">
           <label class="erp-label">City / Town</label>
           <input class="erp-input" type="text"
-            [ngModel]="city()" (ngModelChange)="city.set($event)"
+            [ngModel]="city()" (ngModelChange)="onCityChange($event)"
             placeholder="City or town" />
         </div>
 
@@ -111,7 +110,7 @@
         <div class="erp-form-group span-2">
           <label class="erp-label">Full Address</label>
           <textarea class="erp-input" rows="2"
-            [ngModel]="address()" (ngModelChange)="address.set($event)"
+            [ngModel]="address()" (ngModelChange)="onAddressChange($event)"
             placeholder="Street / Plot / Survey No."></textarea>
         </div>
 
@@ -138,7 +137,7 @@
           <div class="erp-form-group">
             <label class="erp-label">Custom Unit Name</label>
             <input class="erp-input" type="text"
-              [ngModel]="customCapacityUnit()" (ngModelChange)="customCapacityUnit.set($event)"
+              [ngModel]="customCapacityUnit()" (ngModelChange)="onCustomCapacityUnitChange($event)"
               placeholder="e.g. container, pallet" />
           </div>
         }
@@ -262,7 +261,7 @@
       </div>
       @if (loading()) {
         <div class="inventory-loading"><i class="pi pi-spin pi-spinner"></i> Loading…</div>
-      } @else if (!savedWarehouses().length) {
+      } @else if (!visibleSavedWarehouses().length) {
         <div class="inventory-empty-state"><i class="pi pi-inbox"></i> No warehouses saved yet.</div>
       } @else {
         <div class="tbl-wrap">
@@ -282,7 +281,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (wh of savedWarehouses(); track wh.id) {
+              @for (wh of visibleSavedWarehouses(); track wh.id) {
                 <tr>
                   <td><span class="erp-badge badge-info">{{ wh.warehouse_code }}</span></td>
                   <td><strong>{{ wh.warehouse_name }}</strong></td>

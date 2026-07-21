@@ -26,7 +26,7 @@
             class="erp-input"
             type="text"
             [ngModel]="sourceName()"
-            (ngModelChange)="sourceName.set($event)"
+            (ngModelChange)="onSourceNameChange($event)"
             placeholder="CBIC GST rate data, GST portal HSN directory" />
         </div>
         <div class="erp-form-group">

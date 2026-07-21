@@ -250,7 +250,12 @@ export class AuthService {
     sessionStorage.setItem('authRoles', JSON.stringify(payload.roles || []));
     sessionStorage.setItem('authPermissions', JSON.stringify(payload.permissions || {}));
     sessionStorage.setItem('authMenu', JSON.stringify(payload.menu || []));
-    sessionStorage.setItem('authTenantOptions', JSON.stringify(payload.tenantOptions || []));
+    // Preserve existing tenant options when the incoming payload doesn't carry them
+    const tenantOptions = payload.tenantOptions?.length
+      ? payload.tenantOptions
+      : this.parseStorage<LoginTenantOption[]>('authTenantOptions', []);
+    sessionStorage.setItem('authTenantOptions', JSON.stringify(tenantOptions));
+    this.writeCompanyDetailsFallback(payload, branch);
     sessionStorage.setItem('loggedInUser', JSON.stringify({
       username,
       companyCode: payload.company?.companyCode || '',
@@ -422,8 +427,6 @@ export class AuthService {
     if (modules.length === 0) return null;
 
     const codeToRouteId: Record<string, string> = {
-      ACCOUNTS: 'accounts',
-      HRMS: 'hrms',
       INVENTORY: 'inventory',
       SETTINGS: 'settings'
     };
@@ -433,6 +436,17 @@ export class AuthService {
         .map(module => codeToRouteId[(module.moduleCode || '').toUpperCase()])
         .filter((value): value is string => !!value)
     );
+  }
+
+  private writeCompanyDetailsFallback(payload: AuthPayload, branch?: AuthPayload['defaultBranch']): void {
+    sessionStorage.setItem('CompanyDetails', JSON.stringify({
+      companyId: payload.company?.id || payload.user?.companyId || 0,
+      companyCode: payload.company?.companyCode || '',
+      companyName: payload.company?.companyName || '',
+      branchId: branch?.id || 0,
+      branchCode: branch?.branchCode || '',
+      branchName: branch?.branchName || ''
+    }));
   }
 
   private parseStorage<T>(key: string, fallback: T): T {

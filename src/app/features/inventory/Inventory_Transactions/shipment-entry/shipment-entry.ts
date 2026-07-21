@@ -6,11 +6,12 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import { shipmentEntryConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
 
 @Component({
   selector: 'app-inventory-shipment-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
   templateUrl: './shipment-entry.html'
 })
 export class InventoryShipmentEntryComponent extends InventoryScreenShell {

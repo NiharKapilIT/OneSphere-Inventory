@@ -206,6 +206,18 @@
             }
           </select>
         </div>
+        <div class="erp-form-group">
+          <label>Role <span class="required">*</span></label>
+          <select class="erp-input" [ngModel]="selectedRoleId()" (ngModelChange)="setRole($event)">
+            <option [ngValue]="null" disabled>Select role</option>
+            @for (role of activeRoles(); track role.id) {
+            <option [ngValue]="role.id">{{ role.roleName }}</option>
+            }
+          </select>
+          @if (!activeRoles().length) {
+          <small class="mu-role-hint">No roles yet — create one under Settings → Roles &amp; Permissions.</small>
+          }
+        </div>
       </div>
 
       <!-- Temporary password -->

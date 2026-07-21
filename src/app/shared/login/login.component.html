@@ -235,10 +235,14 @@
           <div class="otp-sent-badge" [class.otp-warn-badge]="loginOtpDeliveryFailed()">
             <i [class]="loginOtpDeliveryFailed() ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle'"></i>
             @if (loginOtpDeliveryFailed()) {
-              @if (loginOtpDeliveryMessage().includes('Email')) { Email address not reachable. }
-              @else if (loginOtpDeliveryMessage().includes('SMS')) { Mobile number not reachable. }
-              @else { Delivery channel not available. }
-              Enter OTP below if provided by your admin.
+              @if (loginIdentifierChannel() === 'email') { Email address not reachable. }
+              @else if (loginIdentifierChannel() === 'mobile') { Mobile number not reachable. }
+              @else { OTP delivery could not be confirmed. }
+              @if (loginOtp()) {
+                OTP auto-filled below — click Sign In.
+              } @else {
+                Enter OTP below if provided by your admin.
+              }
             } @else {
               {{ loginOtpDeliveryMessage() || 'OTP sent successfully' }}
             }
@@ -255,7 +259,7 @@
           @if (loginTenantOptions().length > 0) {
           <div class="auth-info-box" style="margin-bottom:12px;">
             <i class="pi pi-info-circle"></i>
-            <span>OTP verified. Your account is linked to multiple companies — select one and its branch, then click <strong>Confirm & Sign In</strong>.</span>
+            <span>OTP verified. Select company and branch, then click <strong>Confirm & Sign In</strong>.</span>
           </div>
           <div class="erp-form-group">
             <label>Company</label>
@@ -533,8 +537,8 @@
           <div class="otp-sent-badge" [class.otp-warn-badge]="registrationOtpDeliveryFailed()" style="margin-bottom:12px;">
             <i [class]="registrationOtpDeliveryFailed() ? 'pi pi-exclamation-triangle' : 'pi pi-check-circle'"></i>
             @if (registrationOtpDeliveryFailed()) {
-              @if (registrationOtpDeliveryMessage().includes('Email')) { Email address not reachable. }
-              @else if (registrationOtpDeliveryMessage().includes('SMS')) { Mobile number not reachable. }
+              @if (registrationIdentifierChannel() === 'email') { Email address not reachable. }
+              @else if (registrationIdentifierChannel() === 'mobile') { Mobile number not reachable. }
               @else { Delivery could not be confirmed. }
               Enter OTP if you received it, or try a different contact.
             } @else {
@@ -620,6 +624,14 @@
                 (ngModelChange)="updateCompanySetup('legalName', $event)"
                 placeholder="Registered legal name (optional)" />
             </div>
+          </div>
+          <div class="erp-form-group" style="margin-top:8px;">
+            <label>First Branch / Office Name</label>
+            <input pInputText type="text" class="w-100"
+              [ngModel]="companySetup().defaultBranchName"
+              (ngModelChange)="updateCompanySetup('defaultBranchName', $event)"
+              placeholder="e.g. Head Office, Main Store, Hyderabad HQ" />
+            <div class="reg-field-hint">This becomes your default branch. You can add more branches after login from Settings.</div>
           </div>
         </div>
 

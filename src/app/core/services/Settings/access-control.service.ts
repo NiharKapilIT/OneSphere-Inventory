@@ -109,6 +109,11 @@ export interface RoleScreenPermissionResponse {
   screenId: number;
   screenCode: string;
   screenName: string;
+  moduleId: number;
+  moduleCode: string;
+  moduleName: string;
+  moduleIcon?: string | null;
+  screenGroup?: string | null;
   permissions: PermissionFlags;
 }
 

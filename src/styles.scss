@@ -313,6 +313,45 @@
   --scroll-thumb-hover: #e58fb5;
 }
 
+[data-theme='dark'] {
+  --page-bg: #0d1117;
+  --shell-bg: #131720;
+  --topbar-bg: linear-gradient(90deg, #161c2e 0%, #1a2035 46%, #1d2238 100%);
+  --topbar-border: rgba(255, 255, 255, 0.08);
+
+  --module-pill-bg: rgba(255, 255, 255, 0.06);
+  --module-pill-hover: rgba(255, 255, 255, 0.10);
+  --module-active-bg: linear-gradient(135deg, #4a7fd4 0%, #2d5eb8 100%);
+
+  --sidebar-bg: linear-gradient(180deg, #161c2e 0%, #111522 100%);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: linear-gradient(180deg, #3a6fd4 0%, #2a5cb8 100%);
+
+  --panel-bg: rgba(22, 26, 40, 0.97);
+  --panel-soft: #1a1f30;
+  --panel-border: rgba(255, 255, 255, 0.10);
+
+  --primary: #4d8fff;
+  --primary-dark: #7fb3ff;
+  --primary-soft: rgba(77, 143, 255, 0.12);
+  --accent: #7fb3ff;
+
+  --workspace-surface: #0d1117;
+  --workspace-card: rgba(18, 22, 34, 0.97);
+
+  --text-strong: #e6eaf4;
+  --text-main: #b8bfcf;
+  --text-soft: #6b7696;
+  --text-white: #ffffff;
+
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 18px 36px rgba(0, 0, 0, 0.48);
+
+  --scroll-track: #1a1e2e;
+  --scroll-thumb: #2e3450;
+  --scroll-thumb-hover: #3e4568;
+}
+
 :root,
 :root[data-theme] {
   --clr-p1: var(--primary-dark);
@@ -2019,7 +2058,7 @@ ng-select {
 
 /* Dropdown panel styling */
 .ng-dropdown-panel {
-  z-index: 9999 !important;
+  z-index: 13050 !important;
   border: 1.5px solid var(--fp-border, #dbe8f9) !important;
   border-radius: 14px !important;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(248, 250, 252, 0.98) 100%) !important;
@@ -2243,6 +2282,18 @@ ng-select.ng-disabled {
 
     &:hover {
       background: #16a34a;
+    }
+  }
+
+  &.btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.35);
+
+    &:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 5px 16px rgba(217, 119, 6, 0.42);
     }
   }
 
@@ -8899,6 +8950,180 @@ body .p-connected-overlay {
   min-height: 100%;
 }
 
+.inv-movement-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 160px;
+  padding: 8px 4px 0;
+}
+
+.inv-movement-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+
+  small { color: #64748b; font-size: 11px; }
+}
+
+.inv-movement-bars {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  width: 100%;
+  justify-content: center;
+}
+
+.inv-movement-bar {
+  width: 12px;
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+
+  &.in { background: #2563eb; }
+  &.out { background: #10b981; }
+  &.sales { background: #10b981; }
+  &.returns { background: #e11d48; }
+}
+
+.inv-movement-legend {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #475569;
+
+  span { display: inline-flex; align-items: center; gap: 6px; }
+  i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  i.in { background: #2563eb; }
+  i.out { background: #10b981; }
+  i.sales { background: #10b981; }
+  i.returns { background: #e11d48; }
+}
+
+.inv-fin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.inv-fin-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+
+  &:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, .08); }
+
+  &.tone-rose  { background: #fff1f2; border-color: #fecdd3; }
+  &.tone-blue  { background: #eff6ff; border-color: #bfdbfe; }
+  &.tone-amber { background: #fffbeb; border-color: #fde68a; }
+  &.tone-green { background: #f0fdf4; border-color: #bbf7d0; }
+}
+
+.inv-fin-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: #fff;
+  background: #94a3b8;
+}
+
+.inv-fin-card.tone-rose  .inv-fin-icon { background: #e11d48; }
+.inv-fin-card.tone-blue  .inv-fin-icon { background: #2563eb; }
+.inv-fin-card.tone-amber .inv-fin-icon { background: #d97706; }
+.inv-fin-card.tone-green .inv-fin-icon { background: #10b981; }
+
+.inv-fin-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  small { font-size: 11.5px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .3px; }
+  strong { font-size: 19px; font-weight: 700; color: #1a2233; }
+  em { font-style: normal; font-size: 11px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+@media (max-width: 900px) {
+  .inv-fin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.inv-ageing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.inv-ageing-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inv-ageing-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+
+  strong { color: #1a2233; }
+  span { color: #64748b; font-weight: 600; }
+}
+
+.inv-ageing-row {
+  display: grid;
+  grid-template-columns: 42px 1fr 90px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.inv-ageing-label { font-weight: 600; }
+
+.inv-ageing-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef1f6;
+  overflow: hidden;
+  display: block;
+}
+
+.inv-ageing-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width .3s ease;
+
+  &.rose { background: #e11d48; }
+  &.blue { background: #2563eb; }
+  &.green { background: #10b981; }
+}
+
+.inv-ageing-value {
+  text-align: right;
+  font-weight: 600;
+  color: #1a2233;
+}
+
 .inv-visual-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.85fr) minmax(0, 0.7fr);
@@ -9554,6 +9779,327 @@ body .p-connected-overlay {
   line-height: 1.4;
 }
 
+/* ── Movable dashboard widgets (drag & drop reorder) ───────────────────── */
+.inv-widget-stack {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+.inv-widget {
+  container-type: inline-size;
+  container-name: inv-widget;
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid #dbe8f9;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  padding: 14px;
+  transition: box-shadow .15s ease, border-color .15s ease, opacity .15s ease, grid-column .15s ease;
+}
+
+/* Widgets in the same grid row auto-match the tallest one beside them
+   (grid align-items: stretch); the body then grows to fill that height so
+   the card's content — not just blank padding — uses the extra space. */
+.inv-widget-body {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.inv-widget-body > .inv-owner-kpi-grid,
+.inv-widget-body > .inv-fin-grid,
+.inv-widget-body > .inv-ageing-grid,
+.inv-widget-body > .inv-owner-table-wrap,
+.inv-widget-body > .inv-stock-mix-wrap,
+.inv-widget-body > .inv-funnel,
+.inv-widget-body > .inv-dual-funnel,
+.inv-widget-body > .inv-movement-chart {
+  flex: 1 1 auto;
+}
+
+.inv-movement-chart {
+  height: auto;
+  min-height: 160px;
+}
+
+.inv-owner-table-wrap {
+  display: flex;
+  flex-direction: column;
+
+  table { flex: 0 0 auto; }
+}
+
+.inv-widget.drag-over {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .25), 0 10px 24px rgba(15, 23, 42, .08);
+}
+
+@media (max-width: 900px) {
+  .inv-widget { grid-column: span 12 !important; }
+}
+
+.inv-widget-head {
+  justify-content: space-between !important;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.inv-widget-head-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.inv-widget-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: grab;
+  font-size: 12px;
+  touch-action: none;
+}
+
+.inv-widget-handle:active { cursor: grabbing; }
+
+.inv-widget-width {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #dbe8f9;
+  border-radius: 999px;
+  background: #f8fafc;
+  flex: 0 0 auto;
+}
+
+.inv-width-btn {
+  min-width: 26px;
+  height: 24px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.inv-width-btn:hover { color: #1a2233; }
+
+.inv-width-btn.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.inv-widget-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.inv-widget-hide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #dbe8f9;
+  border-radius: 999px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.inv-widget-hide:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #e11d48;
+}
+
+.inv-owner-hero-compact {
+  padding: 12px 18px;
+}
+
+.inv-owner-hero-compact .inv-owner-title h1 {
+  margin: 0 0 6px;
+}
+
+.inv-owner-hero-compact .inv-owner-meta {
+  margin-top: 0;
+}
+
+.inv-hidden-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+  border: 1px dashed #dbe8f9;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 11.5px;
+  color: #94a3b8;
+}
+
+.inv-hidden-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+
+  i { font-size: 9px; }
+
+  &:hover { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+}
+
+/* ── Density scales with actual rendered width, not just the column count — a
+   col-4 widget on a wide monitor and a col-12 widget on a phone both get the
+   same treatment because container queries measure real pixels. ───────────── */
+@container inv-widget (max-width: 520px) {
+  .inv-widget-head h2 { font-size: 14px; }
+  .inv-widget-head p { font-size: 11px; }
+  .inv-fin-copy strong,
+  .inv-owner-kpi-copy strong { font-size: 16px; }
+  .inv-fin-copy small,
+  .inv-owner-kpi-copy small { font-size: 10.5px; }
+  .inv-fin-copy em,
+  .inv-owner-kpi-copy em { font-size: 10px; }
+  .inv-owner-table { font-size: 11.5px; }
+  .inv-funnel-meta,
+  .inv-comparison-label,
+  .inv-comparison-values,
+  .inv-ageing-label,
+  .inv-ageing-value { font-size: 11px; }
+  .inv-dual-funnel-head { font-size: 11.5px; }
+}
+
+@container inv-widget (max-width: 340px) {
+  .inv-widget-head h2 { font-size: 12.5px; }
+  .inv-widget-head p { display: none; }
+  .inv-fin-grid,
+  .inv-owner-kpi-grid { grid-template-columns: 1fr; }
+  .inv-fin-copy strong,
+  .inv-owner-kpi-copy strong { font-size: 14.5px; }
+  .inv-owner-table { font-size: 10.5px; }
+  .inv-owner-table th,
+  .inv-owner-table td { padding: 6px 8px; }
+  .inv-comparison-label strong { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+  .inv-dual-funnel { grid-template-columns: 1fr; }
+  .inv-widget-width { transform: scale(.92); }
+}
+
+.inv-customize-head p i {
+  font-size: 10px;
+  margin: 0 2px;
+}
+
+/* ── Funnel charts ──────────────────────────────────────────────────────── */
+.inv-funnel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px 4px;
+}
+
+.inv-funnel-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inv-funnel-shape {
+  display: flex;
+  justify-content: center;
+}
+
+.inv-funnel-bar {
+  display: block;
+  height: 30px;
+  border-radius: 6px;
+  min-width: 18%;
+  transition: width .3s ease;
+}
+
+.inv-funnel-bar.product { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+.inv-funnel-bar.proc { background: linear-gradient(90deg, #1d4ed8, #60a5fa); }
+.inv-funnel-bar.sales { background: linear-gradient(90deg, #059669, #34d399); }
+
+.inv-funnel-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.inv-funnel-meta strong {
+  color: #0f172a;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inv-funnel-meta span {
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.inv-dual-funnel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.inv-dual-funnel-col {
+  min-width: 0;
+}
+
+.inv-dual-funnel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.inv-dual-funnel-head.proc { color: #1d4ed8; }
+.inv-dual-funnel-head.sales { color: #059669; }
+
+@media (max-width: 900px) {
+  .inv-dual-funnel { grid-template-columns: 1fr; }
+}
+
 .inv-segment-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9869,6 +10415,62 @@ body .p-connected-overlay {
   box-shadow: 0 16px 38px rgba(15, 23, 42, 0.15);
   font-size: 12px;
   font-weight: 600;
+}
+
+.inv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .45);
+  z-index: 1400;
+}
+
+.inv-modal-panel {
+  position: fixed;
+  top: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(880px, 94vw);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .25);
+  z-index: 1401;
+  overflow: hidden;
+}
+
+.inv-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eef1f6;
+
+  h3 { margin: 0; font-size: 16px; color: #1a2233; }
+}
+
+.inv-modal-actions {
+  display: flex;
+  gap: 8px;
+
+  button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #dbe8f9;
+    border-radius: 8px;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+
+    &:hover { border-color: #2456d6; color: #2456d6; }
+  }
+}
+
+.inv-modal-body {
+  padding: 12px 18px 18px;
+  overflow: auto;
 }
 
 @media print {
@@ -12123,6 +12725,43 @@ body .p-connected-overlay {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.inventory-transaction-header {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  column-gap: 12px;
+  row-gap: 20px;
+  align-items: end;
+  padding: 12px;
+  margin-bottom: 14px;
+  border: 1px solid #d7e4f5;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.inventory-transaction-header .erp-form-group {
+  min-width: 0;
+}
+
+.inventory-transaction-header .sales-order-customer-col,
+.inventory-transaction-header .procurement-vendor-col,
+.inventory-transaction-header .inventory-header-col-6 {
+  grid-column: span 2 / span 2;
+}
+
+.inventory-transaction-header .inventory-header-hint-field {
+  padding-bottom: 0;
+}
+
+.inventory-transaction-header .inventory-header-hint-field .inventory-stock-hint {
+  top: calc(100% + 3px);
+}
+
+.inventory-auto-doc-input {
+  font-weight: 700;
+  color: #1e293b;
+  background: #eef4fb;
+}
+
 .inventory-form-grid .span-2 {
   grid-column: span 2;
 }
@@ -12142,6 +12781,24 @@ body .p-connected-overlay {
   height: 38px;
 }
 
+.inventory-reference-picker-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.inventory-reference-picker-btn {
+  width: 38px;
+  height: 38px;
+  align-self: end;
+}
+
+.inventory-control-readonly {
+  opacity: 0.68;
+  pointer-events: none;
+}
+
 .inventory-form-actions {
   justify-content: flex-end;
   margin-top: 16px;
@@ -12153,15 +12810,116 @@ body .p-connected-overlay {
 }
 
 .inventory-save-msg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px 8px 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  &.save-ok  { color: #166534; background: #dcfce7; }
+  &.save-err { color: #991b1b; background: #fee2e2; }
+}
+
+.inventory-save-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px 8px 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+}
+
+.inventory-alert-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: .65;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 12px;
+
+  &:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+}
+
+.inventory-grid-range {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.inventory-grid-divider {
+  width: 1px;
+  height: 20px;
+  background: #dbe8f9;
+  margin: 0 4px;
+  display: inline-block;
+}
+
+.inventory-grid-pager {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+}
+
+.inventory-grid-pager-label {
+  font-size: 12px;
+  color: #475569;
   font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 6px;
-  &.save-ok  { color: #166534; background: #dcfce7; }
-  &.save-err { color: #991b1b; background: #fee2e2; }
+  min-width: 72px;
+  text-align: center;
+}
+
+.inventory-grid-page-size {
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 8px;
+  border: 1px solid #dbe8f9;
+  background: #fff;
+  font-size: 12px;
+  color: #334155;
+}
+
+.inventory-save-tooltip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+
+  &.save-ok {
+    color: #166534;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  &.save-err {
+    color: #991b1b;
+    background: #fff1f2;
+    border-color: #fecdd3;
+  }
 }
 
 .inventory-branch-form {
@@ -12181,6 +12939,26 @@ body .p-connected-overlay {
   color: var(--clr-p1, #0c4a6e);
   font-size: 13px;
   font-weight: 600;
+}
+
+.delivery-challan-fieldset {
+  margin-top: 12px;
+  background: #f8fbff;
+}
+
+.delivery-challan-fieldset .inventory-fieldset-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.delivery-address-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sales-invoice-notes-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 12px;
 }
 
 .inventory-fieldset-title-row {
@@ -12459,6 +13237,325 @@ body .p-connected-overlay {
   max-width: 100%;
 }
 
+.inventory-line-items-fullscreen {
+  position: fixed;
+  inset: 12px;
+  z-index: 1200;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.35);
+
+  .tbl-wrap {
+    flex: 1;
+    overflow: auto;
+  }
+}
+
+.inventory-line-total-row td {
+  border-top: 2px solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.inventory-line-total-row strong {
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 12px;
+}
+
+// Give the Total row more presence than the compact body rows above it —
+// the .grn-grid-compact body/header rules are deliberately tight (5px
+// padding, 10-11px font) but the summary row should still stand out.
+.grn-grid-compact .inventory-line-total-row td {
+  padding: 11px 6px !important;
+  font-size: 12px;
+}
+
+.grn-grid-compact .inventory-line-total-row strong {
+  font-size: 13px;
+}
+
+.inventory-grid-na {
+  display: inline-block;
+  min-height: 34px;
+  line-height: 34px;
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.inventory-ng-select .ng-dropdown-panel .ng-optgroup {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #f8fafc;
+}
+
+// GRN's line grid has 13 data columns — tighten padding so it's compact, but
+// let column widths stay flexible (auto table-layout, no uniform per-column
+// floor) so each column takes only what its own content needs instead of
+// every column — wide or narrow — being forced to the same fixed width.
+// Scoped to this grid only; every other transaction/master grid keeps the
+// default .erp-table.compact spacing.
+.grn-grid-compact.inventory-line-items .erp-table.compact {
+  --grn-grid-control-height: 38px;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.grn-grid-compact.inventory-line-items .erp-table.compact th,
+.grn-grid-compact.inventory-line-items .erp-table.compact td {
+  padding: 5px 6px;
+  max-width: none;
+  width: auto;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.grn-grid-compact.inventory-line-items .erp-table.compact th {
+  white-space: normal;
+}
+
+.grn-grid-compact.inventory-line-items .erp-table.compact th {
+  min-width: 0;
+  font-size: 10px;
+}
+
+.grn-grid-compact.inventory-line-items .erp-table.compact td {
+  font-size: 11px;
+  vertical-align: top;
+}
+
+.grn-grid-compact.inventory-line-items .erp-table.compact th:first-child,
+.grn-grid-compact.inventory-line-items .erp-table.compact td:first-child {
+  min-width: 52px;
+  width: 52px;
+}
+
+.grn-grid-compact .inventory-row-actions {
+  gap: 4px;
+}
+
+// Title-bar button group (Add Row / Full Screen) — deliberately NOT
+// .inventory-row-actions, which forces every .erp-btn inside it to a fixed
+// 28x28 icon-only square and was clipping these buttons' text labels.
+.inventory-line-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+// Save/Clear action bar duplicated at the bottom of the grid, visible only in
+// full-screen mode (the real one further down the page is hidden behind the
+// full-screen overlay, so full-screen carries its own).
+.inventory-form-locked {
+  opacity: .72;
+  filter: grayscale(0.15);
+  cursor: not-allowed;
+}
+
+.inventory-line-fullscreen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid #dbe8f9;
+  background: #f8fafc;
+
+  .inventory-save-error,
+  .inventory-save-msg {
+    flex: 1 1 100%;
+    margin: 0;
+    order: -1;
+  }
+}
+
+// GRN saved-records drill-down: a taller, more prominent total row than the
+// compact .pr-expand-items-table body rows, so the summary line is easy to
+// spot at a glance instead of blending into the item list.
+.grn-expand-total-row td {
+  padding: 12px 10px !important;
+  font-size: 13px;
+  border-top: 2px solid #c7d9f5;
+  border-bottom: none !important;
+  background: #eaf2ff;
+}
+
+.grn-expand-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.grn-grid-compact .inventory-grid-input {
+  min-width: 56px;
+  width: 100%;
+  height: var(--grn-grid-control-height) !important;
+  min-height: var(--grn-grid-control-height) !important;
+  padding: 7px 8px !important;
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+  border-radius: 10px !important;
+}
+
+// Match the grid's ng-select pixel-for-pixel to the plain grid input above —
+// the shared .inventory-ng-select rules (34px arrow zone, 12px value padding)
+// are sized for full-width form fields and make the closed control look much
+// bigger than a text input at the same cell width, so every internal part is
+// re-set here instead of only the outer container.
+.grn-grid-compact .inventory-grid-select.ng-select {
+  width: 100%;
+  min-width: 56px;
+}
+
+.grn-grid-compact .inventory-grid-select .ng-select-container {
+  min-width: 56px;
+  min-height: var(--grn-grid-control-height) !important;
+  height: var(--grn-grid-control-height) !important;
+  padding: 0 !important;
+  font-size: 11px !important;
+  border-radius: 10px !important;
+}
+
+.grn-grid-compact .inventory-grid-select .ng-value-container {
+  min-height: var(--grn-grid-control-height) !important;
+  padding-left: 8px !important;
+}
+
+.grn-grid-compact .inventory-grid-select .ng-arrow-wrapper,
+.grn-grid-compact .inventory-grid-select .ng-clear-wrapper,
+.grn-grid-compact .inventory-grid-select .ng-clear-zone {
+  min-height: var(--grn-grid-control-height) !important;
+  height: var(--grn-grid-control-height) !important;
+}
+
+.grn-grid-compact .inventory-grid-select .ng-arrow-wrapper {
+  width: 18px;
+  padding: 0 6px 0 2px !important;
+}
+
+.grn-grid-compact .inventory-grid-select .ng-placeholder,
+.grn-grid-compact .inventory-grid-select .ng-value-label,
+.grn-grid-compact .inventory-grid-select .ng-input input {
+  font-size: 11px !important;
+  line-height: 1.25 !important;
+}
+
+.grn-grid-compact .inventory-grid-na {
+  min-height: var(--grn-grid-control-height);
+  line-height: var(--grn-grid-control-height);
+}
+
+.grn-grid-compact .inventory-grid-empty-hint,
+.grn-grid-compact .inventory-grid-static-value {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--grn-grid-control-height);
+  height: var(--grn-grid-control-height);
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.grn-grid-compact .inventory-grid-static-value {
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-weight: 600;
+}
+
+.grn-grid-compact .inventory-grid-empty-hint {
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.variant-picker-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 0;
+  pointer-events: none;
+
+  * {
+    pointer-events: none;
+  }
+
+  strong {
+    font-size: 13px;
+    color: #1e293b;
+    line-height: 1.3;
+  }
+}
+
+.variant-picker-attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+
+  .erp-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+}
+
+.variant-attr-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  .erp-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+}
+
+.inventory-product-variant-map table {
+  th:first-child,
+  td.inventory-variant-col {
+    width: 260px;
+    min-width: 220px;
+    white-space: nowrap;
+  }
+}
+
+.inventory-variant-attr-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: normal;
+}
+
+.variant-pick-preview {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #f8faff;
+  border: 1px solid #dbe8f9;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .variant-pick-preview-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    strong {
+      font-size: 13px;
+      color: #1e293b;
+    }
+  }
+}
+
 .inventory-current-entries {
   margin-top: 16px;
   border: 1px solid #fcd34d;
@@ -12494,18 +13591,217 @@ body .p-connected-overlay {
 
 .inventory-grid-input {
   min-width: 120px;
-  height: 34px;
-  min-height: 34px;
+  height: 32px;
+  min-height: 32px;
   border-radius: 10px;
   font-size: 12px;
 }
 
+// Match every grid ng-select to .inventory-grid-input above, across all
+// transaction/master screens — not just the container height/radius, but
+// the internal arrow/value padding too, which otherwise keeps the shared
+// .inventory-ng-select sizing (34px arrow zone, 12px value padding) meant
+// for full-width form fields and makes the closed control look bigger than
+// a text input at the same cell width.
+.inventory-grid-select.ng-select {
+  width: 100%;
+}
+
 .inventory-grid-select .ng-select-container {
   min-width: 150px;
-  min-height: 34px;
-  height: 34px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0;
   border-radius: 10px;
   font-size: 12px;
+}
+
+.inventory-grid-select .ng-value-container {
+  padding-left: 10px;
+}
+
+.inventory-grid-select .ng-arrow-wrapper,
+.inventory-grid-select .ng-clear-wrapper,
+.inventory-grid-select .ng-clear-zone {
+  min-height: 32px;
+}
+
+.inventory-grid-select .ng-arrow-wrapper {
+  width: 22px;
+  padding: 0 8px 0 2px;
+}
+
+.inventory-grid-select .ng-placeholder,
+.inventory-grid-select .ng-value-label,
+.inventory-grid-select .ng-input input {
+  font-size: 12px;
+}
+
+.inventory-empty-grid-cell {
+  display: block;
+  min-height: 32px;
+}
+
+/* Hint line rendered as absolute so it never shifts grid/form layout */
+.inventory-hint-anchor {
+  position: relative;
+}
+
+.inventory-stock-hint {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 1px);
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-soft);
+  line-height: 1.25;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.inventory-page .erp-table td.inventory-hint-anchor {
+  position: relative;
+  overflow: visible;
+  padding-bottom: 30px !important;
+  vertical-align: top;
+}
+
+.inventory-page .erp-table td.inventory-hint-anchor .inventory-stock-hint {
+  position: absolute;
+  top: calc(var(--grn-grid-control-height, 38px) + 4px);
+  right: auto;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  max-width: none;
+  height: 20px;
+  margin: 0;
+  padding: 3px 6px;
+  border: 1px solid #dbe4ee;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 10.5px;
+  line-height: 1;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.10);
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  transform: none;
+  z-index: 6;
+}
+
+.inventory-page .grn-grid-compact .erp-table td.inventory-hint-anchor {
+  position: relative;
+  overflow: visible;
+  padding-bottom: 30px !important;
+}
+
+.inventory-page .grn-grid-compact .erp-table td.inventory-hint-anchor .inventory-stock-hint {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  top: calc(var(--grn-grid-control-height, 38px) + 4px);
+  right: auto;
+  left: 6px;
+  width: max-content;
+  max-width: none;
+  height: 20px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1;
+  min-height: 0;
+  transform: none;
+  z-index: 6;
+}
+
+.inventory-page .grn-grid-compact .erp-table td.inventory-hint-anchor .inventory-stock-hint .pi {
+  flex: 0 0 auto;
+}
+
+.inventory-hint-warn {
+  color: #9a4b00;
+  border-color: #f4c27a !important;
+  background: #fff7ed !important;
+}
+
+.inventory-hint-error {
+  color: var(--danger, #b42318);
+  border-color: #fecaca !important;
+  background: #fff1f2 !important;
+}
+
+.inventory-hint-info {
+  color: #0c5c8c;
+  border-color: #bae6fd !important;
+  background: #f0f9ff !important;
+}
+
+// Closable Rate price hint (Sales Invoice/Sales Order) — same floating chip
+// as .inventory-stock-hint, but interactive so its dismiss (×) button works.
+.inventory-price-hint {
+  pointer-events: auto;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  padding-right: 4px !important;
+}
+
+.inventory-price-hint-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.08);
+  color: inherit;
+  font-size: 8px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.inventory-price-hint-close:hover {
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.erp-input.input-warn,
+.inventory-grid-input.input-warn {
+  border-color: #e67e22 !important;
+  background: #fff8f0;
+}
+
+.erp-input.input-error,
+.inventory-grid-input.input-error {
+  border-color: var(--danger, #e74c3c) !important;
+  background: #fff5f5;
+}
+
+/* PR Remarks — spans full remaining width of the header grid */
+.pr-remarks-group {
+  grid-column: 1 / -1;
+}
+
+.pr-remarks-textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.inventory-grid-switch {
+  min-width: 84px;
+}
+
+.inventory-grid-switch.yes-no .switch-text {
+  padding: 4px 12px;
+  font-size: 11.5px;
 }
 
 .inventory-page .tbl-wrap {
@@ -12513,6 +13809,10 @@ body .p-connected-overlay {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+  cursor: grab;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  &:active { cursor: grabbing; }
 }
 
 .inventory-page .erp-table.compact {
@@ -12631,10 +13931,63 @@ body .p-connected-overlay {
 }
 
 .inventory-modal {
-  width: min(1180px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 24px;
+}
+
+.inventory-modal--wide {
+  width: min(860px, calc(100vw - 32px));
+}
+
+.inventory-pr-items-modal {
+  width: min(1120px, calc(100vw - 32px));
+}
+
+.inventory-pr-items-modal {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+
+.inventory-pr-items-modal .inventory-modal-header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 16px 18px 14px;
+}
+
+.inventory-pr-items-modal .inventory-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: 0 18px 16px;
+}
+
+.inventory-pr-items-modal .inventory-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+  padding: 14px 18px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.inventory-clickable-row {
+  cursor: pointer;
+}
+
+.inventory-clickable-row:hover td {
+  background: #f8fafc;
+}
+
+.inventory-modal .tbl-wrap,
+.inventory-modal .inventory-mini-table {
+  overflow-x: auto;
 }
 
 .inventory-modal-header {
@@ -12642,20 +13995,147 @@ body .p-connected-overlay {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  margin-bottom: 14px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .inventory-modal-header h3 {
   margin: 0;
   color: var(--clr-p1, #0c4a6e);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 600;
 }
 
 .inventory-modal-header p {
-  margin: 3px 0 0;
+  margin: 4px 0 0;
   color: #64748b;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.inventory-modal-body {
+  margin-bottom: 4px;
+}
+
+.inventory-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.inventory-modal .inventory-form-actions {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  justify-content: flex-end;
+}
+
+.inventory-modal .inventory-error-msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+// Confirm dialog — replaces native window.confirm()/alert() popups app-wide
+// with a styled modal consistent with the rest of the inventory UI.
+.inventory-confirm-modal {
+  width: min(480px, calc(100vw - 32px));
+  text-align: center;
+  padding: 28px 26px 24px;
+}
+
+.inventory-confirm-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 22px;
+
+  &.tone-warning {
+    background: #fef3c7;
+    color: #b45309;
+  }
+
+  &.tone-danger {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+}
+
+.inventory-confirm-modal .inventory-modal-header {
+  border-bottom: none;
+  margin-bottom: 6px;
+  padding-bottom: 0;
+  justify-content: center;
+}
+
+.inventory-confirm-modal .inventory-modal-header h3 {
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+}
+
+.inventory-confirm-modal .inventory-modal-body {
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.inventory-confirm-modal .inventory-modal-body p {
+  margin: 0 0 10px;
+}
+
+.inventory-confirm-lines {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  text-align: left;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.inventory-confirm-lines li {
+  padding: 4px 0;
+  font-size: 12.5px;
+  color: #92400e;
+  border-bottom: 1px dashed #fde68a;
+}
+
+.inventory-confirm-lines li:last-child {
+  border-bottom: none;
+}
+
+.inventory-confirm-modal.tone-danger .inventory-confirm-lines {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.inventory-confirm-modal.tone-danger .inventory-confirm-lines li {
+  color: #b91c1c;
+  border-bottom-color: #fecaca;
+}
+
+.inventory-confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.inventory-confirm-actions .erp-btn {
+  min-width: 120px;
 }
 
 .inventory-lookup-source {
@@ -12663,6 +14143,90 @@ body .p-connected-overlay {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
+}
+
+// Serial number picker (multi-unit capture / pick-to-sell popup)
+.inventory-serial-trigger {
+  width: 100%;
+  min-width: 120px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inventory-serial-picker-modal .inventory-modal-body {
+  margin-top: 4px;
+}
+
+.inventory-serial-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.inventory-serial-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+  font-size: 12.5px;
+}
+
+.inventory-serial-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: #1e3a8a;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.inventory-serial-chip--readonly {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #475569;
+}
+
+.inventory-serial-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.inventory-serial-select-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #1e293b;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+}
+
+.inventory-serial-select-row:last-child {
+  border-bottom: none;
+}
+
+.inventory-serial-select-row:hover {
+  background: #f8fafc;
 }
 
 .inventory-mini-table {
@@ -12683,10 +14247,12 @@ body .p-connected-overlay {
 
 .inventory-duplicate-advice {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 10px 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding: 9px 12px;
   border: 1px solid color-mix(in srgb, var(--clr-p2, #0891b2) 24%, #dbe8f9);
   border-radius: 12px;
   background: color-mix(in srgb, var(--clr-p2, #0891b2) 7%, white);
@@ -12696,7 +14262,43 @@ body .p-connected-overlay {
 
 .inventory-duplicate-advice strong {
   color: var(--clr-p1, #0c4a6e);
-  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.inventory-duplicate-advice .hsn-suggest-pills {
+  flex: 1;
+  min-width: 0;
+}
+
+.inventory-duplicate-warn {
+  border-color: #fca5a5;
+  background: #fff7f7;
+  color: #7f1d1d;
+}
+
+.inventory-duplicate-warn strong {
+  color: #b91c1c;
+}
+
+.inventory-duplicate-success {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.inventory-duplicate-success strong {
+  color: #15803d;
+}
+
+.inventory-full-span {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.inventory-modal-advice {
+  margin-top: 0;
+  margin-bottom: 14px;
 }
 
 .tax-suggest-wrap {
@@ -13060,11 +14662,240 @@ body .p-connected-overlay {
   font-size: 11.5px;
   color: #64748b;
   margin-left: auto;
+  margin-right: 4px;
+}
+
+.product-segment-reference {
+  flex: 0 1 300px;
+  width: min(300px, 100%);
+  min-width: min(240px, 100%);
+  max-width: 300px;
+  margin-left: auto;
+  order: 20;
+}
+
+.product-segment-reference .erp-label {
+  margin-bottom: 4px;
+}
+
+.inventory-variant-combo-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.inventory-stock-variant-grid {
+  margin-bottom: 8px;
+}
+
+.inventory-variant-combo-picker--builder {
+  align-items: flex-end;
+}
+
+.inventory-variant-combo-picker--builder .erp-form-group {
+  margin-bottom: 0;
+}
+
+.inventory-combo-add {
+  min-height: 38px;
+}
+
+.inventory-combo-select {
+  min-width: 160px;
+  flex: 1 1 160px;
 }
 
 .product-segment-select {
   min-width: 200px;
   max-width: 260px;
+}
+
+.product-nature-guide {
+  border: 1px solid #dbe8f9;
+  border-radius: 10px;
+  background: #fbfdff;
+  overflow: hidden;
+}
+
+.product-nature-guide-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #e8f0fb;
+  background: #f8fafc;
+}
+
+.product-nature-guide-title strong {
+  color: var(--clr-p1, #0c4a6e);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.product-nature-guide-title span {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.product-nature-guide-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.product-nature-guide-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.55fr);
+  gap: 10px;
+  padding: 10px 12px;
+  border-right: 1px solid #eef3fb;
+  border-bottom: 1px solid #eef3fb;
+}
+
+.product-nature-guide-item.active {
+  background: color-mix(in srgb, var(--clr-p2, #0891b2) 7%, white);
+  box-shadow: inset 3px 0 0 var(--clr-p2, #0891b2);
+}
+
+.product-nature-guide-main strong {
+  display: block;
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.product-nature-guide-main span {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.38;
+}
+
+.product-nature-guide-flags {
+  display: flex;
+  align-content: flex-start;
+  align-items: flex-start;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.product-nature-guide-flags .erp-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .product-nature-guide-title,
+  .product-nature-guide-item {
+    grid-template-columns: 1fr;
+  }
+
+  .product-nature-guide-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .product-nature-guide-title span {
+    text-align: left;
+  }
+
+  .product-nature-guide-list {
+    grid-template-columns: 1fr;
+  }
+
+  .product-nature-guide-flags {
+    justify-content: flex-start;
+  }
+}
+
+.hsn-category-suggestions {
+  margin-bottom: 14px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  padding: 10px 14px;
+}
+
+.hsn-suggest-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #166534;
+  margin-bottom: 9px;
+  i { color: #16a34a; }
+  strong { font-weight: 600; }
+}
+
+.hsn-suggest-hint {
+  font-size: 11px;
+  color: #4ade80;
+  margin-left: 4px;
+}
+
+.hsn-suggest-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hsn-suggest-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid #86efac;
+  border-radius: 20px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 12px;
+  text-align: left;
+  &:hover {
+    border-color: #16a34a;
+    background: #dcfce7;
+  }
+}
+
+.hsn-pill-code {
+  font-weight: 700;
+  color: #15803d;
+  font-size: 11.5px;
+  min-width: 38px;
+}
+
+.hsn-pill-desc {
+  color: #374151;
+  font-size: 11.5px;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hsn-pill-rate {
+  font-size: 11px;
+  color: #6b7280;
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .hsn-suggest-pills { gap: 4px; }
+  .hsn-pill-desc { max-width: 140px; }
 }
 
 .gst-guide-strip {
@@ -13192,6 +15023,7 @@ body .p-connected-overlay {
   .inventory-kpi-grid,
   .inventory-segment-grid,
   .inventory-access-grid,
+  .inventory-transaction-header,
   .inventory-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -13218,6 +15050,7 @@ body .p-connected-overlay {
   .inventory-form-grid,
   .inventory-access-grid,
   .inventory-advice-grid,
+  .inventory-transaction-header,
   .inventory-guide-strip {
     grid-template-columns: 1fr;
   }
@@ -13230,6 +15063,12 @@ body .p-connected-overlay {
 
   .inventory-header {
     padding-right: 18px;
+  }
+
+  .inventory-transaction-header .sales-order-customer-col,
+  .inventory-transaction-header .procurement-vendor-col,
+  .inventory-transaction-header .inventory-header-col-6 {
+    grid-column: auto;
   }
 
   .inventory-header-tools,
@@ -13483,10 +15322,901 @@ body .p-connected-overlay {
   gap: 14px;
 }
 
+// ── Large variant: embeds a full master screen (e.g. Category Master) inside a dialog ──
+.inv-popup-box--full {
+  width: min(1400px, 95vw);
+  height: 90vh;
+}
+
+.inv-popup-body--full {
+  padding: 0;
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
 .inv-popup-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+// ── Attribute cell: inline layout for multiple attributes in a grid cell ─────
+.inventory-attr-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+  min-width: 180px;
+}
+.inventory-attr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 100px;
+}
+.inventory-attr-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+// ── PR saved grid: clickable number + expand row ──────────────────────────────
+.pr-no-clickable {
+  cursor: pointer;
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  user-select: none;
+  &:hover { color: #1d4ed8; }
+}
+.pr-expand-tr > td {
+  padding: 0 !important;
+  border-bottom: 2px solid #c7d9f5 !important;
+  background: #f3f8ff;
+}
+.pr-expand-content {
+  margin: 8px 10px 12px;
+  padding: 14px 20px 18px;
+  border: 1px solid #d9e8fb;
+  border-radius: 8px;
+  background: #f7fbff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.pr-expand-content .pr-expand-hdr {
+  margin: -2px -4px 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #edf6ff;
+  color: #1d4e89;
+}
+.pr-expand-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  i { color: #4d8fff; }
+}
+.pr-expand-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid #e5edf8; }
+  th { background: #eaf2ff; font-weight: 600; color: #334155; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:last-child td { border-bottom: none; }
+}
+
+.inventory-page .erp-table.pr-line-table {
+  min-width: 1040px;
+  table-layout: auto;
+}
+
+.inventory-page .erp-table.pr-line-table th,
+.inventory-page .erp-table.pr-line-table td,
+.inventory-page .erp-table.pr-record-table th,
+.inventory-page .erp-table.pr-record-table td {
+  max-width: none;
+  overflow-wrap: normal;
+}
+
+.inventory-page .erp-table.pr-line-table th:nth-child(1),
+.inventory-page .erp-table.pr-line-table td:nth-child(1) {
+  width: 96px;
+  min-width: 96px;
+}
+
+.inventory-page .erp-table.pr-line-table th:nth-child(2),
+.inventory-page .erp-table.pr-line-table td:nth-child(2) {
+  min-width: 220px;
+}
+
+.inventory-page .erp-table.pr-line-table th:nth-child(3),
+.inventory-page .erp-table.pr-line-table td:nth-child(3) {
+  min-width: 190px;
+}
+
+.inventory-page .erp-table.pr-line-table th:nth-child(4),
+.inventory-page .erp-table.pr-line-table td:nth-child(4) {
+  min-width: 240px;
+}
+
+.inventory-page .erp-table.pr-line-table th:nth-child(5),
+.inventory-page .erp-table.pr-line-table td:nth-child(5),
+.inventory-page .erp-table.pr-line-table th:nth-child(6),
+.inventory-page .erp-table.pr-line-table td:nth-child(6) {
+  min-width: 124px;
+}
+
+.pr-attr-cell {
+  min-width: 220px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.pr-attr-item {
+  flex: 0 0 auto;
+  min-width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.pr-attr-item .inventory-attr-label {
+  line-height: 1;
+}
+
+.pr-attr-item .inventory-attr-select .ng-select-container {
+  min-width: 100px;
+}
+
+.inventory-page .erp-table.pr-record-table {
+  min-width: 980px;
+}
+
+.inventory-page .erp-table.pr-record-table th:first-child,
+.inventory-page .erp-table.pr-record-table td:first-child {
+  width: 118px;
+  min-width: 118px;
+  max-width: 118px;
+  white-space: nowrap;
+}
+
+.pr-no-nowrap {
+  white-space: nowrap;
+}
+
+.pr-record-actions {
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 3px;
+  width: 105px;
+  min-width: 105px;
+}
+
+.pr-record-actions .erp-btn.pr-action-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 11px;
+}
+
+.pr-record-actions .erp-btn.pr-action-btn:disabled {
+  opacity: 1;
+}
+
+.pr-record-actions .erp-btn.pr-action-approved {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pr-record-actions .erp-btn.pr-action-approved i {
+  color: #15803d !important;
+}
+
+.pr-record-actions .erp-btn.pr-action-muted {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.pr-record-actions .erp-btn.pr-action-muted i,
+.pr-record-actions .erp-btn.pr-cancel-btn:disabled i {
+  color: #94a3b8 !important;
+}
+
+.pr-approved-status {
+  color: #15803d !important;
+  font-weight: 700;
+}
+
+.pr-expand-btn {
+  color: #64748b;
+  font-size: 10px !important;
+}
+
+.pr-expand-items-table th:nth-child(1),
+.pr-expand-items-table td:nth-child(1) {
+  width: 32px;
+}
+
+.pr-expand-items-table th,
+.pr-expand-items-table td {
+  white-space: nowrap;
+  padding: 4px 10px;
+}
+
+.pr-edit-header-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 12px 0 14px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 14px;
+
+  .erp-form-group {
+    flex: 0 1 180px;
+    margin: 0;
+  }
+}
+
+.rfq-entry-section {
+  position: relative;
+  padding-top: 16px;
+}
+
+.rfq-entry-head {
+  margin-bottom: 14px;
+
+  h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 16px;
+    font-weight: 700;
+  }
+}
+
+.rfq-optional-label {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.rfq-currency-picker {
+  position: relative;
+  z-index: 6;
+}
+
+.rfq-currency-btn {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  color: #166534;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.rfq-currency-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 230px;
+  overflow: hidden;
+  border: 1px solid #dbe8f9;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 20px 46px rgba(15, 23, 42, 0.16);
+}
+
+.rfq-currency-menu button {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 34px 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rfq-currency-menu button:last-child {
+  border-bottom: 0;
+}
+
+.rfq-currency-menu button:hover,
+.rfq-currency-menu button.active {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.rfq-currency-menu span {
+  width: 30px;
+  height: 28px;
+  border-radius: 8px;
+  background: #eef6ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.rfq-currency-menu strong {
+  font-size: 12px;
+}
+
+.rfq-currency-menu small {
+  min-width: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rfq-header-grid {
+  padding-right: 0;
+}
+
+.rfq-main-grid {
+  margin-top: 12px;
+}
+
+.rfq-check-group {
+  min-height: 70px;
+}
+
+.rfq-check-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+
+  input {
+    width: 15px;
+    height: 15px;
+    accent-color: #2563eb;
+  }
+}
+
+.rfq-selected-pr-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+}
+
+.rfq-selected-pr-strip strong,
+.rfq-selected-pr-strip span {
+  display: block;
+}
+
+.rfq-selected-pr-strip strong {
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rfq-selected-pr-strip span {
+  margin-top: 2px;
+  color: #475569;
+  font-size: 11px;
+}
+
+.rfq-vendor-tracking {
+  margin-top: 14px;
+}
+
+.rfq-vendor-track-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.rfq-track-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+
+  strong,
+  span {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #0f172a;
+    font-size: 12px;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 11px;
+  }
+}
+
+.rfq-track-status {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.rfq-track-good {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rfq-track-info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.rfq-track-bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rfq-track-muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.inventory-page .erp-table.rfq-line-table {
+  min-width: 2140px;
+  table-layout: auto;
+}
+
+.inventory-page .erp-table.rfq-line-table th,
+.inventory-page .erp-table.rfq-line-table td,
+.inventory-page .erp-table.rfq-record-table th,
+.inventory-page .erp-table.rfq-record-table td {
+  max-width: none;
+  overflow-wrap: normal;
+}
+
+.inventory-page .erp-table.rfq-line-table th:first-child,
+.inventory-page .erp-table.rfq-line-table td:first-child {
+  width: 96px;
+  min-width: 96px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(2),
+.inventory-page .erp-table.rfq-line-table td:nth-child(2) {
+  min-width: 230px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(3),
+.inventory-page .erp-table.rfq-line-table td:nth-child(3),
+.inventory-page .erp-table.rfq-line-table th:nth-child(4),
+.inventory-page .erp-table.rfq-line-table td:nth-child(4) {
+  min-width: 170px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(5),
+.inventory-page .erp-table.rfq-line-table td:nth-child(5),
+.inventory-page .erp-table.rfq-line-table th:nth-child(6),
+.inventory-page .erp-table.rfq-line-table td:nth-child(6),
+.inventory-page .erp-table.rfq-line-table th:nth-child(7),
+.inventory-page .erp-table.rfq-line-table td:nth-child(7),
+.inventory-page .erp-table.rfq-line-table th:nth-child(8),
+.inventory-page .erp-table.rfq-line-table td:nth-child(8) {
+  min-width: 124px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(9),
+.inventory-page .erp-table.rfq-line-table td:nth-child(9),
+.inventory-page .erp-table.rfq-line-table th:nth-child(11),
+.inventory-page .erp-table.rfq-line-table td:nth-child(11),
+.inventory-page .erp-table.rfq-line-table th:nth-child(12),
+.inventory-page .erp-table.rfq-line-table td:nth-child(12),
+.inventory-page .erp-table.rfq-line-table th:nth-child(13),
+.inventory-page .erp-table.rfq-line-table td:nth-child(13),
+.inventory-page .erp-table.rfq-line-table th:nth-child(14),
+.inventory-page .erp-table.rfq-line-table td:nth-child(14) {
+  min-width: 112px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(10),
+.inventory-page .erp-table.rfq-line-table td:nth-child(10) {
+  min-width: 78px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(15),
+.inventory-page .erp-table.rfq-line-table td:nth-child(15),
+.inventory-page .erp-table.rfq-line-table th:nth-child(16),
+.inventory-page .erp-table.rfq-line-table td:nth-child(16) {
+  min-width: 130px;
+}
+
+.inventory-page .erp-table.rfq-line-table th:nth-child(17),
+.inventory-page .erp-table.rfq-line-table td:nth-child(17) {
+  min-width: 180px;
+}
+
+.rfq-stock-cell,
+.rfq-line-total {
+  display: block;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.inventory-page .erp-table.rfq-record-table {
+  min-width: 1620px;
+}
+
+.inventory-page .erp-table.rfq-record-table th:first-child,
+.inventory-page .erp-table.rfq-record-table td:first-child {
+  width: 158px;
+  min-width: 158px;
+  white-space: nowrap;
+}
+
+.rfq-record-actions {
+  gap: 4px;
+  width: 146px;
+  min-width: 146px;
+}
+
+.rfq-record-actions .erp-btn:disabled {
+  opacity: 1;
+  color: #94a3b8;
+}
+
+.rfq-pr-picker-modal {
+  width: min(1180px, calc(100vw - 32px));
+}
+
+.rfq-evaluation-panel {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.rfq-weight-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+
+  label {
+    display: grid;
+    gap: 5px;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.rfq-criteria-ok {
+  color: #15803d !important;
+  font-weight: 800;
+}
+
+.rfq-criteria-bad {
+  color: #b91c1c !important;
+  font-weight: 800;
+}
+
+.rfq-comparison-section .inventory-section-title {
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.rfq-comparison-select {
+  width: min(360px, 100%);
+}
+
+.inventory-page .erp-table.rfq-comparison-table {
+  min-width: 1120px;
+}
+
+.inventory-page .erp-table.rfq-comparison-table tr.rfq-score-best td {
+  background: #ecfdf5;
+}
+
+.inventory-page .erp-table.rfq-comparison-table tr.rfq-score-worst td {
+  background: #fef2f2;
+}
+
+.rfq-note-cell {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.rfq-price-bars {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.rfq-price-bar-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(160px, 1fr) minmax(110px, auto);
+  gap: 10px;
+  align-items: center;
+  color: #334155;
+  font-size: 12px;
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    color: #0f172a;
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.rfq-price-bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.rfq-price-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+}
+
+.rfq-confirm-modal {
+  width: min(620px, calc(100vw - 32px));
+}
+
+.rfq-quotation-modal {
+  width: min(1100px, calc(100vw - 32px));
+
+  .inventory-modal-body {
+    padding: 20px 20px 8px;
+    overflow-x: auto;
+  }
+
+  small.rfq-quotation-vendor-tag {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0284c7;
+  }
+}
+
+.rfq-quotation-vendor-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  margin-bottom: 16px;
+
+  i { color: #2563eb; font-size: 14px; }
+  span { font-size: 12.5px; font-weight: 600; color: #1e40af; white-space: nowrap; }
+  small { font-size: 11px; color: #64748b; }
+
+  .rfq-vendor-switch-select {
+    min-width: 220px;
+    max-width: 320px;
+  }
+}
+
+.rfq-quotation-meta {
+  display: grid;
+  grid-template-columns: 180px 220px 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.rfq-quotation-table {
+  min-width: 900px;
+
+  tfoot td {
+    background: #f8fafc;
+    border-top: 2px solid #e2e8f0;
+    padding: 8px 10px;
+  }
+
+  .rfq-quotation-total-row td {
+    font-size: 13px;
+  }
+}
+
+.rfq-attr-cell {
+  max-width: 180px;
+}
+
+.rfq-attr-text {
+  font-size: 11.5px;
+  color: #334155;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.rfq-attr-empty {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.rfq-estd-days {
+  white-space: nowrap;
+}
+
+.rfq-lead-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.rfq-lead-na {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.rfq-receive-btn {
+  color: #0369a1;
+}
+
+.rfq-group-header-row {
+  td {
+    background: #f0f6ff;
+    border-top: 2px solid #bfdbfe;
+    border-bottom: 1px solid #bfdbfe;
+    padding: 6px 10px !important;
+  }
+}
+
+.rfq-group-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rfq-group-key {
+  font-weight: 600;
+  font-size: 12px;
+  color: #1e40af;
+  white-space: nowrap;
+
+  i { margin-right: 4px; font-size: 11px; }
+}
+
+.rfq-group-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+}
+
+.rfq-group-meta {
+  font-size: 11px;
+  color: #475569;
+  white-space: nowrap;
+
+  i { margin-right: 3px; font-size: 10px; }
+  strong { color: #1e293b; }
+}
+
+.rfq-group-vendor-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.rfq-group-vendor-row {
+  td {
+    padding-left: 20px !important;
+    background: #fafbff;
+  }
+
+  &:last-child td {
+    border-bottom: 2px solid #e2e8f0;
+  }
+}
+
+.rfq-po-preview-modal {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.rfq-confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+
+  div {
+    padding: 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  span,
+  strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  strong {
+    margin-top: 4px;
+    color: #0f172a;
+    font-size: 13px;
+  }
 }
 
 .inv-popup-foot {
