@@ -333,17 +333,25 @@
             </button>
 
             <div class="theme-dropdown-panel" *ngIf="showThemeDropdown">
+              <div class="theme-tab-switch">
+                <button
+                  *ngFor="let tab of themeTabs"
+                  type="button"
+                  class="theme-tab-btn"
+                  [class.active]="activeThemeTab === tab.id"
+                  (click)="setThemeTab(tab.id)">
+                  {{ tab.label }}
+                </button>
+              </div>
               <div class="theme-grid">
                 <button
-                  *ngFor="let theme of themes"
+                  *ngFor="let theme of visibleThemes()"
                   class="theme-swatch"
                   [class.active]="activeTheme === theme.id"
-                  [class.dark-swatch]="theme.id === 'dark'"
                   (click)="setTheme(theme.id)"
                   [title]="theme.name"
-                  [style.background]="'linear-gradient(135deg, ' + theme.colors[0] + ' 0%, ' + theme.colors[1] + ' 100%)'">
+                  [style.background]="swatchBackground(theme)">
                   <i *ngIf="activeTheme === theme.id" class="pi pi-check swatch-check"></i>
-                  <i *ngIf="theme.id === 'dark' && activeTheme !== 'dark'" class="pi pi-moon swatch-moon"></i>
                 </button>
               </div>
             </div>

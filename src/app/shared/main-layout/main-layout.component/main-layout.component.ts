@@ -22,6 +22,7 @@ export interface Theme {
   id: string;
   name: string;
   colors: [string, string];
+  category: 'gradient' | 'flat';
 }
 
 export interface RecentForm {
@@ -97,16 +98,30 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   recentForms: RecentForm[] = [];
 
+  themeTabs: Array<{ id: 'gradient' | 'flat'; label: string }> = [
+    { id: 'gradient', label: 'Gradient' },
+    { id: 'flat', label: 'Flat' }
+  ];
+  activeThemeTab: 'gradient' | 'flat' = 'gradient';
+
   themes: Theme[] = [
-    { id: 'sky', name: 'Sky', colors: ['#7fb3ff', '#4d8fff'] },
-    { id: 'mist', name: 'Mist', colors: ['#b8d7ff', '#7aaeff'] },
-    { id: 'royal', name: 'Royal', colors: ['#6f8cff', '#5175ff'] },
-    { id: 'emerald', name: 'Emerald', colors: ['#76d5c7', '#4fb8a8'] },
-    { id: 'slate', name: 'Slate', colors: ['#aab8d6', '#7d8fb3'] },
-    { id: 'gold', name: 'Gold', colors: ['#f0cf6a', '#c9a227'] },
-    { id: 'copper', name: 'Copper', colors: ['#d9996b', '#a85f3a'] },
-    { id: 'pink', name: 'Pink', colors: ['#f7a9c4', '#e26aa5'] },
-    { id: 'dark', name: 'Dark', colors: ['#2a3050', '#0d1117'] }
+    { id: 'sky', name: 'Sky', colors: ['#7fb3ff', '#4d8fff'], category: 'gradient' },
+    { id: 'mist', name: 'Mist', colors: ['#b8d7ff', '#7aaeff'], category: 'gradient' },
+    { id: 'royal', name: 'Royal', colors: ['#6f8cff', '#5175ff'], category: 'gradient' },
+    { id: 'emerald', name: 'Emerald', colors: ['#76d5c7', '#4fb8a8'], category: 'gradient' },
+    { id: 'slate', name: 'Slate', colors: ['#aab8d6', '#7d8fb3'], category: 'gradient' },
+    { id: 'gold', name: 'Gold', colors: ['#f0cf6a', '#c9a227'], category: 'gradient' },
+    { id: 'copper', name: 'Copper', colors: ['#d9996b', '#a85f3a'], category: 'gradient' },
+    { id: 'pink', name: 'Pink', colors: ['#f7a9c4', '#e26aa5'], category: 'gradient' },
+
+    { id: 'sky-flat', name: 'Sky', colors: ['#7fb3ff', '#4d8fff'], category: 'flat' },
+    { id: 'mist-flat', name: 'Mist', colors: ['#b8d7ff', '#7aaeff'], category: 'flat' },
+    { id: 'royal-flat', name: 'Royal', colors: ['#6f8cff', '#5175ff'], category: 'flat' },
+    { id: 'emerald-flat', name: 'Emerald', colors: ['#76d5c7', '#4fb8a8'], category: 'flat' },
+    { id: 'slate-flat', name: 'Slate', colors: ['#aab8d6', '#7d8fb3'], category: 'flat' },
+    { id: 'gold-flat', name: 'Gold', colors: ['#f0cf6a', '#c9a227'], category: 'flat' },
+    { id: 'copper-flat', name: 'Copper', colors: ['#d9996b', '#a85f3a'], category: 'flat' },
+    { id: 'pink-flat', name: 'Pink', colors: ['#f7a9c4', '#e26aa5'], category: 'flat' }
   ];
 
   constructor(
@@ -129,7 +144,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.refreshTenantOptionsFromServer();
 
     const savedTheme = localStorage.getItem('erp-theme');
-    this.setTheme(savedTheme || this.activeTheme);
+    const validSavedTheme = savedTheme && this.themes.some(t => t.id === savedTheme) ? savedTheme : null;
+    this.setTheme(validSavedTheme || this.activeTheme);
 
     const savedSidebarState = localStorage.getItem('sidebar-collapsed');
     if (savedSidebarState !== null) {
@@ -231,6 +247,22 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.activeTheme = themeId;
     document.documentElement.setAttribute('data-theme', themeId);
     localStorage.setItem('erp-theme', themeId);
+    const theme = this.themes.find(t => t.id === themeId);
+    if (theme) this.activeThemeTab = theme.category;
+  }
+
+  setThemeTab(tab: 'gradient' | 'flat'): void {
+    this.activeThemeTab = tab;
+  }
+
+  visibleThemes(): Theme[] {
+    return this.themes.filter(theme => theme.category === this.activeThemeTab);
+  }
+
+  swatchBackground(theme: Theme): string {
+    return theme.category === 'flat'
+      ? theme.colors[1]
+      : 'linear-gradient(135deg, ' + theme.colors[0] + ' 0%, ' + theme.colors[1] + ' 100%)';
   }
 
   getActiveThemeName(): string {
