@@ -1,0 +1,351 @@
+<div class="module-page inventory-page">
+  <div class="inventory-shell">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <div class="inventory-header">
+      <div>
+        <span class="inventory-kicker">Inventory Config</span>
+        <h2><i class="pi pi-map-marker"></i> Branch Configuration</h2>
+        <p>Map your company branches to inventory segments and define their operational role.</p>
+      </div>
+      <div class="branch-quota-block">
+        @if (subscription()) {
+          <div class="branch-quota-bar">
+            <span class="branch-quota-item"
+              [class.quota-warn]="subscription()!.currentBranchCount >= subscription()!.maxBranches">
+              <i class="pi pi-building"></i>
+              {{ subscription()!.currentBranchCount }} / {{ subscription()!.maxBranches }} Branches
+            </span>
+            <span class="branch-quota-sep">·</span>
+            <span class="branch-quota-item"
+              [class.quota-warn]="subscription()!.currentUserCount >= subscription()!.maxUsers">
+              <i class="pi pi-users"></i>
+              {{ subscription()!.currentUserCount }} / {{ subscription()!.maxUsers }} Users
+            </span>
+            @if (branchLimitReached() || userLimitReached()) {
+              <a [routerLink]="upgradeRoute" class="branch-quota-upgrade">
+                <i class="pi pi-arrow-up-right"></i> Upgrade Plan
+              </a>
+            }
+          </div>
+        }
+        <button type="button" class="erp-btn btn-white" (click)="goToSettingsBranch()">
+          <i class="pi pi-external-link"></i> Manage in Settings
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Info note ────────────────────────────────────────────────────── -->
+    <div class="inventory-info-note">
+      <i class="pi pi-info-circle"></i>
+      Branches are created and managed in <strong>Settings → Branch Management</strong>.
+      Here the Admin selects a branch, assigns it to a <strong>Segment</strong> and sets its
+      <strong>Activity Types</strong> so warehouse, procurement and sales flows are scoped correctly.
+    </div>
+
+    <!-- ── Form card ────────────────────────────────────────────────────── -->
+    <section class="inventory-section">
+      <div class="inventory-section-title">
+        <div>
+          <h3>{{ editingId() ? 'Edit Branch Config' : 'New Branch Config' }}</h3>
+          <p>Select a branch, assign a segment and activity types, then click <strong>+ Add</strong>.</p>
+        </div>
+        @if (editingId()) {
+          <span class="erp-badge badge-warning"><i class="pi pi-pencil"></i> Editing #{{ editingId() }}</span>
+        }
+      </div>
+
+      <div class="inventory-form-grid inventory-config-grid">
+
+        <!-- Branch selector -->
+        <div class="erp-form-group span-2">
+          <label class="erp-label">
+            Branch <span class="text-danger">*</span>
+            <span class="erp-label-hint">pulled from Settings → Branch Management</span>
+          </label>
+
+          @if (loading()) {
+            <div class="inventory-loading" style="padding: 8px 0;"><i class="pi pi-spin pi-spinner"></i> Loading branches…</div>
+          } @else if (settingsBranches().length === 0) {
+            <div class="inventory-info-note" style="margin-top:4px; border-color: #fde68a; background:#fffbeb;">
+              <i class="pi pi-exclamation-triangle" style="color:#b45309;"></i>
+              No active branches found. Create one below or go to
+              <strong>Settings → Branch Management</strong>.
+            </div>
+          } @else {
+            <div class="inventory-field-with-add">
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="settingsBranches()"
+                bindLabel="branchName"
+                bindValue="id"
+                [searchable]="true"
+                [clearable]="true"
+                [ngModel]="selectedSettingsBranchId()"
+                (ngModelChange)="selectedSettingsBranchId.set($event)"
+                placeholder="Select a branch">
+                <ng-template ng-option-tmp let-item="item">
+                  <span class="erp-badge badge-info me-1">{{ item.branchCode }}</span>
+                  {{ item.branchName }}
+                  @if (item.isDefault) {
+                    <span class="erp-badge badge-success ms-1">Default</span>
+                  }
+                </ng-template>
+                <ng-template ng-label-tmp let-item="item">
+                  <span class="erp-badge badge-info me-1">{{ item.branchCode }}</span>
+                  {{ item.branchName }}
+                </ng-template>
+              </ng-select>
+              <button type="button" class="erp-btn btn-white btn-icon"
+                title="Add new branch here"
+                (click)="showQuickAdd.set(!showQuickAdd())">
+                <i [class]="showQuickAdd() ? 'pi pi-times' : 'pi pi-plus'"></i>
+              </button>
+            </div>
+          }
+
+          <!-- Already configured warning -->
+          @if (alreadyConfigured()) {
+            <div class="erp-exist-panel" style="position:static; margin-top:6px;">
+              <button type="button" class="erp-exist-item" (click)="editBranch(alreadyConfigured()!)">
+                <span class="erp-exist-code">{{ alreadyConfigured()!.branch_code }}</span>
+                <span class="erp-exist-name">{{ alreadyConfigured()!.branch_name }}</span>
+                <span class="erp-exist-hint">Already configured · click to edit</span>
+              </button>
+            </div>
+          }
+
+          <!-- Quick-add branch inline panel -->
+          @if (showQuickAdd()) {
+            <div class="branch-quickadd-panel">
+              <div class="branch-quickadd-header">
+                <i class="pi pi-plus-circle"></i> Create New Branch
+                <span class="erp-label-hint ms-1">saves directly to Settings</span>
+              </div>
+              <div class="inventory-form-grid inventory-config-grid" style="margin-top:10px;">
+                <div class="erp-form-group">
+                  <label class="erp-label">Branch Name <span class="text-danger">*</span></label>
+                  <input class="erp-input" type="text"
+                    [ngModel]="quickBranchName()"
+                    (ngModelChange)="onQuickNameChange($event)"
+                    placeholder="e.g. Chennai South Branch" />
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">Branch Code
+                  </label>
+                  <input class="erp-input" type="text"
+                    [ngModel]="quickBranchCode()"
+                    (ngModelChange)="onQuickCodeChange($event)"
+                    placeholder="e.g. CSB-001" />
+                </div>
+              </div>
+              @if (branchLimitReached()) {
+                <div class="inventory-save-msg save-err" style="margin: 8px 0 0;">
+                  <i class="pi pi-lock"></i>
+                  Branch limit reached ({{ subscription()!.currentBranchCount }}/{{ subscription()!.maxBranches }}).
+                  <a [routerLink]="upgradeRoute" class="ms-1" style="color:inherit;font-weight:700;">Upgrade your plan</a>
+                  to add more branches.
+                </div>
+              }
+              @if (quickBranchError() && !branchLimitReached()) {
+                <div class="inventory-save-msg save-err" style="margin: 6px 0 0;">
+                  <i class="pi pi-times-circle"></i> {{ quickBranchError() }}
+                </div>
+              }
+              <div class="inventory-form-actions" style="padding-top: 8px;">
+                <button type="button" class="erp-btn btn-white" (click)="cancelQuickAdd()">
+                  Cancel
+                </button>
+                <button type="button" class="erp-btn btn-primary"
+                  [disabled]="quickBranchSaving() || branchLimitReached()"
+                  (click)="saveQuickBranch()">
+                  @if (quickBranchSaving()) { <i class="pi pi-spin pi-spinner"></i> Saving… }
+                  @else { <i class="pi pi-save"></i> Create & Select }
+                </button>
+                <button type="button" class="erp-btn btn-white ms-auto" (click)="goToSettingsBranch()">
+                  <i class="pi pi-external-link"></i> Full Setup in Settings
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Business Segment -->
+        <div class="erp-form-group">
+          <label class="erp-label">Business Segment</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="segments()"
+            bindLabel="segment_name"
+            bindValue="id"
+            [searchable]="true"
+            [clearable]="true"
+            [ngModel]="segmentId()"
+            (ngModelChange)="segmentId.set($event)"
+            placeholder="Select segment (optional)">
+          </ng-select>
+        </div>
+
+        <!-- Status -->
+        <div class="erp-form-group">
+          <label class="erp-label">Status</label>
+          <label class="inventory-labeled-switch status">
+            <input type="checkbox" [checked]="status() === 'active'"
+              (change)="status.set($any($event.target).checked ? 'active' : 'inactive')" />
+            <span class="inventory-switch-track">
+              <span class="switch-text switch-on">Active</span>
+              <span class="switch-text switch-off">Inactive</span>
+            </span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- ── Activity Types ──────────────────────────────────────────── -->
+      <div class="inventory-sub-section-label">
+        <i class="pi pi-briefcase"></i> Branch Activity Types
+        <span class="erp-label-hint">Select all inventory functions this branch performs</span>
+      </div>
+      <div class="inventory-activity-grid">
+        @for (opt of activityOptions; track opt.key) {
+          <label class="inventory-activity-chip" [class.selected]="hasActivity(opt.key)">
+            <input type="checkbox" [checked]="hasActivity(opt.key)"
+              (change)="toggleActivity(opt.key)" />
+            <i [class]="opt.icon"></i>
+            <span>{{ opt.label }}</span>
+          </label>
+        }
+      </div>
+
+      @if (saveError()) {
+        <div class="inventory-save-msg save-err" style="margin-top:12px;">
+          <i class="pi pi-times-circle"></i> {{ saveError() }}
+        </div>
+      }
+      <div class="inventory-form-actions">
+        <button type="button" class="erp-btn btn-white" (click)="clearForm()">
+          <i class="pi pi-refresh"></i> Clear
+        </button>
+        <button type="button" class="erp-btn btn-primary" (click)="addToPending()">
+          <i class="pi pi-plus"></i> {{ editingId() ? 'Update Pending' : 'Add to Pending' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- ── Pending grid ──────────────────────────────────────────────────── -->
+    @if (pendingBranches().length > 0) {
+      <section class="inventory-section inventory-pending-section">
+        <div class="inventory-section-title">
+          <div>
+            <h3><i class="pi pi-clock"></i> Pending — {{ pendingBranches().length }} config(s) to save</h3>
+            <p>Review below, then click <strong>Save All</strong> to commit.</p>
+          </div>
+          <button class="erp-btn btn-primary" [disabled]="saving()" (click)="saveAll()">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… }
+            @else { <i class="pi pi-save"></i> Save All }
+          </button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="erp-table compact">
+            <thead>
+              <tr>
+                <th>Branch Code</th>
+                <th>Branch Name</th>
+                <th>Segment</th>
+                <th>Activity Types</th>
+                <th>Status</th>
+                <th class="text-center">Remove</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of pendingBranches(); track row._key) {
+                <tr>
+                  <td><span class="erp-badge badge-info">{{ row.branch_code || '—' }}</span></td>
+                  <td><strong>{{ row.branch_name }}</strong>
+                    @if (row._editId) { <span class="erp-badge badge-warning ms-1">edit</span> }
+                  </td>
+                  <td>{{ row._segment_name || '—' }}</td>
+                  <td><small>{{ row._activity_labels }}</small></td>
+                  <td>
+                    <span [class]="'erp-badge ' + (row.status === 'active' ? 'badge-success' : 'badge-neutral')">
+                      {{ row.status }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" class="erp-btn btn-white btn-icon btn-sm"
+                      (click)="removePending(row._key)" title="Remove">
+                      <i class="pi pi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="inventory-form-actions" style="justify-content: flex-end; padding-top: 0;">
+          <button class="erp-btn btn-primary" [disabled]="saving()" (click)="saveAll()">
+            @if (saving()) { <i class="pi pi-spin pi-spinner"></i> Saving… }
+            @else { <i class="pi pi-save"></i> Save All ({{ pendingBranches().length }}) }
+          </button>
+        </div>
+      </section>
+    }
+    @if (saveMsg() && pendingBranches().length === 0) {
+      <div class="inventory-save-msg save-ok" style="margin: 0 0 16px 0;">
+        <i class="pi pi-check-circle"></i> {{ saveMsg() }}
+      </div>
+    }
+
+    <!-- ── Configured branches grid ─────────────────────────────────────── -->
+    <section class="inventory-section">
+      <div class="inventory-section-title">
+        <div>
+          <h3>Configured Branches</h3>
+          <p>Click <strong>Edit</strong> to update a branch's inventory configuration.</p>
+        </div>
+      </div>
+      @if (loading()) {
+        <div class="inventory-loading"><i class="pi pi-spin pi-spinner"></i> Loading…</div>
+      } @else if (!visibleSavedBranches().length) {
+        <div class="inventory-empty-state"><i class="pi pi-inbox"></i> No branches configured yet.</div>
+      } @else {
+        <div class="tbl-wrap">
+          <table class="erp-table compact">
+            <thead>
+              <tr>
+                <th>Branch Code</th>
+                <th>Branch Name</th>
+                <th>Segment</th>
+                <th>Activity Types</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (br of visibleSavedBranches(); track br.id) {
+                <tr>
+                  <td><span class="erp-badge badge-info">{{ br.branch_code }}</span></td>
+                  <td><strong>{{ br.branch_name }}</strong></td>
+                  <td>{{ br.segment_name || segmentName(br.segment_id) || '—' }}</td>
+                  <td><small>{{ br.activity_types.length ? br.activity_types.join(', ') : '—' }}</small></td>
+                  <td>
+                    <span [class]="'erp-badge ' + (br.status.toLowerCase() === 'active' ? 'badge-success' : 'badge-neutral')">
+                      {{ br.status }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <div class="inventory-row-actions">
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm"
+                        (click)="editBranch(br)" title="Edit">
+                        <i class="pi pi-pencil"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+  </div>
+</div>

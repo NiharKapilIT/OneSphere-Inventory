@@ -66,17 +66,29 @@ export const responseInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       return refreshRequest$.pipe(
+        catchError(refreshError => {
+          // The refresh call itself failed — there's no way to recover the session.
+          authService.logout();
+          router.navigate(['/login']);
+          return throwError(() => refreshError);
+        }),
         switchMap(() => {
           const refreshedToken = authService.getToken();
           const retriedRequest = request.clone({
             setHeaders: { Authorization: `Bearer ${refreshedToken}` }
           });
-          return next(retriedRequest);
-        }),
-        catchError(refreshError => {
-          authService.logout();
-          router.navigate(['/login']);
-          return throwError(() => refreshError);
+          return next(retriedRequest).pipe(
+            catchError(retryError => {
+              // Only a repeat 401 after a successful refresh means the session is
+              // genuinely invalid. Any other error (404, 500, ...) is unrelated to
+              // auth and must not blow away a perfectly valid session.
+              if (retryError instanceof HttpErrorResponse && retryError.status === 401) {
+                authService.logout();
+                router.navigate(['/login']);
+              }
+              return throwError(() => retryError);
+            })
+          );
         })
       );
     })

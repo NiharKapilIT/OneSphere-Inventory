@@ -1164,36 +1164,6 @@ input {
   background: var(--panel-soft);
 }
 
-.theme-tab-switch {
-  display: flex;
-  gap: 4px;
-  padding: 3px;
-  margin-bottom: 10px;
-  border-radius: 10px;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-}
-
-.theme-tab-btn {
-  flex: 1 1 0;
-  padding: 6px 0;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease;
-
-  &:hover { color: var(--text-main); }
-
-  &.active {
-    background: var(--primary);
-    color: var(--text-white, #fff);
-  }
-}
-
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1227,6 +1197,20 @@ input {
   justify-content: center;
   color: #ffffff;
   font-size: 11px;
+}
+
+.swatch-moon {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+.dark-swatch {
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
 .main-area {

@@ -26,7 +26,7 @@ export const routes: Routes = [
       },
       {
         path: 'inventory',
-        loadChildren: () => import('./features/inventory/inventory_routs').then(m => m.inventoryRoutes)
+        loadChildren: () => import('./inventory/inventory_routs').then(m => m.inventoryRoutes)
       },
       {
         path: 'admin',
