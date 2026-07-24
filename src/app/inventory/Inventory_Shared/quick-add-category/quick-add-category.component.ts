@@ -106,6 +106,16 @@ export class QuickAddCategoryComponent {
     return `${namePrefix}-${yy}-${seq}`;
   }
 
+  // Global standard code format: PREFIX (first 3 alnum chars of name) - YY - 5-digit sequence.
+  // Matches generateCodeFromName() in inventory-screen-shell.ts, used for Serial/Batch policy inline add.
+  private autoCodeFromName(name: string, existingCount: number): string {
+    const prefix = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    if (!prefix) return '';
+    const yy = new Date().getFullYear().toString().slice(-2);
+    const seq = String(existingCount + 1).padStart(5, '0');
+    return `${prefix}-${yy}-${seq}`;
+  }
+
   private mergePolicyNames(...groups: string[][]): string[] {
     const seen = new Set<string>();
     return groups
@@ -166,7 +176,7 @@ export class QuickAddCategoryComponent {
   onInlineSerialNameChange(val: string): void {
     const name = toInventoryTitleCase(val ?? '');
     this.inlineSerialName.set(name);
-    this.inlineSerialCode.set('SNP-' + name.trim().replace(/[^A-Z0-9]/gi, '').substring(0, 8).toUpperCase());
+    this.inlineSerialCode.set(name.trim() ? this.autoCodeFromName(name, this.localSerialPolicies().length) : '');
   }
 
   onInlineSerialCodeChange(val: string): void {
@@ -222,7 +232,7 @@ export class QuickAddCategoryComponent {
   onInlineBatchNameChange(val: string): void {
     const name = toInventoryTitleCase(val ?? '');
     this.inlineBatchName.set(name);
-    this.inlineBatchCode.set('BLP-' + name.trim().replace(/[^A-Z0-9]/gi, '').substring(0, 8).toUpperCase());
+    this.inlineBatchCode.set(name.trim() ? this.autoCodeFromName(name, this.localBatchPolicies().length) : '');
   }
 
   onInlineBatchCodeChange(val: string): void {

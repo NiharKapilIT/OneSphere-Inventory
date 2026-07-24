@@ -318,15 +318,57 @@
             <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Fetched or manual address"></textarea></div>
           </div>
         } @else if (host.activeAddMaster() === 'Contact Person') {
-          <div class="inventory-form-grid">
+          <div class="inventory-form-grid inventory-config-grid">
             <div class="erp-form-group">
-              <label class="erp-label">Existing Contact</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Rajesh Kumar', 'Priya Sharma', 'Anil Reddy', 'Meera Nair']" [searchable]="true" [clearable]="true" [ngModel]="'Rajesh Kumar'" placeholder="Select global contact"></ng-select>
+              <label class="erp-label">Contact Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="['Individual', 'Company']" [searchable]="false" [clearable]="false"
+                [ngModel]="host.formValues()['quickContactType'] || 'Individual'"
+                (ngModelChange)="host.collectFormField('quickContactType', $event)"
+                placeholder="Select Type">
+              </ng-select>
             </div>
-            <div class="erp-form-group"><label class="erp-label">Contact Name</label><input class="erp-input" type="text" placeholder="Enter contact name" /></div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="text" placeholder="Enter mobile no" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="text" placeholder="Enter email id" /></div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Contact Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="Person or business name" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactMobile']"
+                (ngModelChange)="host.collectFormField('quickContactMobile', $event)"
+                placeholder="Enter mobile no" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Email</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactEmail']"
+                (ngModelChange)="host.collectFormField('quickContactEmail', $event)"
+                placeholder="Enter email id" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactGstin']"
+                (ngModelChange)="host.collectFormField('quickContactGstin', $event)"
+                placeholder="22AAAAA0000A1Z5" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">PAN <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactPan']"
+                (ngModelChange)="host.collectFormField('quickContactPan', $event)"
+                placeholder="AAAAA0000A" />
+            </div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address <span class="erp-label-hint">optional</span></label>
+              <textarea class="erp-input" rows="2"
+                [ngModel]="host.formValues()['quickContactAddress']"
+                (ngModelChange)="host.collectFormField('quickContactAddress', $event)"
+                placeholder="Enter address"></textarea>
+            </div>
           </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
         } @else if (host.activeAddMaster() === 'Product Type') {
           <div class="inventory-form-grid inventory-config-grid">
             <div class="erp-form-group">
@@ -438,6 +480,7 @@
                 </thead>
                 <tbody>
                   @for (attrRow of host.quickAddVariantRows(); track $index; let attrIdx = $index) {
+                    @let rowView = host.quickAddVariantRowViews()[attrIdx];
                     <tr>
                       <td class="text-center">
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="host.removeQuickVariantRow(attrIdx)"><i class="pi pi-trash"></i></button>
@@ -451,22 +494,23 @@
                         </ng-select>
                       </td>
                       <td>
-                        @if (host.quickVariantRowValueOptions(attrIdx).length) {
+                        @if (rowView.options.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
-                            [items]="host.quickVariantRowValueOptions(attrIdx)"
+                            [items]="rowView.options"
                             [searchable]="true" [clearable]="true"
-                            [multiple]="host.quickVariantRowUsesMultiselect(attrIdx)"
-                            [closeOnSelect]="!host.quickVariantRowUsesMultiselect(attrIdx)"
-                            [ngModel]="host.quickVariantRowValueControlValue(attrIdx)"
+                            [addTag]="true" addTagText="Add new value:"
+                            [multiple]="rowView.usesMultiselect"
+                            [closeOnSelect]="!rowView.usesMultiselect"
+                            [ngModel]="rowView.controlValue"
                             (ngModelChange)="host.setQuickVariantRowValue(attrIdx, $event)"
-                            [placeholder]="host.quickVariantRowValuePlaceholder(attrIdx)">
+                            [placeholder]="rowView.placeholder">
                           </ng-select>
                         } @else {
                           <input class="erp-input inventory-grid-input"
-                            [type]="host.quickVariantRowValueInputType(attrIdx)"
-                            [ngModel]="host.quickVariantRowValueControlValue(attrIdx)"
+                            [type]="rowView.inputType"
+                            [ngModel]="rowView.controlValue"
                             (ngModelChange)="host.setQuickVariantRowValue(attrIdx, $event)"
-                            [placeholder]="host.quickVariantRowValuePlaceholder(attrIdx)" />
+                            [placeholder]="rowView.placeholder" />
                         }
                       </td>
                       <td class="text-center">
@@ -491,18 +535,6 @@
                 placeholder="Color / Size / Grade" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Product Category</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="host.categoryOptions" [searchable]="true" [clearable]="true"
-                  [ngModel]="host.formValues()['quickAttributeCategoryName']"
-                  (ngModelChange)="host.collectFormField('quickAttributeCategoryName', $event)"
-                  placeholder="Select Category">
-                </ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add Category" (click)="host.openAddMaster('Category', 'quickAttributeCategoryName')"><i class="pi pi-plus"></i></button>
-              </div>
-            </div>
-            <div class="erp-form-group">
               <label class="erp-label">Attribute Type</label>
               <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                 [items]="['Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes/No']"
@@ -513,11 +545,15 @@
               </ng-select>
             </div>
             <div class="erp-form-group span-2">
-              <label class="erp-label">Possible Values <span class="erp-label-hint">comma separated</span></label>
-              <textarea class="erp-input" rows="2"
-                [ngModel]="host.formValues()['quickAttributeValues']"
-                (ngModelChange)="host.collectFormField('quickAttributeValues', $event)"
-                placeholder="Red, Blue, Green"></textarea>
+              <label class="erp-label">Possible Values</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="host.quickAttributeValuesTags()"
+                [multiple]="true" [addTag]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false"
+                [ngModel]="host.quickAttributeValuesTags()"
+                (ngModelChange)="host.setQuickAttributeValuesTags($event)"
+                addTagText="Add value:"
+                placeholder="Type a value (e.g. Red, new model name) and press Enter to add">
+              </ng-select>
             </div>
             <div class="erp-form-group">
               <label class="erp-label">Mandatory Flag</label>
@@ -684,58 +720,78 @@
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Vendor') {
           <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Vendor Name</label><input class="erp-input" type="text" placeholder="Legal registered name" /></div>
+            @if (host.config?.key === 'goodsReceipt') {
+              <div class="erp-form-group span-2">
+                <label class="erp-label">Search Global Contact</label>
+                <div class="inventory-field-with-add">
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="host.partyContactOptions()" bindLabel="name"
+                    [searchable]="true" [clearable]="true"
+                    [ngModel]="host.quickVendorLinkedContact()"
+                    (ngModelChange)="host.selectQuickVendorContact($event)"
+                    placeholder="Type search vendor from Global Contact">
+                    <ng-template ng-option-tmp let-item="item">
+                      <div class="inventory-contact-option">
+                        <strong>{{ item.name }}</strong>
+                        <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                      </div>
+                    </ng-template>
+                  </ng-select>
+                  <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
+                    <i class="pi pi-plus"></i>
+                  </button>
+                </div>
+              </div>
+            }
+            <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
+            <div class="erp-form-group"><label class="erp-label">Vendor Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Vendor Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Supplier', 'Contractor', 'Service Provider', 'Manufacturer']" [searchable]="true" [clearable]="true" [ngModel]="'Supplier'" placeholder="Select type"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickVendorType'] || 'Company'" (ngModelChange)="host.collectFormField('quickVendorType', $event)" placeholder="Select type"></ng-select>
             </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" placeholder="Vendor email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" placeholder="22AAAAA0000A1Z5" /></div>
-            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" placeholder="AAAAA0000A" /></div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickVendorMobile']" (ngModelChange)="host.collectFormField('quickVendorMobile', $event)" placeholder="Primary contact number" /></div>
+            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickVendorEmail']" (ngModelChange)="host.collectFormField('quickVendorEmail', $event)" placeholder="Vendor email" /></div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorGstin']" (ngModelChange)="host.collectFormField('quickVendorGstin', $event)" placeholder="22AAAAA0000A1Z5" /></div>
+            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorPan']" (ngModelChange)="host.collectFormField('quickVendorPan', $event)" placeholder="AAAAA0000A" /></div>
+            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickVendorCreditLimit']" (ngModelChange)="host.collectFormField('quickVendorCreditLimit', $event)" placeholder="0" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Payment Terms</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" placeholder="Select payment terms"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickVendorPaymentTerms']" (ngModelChange)="host.collectFormField('quickVendorPaymentTerms', $event)" placeholder="Select payment terms"></ng-select>
             </div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Registered business address"></textarea></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorAddress']" (ngModelChange)="host.collectFormField('quickVendorAddress', $event)" placeholder="Registered business address"></textarea></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Bank Details</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorBankDetails']" (ngModelChange)="host.collectFormField('quickVendorBankDetails', $event)" placeholder="Bank name, account no., IFSC"></textarea></div>
             <div class="erp-form-group">
               <label class="erp-label">Status</label>
               <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
+                <input type="checkbox" [checked]="host.formValues()['quickVendorStatus'] !== 'Inactive'" (change)="host.collectFormField('quickVendorStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
                 <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
               </label>
             </div>
           </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Customer') {
           <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Customer Name</label><input class="erp-input" type="text" placeholder="Legal registered name" /></div>
+            <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
+            <div class="erp-form-group"><label class="erp-label">Customer Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Customer Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail', 'Wholesale', 'Corporate', 'Government', 'Export']" [searchable]="true" [clearable]="true" [ngModel]="'Retail'" placeholder="Select type"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail', 'Wholesale', 'Corporate', 'Government', 'Export']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickCustomerType'] || 'Retail'" (ngModelChange)="host.collectFormField('quickCustomerType', $event)" placeholder="Select type"></ng-select>
             </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" placeholder="Customer email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Price List</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" placeholder="Assign price list"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Payment Terms</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" placeholder="Select payment terms"></ng-select>
-            </div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Billing / delivery address"></textarea></div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickCustomerMobile']" (ngModelChange)="host.collectFormField('quickCustomerMobile', $event)" placeholder="Primary contact number" /></div>
+            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickCustomerEmail']" (ngModelChange)="host.collectFormField('quickCustomerEmail', $event)" placeholder="Customer email" /></div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickCustomerGstin']" (ngModelChange)="host.collectFormField('quickCustomerGstin', $event)" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
+            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickCustomerPan']" (ngModelChange)="host.collectFormField('quickCustomerPan', $event)" placeholder="AAAAA0000A" /></div>
+            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickCustomerCreditLimit']" (ngModelChange)="host.collectFormField('quickCustomerCreditLimit', $event)" placeholder="0" /></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickCustomerAddress']" (ngModelChange)="host.collectFormField('quickCustomerAddress', $event)" placeholder="Billing / delivery address"></textarea></div>
             <div class="erp-form-group">
               <label class="erp-label">Status</label>
               <label class="inventory-labeled-switch status">
-                <input type="checkbox" checked />
+                <input type="checkbox" [checked]="host.formValues()['quickCustomerStatus'] !== 'Inactive'" (change)="host.collectFormField('quickCustomerStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
                 <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
               </label>
             </div>
           </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else {
           <div class="inventory-form-grid">
             <div class="erp-form-group"><label class="erp-label">Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
@@ -761,6 +817,9 @@
                        host.activeAddMaster() === 'Brand' ? host.saveQuickBrand() :
                        host.activeAddMaster() === 'Variant' ? host.saveQuickVariant() :
                        host.activeAddMaster() === 'Attribute' ? host.saveQuickAttribute() :
+                       host.activeAddMaster() === 'Contact Person' ? host.saveQuickContact() :
+                       host.activeAddMaster() === 'Vendor' ? host.saveQuickVendor() :
+                       host.activeAddMaster() === 'Customer' ? host.saveQuickCustomer() :
                        host.activeAddMaster() === 'Serial Number Policy' ? host.saveQuickSerialPolicy() :
                        host.activeAddMaster() === 'Batch / Lot Policy' ? host.saveQuickBatchPolicy() :
                        host.activeAddMaster() === 'UOM Conversion' ? host.addUomConversionRow() :

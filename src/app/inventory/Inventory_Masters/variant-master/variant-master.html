@@ -1094,6 +1094,133 @@
           </div>
         }
 
+        @if (config.key === 'variantMaster') {
+          <div class="inventory-line-items">
+            <div class="inventory-line-title">
+              <div>
+                <strong>Variant Combination Generator</strong>
+                <span>Generate new product variants from active attribute values; existing combinations stay untouched.</span>
+              </div>
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="addVariantGeneratorSelection()">
+                <i class="pi pi-plus"></i> Add Attribute
+              </button>
+            </div>
+
+            <div class="erp-form-group">
+              <label class="erp-label">Parent Product / Item</label>
+              <ng-select
+                class="erp-ng-select inventory-ng-select"
+                appendTo="body"
+                [items]="productOptions"
+                [searchable]="true"
+                [clearable]="true"
+                [ngModel]="formValues()['parentProduct']"
+                (ngModelChange)="collectFormField('parentProduct', $event)"
+                placeholder="Select parent product">
+              </ng-select>
+            </div>
+
+            @if (!variantGeneratorSelections().length) {
+              <div class="inventory-optional-hint">Add attributes such as Color and Size, then preview the combinations for the selected parent product.</div>
+            }
+
+            @for (row of variantGeneratorSelections(); track $index; let rowIndex = $index) {
+              <div class="inventory-form-grid inventory-config-grid">
+                <div class="erp-form-group">
+                  <label class="erp-label">Attribute</label>
+                  <ng-select
+                    class="erp-ng-select inventory-ng-select"
+                    appendTo="body"
+                    [items]="attributeOptions"
+                    [searchable]="true"
+                    [clearable]="true"
+                    [ngModel]="row.attributeName"
+                    (ngModelChange)="setVariantGeneratorAttribute(rowIndex, $event)"
+                    placeholder="Select Attribute">
+                  </ng-select>
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">Values</label>
+                  <ng-select
+                    class="erp-ng-select inventory-ng-select"
+                    appendTo="body"
+                    [items]="variantGeneratorValueOptions(row.attributeName)"
+                    [multiple]="true"
+                    [closeOnSelect]="false"
+                    [searchable]="true"
+                    [clearable]="true"
+                    [ngModel]="row.valueNames"
+                    (ngModelChange)="setVariantGeneratorValues(rowIndex, $event)"
+                    placeholder="Select active values">
+                  </ng-select>
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">&nbsp;</label>
+                  <button type="button" class="erp-btn btn-white btn-sm" (click)="removeVariantGeneratorSelection(rowIndex)">
+                    <i class="pi pi-trash"></i> Remove
+                  </button>
+                </div>
+              </div>
+            }
+
+            <div class="inventory-form-actions">
+              <button type="button" class="erp-btn btn-white" [disabled]="variantGeneratorLoading()" (click)="previewVariantCombinations()">
+                <i class="pi pi-eye"></i> Preview
+              </button>
+              <button type="button" class="erp-btn btn-primary" [disabled]="variantGeneratorLoading() || !variantGeneratorSelectedCount()" (click)="createVariantCombinations()">
+                <i class="pi pi-check"></i> Create Selected
+              </button>
+              @if (variantGeneratorSummary()) {
+                <span class="erp-badge badge-info">{{ variantGeneratorSummary() }}</span>
+              }
+            </div>
+
+            @if (variantGeneratorMessage()) {
+              <div class="inventory-optional-hint">{{ variantGeneratorMessage() }}</div>
+            }
+            @if (variantGeneratorError()) {
+              <div class="inventory-duplicate-advice"><strong>{{ variantGeneratorError() }}</strong></div>
+            }
+
+            @if (variantGeneratorRows().length) {
+              <div class="tbl-wrap">
+                <table class="erp-table compact">
+                  <thead>
+                    <tr>
+                      <th class="text-center">Use</th>
+                      <th>Variant Name</th>
+                      <th>SKU</th>
+                      <th>Attributes</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (row of variantGeneratorRows(); track variantGeneratorRowKey(row, $index); let rowIndex = $index) {
+                      <tr>
+                        <td class="text-center">
+                          <input
+                            type="checkbox"
+                            [checked]="variantGeneratorRowPicked(row, rowIndex)"
+                            [disabled]="row.exists"
+                            (change)="setVariantGeneratorRowPicked(row, rowIndex, $any($event.target).checked)" />
+                        </td>
+                        <td>{{ row.variant_name }}</td>
+                        <td>{{ row.sku || '-' }}</td>
+                        <td>
+                          @for (attr of row.attributes || []; track $index) {
+                            <span>{{ attr.attribute_name }}: {{ attr.value_name || attr.attribute_value }}</span>@if (!$last) { <span>, </span> }
+                          }
+                        </td>
+                        <td><span class="erp-badge" [class.badge-warning]="row.exists" [class.badge-info]="!row.exists">{{ row.exists ? 'Existing' : 'New' }}</span></td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
         @if (config.lineColumns?.length && (config.key !== 'uomMaster' || uomConversionRequired())) {
           <div class="inventory-line-items">
             <div class="inventory-line-title">
@@ -1133,6 +1260,8 @@
                               [items]="lineColumnOptions(column, row)"
                               [searchable]="true"
                               [clearable]="false"
+                              [addTag]="isVariantAttributeValueColumn(column)"
+                              addTagText="Add new value:"
                               [multiple]="lineColumnUsesMultiSelect(column, row)"
                               [closeOnSelect]="!lineColumnUsesMultiSelect(column, row)"
                               [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
@@ -1166,6 +1295,12 @@
 
         @if (config.key !== 'warehouseMaster' || warehouseRequired()) {
         <div class="inventory-form-actions">
+          @if (saveMsg()) {
+            <span class="inventory-save-tooltip save-ok"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
+          }
+          @if (saveError()) {
+            <span class="inventory-save-tooltip save-err"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
+          }
           <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Clear</button>
           @if (isPosView()) {
             <button type="button" class="erp-btn btn-white"><i class="pi pi-pause-circle"></i> Hold Bill</button>
@@ -1207,7 +1342,7 @@
                     <tr>
                       <td class="text-center">
                         <div class="inventory-row-actions">
-                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" [attr.data-index]="$index"><i class="pi pi-pencil"></i></button>
+                          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" [attr.data-index]="$index" (click)="editPendingRow($index)"><i class="pi pi-pencil"></i></button>
                           <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" [attr.data-index]="$index"><i class="pi pi-trash"></i></button>
                         </div>
                       </td>
@@ -1220,6 +1355,12 @@
               </table>
             </div>
             <div class="inventory-form-actions inventory-final-actions">
+              @if (saveMsg()) {
+                <span class="inventory-save-tooltip save-ok"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
+              }
+              @if (saveError()) {
+                <span class="inventory-save-tooltip save-err"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
+              }
               <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Cancel</button>
               <button type="button" class="erp-btn btn-primary"><i class="pi pi-check"></i> Save</button>
             </div>
@@ -1235,7 +1376,7 @@
           </div>
         </div>
         <div class="erp-table-toolbar tbl-toolbar-flush">
-          <span></span>
+          <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
           <div class="grid-export-actions">
             <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
             @if (isGridSearchOpen('records')) {
@@ -1246,6 +1387,17 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+            <span class="inventory-grid-divider"></span>
+            <div class="inventory-grid-pager">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+              <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+              <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+                <option value="10">10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
           </div>
         </div>
             <div class="tbl-wrap">
@@ -1264,12 +1416,12 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', liveRows()); track $index) {
+              @for (row of pagedRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
                       @if (isAdmin()) {
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
                       }
                     </div>

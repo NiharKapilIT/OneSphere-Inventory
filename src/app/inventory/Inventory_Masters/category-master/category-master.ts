@@ -15,5 +15,8 @@ import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventor
   templateUrl: './category-master.html'
 })
 export class InventoryCategoryMasterComponent extends InventoryScreenShell {
-  override readonly config = categoryMasterConfig;
+  // Not readonly: unlike the other single-purpose master screens, this one is also
+  // embedded (via its selector) inside Business Segment configuration, which requires
+  // Angular to be able to bind the required `config` input explicitly at that call site.
+  override config = categoryMasterConfig;
 }

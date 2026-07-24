@@ -33,8 +33,11 @@ export class InventoryReportsService {
   ): Observable<InventoryReportApiResponse> {
     const params = this.buildParams(filters, page, pageSize);
 
+    // commonService.getAPI() prepends sessionStorage['apiURL'], which already
+    // ends in "/api" — a leading "/api/" here doubled the path to
+    // "/api/api/reports/...", 404ing every report regardless of backend.
     return this.commonService
-      .getAPI(`/api/reports/${report.endpoint}`, params, 'YES')
+      .getAPI(`/reports/${report.endpoint}`, params, 'YES')
       .pipe(
         map(response => this.normalizeResponse(response)),
         catchError(error => throwError(() => error))

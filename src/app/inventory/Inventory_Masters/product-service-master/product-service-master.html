@@ -518,11 +518,45 @@
                       placeholder="Select Product Nature">
                     </ng-select>
                     <button type="button" class="erp-btn btn-white btn-icon" title="Add Product Nature" (click)="openAddMaster('Product Type', 'productType')"><i class="pi pi-plus"></i></button>
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Product Nature Guide"
+                      [class.active]="productNatureGuideVisible()"
+                      (click)="productNatureGuideVisible.set(!productNatureGuideVisible())">
+                      <i class="pi pi-info-circle"></i>
+                    </button>
                   </div>
-                  @for (hint of productNatureHints(); track hint) {
-                    <span class="inventory-variant-attr-hint">{{ hint }}</span>
-                  }
                 </div>
+
+                @if (productNatureGuideVisible() && productNatureGuideRows().length) {
+                <div class="erp-form-group span-2">
+                  <div class="product-nature-guide">
+                    <div class="product-nature-guide-title">
+                      <div>
+                        <strong>Product Nature Guide</strong>
+                        <span>Controls stock ledger, costing, purchase, sales, production and service behavior.</span>
+                      </div>
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close"
+                        (click)="productNatureGuideVisible.set(false)">
+                        <i class="pi pi-times"></i>
+                      </button>
+                    </div>
+                    <div class="product-nature-guide-list">
+                      @for (row of productNatureGuideRows(); track row.id) {
+                        <div class="product-nature-guide-item" [class.active]="formValues()['productNatureId'] === row.id">
+                          <div class="product-nature-guide-main">
+                            <strong>{{ row.name }}</strong>
+                            <span>{{ row.impact }}</span>
+                          </div>
+                          <div class="product-nature-guide-flags">
+                            @for (flag of row.flags; track flag) {
+                              <span class="erp-badge badge-neutral">{{ flag }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+                }
 
                 <!-- Pricing Type (Service / Service Bundle / Digital / Subscription only) -->
                 @if (pricingTypeVisible()) {
@@ -736,41 +770,94 @@
                 <div class="inventory-line-items inventory-product-variant-map">
                   <div class="inventory-line-title">
                     <div>
-                      <strong>Mapped Product Variants</strong>
+                      <strong>Mapped Product Variant Attributes</strong>
                       <span>Variant attributes selected here become the transaction variant dropdown for this product.</span>
                     </div>
+                  </div>
+                  <div class="inventory-variant-combo-picker inventory-variant-combo-picker--builder">
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Variant</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="selectedApplicableVariantRows()"
+                        [searchable]="true"
+                        [clearable]="false"
+                        bindLabel="variant_label"
+                        bindValue="id"
+                        [ngModel]="effectiveProductVariantMapVariantId()"
+                        (ngModelChange)="setPendingProductVariantMapVariant($event)"
+                        placeholder="Select Variant">
+                        <ng-template ng-label-tmp let-item="item">
+                          <span>{{ item.variant_name }}</span>
+                        </ng-template>
+                        <ng-template ng-option-tmp let-item="item">
+                          <div class="inventory-contact-option">
+                            <strong>{{ item.variant_name }}</strong>
+                            @if (item.attribute_summary) {
+                              <span>{{ item.attribute_summary }}</span>
+                            }
+                          </div>
+                        </ng-template>
+                      </ng-select>
+                    </div>
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Attribute</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="productVariantMapAttributeOptions()"
+                        [searchable]="true"
+                        [clearable]="true"
+                        [ngModel]="pendingProductVariantMapAttribute() || null"
+                        (ngModelChange)="setPendingProductVariantMapAttribute($event)"
+                        placeholder="Select Attribute">
+                      </ng-select>
+                    </div>
+                    <div class="erp-form-group inventory-combo-select">
+                      <label class="erp-label">Value</label>
+                      <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                        [items]="productVariantMapValueOptions()"
+                        [searchable]="true"
+                        [clearable]="true"
+                        [ngModel]="pendingProductVariantMapValue() || null"
+                        (ngModelChange)="setPendingProductVariantMapValue($event)"
+                        placeholder="Select Value">
+                      </ng-select>
+                    </div>
+                    <button type="button" class="erp-btn btn-white btn-sm inventory-combo-add"
+                      [disabled]="!effectiveProductVariantMapVariantId() || !pendingProductVariantMapAttribute() || !pendingProductVariantMapValue()"
+                      (click)="addProductVariantAttributeMapping()">
+                      <i class="pi pi-plus"></i> Add
+                    </button>
                   </div>
                   <div class="tbl-wrap">
                     <table class="erp-table compact">
                       <thead>
                         <tr>
                           <th>Variant</th>
-                          <th>Attributes</th>
+                          <th>Attribute</th>
+                          <th>Value</th>
                           <th class="text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        @for (av of selectedApplicableVariantRows(); track av.id) {
+                        @for (row of productVariantAttributeRows(); track row.variant_id + '::' + row.attribute_name + '::' + row.attribute_value + '::' + row.index) {
                           <tr>
                             <td class="inventory-variant-col">
-                              <strong>{{ av.variant_name }}</strong>
+                              <strong>{{ row.variant_name }}</strong>
                             </td>
                             <td>
-                              @if (av.attribute_items.length) {
-                                <div class="variant-attr-tags">
-                                  @for (a of av.attribute_items; track a.name) {
-                                    <span class="erp-badge badge-neutral">{{ a.name }}{{ a.value ? ': ' + a.value : '' }}</span>
-                                  }
-                                </div>
-                              } @else {
-                                <span class="erp-label-hint">No attributes</span>
-                              }
+                              <span class="erp-badge badge-neutral">{{ row.attribute_name }}</span>
+                            </td>
+                            <td>
+                              <span class="erp-badge badge-neutral">{{ row.attribute_value }}</span>
                             </td>
                             <td class="text-center">
                               <div class="inventory-row-actions">
-                                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove Variant" (click)="removeApplicableVariant(av.id)"><i class="pi pi-trash"></i></button>
+                                <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove Mapping" (click)="removeProductVariantAttributeMapping(row.variant_id, row.index)"><i class="pi pi-trash"></i></button>
                               </div>
                             </td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td colspan="4" class="text-center erp-label-hint">No product-specific variant attributes mapped yet.</td>
                           </tr>
                         }
                       </tbody>
@@ -857,27 +944,6 @@
               }
             </div>
             }
-
-            <div class="inventory-fieldset">
-              <div class="inventory-fieldset-title inventory-fieldset-title-row">
-                <span>Product Alternate UOM Mapping</span>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <button type="button" class="erp-btn btn-white btn-sm" title="Add UOM mapping row" (click)="addProductUomMappingRow()">
-                    <i class="pi pi-plus"></i> Add Mapping Row
-                  </button>
-                  <button type="button" class="erp-btn btn-white btn-sm" title="Create a new UOM and map it" (click)="openProductUomQuickMap()">
-                    <i class="pi pi-plus"></i> New UOM
-                  </button>
-                  <label class="inventory-labeled-switch yes-no">
-                    <input type="checkbox" [checked]="productUomMappingRequired()" (change)="setProductUomMappingRequired($any($event.target).checked)" />
-                    <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
-                  </label>
-                </div>
-              </div>
-              <div class="inventory-optional-hint">
-                Use this when purchase or sales UOM differs from Base UOM. Example: Base UOM KG, Alternate UOM Bag, factor 26, Purchase Yes, Sales Yes/No, Active Yes.
-              </div>
-            </div>
 
             @if (selectedProductNature() === null || selectedProductNature()?.tracks_inventory !== false) {
             <div class="inventory-fieldset">
@@ -997,10 +1063,10 @@
                                   <span class="erp-label-hint">-</span>
                                 }
                               </td>
-                              <td><input class="erp-input inventory-grid-input" type="number" [ngModel]="row.min_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'min_stock_level', $event)" placeholder="0" /></td>
-                              <td><input class="erp-input inventory-grid-input" type="number" [ngModel]="row.max_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'max_stock_level', $event)" placeholder="0" /></td>
-                              <td><input class="erp-input inventory-grid-input" type="number" [ngModel]="row.reorder_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_level', $event)" placeholder="0" /></td>
-                              <td><input class="erp-input inventory-grid-input" type="number" [ngModel]="row.reorder_qty" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_qty', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'min_stock_level')" [ngModel]="row.min_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'min_stock_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'max_stock_level')" [ngModel]="row.max_stock_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'max_stock_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'reorder_level')" [ngModel]="row.reorder_level" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_level', $event)" placeholder="0" /></td>
+                              <td><input class="erp-input inventory-grid-input" type="number" min="0" [class.input-error]="variantStockCombinationFieldError(row, 'reorder_qty')" [ngModel]="row.reorder_qty" (ngModelChange)="setVariantStockCombinationField(rowIndex, 'reorder_qty', $event)" placeholder="0" /></td>
                               <td class="text-center">
                                 <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" (click)="removeVariantStockCombinationRow(rowIndex)"><i class="pi pi-trash"></i></button>
                               </td>
@@ -1012,11 +1078,11 @@
                   }
                 } @else {
                 <div class="inventory-form-grid inventory-config-grid">
-                  <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" [ngModel]="formValues()['minStockLevel'] || 0" (ngModelChange)="collectFormField('minStockLevel', $event)" placeholder="0" /></div>
-                  <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" [ngModel]="formValues()['maxStockLevel'] || 0" (ngModelChange)="collectFormField('maxStockLevel', $event)" placeholder="0" /></div>
+                  <div class="erp-form-group"><label class="erp-label">Minimum Stock</label><input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('minStockLevel')" [ngModel]="formValues()['minStockLevel'] || 0" (ngModelChange)="collectFormField('minStockLevel', $event)" placeholder="0" /></div>
+                  <div class="erp-form-group"><label class="erp-label">Maximum Stock</label><input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('maxStockLevel')" [ngModel]="formValues()['maxStockLevel'] || 0" (ngModelChange)="collectFormField('maxStockLevel', $event)" placeholder="0" /></div>
                   <div class="erp-form-group">
                     <label class="erp-label">Reorder Level</label>
-                    <input class="erp-input" type="number" [ngModel]="formValues()['reorderLevel'] || 0" (ngModelChange)="collectFormField('reorderLevel', $event)" placeholder="0" />
+                    <input class="erp-input" type="number" min="0" [class.input-error]="productStockFieldError('reorderLevel')" [ngModel]="formValues()['reorderLevel'] || 0" (ngModelChange)="collectFormField('reorderLevel', $event)" placeholder="0" />
                     @if (selectedProductNature()?.allows_production) {
                       <span class="inventory-variant-attr-hint">Raw Material reorder should follow the Production Plan, not direct sales demand.</span>
                     }
@@ -1124,6 +1190,27 @@
                 <div class="erp-form-group span-2"><label class="erp-label">Product Description</label><textarea class="erp-input" rows="2" [ngModel]="formValues()['description'] || ''" (ngModelChange)="collectFormField('description', $event)" placeholder="Enter product description"></textarea></div>
               </div>
               }
+            </div>
+
+            <div class="inventory-fieldset">
+              <div class="inventory-fieldset-title inventory-fieldset-title-row">
+                <span>Product Alternate UOM Mapping</span>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="erp-btn btn-white btn-sm" title="Add UOM mapping row" (click)="addProductUomMappingRow()">
+                    <i class="pi pi-plus"></i> Add Mapping Row
+                  </button>
+                  <button type="button" class="erp-btn btn-white btn-sm" title="Create a new UOM and map it" (click)="openProductUomQuickMap()">
+                    <i class="pi pi-plus"></i> New UOM
+                  </button>
+                  <label class="inventory-labeled-switch yes-no">
+                    <input type="checkbox" [checked]="productUomMappingRequired()" (change)="setProductUomMappingRequired($any($event.target).checked)" />
+                    <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                  </label>
+                </div>
+              </div>
+              <div class="inventory-optional-hint">
+                Use this when purchase or sales UOM differs from Base UOM. Example: Base UOM KG, Alternate UOM Bag, factor 26, Purchase Yes, Sales Yes/No, Active Yes.
+              </div>
             </div>
           </div>
         } @else if (config.key === 'consumptionTypeMaster') {
@@ -1708,14 +1795,10 @@
 
         @if (config.key !== 'warehouseMaster' || warehouseRequired()) {
         @if (config.key === 'productServiceMaster' && saveError()) {
-          <div class="inventory-save-msg save-err" style="margin: 12px 0 0;">
-            {{ saveError() }}
-          </div>
+          <span class="inventory-save-tooltip save-err" style="margin: 12px 0 0;"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
         }
         @if (config.key === 'productServiceMaster' && saveMsg()) {
-          <div class="inventory-save-msg save-ok" style="margin: 12px 0 0;">
-            {{ saveMsg() }}
-          </div>
+          <span class="inventory-save-tooltip save-ok" style="margin: 12px 0 0;"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
         }
         <div class="inventory-form-actions">
           <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Clear</button>
@@ -1790,7 +1873,7 @@
           </div>
         </div>
         <div class="erp-table-toolbar tbl-toolbar-flush">
-          <span></span>
+          <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
           <div class="grid-export-actions">
             <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
             @if (isGridSearchOpen('records')) {
@@ -1801,6 +1884,17 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+            <span class="inventory-grid-divider"></span>
+            <div class="inventory-grid-pager">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+              <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+              <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+                <option value="10">10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
           </div>
         </div>
             <div class="tbl-wrap">
@@ -1819,7 +1913,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', liveRows()); track $index) {
+              @for (row of pagedRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">

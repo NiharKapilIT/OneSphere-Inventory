@@ -22,7 +22,34 @@
               placeholder="Select Segment">
             </ng-select>
           }
-          <span class="product-segment-bar-hint">This transaction is scoped to this segment.</span>
+          @if (segmentBarTransactionReferenceField(); as refField) {
+            <div class="product-segment-reference">
+              <label class="erp-label">{{ refField.label }}</label>
+              <div [class.inventory-reference-picker-field]="transactionReferencePickerButtonVisible(refField)">
+                @if (transactionReferenceUsesSelect(refField)) {
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="transactionReferenceOptions(refField)"
+                    [searchable]="true" [clearable]="true" [virtualScroll]="true"
+                    [ngModel]="formFieldValue(refField)"
+                    (ngModelChange)="selectTransactionReference(refField, $event)"
+                    [placeholder]="fieldTypingHint(refField)">
+                  </ng-select>
+                } @else {
+                  <input class="erp-input" type="text"
+                    [ngModel]="formFieldValue(refField)"
+                    (ngModelChange)="collectFormField(refField.key, $event)"
+                    [placeholder]="fieldTypingHint(refField)" />
+                }
+                @if (transactionReferencePickerButtonVisible(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                    [title]="transactionReferencePickerTitle(refField)" [disabled]="transactionReferenceLoading()"
+                    (click)="openPurchaseReferencePicker()">
+                    <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
 
@@ -138,7 +165,7 @@
       </div>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items">
+        <div class="inventory-line-items grn-grid-compact">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
@@ -202,10 +229,16 @@
       }
 
       @if (saveError()) {
-        <div class="inventory-save-error">{{ saveError() }}</div>
+        <div class="inventory-save-error">
+          <span>{{ saveError() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
       @if (saveMsg()) {
-        <div class="inventory-save-msg">{{ saveMsg() }}</div>
+        <div class="inventory-save-msg">
+          <span>{{ saveMsg() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
 
       <div class="inventory-form-actions">
@@ -272,7 +305,7 @@
         </div>
       </div>
       <div class="erp-table-toolbar tbl-toolbar-flush">
-        <span></span>
+        <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
         <div class="grid-export-actions">
           <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
           @if (isGridSearchOpen('records')) {
@@ -284,6 +317,17 @@
           <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
           <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
           <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          <span class="inventory-grid-divider"></span>
+          <div class="inventory-grid-pager">
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+            <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+            <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -302,7 +346,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (row of gridRows('records', liveRows()); track $index) {
+            @for (row of pagedRows('records', liveRows()); track $index) {
               <tr>
                 <td class="text-center">
                   <div class="inventory-row-actions">

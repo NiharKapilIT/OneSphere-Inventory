@@ -221,7 +221,7 @@ export interface WarehouseItem {
 }
 
 export interface BranchInvItem {
-  id: number;
+  id?: number;
   company_id: number;
   branch_id?: number;
   segment_id?: number;
@@ -285,9 +285,20 @@ export interface AttributeItem {
   attribute_code?: string;
   attribute_name: string;
   attribute_type: string;
+  display_order?: number;
   possible_values?: string[];
+  values?: AttributeValueItem[];
   is_mandatory: boolean;
   status: string;
+}
+
+export interface AttributeValueItem {
+  id: number;
+  value_code?: string;
+  value_name: string;
+  status: string;
+  sort_order?: number;
+  usage_count?: number;
 }
 
 export interface ProductGroupItem {
@@ -306,13 +317,26 @@ export interface VariantItem {
   id: number;
   segment_id?: number;
   segment_name?: string;
+  product_id?: number;
+  product_code?: string;
+  product_name?: string;
   attribute_id?: number;
   attribute_name?: string;
   variant_code: string;
   variant_name: string;
+  sku?: string;
+  sku_pattern?: string;
+  barcode?: string;
+  price?: number;
+  cost?: number;
+  stock_on_hand?: number;
+  stock?: number;
+  images?: string[];
   variant_label?: string;
   attribute_value?: string;
   attributes?: VariantAttributeItem[];
+  combination_hash?: string;
+  is_generated?: boolean;
   description?: string;
   status: string;
 }
@@ -320,10 +344,45 @@ export interface VariantItem {
 export interface VariantAttributeItem {
   attribute_id?: number;
   attribute_name?: string;
+  attribute_value_id?: number;
+  value_code?: string;
+  value_name?: string;
   attribute_value?: string;
+  value_status?: string;
   attribute_type?: string;
   possible_values?: string[];
+  usage_count?: number;
   display_order?: number;
+}
+
+export interface VariantCombinationRow {
+  variant_id?: number;
+  product_id: number;
+  variant_name: string;
+  sku?: string;
+  combination_hash: string;
+  exists: boolean;
+  created: boolean;
+  attributes: VariantAttributeItem[];
+}
+
+export interface VariantCombinationGenerateResult {
+  product_id: number;
+  product_code?: string;
+  product_name?: string;
+  total: number;
+  new_count: number;
+  existing_count: number;
+  created_count: number;
+  rows: VariantCombinationRow[];
+}
+
+export interface AttributeVariantBulkImportResult {
+  total_rows: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  invalid_rows: Array<Record<string, any>>;
 }
 
 export interface SerialPolicyItem {
@@ -413,6 +472,24 @@ export interface VendorItem {
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
+  contact_id?: number;
+  contact_source?: string;
+  status: string;
+}
+
+export interface ContactItem {
+  id: number;
+  contact_type: string;
+  name: string;
+  mobile?: string;
+  email?: string;
+  gstin?: string;
+  pan?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  is_supplier?: boolean;
   status: string;
 }
 
@@ -439,6 +516,8 @@ export interface CustomerItem {
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
+  contact_id?: number;
+  contact_source?: string;
   status: string;
 }
 
@@ -479,6 +558,13 @@ export interface ProductItem {
   valuation_method?: string;
   gst_rate?: number;
   tax_category?: string;
+  mrp?: number | null;
+  selling_price?: number | null;
+  sellingPrice?: number | null;
+  sale_price?: number | null;
+  price?: number | null;
+  cost_price?: number | null;
+  costPrice?: number | null;
   reorder_level: number;
   reorder_qty: number;
   max_stock_level: number;
@@ -502,6 +588,7 @@ export interface ProductApplicableVariant {
   variant_name: string;
   variant_label: string;
   is_default: boolean;
+  attributes?: ProductVariantStockAttribute[];
 }
 
 export interface ProductVariantStockControl {
@@ -1167,6 +1254,14 @@ export class InventoryConfigService {
   }
 
   private normalizeAttribute(item: any): AttributeItem {
+    const values = (this.value<any[]>(item, 'values', 'values', []) ?? []).map(row => ({
+      id: row?.id,
+      value_code: this.value(row, 'value_code', 'valueCode'),
+      value_name: this.value(row, 'value_name', 'valueName', ''),
+      status: this.value(row, 'status', 'status', 'active'),
+      sort_order: this.value(row, 'sort_order', 'sortOrder', 100),
+      usage_count: this.value(row, 'usage_count', 'usageCount', 0)
+    }));
     return {
       id: item?.id,
       segment_id: this.value(item, 'segment_id', 'segmentId'),
@@ -1174,7 +1269,9 @@ export class InventoryConfigService {
       attribute_code: this.value(item, 'attribute_code', 'attributeCode'),
       attribute_name: this.value(item, 'attribute_name', 'attributeName', ''),
       attribute_type: this.value(item, 'attribute_type', 'attributeType', 'Text'),
+      display_order: this.value(item, 'display_order', 'displayOrder', 100),
       possible_values: this.normalizeStringList(this.value(item, 'possible_values', 'possibleValues', [])),
+      values,
       is_mandatory: this.value(item, 'is_mandatory', 'isMandatory', false),
       status: this.value(item, 'status', 'status', 'active')
     };
@@ -1198,24 +1295,73 @@ export class InventoryConfigService {
     const attributes = (this.value<any[]>(item, 'attributes', 'attributes', []) ?? []).map(row => ({
       attribute_id: this.value(row, 'attribute_id', 'attributeId'),
       attribute_name: this.value(row, 'attribute_name', 'attributeName'),
+      attribute_value_id: this.value(row, 'attribute_value_id', 'attributeValueId'),
+      value_code: this.value(row, 'value_code', 'valueCode'),
+      value_name: this.value(row, 'value_name', 'valueName'),
       attribute_value: this.value(row, 'attribute_value', 'attributeValue'),
+      value_status: this.value(row, 'value_status', 'valueStatus'),
       attribute_type: this.value(row, 'attribute_type', 'attributeType', 'Text'),
       possible_values: this.normalizeStringList(this.value(row, 'possible_values', 'possibleValues', [])),
+      usage_count: this.value(row, 'usage_count', 'usageCount', 0),
       display_order: this.value(row, 'display_order', 'displayOrder', 1)
     }));
     return {
       id: item?.id,
       segment_id: this.value(item, 'segment_id', 'segmentId'),
       segment_name: this.value(item, 'segment_name', 'segmentName'),
+      product_id: this.value(item, 'product_id', 'productId'),
+      product_code: this.value(item, 'product_code', 'productCode'),
+      product_name: this.value(item, 'product_name', 'productName'),
       attribute_id: this.value(item, 'attribute_id', 'attributeId'),
       attribute_name: this.value(item, 'attribute_name', 'attributeName'),
       variant_code: this.value(item, 'variant_code', 'variantCode', ''),
       variant_name: this.value(item, 'variant_name', 'variantName', ''),
+      sku: this.value(item, 'sku', 'sku'),
+      sku_pattern: this.value(item, 'sku_pattern', 'skuPattern'),
+      barcode: this.value(item, 'barcode', 'barcode'),
+      price: this.value(item, 'price', 'price', 0),
+      cost: this.value(item, 'cost', 'cost', 0),
+      stock_on_hand: this.value(item, 'stock_on_hand', 'stockOnHand', this.value(item, 'stock', 'stock', 0)),
+      stock: this.value(item, 'stock', 'stock', this.value(item, 'stock_on_hand', 'stockOnHand', 0)),
+      images: this.normalizeStringList(this.value(item, 'images', 'images', [])),
       variant_label: this.value(item, 'variant_label', 'variantLabel'),
       attribute_value: this.value(item, 'attribute_value', 'attributeValue'),
       attributes,
+      combination_hash: this.value(item, 'combination_hash', 'combinationHash'),
+      is_generated: this.value(item, 'is_generated', 'isGenerated', false),
       description: this.value(item, 'description', 'description'),
       status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeVariantCombinationResult(item: any): VariantCombinationGenerateResult {
+    const rows = (this.value<any[]>(item, 'rows', 'rows', []) ?? []).map(row => ({
+      variant_id: this.value(row, 'variant_id', 'variantId'),
+      product_id: this.value(row, 'product_id', 'productId', 0),
+      variant_name: this.value(row, 'variant_name', 'variantName', ''),
+      sku: this.value(row, 'sku', 'sku'),
+      combination_hash: this.value(row, 'combination_hash', 'combinationHash', ''),
+      exists: this.value(row, 'exists', 'exists', false),
+      created: this.value(row, 'created', 'created', false),
+      attributes: (this.value<any[]>(row, 'attributes', 'attributes', []) ?? []).map(attr => ({
+        attribute_id: this.value(attr, 'attribute_id', 'attributeId'),
+        attribute_name: this.value(attr, 'attribute_name', 'attributeName'),
+        attribute_value_id: this.value(attr, 'attribute_value_id', 'attributeValueId'),
+        value_code: this.value(attr, 'value_code', 'valueCode'),
+        value_name: this.value(attr, 'value_name', 'valueName'),
+        attribute_value: this.value(attr, 'attribute_value', 'attributeValue'),
+        display_order: this.value(attr, 'display_order', 'displayOrder', 1)
+      }))
+    }));
+    return {
+      product_id: this.value(item, 'product_id', 'productId', 0),
+      product_code: this.value(item, 'product_code', 'productCode'),
+      product_name: this.value(item, 'product_name', 'productName'),
+      total: this.value(item, 'total', 'total', rows.length),
+      new_count: this.value(item, 'new_count', 'newCount', 0),
+      existing_count: this.value(item, 'existing_count', 'existingCount', 0),
+      created_count: this.value(item, 'created_count', 'createdCount', 0),
+      rows
     };
   }
 
@@ -1317,6 +1463,26 @@ export class InventoryConfigService {
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
+      contact_id: this.value(item, 'contact_id', 'contactId'),
+      contact_source: this.value(item, 'contact_source', 'contactSource'),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeContact(item: any): ContactItem {
+    return {
+      id: item?.id,
+      contact_type: this.value(item, 'contact_type', 'contactType', 'Individual'),
+      name: this.value(item, 'name', 'name', ''),
+      mobile: this.value(item, 'mobile', 'mobile'),
+      email: this.value(item, 'email', 'email'),
+      gstin: this.value(item, 'gstin', 'gstin'),
+      pan: this.value(item, 'pan', 'pan'),
+      address: this.value(item, 'address', 'address'),
+      city: this.value(item, 'city', 'city'),
+      state: this.value(item, 'state', 'state'),
+      pincode: this.value(item, 'pincode', 'pincode'),
+      is_supplier: this.value(item, 'is_supplier', 'isSupplier', false),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1345,6 +1511,8 @@ export class InventoryConfigService {
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
+      contact_id: this.value(item, 'contact_id', 'contactId'),
+      contact_source: this.value(item, 'contact_source', 'contactSource'),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1387,6 +1555,13 @@ export class InventoryConfigService {
       valuation_method: this.value(item, 'valuation_method', 'valuationMethod'),
       gst_rate: this.value(item, 'gst_rate', 'gstRate'),
       tax_category: this.value(item, 'tax_category', 'taxCategory'),
+      mrp: this.value(item, 'mrp', 'mrp'),
+      selling_price: this.value(item, 'selling_price', 'sellingPrice'),
+      sellingPrice: this.value(item, 'selling_price', 'sellingPrice'),
+      sale_price: this.value(item, 'sale_price', 'salePrice'),
+      price: this.value(item, 'price', 'price'),
+      cost_price: this.value(item, 'cost_price', 'costPrice'),
+      costPrice: this.value(item, 'cost_price', 'costPrice'),
       reorder_level: this.value(item, 'reorder_level', 'reorderLevel', 0),
       reorder_qty: this.value(item, 'reorder_qty', 'reorderQty', 0),
       max_stock_level: this.value(item, 'max_stock_level', 'maxStockLevel', 0),
@@ -1404,6 +1579,10 @@ export class InventoryConfigService {
         variant_name: this.value(v, 'variant_name', 'variantName', ''),
         variant_label: this.value(v, 'variant_label', 'variantLabel', ''),
         is_default: this.value(v, 'is_default', 'isDefault', false),
+        attributes: (this.value<any[]>(v, 'attributes', 'attributes', []) ?? []).map((a: any) => ({
+          attribute_name: this.value(a, 'attribute_name', 'attributeName', ''),
+          attribute_value: this.value(a, 'attribute_value', 'attributeValue', ''),
+        } as ProductVariantStockAttribute)),
       } as ProductApplicableVariant)),
       bundle_composition: (item?.bundle_composition || item?.bundleComposition || []).map((b: any) => ({
         item_id: this.value(b, 'item_id', 'itemId', 0),
@@ -1515,10 +1694,11 @@ export class InventoryConfigService {
 
   // ── Variants ─────────────────────────────────────────────────────────────
 
-  getVariants(segmentId?: number | null, attributeId?: number | null, includeInactive = false): Observable<ApiResponse<VariantItem[]>> {
+  getVariants(segmentId?: number | null, attributeId?: number | null, includeInactive = false, productId?: number | null): Observable<ApiResponse<VariantItem[]>> {
     let params = new HttpParams().set('includeInactive', includeInactive);
     if (segmentId) params = params.set('segmentId', segmentId);
     if (attributeId) params = params.set('attributeId', attributeId);
+    if (productId) params = params.set('productId', productId);
     return this.mapArray(this.http.get<ApiResponse<any[]>>(
       this.masterUrl('variants'), { headers: this.headers(), params }
     ), item => this.normalizeVariant(item));
@@ -1535,7 +1715,35 @@ export class InventoryConfigService {
     );
   }
 
+  generateVariantCombinations(payload: { product_id: number; sku_pattern?: string | null; create_variants?: boolean; selections: Array<Record<string, any>> }): Observable<ApiResponse<VariantCombinationGenerateResult>> {
+    return this.mapItem(
+      this.http.post<ApiResponse<any>>(
+        this.masterUrl('variants/generate-combinations'),
+        this.toApiValue(payload),
+        { headers: this.headers() }
+      ),
+      item => this.normalizeVariantCombinationResult(item)
+    );
+  }
+
   // ── Serial Policies ──────────────────────────────────────────────────────
+
+  bulkImportAttributeVariants(rows: Array<Record<string, any>>): Observable<ApiResponse<AttributeVariantBulkImportResult>> {
+    return this.http.post<ApiResponse<any>>(
+      this.masterUrl('attribute-variants/bulk-import'),
+      this.toApiValue({ rows }),
+      { headers: this.headers() }
+    ).pipe(map(res => ({
+      ...res,
+      data: {
+        total_rows: this.value(res.data, 'total_rows', 'totalRows', rows.length),
+        imported: this.value(res.data, 'imported', 'imported', 0),
+        updated: this.value(res.data, 'updated', 'updated', 0),
+        skipped: this.value(res.data, 'skipped', 'skipped', 0),
+        invalid_rows: this.value(res.data, 'invalid_rows', 'invalidRows', [])
+      }
+    })));
+  }
 
   getSerialPolicies(segmentId?: number | null, categoryId?: number | null, includeInactive = false): Observable<ApiResponse<SerialPolicyItem[]>> {
     let params = new HttpParams().set('includeInactive', includeInactive);
@@ -1652,6 +1860,45 @@ export class InventoryConfigService {
         ? this.http.put<ApiResponse<any>>(this.masterUrl(`vendors/${id}`), body, { headers: h })
         : this.http.post<ApiResponse<any>>(this.masterUrl('vendors'), body, { headers: h }),
       item => this.normalizeVendor(item)
+    );
+  }
+
+  // ── Global Contacts ──────────────────────────────────────────────────────
+
+  getContacts(includeInactive = false): Observable<ApiResponse<ContactItem[]>> {
+    const params = new HttpParams().set('includeInactive', includeInactive);
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('contacts'), { headers: this.headers(), params }
+    ), item => this.normalizeContact(item));
+  }
+
+  saveContact(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ContactItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('contacts'), body, { headers: h }),
+      item => this.normalizeContact(item)
+    );
+  }
+
+  // Shared cross-app contacts (global.tbl_mst_contact) — a single pool, not
+  // company/branch-scoped. Same ContactItem shape as getContacts() so
+  // callers can merge both lists. Edits made from Vendor/Customer Master are
+  // written back here via updateGlobalContact(), keeping this the single
+  // source of truth rather than a one-time copy.
+  getGlobalContacts(): Observable<ApiResponse<ContactItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('global-contacts'), { headers: this.headers() }
+    ), item => this.normalizeContact(item));
+  }
+
+  updateGlobalContact(payload: Record<string, any>, id: number): Observable<ApiResponse<ContactItem>> {
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/global/${id}`), body, { headers: this.headers() }),
+      item => this.normalizeContact(item)
     );
   }
 

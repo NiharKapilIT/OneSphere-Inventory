@@ -25,7 +25,19 @@
             placeholder="Select Segment">
           </ng-select>
         }
-        <span class="product-segment-bar-hint">This transaction is scoped to this segment.</span>
+        <div class="product-segment-reference">
+          <label class="erp-label">PR Reference <small class="rfq-optional-label">optional</small></label>
+          <div class="inventory-reference-picker-field">
+            <input class="erp-input" type="text"
+              [ngModel]="formValues()['prReference']"
+              (ngModelChange)="collectFormField('prReference', $event)"
+              placeholder="Optional approved PR" readonly />
+            <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+              title="Pick Approved PR" (click)="openPrPicker()">
+              <i class="pi pi-search"></i>
+            </button>
+          </div>
+        </div>
         <div class="rfq-currency-picker">
           <button type="button" class="erp-btn btn-white btn-icon rfq-currency-btn"
             title="Select Currency"
@@ -69,22 +81,7 @@
             <i class="pi pi-calendar inventory-date-icon"></i>
           </div>
         </div>
-        <div class="erp-form-group">
-          <label class="erp-label">PR Reference <small class="rfq-optional-label">optional</small></label>
-          <div class="inventory-field-with-add">
-            <input class="erp-input" type="text"
-              [ngModel]="formValues()['prReference']"
-              (ngModelChange)="collectFormField('prReference', $event)"
-              placeholder="Optional approved PR" readonly />
-            <button type="button" class="erp-btn btn-white btn-icon" title="Pick Approved PR" (click)="openPrPicker()">
-              <i class="pi pi-search"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="inventory-form-grid rfq-main-grid">
-        <div class="erp-form-group span-2">
+        <div class="erp-form-group procurement-vendor-col">
           <label class="erp-label">Vendors</label>
           <div class="inventory-field-with-add">
             <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
@@ -100,6 +97,9 @@
             </button>
           </div>
         </div>
+      </div>
+
+      <div class="inventory-form-grid rfq-main-grid">
         <div class="erp-form-group">
           <label class="erp-label">Delivery Location</label>
           <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
@@ -156,7 +156,7 @@
         </div>
       }
 
-      <div class="inventory-line-items">
+      <div class="inventory-line-items grn-grid-compact">
         <div class="inventory-line-title">
           <div>
             <strong>RFQ Items</strong>
@@ -268,10 +268,16 @@
       </div>
 
       @if (saveError()) {
-        <div class="inventory-save-error">{{ saveError() }}</div>
+        <div class="inventory-save-error">
+          <span>{{ saveError() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
       @if (saveMsg()) {
-        <div class="inventory-save-msg">{{ saveMsg() }}</div>
+        <div class="inventory-save-msg">
+          <span>{{ saveMsg() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
 
       <div class="inventory-form-actions">

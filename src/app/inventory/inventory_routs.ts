@@ -167,6 +167,19 @@ export const inventoryRoutes: Routes = [
   {
     path: 'transactions',
     children: [
+      // Payments & Receipts
+      {
+        path: 'vendor-payment',
+        loadComponent: () => import('./Inventory_Transactions/payment-receipt-voucher/payment-receipt-voucher')
+          .then(m => m.PaymentReceiptVoucherComponent),
+        data: { mode: 'pay' }
+      },
+      {
+        path: 'customer-receipt',
+        loadComponent: () => import('./Inventory_Transactions/payment-receipt-voucher/payment-receipt-voucher')
+          .then(m => m.PaymentReceiptVoucherComponent),
+        data: { mode: 'receipt' }
+      },
       // Procurement
       {
         path: 'purchase-requisition',

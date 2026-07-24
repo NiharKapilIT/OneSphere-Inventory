@@ -311,18 +311,29 @@ export class InventoryRequestForQuotationComponent extends InventoryScreenShell 
     };
   }
 
-  loadApprovedPrs(): void {
+  loadApprovedPrs(openPickerWhenAvailable = false): void {
     this.approvedPrLoading.set(true);
     this.txService.getPurchaseRequisitions('approved', this.currentSegmentId)
       .pipe(takeUntilDestroyed(this.rfqDestroyRef))
       .subscribe({
         next: res => {
           this.approvedPrLoading.set(false);
-          this.approvedPrs.set(res.success ? (res.data || []).filter(pr => this.rfqIsApproved(pr.status)) : []);
+          const approved = res.success ? (res.data || []).filter(pr => this.rfqIsApproved(pr.status)) : [];
+          this.approvedPrs.set(approved);
+          if (openPickerWhenAvailable) {
+            if (approved.length) {
+              this.prPickerOpen.set(true);
+            } else {
+              this.prPickerOpen.set(false);
+              this.rfqSourceMode.set('direct');
+              this.clearSelectedPr();
+            }
+          }
         },
         error: err => {
           this.approvedPrLoading.set(false);
           this.approvedPrs.set([]);
+          this.prPickerOpen.set(false);
           this.saveError.set(this.apiErrorMessage(err, 'Approved PRs could not be loaded.'));
         }
       });
@@ -339,8 +350,8 @@ export class InventoryRequestForQuotationComponent extends InventoryScreenShell 
 
   openPrPicker(): void {
     this.rfqSourceMode.set('pr');
-    this.prPickerOpen.set(true);
-    this.loadApprovedPrs();
+    this.prPickerOpen.set(false);
+    this.loadApprovedPrs(true);
   }
 
   closePrPicker(): void {
@@ -1230,9 +1241,29 @@ export class InventoryRequestForQuotationComponent extends InventoryScreenShell 
     const selected = this.rfqKey(value);
     if (!selected) return null;
     return this.rfqVendorRecords().find(vendor =>
-      this.rfqKey(vendor.vendor_name) === selected
-      || this.rfqKey(vendor.vendor_code) === selected
+      this.rfqVendorSelectionCandidates(vendor).some(candidate => this.rfqKey(candidate) === selected)
     ) ?? null;
+  }
+
+  private rfqVendorPhone(vendor: VendorItem | null | undefined): string {
+    return String(vendor?.mobile || vendor?.contact_mobile || '').trim();
+  }
+
+  private rfqVendorOptionLabel(vendor: VendorItem): string {
+    const name = String(vendor.vendor_name || vendor.vendor_code || '').trim();
+    const phone = this.rfqVendorPhone(vendor);
+    return [name, phone].filter(Boolean).join(' | ');
+  }
+
+  private rfqVendorSelectionCandidates(vendor: VendorItem): string[] {
+    const name = String(vendor.vendor_name || '').trim();
+    const code = String(vendor.vendor_code || '').trim();
+    const phone = this.rfqVendorPhone(vendor);
+    const contactName = String(vendor.contact_name || '').trim();
+    const label = this.rfqVendorOptionLabel(vendor);
+    return [label, name, code, phone, contactName, phone && name ? `${phone} | ${name}` : '']
+      .map(item => String(item || '').trim())
+      .filter(Boolean);
   }
 
   private normalizeVendorNames(value: string[] | string | null | undefined): string[] {

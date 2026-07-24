@@ -19,6 +19,7 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
   override readonly config = productServiceMasterConfig;
 
   readonly pickedVariantId = signal<number | null>(null);
+  readonly productNatureGuideVisible = signal(false);
 
   readonly pickedVariantPreview = computed(() => {
     const id = this.pickedVariantId();
@@ -41,10 +42,52 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
     return id ? this.productNatureObjects.find(n => n.id === id) ?? null : null;
   });
 
+  readonly productNatureGuideRows = computed(() =>
+    this.productNatureObjects.map(nature => {
+      const name = nature.type_name || '';
+      const key = name.toLowerCase();
+      let impact = nature.description || 'Controls stock, cost, purchase, sale and transaction behavior for this product.';
+
+      if (key === 'physical stock') {
+        impact = 'Normal stock item. GRN/opening stock increases stock, sales/dispatch/issue reduces stock, valuation and reorder controls apply.';
+      } else if (key === 'raw material') {
+        impact = 'Purchased input for production. Stock and cost are tracked, BOM/production can consume it, and it is normally not sold directly.';
+      } else if (key === 'consumable') {
+        impact = 'Internal-use stock item. Purchased into inventory, issued/consumed by departments or operations, usually not treated as a sales item.';
+      } else if (key === 'fixed asset') {
+        impact = 'Capital asset. Purchase and stock/serial identity can be tracked, but it is not normal sales stock; useful for asset/service-bundle mapping.';
+      } else if (key === 'service') {
+        impact = 'Non-stock service. No warehouse stock movement; used for purchase/sales billing, SAC/GST, pricing type and rental/service billing.';
+      } else if (key === 'service bundle') {
+        impact = 'Sellable package made from mapped assets/services/consumables. The bundle itself has no stock ledger; mapped child items carry tracking.';
+      } else if (key === 'digital / subscription') {
+        impact = 'Non-physical item or subscription. No warehouse stock movement; used for digital billing, renewals or subscription-style sales/purchase.';
+      }
+
+      return {
+        id: nature.id,
+        name,
+        code: nature.type_code,
+        impact,
+        flags: [
+          nature.tracks_inventory ? 'Stock' : 'No Stock',
+          nature.tracks_cost ? 'Cost' : 'No Cost',
+          nature.allows_purchase ? 'Purchase' : 'No Purchase',
+          nature.allows_sale ? 'Sale' : 'No Sale',
+          nature.allows_production ? 'Production' : '',
+          nature.is_service ? 'Service' : '',
+          nature.is_asset ? 'Asset' : ''
+        ].filter(Boolean)
+      };
+    })
+  );
+
   readonly productNatureHints = computed(() => {
     const nature = this.selectedProductNature();
     if (!nature) return [];
-    const hints: string[] = [];
+    const hints: string[] = this.productNatureGuideRows()
+      .filter(row => row.id === nature.id)
+      .map(row => row.impact);
     if (nature.tracks_inventory === false) hints.push('Not tracked as stock for this nature.');
     if (nature.allows_production) hints.push('Can be linked to a Bill of Materials as a component.');
     if (nature.allows_sale === false) hints.push('Not directly sellable — excluded from Sales product pickers.');

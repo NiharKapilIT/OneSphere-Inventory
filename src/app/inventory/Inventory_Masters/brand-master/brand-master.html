@@ -1233,7 +1233,7 @@
           </div>
         </div>
         <div class="erp-table-toolbar tbl-toolbar-flush">
-          <span></span>
+          <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
           <div class="grid-export-actions">
             <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
             @if (isGridSearchOpen('records')) {
@@ -1244,6 +1244,17 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+            <span class="inventory-grid-divider"></span>
+            <div class="inventory-grid-pager">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+              <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+              <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+                <option value="10">10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
           </div>
         </div>
             <div class="tbl-wrap">
@@ -1262,7 +1273,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', liveRows()); track $index) {
+              @for (row of pagedRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">

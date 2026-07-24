@@ -6,7 +6,11 @@ import {
   InventoryReportRow
 } from './inventory-report.models';
 
-const baseFilters: InventoryReportFilterKey[] = ['companyId', 'branchId', 'segmentId', 'financialYear', 'warehouseId', 'fromDate', 'toDate', 'status'];
+// No 'companyId' filter — a report is always scoped to the single company the
+// user is currently signed into (see currentCompanyName() on the report page,
+// shown as a read-only badge instead); a multiselect of other companies never
+// meant anything real here and only ever listed hardcoded demo names.
+const baseFilters: InventoryReportFilterKey[] = ['branchId', 'segmentId', 'financialYear', 'warehouseId', 'fromDate', 'toDate', 'status'];
 const productFilters: InventoryReportFilterKey[] = ['productId', 'productCategory', 'brand', 'hsnSac', 'uom', 'batchNo', 'serialNo'];
 const partyFilters: InventoryReportFilterKey[] = ['customerId', 'supplierId'];
 const controlFilters: InventoryReportFilterKey[] = ['project', 'department', 'createdBy', 'approvedBy'];
@@ -150,7 +154,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['outwardQty', 'Outward Quantity', 'number', true],
       ['closingStock', 'Closing Stock', 'number', true],
       ['averageRate', 'Average Rate', 'currency'],
-      ['stockValue', 'Stock Value', 'currency', true]
+      ['stockValue', 'Stock Value', 'currency', true],
+      ['pendingInvoiceQty', 'Dispatched Without SI', 'number', true]
     ]),
     defaultGroupBy: 'category',
     drillDown: true,

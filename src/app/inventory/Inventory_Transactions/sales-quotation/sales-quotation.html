@@ -22,10 +22,25 @@
               placeholder="Select Segment">
             </ng-select>
           }
-          <span class="product-segment-bar-hint">This transaction is scoped to this segment.</span>
+          @if (segmentBarTransactionReferenceField(); as refField) {
+            <div class="product-segment-reference">
+              <label class="erp-label">{{ refField.label }}</label>
+              <div [class.inventory-reference-picker-field]="transactionReferencePickerButtonVisible(refField)">
+                @if (transactionReferenceUsesSelect(refField)) {
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="transactionReferenceOptions(refField)" [searchable]="true" [clearable]="true" [virtualScroll]="true" [ngModel]="formFieldValue(refField)" (ngModelChange)="selectTransactionReference(refField, $event)" [placeholder]="fieldTypingHint(refField)"></ng-select>
+                } @else {
+                  <input class="erp-input" type="text" [ngModel]="formFieldValue(refField)" (ngModelChange)="collectFormField(refField.key, $event)" [placeholder]="fieldTypingHint(refField)" />
+                }
+                @if (transactionReferencePickerButtonVisible(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn" [title]="transactionReferencePickerTitle(refField)" [disabled]="transactionReferenceLoading()" (click)="openPurchaseReferencePicker()"><i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i></button>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
 
+      <div class="inventory-form-locked-wrap" [class.inventory-form-locked]="isCurrentRecordPosted()" [attr.inert]="isCurrentRecordPosted() ? '' : null">
       @if (showTransactionHeader()) {
         <div class="inventory-transaction-header">
           @if (transactionNumberField(); as numField) {
@@ -138,7 +153,7 @@
       </div>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items">
+        <div class="inventory-line-items grn-grid-compact">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
@@ -200,19 +215,30 @@
           </div>
         </div>
       }
+      </div>
 
       @if (saveError()) {
-        <div class="inventory-save-error">{{ saveError() }}</div>
+        <div class="inventory-save-error">
+          <span>{{ saveError() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
       @if (saveMsg()) {
-        <div class="inventory-save-msg">{{ saveMsg() }}</div>
+        <div class="inventory-save-msg">
+          <span>{{ saveMsg() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
 
       <div class="inventory-form-actions">
         <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
-        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()">
-          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : editingId() ? 'pi pi-check' : 'pi pi-plus'"></i>
-          {{ isSaving() ? 'Saving...' : editingId() ? 'Update' : 'Save' }}
+        <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || salesTransactionIsPostedForm()" (click)="saveSalesTransactionDraft()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
+          {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+        </button>
+        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || isCurrentRecordPosted()" (click)="postSalesTransactionForm()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+          {{ isSaving() ? 'Posting...' : salesTransactionPostButtonLabel() }}
         </button>
       </div>
 
@@ -272,7 +298,7 @@
         </div>
       </div>
       <div class="erp-table-toolbar tbl-toolbar-flush">
-        <span></span>
+        <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
         <div class="grid-export-actions">
           <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
           @if (isGridSearchOpen('records')) {
@@ -284,6 +310,17 @@
           <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
           <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
           <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          <span class="inventory-grid-divider"></span>
+          <div class="inventory-grid-pager">
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+            <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+            <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -302,13 +339,16 @@
             </tr>
           </thead>
           <tbody>
-            @for (row of gridRows('records', liveRows()); track $index) {
+            @for (row of pagedRows('records', liveRows()); track $index) {
               <tr>
                 <td class="text-center">
                   <div class="inventory-row-actions">
-                    @if (isAdmin()) {
+                    <button type="button" class="erp-btn btn-white btn-icon btn-sm pr-expand-btn" title="Toggle Items" (click)="toggleExpandGrn(row)">
+                      <i class="pi" [class.pi-chevron-down]="isExpandedGrn(row)" [class.pi-chevron-right]="!isExpandedGrn(row)"></i>
+                    </button>
+                    @if (canEditOrDeleteRow(row)) {
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete" (click)="cancelRecordByRow(row)"><i class="pi pi-trash"></i></button>
                     }
                   </div>
                 </td>
@@ -316,6 +356,56 @@
                   <td>{{ cell }}</td>
                 }
               </tr>
+              @if (isExpandedGrn(row)) {
+                <tr class="pr-expand-tr">
+                  <td [attr.colspan]="(config.columns?.length || 0) + 1">
+                    <div class="pr-expand-content">
+                      <div class="pr-expand-hdr">
+                        <i class="pi pi-list"></i>
+                        <span>Items in {{ row[0] }}</span>
+                      </div>
+                      @let quoteItems = grnExpandedItems(row);
+                      @let quoteColumns = grnExpandedColumns(row);
+                      @if (quoteItems.length) {
+                        <table class="pr-expand-items-table">
+                          <thead>
+                            <tr>
+                              @for (column of quoteColumns; track column.key) {
+                                <th>{{ column.label }}</th>
+                              }
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of quoteItems; track $index; let i = $index) {
+                              <tr>
+                                @for (column of quoteColumns; track column.key) {
+                                  <td>{{ grnExpandedCell(item, column, i) || '—' }}</td>
+                                }
+                              </tr>
+                            }
+                          </tbody>
+                          <tfoot>
+                            <tr class="grn-expand-total-row">
+                              <td [attr.colspan]="grnExpandedTotalColspan(row)" class="text-right"><strong>Total</strong></td>
+                              <td><strong>{{ grnExpandedTotal(row) }}</strong></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      } @else {
+                        <span class="inventory-field-hint">No items found.</span>
+                      }
+                      @if (isSalesTransactionDraftRow(row)) {
+                        <div class="grn-expand-actions">
+                          <button type="button" class="erp-btn btn-primary btn-sm" [disabled]="isSaving()" (click)="postSalesTransactionRecordByRow(row)">
+                            <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+                            {{ isSaving() ? 'Posting...' : salesTransactionPostButtonLabel() }}
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>

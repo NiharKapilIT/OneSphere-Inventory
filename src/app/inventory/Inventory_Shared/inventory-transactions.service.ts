@@ -112,6 +112,12 @@ export interface GrnItem {
   product_id?: number;
   product_name: string;
   product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
   uom_name?: string;
   order_qty?: number;
   received_qty: number;
@@ -133,6 +139,8 @@ export interface Grn {
   grn_date?: string;
   segment_id?: number;
   segment_name?: string;
+  branch_id?: number;
+  branch_name?: string;
   warehouse_id?: number;
   warehouse_name?: string;
   vendor_id?: number;
@@ -158,11 +166,22 @@ export interface PiItem {
   product_id?: number;
   product_name: string;
   product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
   uom_name?: string;
   qty: number;
   rate: number;
+  mrp?: number;
+  selling_price?: number;
   discount_pct: number;
   gst_rate: number;
+  batch_no?: string;
+  serial_no?: string;
+  expiry_date?: string;
   amount: number;
   remarks?: string;
 }
@@ -178,6 +197,10 @@ export interface PurchaseInvoice {
   vendor_gstin?: string;
   grn_id?: number;
   grn_number?: string;
+  branch_id?: number;
+  branch_name?: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
   vendor_invoice_no?: string;
   vendor_invoice_dt?: string;
   due_date?: string;
@@ -240,6 +263,7 @@ export interface PurchaseOrder {
 
 export interface PurchaseRefDoc {
   id: number;
+  doc_type?: string;
   doc_number: string;
   doc_date?: string;
   segment_id?: number;
@@ -247,8 +271,14 @@ export interface PurchaseRefDoc {
   branch_id?: number;
   branch_name?: string;
   warehouse_id?: number;
+  warehouse_name?: string;
   vendor_id?: number;
   party_name?: string;
+  vendor_invoice_no?: string;
+  vendor_invoice_dt?: string;
+  payment_terms?: string;
+  so_id?: number;
+  so_number?: string;
   status: string;
   remarks?: string;
   items: any[];
@@ -260,10 +290,18 @@ export interface PurchaseReturnItem {
   product_id?: number;
   product_name: string;
   product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
   uom_name?: string;
   grn_qty?: number;
   return_qty: number;
   rate: number;
+  gst_rate?: number;
+  taxable_amount?: number;
+  tax_amount?: number;
   return_amount: number;
   return_reason?: string;
   remarks?: string;
@@ -284,21 +322,89 @@ export interface PurchaseReturn {
   warehouse_name?: string;
   return_reason?: string;
   remarks?: string;
+  subtotal?: number;
+  tax_amount?: number;
   total_amount: number;
   status: string;
   created_at?: string;
   items: PurchaseReturnItem[];
 }
 
+export interface DebitNoteItem {
+  id?: number;
+  sno: number;
+  description: string;
+  reference?: string;
+  amount: number;
+  gst_pct: number;
+  gst_amount: number;
+  total_amount: number;
+}
+
+export interface DebitNote {
+  id: number;
+  debit_note_number: string;
+  debit_note_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  vendor_id?: number;
+  vendor_name?: string;
+  purchase_return_id?: number;
+  purchase_return_number?: string;
+  purchase_invoice_id?: number;
+  purchase_invoice_number?: string;
+  reason?: string;
+  gst_adjustment: boolean;
+  remarks?: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  status: string;
+  created_at?: string;
+  items: DebitNoteItem[];
+}
+
+export interface CreditNote {
+  id: number;
+  credit_note_number: string;
+  credit_note_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  customer_id?: number;
+  customer_name?: string;
+  sales_return_id?: number;
+  sales_return_number?: string;
+  sales_invoice_id?: number;
+  sales_invoice_number?: string;
+  reason?: string;
+  gst_adjustment: boolean;
+  remarks?: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  status: string;
+  created_at?: string;
+  items: DebitNoteItem[];
+}
+
 export interface DeliveryChallanItem {
   id?: number;
   sno: number;
+  so_item_id?: number;
+  si_item_id?: number;
   product_id?: number;
   product_name: string;
   product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
   uom_name?: string;
   so_qty?: number;
   dispatch_qty: number;
+  invoiced_qty?: number;
   batch_serial?: string;
   remarks?: string;
 }
@@ -311,8 +417,13 @@ export interface DeliveryChallan {
   segment_name?: string;
   so_id?: number;
   so_number?: string;
+  si_id?: number;
+  si_number?: string;
+  reference_no?: string;
   customer_id?: number;
   customer_name?: string;
+  branch_id?: number;
+  branch_name?: string;
   from_warehouse_id?: number;
   from_warehouse_name?: string;
   vehicle?: string;
@@ -321,8 +432,29 @@ export interface DeliveryChallan {
   delivery_address?: string;
   remarks?: string;
   status: string;
+  display_status?: string;
   created_at?: string;
   items: DeliveryChallanItem[];
+}
+
+export interface AvailableStock {
+  product_id?: number;
+  variant_id?: number;
+  attribute_id?: number;
+  warehouse_id?: number;
+  product_name?: string;
+  variant_name?: string;
+  attribute_name?: string;
+  attribute_value?: string;
+  warehouse_name?: string;
+  on_hand: number;
+  pending_dc_qty: number;
+  available: number;
+}
+
+export interface SerialUnit {
+  id?: number;
+  serial_no?: string;
 }
 
 export interface SalesReturnItem {
@@ -331,10 +463,19 @@ export interface SalesReturnItem {
   product_id?: number;
   product_name: string;
   product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
   uom_name?: string;
   invoiced_qty?: number;
   return_qty: number;
   rate: number;
+  gst_rate?: number;
+  taxable_amount?: number;
+  tax_amount?: number;
   return_amount: number;
   reason?: string;
   remarks?: string;
@@ -355,10 +496,47 @@ export interface SalesReturn {
   return_to_warehouse_name?: string;
   return_reason?: string;
   remarks?: string;
+  subtotal?: number;
+  tax_amount?: number;
   total_amount: number;
   status: string;
   created_at?: string;
   items: SalesReturnItem[];
+}
+
+export interface ServiceBundleConsumptionItem {
+  id: number;
+  item_id: number;
+  item_name: string;
+  item_nature?: string;
+  quantity_per_bundle: number;
+  bundle_qty: number;
+  required_qty: number;
+  issued_qty: number;
+  shortfall_qty: number;
+  stock_before?: number;
+  stock_after?: number;
+  stock_posted: boolean;
+  cost_rate: number;
+  cost_amount: number;
+  remarks?: string;
+  status: string;
+}
+
+export interface ServiceBundleConsumption {
+  id: number;
+  company_id: number;
+  invoice_id: number;
+  invoice_number?: string;
+  invoice_item_id: number;
+  bundle_product_id: number;
+  bundle_product_name: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  consumption_date?: string;
+  status: string;
+  created_at?: string;
+  items: ServiceBundleConsumptionItem[];
 }
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -496,6 +674,8 @@ export class InventoryTransactionsService {
       grn_date: r?.grnDate || r?.grn_date,
       segment_id: r?.segmentId ?? r?.segment_id,
       segment_name: r?.segmentName || r?.segment_name,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
       warehouse_id: r?.warehouseId ?? r?.warehouse_id,
       warehouse_name: r?.warehouseName || r?.warehouse_name,
       vendor_id: r?.vendorId ?? r?.vendor_id,
@@ -514,6 +694,12 @@ export class InventoryTransactionsService {
         product_id: i.productId ?? i.product_id,
         product_name: i.productName || i.product_name || '',
         product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
         uom_name: i.uomName || i.uom_name,
         order_qty: Number(i.orderQty || i.order_qty || i.receivedQty || i.received_qty || 0),
         received_qty: Number(i.receivedQty || i.received_qty || 0),
@@ -538,6 +724,10 @@ export class InventoryTransactionsService {
       vendor_name: r?.vendorName || r?.vendor_name,
       vendor_gstin: r?.vendorGstin || r?.vendor_gstin,
       grn_id: r?.grnId || r?.grn_id, grn_number: r?.grnNumber || r?.grn_number,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
       vendor_invoice_no: r?.vendorInvoiceNo || r?.vendor_invoice_no,
       vendor_invoice_dt: r?.vendorInvoiceDt || r?.vendor_invoice_dt,
       due_date: r?.dueDate || r?.due_date,
@@ -551,10 +741,21 @@ export class InventoryTransactionsService {
         product_id: i.productId ?? i.product_id,
         product_name: i.productName || i.product_name || '',
         product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
         uom_name: i.uomName || i.uom_name,
         qty: Number(i.qty || 0), rate: Number(i.rate || 0),
+        mrp: Number(i.mrp ?? i.Mrp ?? 0),
+        selling_price: Number(i.sellingPrice ?? i.selling_price ?? 0),
         discount_pct: Number(i.discountPct || i.discount_pct || 0),
         gst_rate: Number(i.gstRate || i.gst_rate || 0),
+        batch_no: i.batchNo || i.batch_no,
+        serial_no: i.serialNo || i.serial_no,
+        expiry_date: i.expiryDate || i.expiry_date,
         amount: Number(i.amount || 0), remarks: i.remarks
       }))
     };
@@ -811,15 +1012,19 @@ export class InventoryTransactionsService {
       doc_date: r?.docDate || r?.doc_date, due_date: r?.dueDate || r?.due_date,
       segment_id: r?.segmentId ?? r?.segment_id, segment_name: r?.segmentName || r?.segment_name,
       proforma_number: r?.proformaNumber || r?.proforma_number,
+      so_id: r?.soId ?? r?.so_id, so_number: r?.soNumber || r?.so_number,
+      reference_no: r?.referenceNo || r?.reference_no,
       customer_id: r?.customerId ?? r?.customer_id, customer_name: r?.customerName || r?.customer_name,
       customer_gstin: r?.customerGstin || r?.customer_gstin, place_of_supply: r?.placeOfSupply || r?.place_of_supply,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
       warehouse_name: r?.warehouseName || r?.warehouse_name, payment_terms: r?.paymentTerms || r?.payment_terms,
       remarks: r?.remarks, status: r?.status || 'draft', created_at: r?.createdAt || r?.created_at,
       items: (r?.items || []).map((i: any) => ({
         ...this.normSalesItem(i),
         batch_no: i.batchNo || i.batch_no, serial_no: i.serialNo || i.serial_no,
         expiry_date: i.expiryDate || i.expiry_date,
-        warehouse_name: i.warehouseName || i.warehouse_name
+        warehouse_name: i.warehouseName || i.warehouse_name,
+        so_item_id: i.soItemId ?? i.so_item_id, dc_item_id: i.dcItemId ?? i.dc_item_id
       }))
     };
   }
@@ -840,14 +1045,56 @@ export class InventoryTransactionsService {
       : this.http.post<ApiResponse<any>>(this.salesUrl('invoices'), body, { headers: h });
   }
 
+  private normServiceBundleConsumption(r: any): ServiceBundleConsumption {
+    return {
+      id: r?.id,
+      company_id: r?.companyId ?? r?.company_id,
+      invoice_id: r?.invoiceId ?? r?.invoice_id,
+      invoice_number: r?.invoiceNumber || r?.invoice_number,
+      invoice_item_id: r?.invoiceItemId ?? r?.invoice_item_id,
+      bundle_product_id: r?.bundleProductId ?? r?.bundle_product_id,
+      bundle_product_name: r?.bundleProductName || r?.bundle_product_name || '',
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
+      consumption_date: r?.consumptionDate || r?.consumption_date,
+      status: r?.status || 'posted',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i?.id,
+        item_id: i?.itemId ?? i?.item_id,
+        item_name: i?.itemName || i?.item_name || '',
+        item_nature: i?.itemNature || i?.item_nature,
+        quantity_per_bundle: Number(i?.quantityPerBundle ?? i?.quantity_per_bundle ?? 0),
+        bundle_qty: Number(i?.bundleQty ?? i?.bundle_qty ?? 0),
+        required_qty: Number(i?.requiredQty ?? i?.required_qty ?? 0),
+        issued_qty: Number(i?.issuedQty ?? i?.issued_qty ?? 0),
+        shortfall_qty: Number(i?.shortfallQty ?? i?.shortfall_qty ?? 0),
+        stock_before: i?.stockBefore ?? i?.stock_before,
+        stock_after: i?.stockAfter ?? i?.stock_after,
+        stock_posted: !!(i?.stockPosted ?? i?.stock_posted),
+        cost_rate: Number(i?.costRate ?? i?.cost_rate ?? 0),
+        cost_amount: Number(i?.costAmount ?? i?.cost_amount ?? 0),
+        remarks: i?.remarks,
+        status: i?.status || 'posted'
+      }))
+    };
+  }
+
+  getServiceBundleConsumptions(invoiceId: number): Observable<ApiResponse<ServiceBundleConsumption[]>> {
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl(`invoices/${invoiceId}/bundle-consumption`), { headers: this.headers() }).pipe(
+      map(res => ({ ...res, data: (res.data ?? []).map(r => this.normServiceBundleConsumption(r)) }))
+    );
+  }
+
   private normSalesOrder(r: any) {
+    const status = String(r?.status || 'draft').toLowerCase() === 'confirmed' ? 'posted' : (r?.status || 'draft');
     return {
       id: r?.id, doc_number: r?.docNumber || r?.doc_number || '',
-      doc_date: r?.docDate || r?.doc_date, delivery_date: r?.deliveryDate || r?.delivery_date,
+      doc_date: r?.docDate || r?.doc_date, due_date: r?.dueDate || r?.due_date, delivery_date: r?.deliveryDate || r?.delivery_date,
       segment_id: r?.segmentId ?? r?.segment_id, segment_name: r?.segmentName || r?.segment_name,
       customer_id: r?.customerId ?? r?.customer_id, customer_name: r?.customerName || r?.customer_name,
       payment_terms: r?.paymentTerms || r?.payment_terms,
-      remarks: r?.remarks, status: r?.status || 'draft', created_at: r?.createdAt || r?.created_at,
+      remarks: r?.remarks, status, created_at: r?.createdAt || r?.created_at,
       items: (r?.items || []).map((i: any) => this.normSalesItem(i))
     };
   }
@@ -929,10 +1176,18 @@ export class InventoryTransactionsService {
         product_id: i?.productId ?? i?.product_id,
         product_name: i?.productName || i?.product_name || '',
         product_code: i?.productCode || i?.product_code,
+        variant_id: i?.variantId ?? i?.variant_id,
+        variant_name: i?.variantName || i?.variant_name,
+        attribute_id: i?.attributeId ?? i?.attribute_id,
+        attribute_name: i?.attributeName || i?.attribute_name,
+        attribute_value: i?.attributeValue || i?.attribute_value,
         uom_name: i?.uomName || i?.uom_name,
         grn_qty: i?.grnQty ?? i?.grn_qty,
         return_qty: i?.returnQty ?? i?.return_qty ?? 0,
         rate: i?.rate ?? 0,
+        gst_rate: i?.gstRate ?? i?.gst_rate ?? 0,
+        taxable_amount: i?.taxableAmount ?? i?.taxable_amount ?? 0,
+        tax_amount: i?.taxAmount ?? i?.tax_amount ?? 0,
         return_amount: i?.returnAmount ?? i?.return_amount ?? 0,
         return_reason: i?.returnReason || i?.return_reason,
         remarks: i?.remarks
@@ -956,6 +1211,56 @@ export class InventoryTransactionsService {
       : this.http.post<ApiResponse<any>>(this.url('purchase-returns'), body, { headers: h });
   }
 
+  // ── Debit Note ────────────────────────────────────────────────────────────────
+
+  private normDebitNote(r: any): DebitNote {
+    return {
+      id: r?.id, debit_note_number: r?.debitNoteNumber || r?.debit_note_number || '',
+      debit_note_date: r?.debitNoteDate || r?.debit_note_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      vendor_id: r?.vendorId ?? r?.vendor_id,
+      vendor_name: r?.vendorName || r?.vendor_name,
+      purchase_return_id: r?.purchaseReturnId ?? r?.purchase_return_id,
+      purchase_return_number: r?.purchaseReturnNumber || r?.purchase_return_number,
+      purchase_invoice_id: r?.purchaseInvoiceId ?? r?.purchase_invoice_id,
+      purchase_invoice_number: r?.purchaseInvoiceNumber || r?.purchase_invoice_number,
+      reason: r?.reason,
+      gst_adjustment: !!(r?.gstAdjustment ?? r?.gst_adjustment),
+      remarks: r?.remarks,
+      subtotal: r?.subtotal ?? 0,
+      tax_amount: r?.taxAmount ?? r?.tax_amount ?? 0,
+      total_amount: r?.totalAmount ?? r?.total_amount ?? 0,
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i?.id, sno: i?.sno ?? 0,
+        description: i?.description || '',
+        reference: i?.reference,
+        amount: i?.amount ?? 0,
+        gst_pct: i?.gstPct ?? i?.gst_pct ?? 0,
+        gst_amount: i?.gstAmount ?? i?.gst_amount ?? 0,
+        total_amount: i?.totalAmount ?? i?.total_amount ?? 0
+      } as DebitNoteItem))
+    };
+  }
+
+  getDebitNotes(status?: string, segmentId?: number | null): Observable<ApiResponse<DebitNote[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.http.get<ApiResponse<any[]>>(this.url('purchase-debit-notes'), { headers: this.headers(), params }).pipe(
+      map(res => ({ ...res, data: (res.data ?? []).map(r => this.normDebitNote(r)) }))
+    );
+  }
+
+  saveDebitNote(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<any>> {
+    const h = this.headers(); const body = this.toApiValue(payload);
+    return id
+      ? this.http.put<ApiResponse<any>>(this.url(`purchase-debit-notes/${id}`), body, { headers: h })
+      : this.http.post<ApiResponse<any>>(this.url('purchase-debit-notes'), body, { headers: h });
+  }
+
   // ── Delivery Challan ─────────────────────────────────────────────────────────
 
   private normDeliveryChallan(r: any): DeliveryChallan {
@@ -966,35 +1271,106 @@ export class InventoryTransactionsService {
       segment_name: r?.segmentName || r?.segment_name,
       so_id: r?.soId ?? r?.so_id,
       so_number: r?.soNumber || r?.so_number,
+      si_id: r?.siId ?? r?.si_id,
+      si_number: r?.siNumber || r?.si_number,
+      reference_no: r?.referenceNo || r?.reference_no,
       customer_id: r?.customerId ?? r?.customer_id,
       customer_name: r?.customerName || r?.customer_name,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
       from_warehouse_id: r?.fromWarehouseId ?? r?.from_warehouse_id,
       from_warehouse_name: r?.fromWarehouseName || r?.from_warehouse_name,
       vehicle: r?.vehicle, transporter: r?.transporter,
       lr_no: r?.lrNo || r?.lr_no,
       delivery_address: r?.deliveryAddress || r?.delivery_address,
       remarks: r?.remarks, status: r?.status || 'draft',
+      display_status: r?.displayStatus || r?.display_status || r?.status || 'draft',
       created_at: r?.createdAt || r?.created_at,
       items: (r?.items || []).map((i: any) => ({
         id: i?.id, sno: i?.sno ?? 0,
+        so_item_id: i?.soItemId ?? i?.so_item_id,
+        si_item_id: i?.siItemId ?? i?.si_item_id,
         product_id: i?.productId ?? i?.product_id,
         product_name: i?.productName || i?.product_name || '',
         product_code: i?.productCode || i?.product_code,
+        variant_id: i?.variantId ?? i?.variant_id,
+        variant_name: i?.variantName || i?.variant_name,
+        attribute_id: i?.attributeId ?? i?.attribute_id,
+        attribute_name: i?.attributeName || i?.attribute_name,
+        attribute_value: i?.attributeValue || i?.attribute_value,
+        uom_id: i?.uomId ?? i?.uom_id,
         uom_name: i?.uomName || i?.uom_name,
         so_qty: i?.soQty ?? i?.so_qty,
         dispatch_qty: i?.dispatchQty ?? i?.dispatch_qty ?? 0,
+        invoiced_qty: i?.invoicedQty ?? i?.invoiced_qty ?? 0,
         batch_serial: i?.batchSerial || i?.batch_serial,
         remarks: i?.remarks
       } as DeliveryChallanItem))
     };
   }
 
-  getDeliveryChallans(status?: string, segmentId?: number | null): Observable<ApiResponse<DeliveryChallan[]>> {
+  getDeliveryChallans(status?: string, segmentId?: number | null, customerId?: number | null, pendingInvoice?: boolean): Observable<ApiResponse<DeliveryChallan[]>> {
     let params = new HttpParams();
     if (status) params = params.set('status', status);
     if (segmentId) params = params.set('segmentId', String(segmentId));
+    if (customerId) params = params.set('customerId', String(customerId));
+    if (pendingInvoice) params = params.set('pendingInvoice', 'true');
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('delivery-challans'), { headers: this.headers(), params }).pipe(
       map(res => ({ ...res, data: (res.data ?? []).map(r => this.normDeliveryChallan(r)) }))
+    );
+  }
+
+  getAvailableStock(params: { segmentId?: number | null; productId?: number | null; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null }): Observable<ApiResponse<AvailableStock[]>> {
+    let httpParams = new HttpParams();
+    if (params.segmentId) httpParams = httpParams.set('segmentId', String(params.segmentId));
+    if (params.productId) httpParams = httpParams.set('productId', String(params.productId));
+    if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
+    if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
+    if (params.attributeValue) httpParams = httpParams.set('attributeValue', String(params.attributeValue));
+    if (params.warehouseId) httpParams = httpParams.set('warehouseId', String(params.warehouseId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('available-stock'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => ({
+        ...res, data: (res.data ?? []).map((r: any) => ({
+          product_id: r?.productId ?? r?.product_id, variant_id: r?.variantId ?? r?.variant_id,
+          attribute_id: r?.attributeId ?? r?.attribute_id,
+          warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+          product_name: r?.productName || r?.product_name, variant_name: r?.variantName || r?.variant_name,
+          attribute_name: r?.attributeName || r?.attribute_name,
+          attribute_value: r?.attributeValue || r?.attribute_value,
+          warehouse_name: r?.warehouseName || r?.warehouse_name,
+          on_hand: Number(r?.onHand ?? r?.on_hand ?? 0),
+          pending_dc_qty: Number(r?.pendingDcQty ?? r?.pending_dc_qty ?? 0),
+          available: Number(r?.available ?? 0)
+        } as AvailableStock))
+      }))
+    );
+  }
+
+  private normSerialUnits(res: ApiResponse<any[]>): ApiResponse<SerialUnit[]> {
+    return { ...res, data: (res.data ?? []).map((r: any) => ({ id: r?.id, serial_no: r?.serialNo || r?.serial_no })) };
+  }
+
+  getAvailableSerials(params: { productId: number; variantId?: number | null; warehouseId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+    let httpParams = new HttpParams().set('productId', String(params.productId));
+    if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
+    if (params.warehouseId) httpParams = httpParams.set('warehouseId', String(params.warehouseId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/available'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => this.normSerialUnits(res))
+    );
+  }
+
+  getReservedSerialsForDcItem(dcItemId: number): Observable<ApiResponse<SerialUnit[]>> {
+    const httpParams = new HttpParams().set('dcItemId', String(dcItemId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/reserved-for-dc-item'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => this.normSerialUnits(res))
+    );
+  }
+
+  getSoldSerialsForReturn(params: { productId: number; invoiceId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+    let httpParams = new HttpParams().set('productId', String(params.productId));
+    if (params.invoiceId) httpParams = httpParams.set('invoiceId', String(params.invoiceId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/sold-for-return'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => this.normSerialUnits(res))
     );
   }
 
@@ -1022,6 +1398,8 @@ export class InventoryTransactionsService {
       return_to_warehouse_name: r?.returnToWarehouseName || r?.return_to_warehouse_name,
       return_reason: r?.returnReason || r?.return_reason,
       remarks: r?.remarks,
+      subtotal: r?.subtotal ?? 0,
+      tax_amount: r?.taxAmount ?? r?.tax_amount ?? 0,
       total_amount: r?.totalAmount ?? r?.total_amount ?? 0,
       status: r?.status || 'draft',
       created_at: r?.createdAt || r?.created_at,
@@ -1030,10 +1408,19 @@ export class InventoryTransactionsService {
         product_id: i?.productId ?? i?.product_id,
         product_name: i?.productName || i?.product_name || '',
         product_code: i?.productCode || i?.product_code,
+        variant_id: i?.variantId ?? i?.variant_id,
+        variant_name: i?.variantName || i?.variant_name,
+        attribute_id: i?.attributeId ?? i?.attribute_id,
+        attribute_name: i?.attributeName || i?.attribute_name,
+        attribute_value: i?.attributeValue || i?.attribute_value,
+        uom_id: i?.uomId ?? i?.uom_id,
         uom_name: i?.uomName || i?.uom_name,
         invoiced_qty: i?.invoicedQty ?? i?.invoiced_qty,
         return_qty: i?.returnQty ?? i?.return_qty ?? 0,
         rate: i?.rate ?? 0,
+        gst_rate: i?.gstRate ?? i?.gst_rate ?? 0,
+        taxable_amount: i?.taxableAmount ?? i?.taxable_amount ?? 0,
+        tax_amount: i?.taxAmount ?? i?.tax_amount ?? 0,
         return_amount: i?.returnAmount ?? i?.return_amount ?? 0,
         reason: i?.reason, remarks: i?.remarks
       } as SalesReturnItem))
@@ -1056,21 +1443,79 @@ export class InventoryTransactionsService {
       : this.http.post<ApiResponse<any>>(this.salesUrl('sales-returns'), body, { headers: h });
   }
 
-  getRefDocs(docType: string, segmentId?: number | null): Observable<ApiResponse<PurchaseRefDoc[]>> {
-    const params = new HttpParams().set('docType', docType);
-    const scopedParams = segmentId ? params.set('segmentId', String(segmentId)) : params;
-    return this.http.get<ApiResponse<PurchaseRefDoc[]>>(this.url('ref-docs'), { headers: this.headers(), params: scopedParams }).pipe(
+  // ── Credit Note ──────────────────────────────────────────────────────────────
+
+  private normCreditNote(r: any): CreditNote {
+    return {
+      id: r?.id, credit_note_number: r?.creditNoteNumber || r?.credit_note_number || '',
+      credit_note_date: r?.creditNoteDate || r?.credit_note_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      customer_id: r?.customerId ?? r?.customer_id,
+      customer_name: r?.customerName || r?.customer_name,
+      sales_return_id: r?.salesReturnId ?? r?.sales_return_id,
+      sales_return_number: r?.salesReturnNumber || r?.sales_return_number,
+      sales_invoice_id: r?.salesInvoiceId ?? r?.sales_invoice_id,
+      sales_invoice_number: r?.salesInvoiceNumber || r?.sales_invoice_number,
+      reason: r?.reason,
+      gst_adjustment: !!(r?.gstAdjustment ?? r?.gst_adjustment),
+      remarks: r?.remarks,
+      subtotal: r?.subtotal ?? 0,
+      tax_amount: r?.taxAmount ?? r?.tax_amount ?? 0,
+      total_amount: r?.totalAmount ?? r?.total_amount ?? 0,
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i?.id, sno: i?.sno ?? 0,
+        description: i?.description || '',
+        reference: i?.reference,
+        amount: i?.amount ?? 0,
+        gst_pct: i?.gstPct ?? i?.gst_pct ?? 0,
+        gst_amount: i?.gstAmount ?? i?.gst_amount ?? 0,
+        total_amount: i?.totalAmount ?? i?.total_amount ?? 0
+      } as DebitNoteItem))
+    };
+  }
+
+  getCreditNotes(status?: string, segmentId?: number | null): Observable<ApiResponse<CreditNote[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('credit-notes'), { headers: this.headers(), params }).pipe(
+      map(res => ({ ...res, data: (res.data ?? []).map(r => this.normCreditNote(r)) }))
+    );
+  }
+
+  saveCreditNote(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<any>> {
+    const h = this.headers(); const body = this.toApiValue(payload);
+    return id
+      ? this.http.put<ApiResponse<any>>(this.salesUrl(`credit-notes/${id}`), body, { headers: h })
+      : this.http.post<ApiResponse<any>>(this.salesUrl('credit-notes'), body, { headers: h });
+  }
+
+  getRefDocs(docType: string, segmentId?: number | null, customerId?: number | null): Observable<ApiResponse<PurchaseRefDoc[]>> {
+    let params = new HttpParams().set('docType', docType);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    if (customerId) params = params.set('customerId', String(customerId));
+    return this.http.get<ApiResponse<PurchaseRefDoc[]>>(this.url('ref-docs'), { headers: this.headers(), params }).pipe(
       map(res => {
         const docs = (res.data || []).map(r => ({
           id: (r as any).id, doc_number: (r as any).docNumber || (r as any).doc_number || '',
+          doc_type: (r as any).docType || (r as any).doc_type || docType.toUpperCase(),
           doc_date: (r as any).docDate || (r as any).doc_date,
           segment_id: (r as any).segmentId ?? (r as any).segment_id,
           segment_name: (r as any).segmentName || (r as any).segment_name,
           branch_id: (r as any).branchId ?? (r as any).branch_id,
           branch_name: (r as any).branchName || (r as any).branch_name,
           warehouse_id: (r as any).warehouseId ?? (r as any).warehouse_id,
+          warehouse_name: (r as any).warehouseName || (r as any).warehouse_name,
           vendor_id: (r as any).vendorId ?? (r as any).vendor_id,
           party_name: (r as any).partyName || (r as any).party_name,
+          vendor_invoice_no: (r as any).vendorInvoiceNo || (r as any).vendor_invoice_no,
+          vendor_invoice_dt: (r as any).vendorInvoiceDt || (r as any).vendor_invoice_dt,
+          payment_terms: (r as any).paymentTerms || (r as any).payment_terms,
+          so_id: (r as any).soId ?? (r as any).so_id,
+          so_number: (r as any).soNumber || (r as any).so_number,
           status: (r as any).status || '', remarks: (r as any).remarks,
           items: (r as any).items || []
         }));

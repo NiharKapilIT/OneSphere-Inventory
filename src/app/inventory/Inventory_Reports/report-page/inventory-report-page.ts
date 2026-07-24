@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Observable } from 'rxjs';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import {
@@ -23,6 +24,13 @@ import {
   inventoryReportGroupTitle
 } from '../shared/inventory-report.registry';
 import { InventoryReportsService } from '../shared/inventory-reports.service';
+import { InventoryConfigService } from '../../Inventory_Shared/inventory-config.service';
+
+interface BranchWarehouseOption {
+  label: string;
+  key: 'branchId' | 'warehouseId';
+  group: string;
+}
 
 @Component({
   selector: 'app-inventory-report-page',
@@ -33,6 +41,7 @@ import { InventoryReportsService } from '../shared/inventory-reports.service';
 export class InventoryReportPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly reportsService = inject(InventoryReportsService);
+  private readonly configService = inject(InventoryConfigService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly pageSizes = [10, 25, 50, 100];
@@ -56,6 +65,62 @@ export class InventoryReportPageComponent implements OnInit {
   readonly showAdvancedFilters = signal(false);
   readonly showColumnChooser = signal(false);
   readonly visibleColumnKeys = signal<string[]>([]);
+  readonly searchExpanded = signal(false);
+
+  @ViewChild('searchInput') private searchInputRef?: ElementRef<HTMLInputElement>;
+
+  // Real signed-in company (authCompany, set at login) — shown as a
+  // read-only badge instead of the old Company filter, which only ever
+  // offered a hardcoded list of demo companies unrelated to who's signed in.
+  readonly currentCompanyName = signal(this.readCurrentCompanyName());
+
+  private readCurrentCompanyName(): string {
+    try {
+      const raw = sessionStorage.getItem('authCompany');
+      if (!raw) return '';
+      const company = JSON.parse(raw);
+      return company?.companyName || '';
+    } catch {
+      return '';
+    }
+  }
+
+  // Real, company-scoped master data (branches/segments/warehouses/etc. that
+  // actually belong to the signed-in company) to replace the static demo
+  // name lists in INVENTORY_COMMON_REPORT_FILTERS, which mixed in branches
+  // and segments from unrelated sample tenants (hotel, restaurant, real
+  // estate...). Populated once; filterDefinitions() overrides options with
+  // these when available.
+  readonly masterOptions = signal<Partial<Record<InventoryReportFilterKey, string[]>>>({});
+
+  constructor() {
+    this.loadMasterOptions();
+  }
+
+  private loadMasterOptions(): void {
+    const set = (key: InventoryReportFilterKey, names: (string | undefined)[]): void => {
+      const unique = Array.from(new Set(names.filter((name): name is string => !!name))).sort((a, b) => a.localeCompare(b));
+      this.masterOptions.update(current => ({ ...current, [key]: unique }));
+    };
+
+    const load = <T>(key: InventoryReportFilterKey, source: Observable<{ data?: T[] }>, pick: (item: T) => string | undefined): void => {
+      source.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: res => set(key, (res.data ?? []).map(pick)),
+        error: () => set(key, [])
+      });
+    };
+
+    load('branchId', this.configService.getBranchesInv(), item => item.branch_name);
+    load('segmentId', this.configService.getSegments(), item => item.segment_name);
+    load('warehouseId', this.configService.getWarehouses(), item => item.warehouse_name);
+    load('productId', this.configService.getProducts(), item => item.product_name);
+    load('productCategory', this.configService.getCategories(), item => item.category_name);
+    load('brand', this.configService.getBrands(), item => item.brand_name);
+    load('hsnSac', this.configService.getHsnSac(), item => item.code);
+    load('customerId', this.configService.getCustomers(), item => item.customer_name);
+    load('supplierId', this.configService.getVendors(), item => item.vendor_name);
+    load('uom', this.configService.getUoms(), item => item.uom_symbol || item.uom_name);
+  }
 
   readonly groupTitle = computed(() => inventoryReportGroupTitle(this.report().groupId));
   readonly groupIcon = computed(() => inventoryReportGroupIcon(this.report().groupId));
@@ -66,7 +131,9 @@ export class InventoryReportPageComponent implements OnInit {
 
   readonly filterDefinitions = computed(() => {
     const allowed = new Set<InventoryReportFilterKey>(this.report().filters);
-    return INVENTORY_COMMON_REPORT_FILTERS.filter(filter => allowed.has(filter.key));
+    const dynamic = this.masterOptions();
+    return INVENTORY_COMMON_REPORT_FILTERS.filter(filter => allowed.has(filter.key))
+      .map(filter => dynamic[filter.key] ? { ...filter, options: dynamic[filter.key] } : filter);
   });
 
   // Stable computed so ng-select gets the same array reference between CD cycles — prevents NG0103 infinite loop
@@ -94,6 +161,59 @@ export class InventoryReportPageComponent implements OnInit {
   readonly advancedFilterDefinitions = computed(() => {
     const primary = new Set<InventoryReportFilterKey>(INVENTORY_REPORT_PRIMARY_FILTERS);
     return this.filterDefinitions().filter(filter => !primary.has(filter.key));
+  });
+
+  // Segment / Financial Year live in the page header now (alongside the
+  // company/phase badges) instead of the filter row, per redesign.
+  readonly headerFilterDefinitions = computed(() =>
+    this.filterDefinitions().filter(filter => filter.key === 'segmentId' || filter.key === 'financialYear')
+  );
+
+  // Branch/Warehouse collapse into one combined field and From/To collapse
+  // into one date-range field (both rendered separately below), so they're
+  // excluded from the generic primary-filter loop.
+  private static readonly EMBEDDED_FILTER_KEYS = new Set<InventoryReportFilterKey>([
+    'segmentId', 'financialYear', 'branchId', 'warehouseId', 'fromDate', 'toDate'
+  ]);
+
+  readonly bandFilterDefinitions = computed(() =>
+    this.primaryFilterDefinitions().filter(filter => !InventoryReportPageComponent.EMBEDDED_FILTER_KEYS.has(filter.key))
+  );
+
+  readonly showBranchWarehouseField = computed(() => {
+    const allowed = new Set(this.report().filters);
+    return allowed.has('branchId') || allowed.has('warehouseId');
+  });
+
+  readonly showDateRangeField = computed(() => {
+    const allowed = new Set(this.report().filters);
+    return allowed.has('fromDate') || allowed.has('toDate');
+  });
+
+  // Branch and Warehouse are both "where" filters, so they're offered as one
+  // grouped multiselect instead of two separate dropdowns — pick branches,
+  // warehouses, or both, individually.
+  readonly branchWarehouseOptions = computed<BranchWarehouseOption[]>(() => {
+    const dynamic = this.masterOptions();
+    const branches = (dynamic.branchId ?? []).map(label => ({ label, key: 'branchId' as const, group: 'Branch' }));
+    const warehouses = (dynamic.warehouseId ?? []).map(label => ({ label, key: 'warehouseId' as const, group: 'Warehouse' }));
+    return [...branches, ...warehouses];
+  });
+
+  readonly branchWarehouseSelected = computed<BranchWarehouseOption[]>(() => {
+    const values = this.filterMultiValues();
+    const branchSet = new Set(values.branchId ?? []);
+    const warehouseSet = new Set(values.warehouseId ?? []);
+    return this.branchWarehouseOptions().filter(option =>
+      (option.key === 'branchId' && branchSet.has(option.label)) ||
+      (option.key === 'warehouseId' && warehouseSet.has(option.label))
+    );
+  });
+
+  readonly dateRangeValue = computed<Date[] | null>(() => {
+    const from = this.filterDateValue('fromDate');
+    const to = this.filterDateValue('toDate');
+    return from || to ? [from as Date, to as Date] : null;
   });
 
   readonly visibleColumns = computed(() => {
@@ -189,7 +309,7 @@ export class InventoryReportPageComponent implements OnInit {
           const definition = findInventoryReport(reportKey);
           this.setReport(definition);
         }
-        // this.generateReport(false);
+        this.generateReport(false);
       });
   }
 
@@ -222,6 +342,18 @@ export class InventoryReportPageComponent implements OnInit {
     this.filters.update(filters => ({ ...filters, [key]: value ?? '' }));
   }
 
+  updateBranchWarehouse(selected: BranchWarehouseOption[] | null): void {
+    const items = selected ?? [];
+    const branchNames = items.filter(item => item.key === 'branchId').map(item => item.label);
+    const warehouseNames = items.filter(item => item.key === 'warehouseId').map(item => item.label);
+    this.filters.update(filters => ({ ...filters, branchId: branchNames, warehouseId: warehouseNames }));
+  }
+
+  updateDateRange(value: Date[] | null): void {
+    const [from, to] = value ?? [null, null];
+    this.filters.update(filters => ({ ...filters, fromDate: from ?? '', toDate: to ?? '' }));
+  }
+
   resetFilters(generate = true): void {
     this.filters.set(this.defaultFilters());
     this.searchText.set('');
@@ -235,6 +367,15 @@ export class InventoryReportPageComponent implements OnInit {
 
   toggleColumnChooser(): void {
     this.showColumnChooser.update(value => !value);
+  }
+
+  expandSearch(): void {
+    this.searchExpanded.set(true);
+    setTimeout(() => this.searchInputRef?.nativeElement.focus());
+  }
+
+  collapseSearchIfEmpty(): void {
+    if (!this.searchText().trim()) this.searchExpanded.set(false);
   }
 
   isColumnVisible(columnKey: string): boolean {
@@ -401,6 +542,37 @@ export class InventoryReportPageComponent implements OnInit {
     return filter.placeholder ?? filter.label;
   }
 
+  // Icon-only filter labels — was a full text label stacked above every
+  // filter, which ate a full row per filter and made a report with 8-10
+  // filters sprawl across many rows. The icon + title tooltip keeps the
+  // meaning without the label row.
+  private static readonly FILTER_ICONS: Partial<Record<InventoryReportFilterKey, string>> = {
+    branchId: 'pi pi-sitemap',
+    segmentId: 'pi pi-briefcase',
+    financialYear: 'pi pi-calendar',
+    warehouseId: 'pi pi-building',
+    fromDate: 'pi pi-calendar-plus',
+    toDate: 'pi pi-calendar-minus',
+    productId: 'pi pi-box',
+    productCategory: 'pi pi-tags',
+    brand: 'pi pi-star',
+    hsnSac: 'pi pi-hashtag',
+    customerId: 'pi pi-user',
+    supplierId: 'pi pi-truck',
+    batchNo: 'pi pi-th-large',
+    serialNo: 'pi pi-qrcode',
+    uom: 'pi pi-percentage',
+    status: 'pi pi-flag',
+    project: 'pi pi-folder',
+    department: 'pi pi-users',
+    createdBy: 'pi pi-user-edit',
+    approvedBy: 'pi pi-verified'
+  };
+
+  filterIcon(key: InventoryReportFilterKey): string {
+    return InventoryReportPageComponent.FILTER_ICONS[key] ?? 'pi pi-filter';
+  }
+
   private setReport(definition: InventoryReportDefinition): void {
     this.report.set(definition);
     this.groupBy.set(definition.defaultGroupBy ?? '');
@@ -419,8 +591,7 @@ export class InventoryReportPageComponent implements OnInit {
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
     const context = this.reportsService.contextDefaults();
     return {
-      companyId: ['Global ERP Pvt Ltd'],
-      branchId: ['Head Office'],
+      branchId: [],
       segmentId: [],
       financialYear: [String(context.financialYear || this.currentFinancialYear())],
       fromDate: start,

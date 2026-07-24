@@ -1,4 +1,119 @@
 <div class="inventory-shared-guide">
+  @if (config.key === 'salesInvoice' && pendingDcDocs().length && !pendingDcDismissed()) {
+    <div class="inventory-duplicate-advice inventory-full-span" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <span>
+        This customer has {{ pendingDcDocs().length }} pending delivery challan{{ pendingDcDocs().length === 1 ? '' : 's' }} awaiting invoicing.
+      </span>
+      <span style="display:flex; gap:8px; flex-shrink:0;">
+        <button type="button" class="erp-btn btn-white btn-sm" (click)="pullPendingDcIntoInvoice()">
+          <i class="pi pi-download"></i> View / Pull into this invoice
+        </button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Dismiss" (click)="dismissPendingDcBanner()">
+          <i class="pi pi-times"></i>
+        </button>
+      </span>
+    </div>
+  }
+
+  @if (salesReferenceSecondaryType() && config.key !== 'salesInvoice') {
+    <button type="button" class="erp-btn btn-white btn-sm" (click)="openSecondaryReferencePicker()">
+      <i class="pi pi-link"></i>
+      {{ secondaryReferenceButtonLabel() }}
+    </button>
+  }
+
+  @if (refPickerOpen() && refPickerType() && (!salesReferenceSecondaryType() || refPickerType() !== salesReferenceSecondaryType()) && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan') {
+    <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
+      <div class="inventory-modal inventory-modal--wide" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>{{ purchaseReferenceButtonLabel() }}</h3>
+          <span style="display:flex; align-items:center; gap:8px;">
+            @if (directReferenceActionLabel()) {
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="useDirectReferenceEntry()">
+                <i class="pi pi-file-plus"></i> {{ directReferenceActionLabel() }}
+              </button>
+            }
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePurchaseReferencePicker()">
+              <i class="pi pi-times"></i>
+            </button>
+          </span>
+        </div>
+        @if (refPickerLoading()) {
+          <p>Loading...</p>
+        } @else if (!refPickerDocs().length) {
+          <p>No open documents found.</p>
+        } @else {
+          <div class="erp-form-group" style="margin-bottom:10px;">
+            <input class="erp-input" type="text" placeholder="Search by document no, vendor or date"
+              [ngModel]="refPickerSearch()" (ngModelChange)="refPickerSearch.set($event)" />
+          </div>
+          <div class="tbl-wrap">
+            <table class="erp-table compact">
+              <thead>
+                <tr>
+                  @if (refPickerDocsHaveType()) { <th>Type</th> }
+                  <th>Doc No</th><th>Date</th><th>Party</th><th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (doc of refPickerDisplayDocs(); track referenceDocTrackKey(doc)) {
+                  <tr>
+                    @if (refPickerDocsHaveType()) { <td>{{ doc.doc_type || '—' }}</td> }
+                    <td>{{ doc.doc_number }}</td>
+                    <td>{{ doc.doc_date }}</td>
+                    <td>{{ doc.party_name }}</td>
+                    <td>{{ doc.status }}</td>
+                    <td><button type="button" class="erp-btn btn-white btn-sm" (click)="selectPrimaryReference(doc)">Select</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (refPickerHiddenCount() > 0) {
+              <p class="inventory-field-hint">Showing first 100. Use search to narrow {{ refPickerHiddenCount() }} more document(s).</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (refPickerOpen() && salesReferenceSecondaryType() && refPickerType() === salesReferenceSecondaryType() && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan') {
+    <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
+      <div class="inventory-modal inventory-modal--wide" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>{{ secondaryReferenceButtonLabel() }}</h3>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePurchaseReferencePicker()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        @if (refPickerLoading()) {
+          <p>Loading...</p>
+        } @else if (!refPickerDocs().length) {
+          <p>No open documents found.</p>
+        } @else {
+          <div class="tbl-wrap">
+            <table class="erp-table compact">
+              <thead>
+                <tr><th>Doc No</th><th>Date</th><th>Party</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                @for (doc of refPickerDocs(); track referenceDocTrackKey(doc)) {
+                  <tr>
+                    <td>{{ doc.doc_number }}</td>
+                    <td>{{ doc.doc_date }}</td>
+                    <td>{{ doc.party_name }}</td>
+                    <td>{{ doc.status }}</td>
+                    <td><button type="button" class="erp-btn btn-white btn-sm" (click)="selectSecondaryReference(doc)">Select</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
   <button
     type="button"
     class="erp-btn btn-white btn-sm"

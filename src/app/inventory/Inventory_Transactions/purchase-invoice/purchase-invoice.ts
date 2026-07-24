@@ -7,13 +7,26 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import { purchaseInvoiceConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
+import { InventorySerialPickerModalComponent } from '../../Inventory_Shared/inventory-serial-picker-modal/inventory-serial-picker-modal.component';
 
 @Component({
   selector: 'app-inventory-purchase-invoice',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventorySerialPickerModalComponent],
   templateUrl: './purchase-invoice.html'
 })
 export class InventoryPurchaseInvoiceComponent extends InventoryScreenShell {
   override readonly config = purchaseInvoiceConfig;
+
+  override ngOnInit(): void {
+    super.ngOnInit();
+    [0, 350, 900].forEach(delay => {
+      setTimeout(() => {
+        const alreadyPicked = String(this.formValues()['grnReference'] || '').trim();
+        if (!this.editingId() && !alreadyPicked && !this.refPickerOpen()) {
+          this.openPurchaseReferencePicker();
+        }
+      }, delay);
+    });
+  }
 }

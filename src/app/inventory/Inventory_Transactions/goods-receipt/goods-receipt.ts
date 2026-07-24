@@ -7,11 +7,12 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import { goodsReceiptConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
+import { InventorySerialPickerModalComponent } from '../../Inventory_Shared/inventory-serial-picker-modal/inventory-serial-picker-modal.component';
 
 @Component({
   selector: 'app-inventory-goods-receipt',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventorySerialPickerModalComponent],
   templateUrl: './goods-receipt.html'
 })
 export class InventoryGoodsReceiptComponent extends InventoryScreenShell {

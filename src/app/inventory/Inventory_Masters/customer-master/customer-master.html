@@ -773,26 +773,13 @@
             <div class="inventory-fieldset">
               <div class="inventory-fieldset-title">{{ partyLabel() }} Identity</div>
               <div class="inventory-form-grid inventory-config-grid">
-                <div class="erp-form-group">
-                  <label class="erp-label">{{ partyLabel() }} Type</label>
-                  <ng-select
-                    class="erp-ng-select inventory-ng-select"
-                    appendTo="body"
-                    [items]="partyTypeOptions"
-                    [searchable]="true"
-                    [clearable]="true"
-                    [ngModel]="selectedPartyContact()?.type || 'Company'"
-                    placeholder="Company / Individual">
-                  </ng-select>
-                </div>
-
                 <div class="erp-form-group span-2">
                   <label class="erp-label">{{ partyLabel() }} Name / Company Name</label>
                   <div class="inventory-field-with-add">
                     <ng-select
                       class="erp-ng-select inventory-ng-select"
                       appendTo="body"
-                      [items]="globalContacts"
+                      [items]="partyContactOptions()"
                       bindLabel="name"
                       [searchable]="true"
                       [clearable]="true"
@@ -806,22 +793,54 @@
                         </div>
                       </ng-template>
                     </ng-select>
-                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" routerLink="/dashboard/contacts">
+                    <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="openAddMaster('Contact Person')">
                       <i class="pi pi-plus"></i>
                     </button>
                   </div>
                 </div>
 
                 <div class="erp-form-group"><label class="erp-label">{{ partyLabel() }} Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" [ngModel]="formFieldValue({key:'code', label:'Code', type:'text'})" (ngModelChange)="collectFormField('code', $event)" /></div>
-                <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.gstin || ''" placeholder="Auto bind from Global Contact" readonly /></div>
-                <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.pan || ''" placeholder="Auto bind from Global Contact" readonly /></div>
-                <div class="erp-form-group"><label class="erp-label">Mobile No.</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.mobile || ''" placeholder="Auto bind after selection" readonly /></div>
-                <div class="erp-form-group"><label class="erp-label">Mail ID</label><input class="erp-input" type="text" [value]="selectedPartyContact()?.email || ''" placeholder="Auto bind after selection" readonly /></div>
+                <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="formFieldValue({key:'gstin', label:'GSTIN', type:'text'})" (ngModelChange)="collectFormField('gstin', $event)" placeholder="Auto bind from Global Contact, editable" /></div>
+                <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="formFieldValue({key:'pan', label:'PAN', type:'text'})" (ngModelChange)="collectFormField('pan', $event)" placeholder="Auto bind from Global Contact, editable" /></div>
+                <div class="erp-form-group"><label class="erp-label">Mobile No.</label><input class="erp-input" type="text" [ngModel]="formFieldValue({key:'mobile', label:'Mobile', type:'text'})" (ngModelChange)="collectFormField('mobile', $event)" placeholder="Auto bind after selection, editable" /></div>
+                <div class="erp-form-group"><label class="erp-label">Mail ID</label><input class="erp-input" type="text" [ngModel]="formFieldValue({key:'email', label:'Email', type:'text'})" (ngModelChange)="collectFormField('email', $event)" placeholder="Auto bind after selection, editable" /></div>
                 <div class="erp-form-group">
                   <label class="erp-label">{{ partyLabel() }} Category</label>
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="config.key === 'vendorMaster' ? ['Supplier', 'Service Provider', 'Contractor', 'Manufacturer', 'Broker', 'Channel Partner', 'Food Supplier', 'Beverage Supplier'] : ['Dealer', 'Corporate Client', 'Tenant', 'Property Buyer', 'Project Client', 'Restaurant Guest', 'Banquet Client', 'Hotel Guest']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'customerCategory', label:'Customer Category', type:'select'})" (ngModelChange)="collectFormField('customerCategory', $event)" [placeholder]="'Select ' + partyLabel() + ' Category'"></ng-select>
                 </div>
-                <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [value]="selectedPartyContact()?.address || ''" placeholder="Auto bind from Global Contact or update address"></textarea></div>
+                <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="formFieldValue({key:'address', label:'Address', type:'textarea'})" (ngModelChange)="collectFormField('address', $event)" placeholder="Auto bind from Global Contact or update address"></textarea></div>
+                <div class="erp-form-group">
+                  <label class="erp-label">State</label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="dcAddressStates" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['state'] || ''"
+                    (ngModelChange)="onPartyStateChange($event)"
+                    placeholder="Select state">
+                  </ng-select>
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">District</label>
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="partyDistrictOptions()" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['district'] || ''"
+                    (ngModelChange)="collectFormField('district', $event)"
+                    placeholder="Select district">
+                  </ng-select>
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">City / Town</label>
+                  <input class="erp-input" type="text"
+                    [ngModel]="formValues()['city'] || ''"
+                    (ngModelChange)="collectFormField('city', $event)"
+                    placeholder="City or town" />
+                </div>
+                <div class="erp-form-group">
+                  <label class="erp-label">Pincode</label>
+                  <input class="erp-input" type="text" maxlength="6"
+                    [ngModel]="formValues()['pincode'] || ''"
+                    (ngModelChange)="onPartyPincodeChange($event)"
+                    placeholder="6-digit pincode" />
+                </div>
               </div>
             </div>
 
@@ -1247,7 +1266,7 @@
           </div>
         </div>
         <div class="erp-table-toolbar tbl-toolbar-flush">
-          <span></span>
+          <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
           <div class="grid-export-actions">
             <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
             @if (isGridSearchOpen('records')) {
@@ -1258,6 +1277,17 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+            <span class="inventory-grid-divider"></span>
+            <div class="inventory-grid-pager">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+              <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+              <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+                <option value="10">10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+              </select>
+            </div>
           </div>
         </div>
             <div class="tbl-wrap">
@@ -1276,7 +1306,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of gridRows('records', liveRows()); track $index) {
+              @for (row of pagedRows('records', liveRows()); track $index) {
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">

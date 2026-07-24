@@ -7,19 +7,43 @@
         <p>{{ report().purpose }}</p>
       </div>
       <div class="inventory-report-header-actions">
+        @for (filter of headerFilterDefinitions(); track filterTrack($index, filter)) {
+          <div class="inventory-report-filter inventory-report-filter--header">
+            <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+          </div>
+        }
+        @if (currentCompanyName()) {
+          <span class="erp-badge badge-info" title="Reports are always scoped to the company you're signed into"><i class="pi pi-building"></i> {{ currentCompanyName() }}</span>
+        }
         <span class="erp-badge badge-info">Phase {{ report().phase }}</span>
         <span class="erp-badge" [class.badge-success]="loadedFromApi()" [class.badge-warning]="!loadedFromApi()">
           {{ loadedFromApi() ? 'API data' : 'Preview data' }}
         </span>
-        <button type="button" class="erp-btn btn-primary btn-sm" (click)="generateReport()"><i class="pi pi-search"></i> Generate</button>
-        <button type="button" class="erp-btn btn-white btn-sm" (click)="resetFilters()"><i class="pi pi-refresh"></i> Reset</button>
+        <button type="button" class="erp-btn btn-primary btn-icon btn-sm" title="Generate" (click)="generateReport()"><i class="pi pi-search"></i></button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Reset" (click)="resetFilters()"><i class="pi pi-refresh"></i></button>
       </div>
     </div>
 
-    <section class="inventory-report-filter-band inventory-report-filter-band--wide">
-      @for (filter of primaryFilterDefinitions(); track filterTrack($index, filter)) {
+    <section class="inventory-report-filter-band inventory-report-filter-band--wide inventory-report-toolbar-band">
+      @if (showBranchWarehouseField()) {
         <div class="inventory-report-filter">
-          <label>{{ filter.label }}</label>
+          <label title="Branch / Warehouse"><i class="pi pi-building"></i> Branch / Warehouse</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="branchWarehouseOptions()" groupBy="group" bindLabel="label" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" placeholder="Select branch / warehouse" [ngModel]="branchWarehouseSelected()" (ngModelChange)="updateBranchWarehouse($event)"></ng-select>
+        </div>
+      }
+      @if (showDateRangeField()) {
+        <div class="inventory-report-filter">
+          <label title="Date Range"><i class="pi pi-calendar"></i> Date Range</label>
+          <div class="inventory-date-wrap">
+            <p-datepicker selectionMode="range" [ngModel]="dateRangeValue()" (ngModelChange)="updateDateRange($event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="From - To" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
+            <i class="pi pi-calendar inventory-date-icon"></i>
+          </div>
+        </div>
+      }
+      @for (filter of bandFilterDefinitions(); track filterTrack($index, filter)) {
+        <div class="inventory-report-filter">
+          <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
           @if (filter.type === 'multiselect') {
             <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
           } @else if (filter.type === 'select') {
@@ -34,17 +58,34 @@
           }
         </div>
       }
-      <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleAdvancedFilters()">
-        <i class="pi" [class.pi-angle-down]="!showAdvancedFilters()" [class.pi-angle-up]="showAdvancedFilters()"></i>
-        More Filters
-      </button>
+
+      <div class="inventory-report-toolbar-cluster">
+        <ng-select class="erp-ng-select inventory-ng-select inventory-report-group-select" appendTo="body" [items]="groupByOptions()" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="groupBy()" (ngModelChange)="groupBy.set($event ?? '')"></ng-select>
+
+        @if (searchExpanded()) {
+          <div class="inventory-report-search inventory-report-search--expanded">
+            <i class="pi pi-search"></i>
+            <input #searchInput class="erp-input" type="text" placeholder="Search grid" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" (blur)="collapseSearchIfEmpty()" />
+          </div>
+        } @else {
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Search grid" (click)="expandSearch()"><i class="pi pi-search"></i></button>
+        }
+
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Columns" (click)="toggleColumnChooser()"><i class="pi pi-sliders-h"></i></button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Export Excel" (click)="exportExcel()"><i class="pi pi-file-excel"></i></button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Export PDF" (click)="exportPdf()"><i class="pi pi-file-pdf"></i></button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Print" (click)="printReport()"><i class="pi pi-print"></i></button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" [title]="showAdvancedFilters() ? 'Hide more filters' : 'More filters'" (click)="toggleAdvancedFilters()">
+          <i class="pi" [class.pi-filter]="!showAdvancedFilters()" [class.pi-filter-slash]="showAdvancedFilters()"></i>
+        </button>
+      </div>
     </section>
 
     @if (showAdvancedFilters()) {
       <section class="inventory-report-filter-band inventory-report-filter-band--wide inventory-report-advanced">
         @for (filter of advancedFilterDefinitions(); track filterTrack($index, filter)) {
           <div class="inventory-report-filter">
-            <label>{{ filter.label }}</label>
+            <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
             @if (filter.type === 'multiselect') {
               <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
             } @else if (filter.type === 'select') {
@@ -77,23 +118,6 @@
     }
 
     <section class="inventory-section inventory-report-section">
-      <div class="inventory-section-title inventory-report-grid-title">
-        <div>
-          <h3>Report Grid</h3>
-          <p>{{ report().audience.join(', ') }} / GET /api/reports/{{ report().endpoint }}</p>
-        </div>
-        <div class="inventory-report-grid-actions">
-          <div class="inventory-report-search">
-            <i class="pi pi-search"></i>
-            <input class="erp-input" type="text" placeholder="Search grid" [ngModel]="searchText()" (ngModelChange)="searchText.set($event)" />
-          </div>
-          <ng-select class="erp-ng-select inventory-ng-select inventory-report-group-select" appendTo="body" [items]="groupByOptions()" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="groupBy()" (ngModelChange)="groupBy.set($event ?? '')"></ng-select>
-          <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleColumnChooser()"><i class="pi pi-sliders-h"></i> Columns</button>
-          <button type="button" class="erp-btn btn-white btn-sm" (click)="exportExcel()"><i class="pi pi-file-excel"></i> Excel</button>
-          <button type="button" class="erp-btn btn-white btn-sm" (click)="exportPdf()"><i class="pi pi-file-pdf"></i> PDF</button>
-          <button type="button" class="erp-btn btn-white btn-sm" (click)="printReport()"><i class="pi pi-print"></i> Print</button>
-        </div>
-      </div>
 
       @if (showColumnChooser()) {
         <div class="inventory-report-column-chooser">

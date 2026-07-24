@@ -22,10 +22,38 @@
               placeholder="Select Segment">
             </ng-select>
           }
-          <span class="product-segment-bar-hint">This transaction is scoped to this segment.</span>
+          @if (segmentBarTransactionReferenceField(); as refField) {
+            <div class="product-segment-reference">
+              <label class="erp-label">{{ refField.label }}</label>
+              <div [class.inventory-reference-picker-field]="transactionReferencePickerButtonVisible(refField)">
+                @if (transactionReferenceUsesSelect(refField)) {
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="transactionReferenceOptions(refField)"
+                    [searchable]="true" [clearable]="true" [virtualScroll]="true"
+                    [ngModel]="formFieldValue(refField)"
+                    (ngModelChange)="selectTransactionReference(refField, $event)"
+                    [placeholder]="fieldTypingHint(refField)">
+                  </ng-select>
+                } @else {
+                  <input class="erp-input" type="text"
+                    [ngModel]="formFieldValue(refField)"
+                    (ngModelChange)="collectFormField(refField.key, $event)"
+                    [placeholder]="fieldTypingHint(refField)" />
+                }
+                @if (transactionReferencePickerButtonVisible(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                    [title]="transactionReferencePickerTitle(refField)" [disabled]="transactionReferenceLoading()"
+                    (click)="openPurchaseReferencePicker()">
+                    <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
       }
 
+      <div class="inventory-form-locked-wrap" [class.inventory-form-locked]="isCurrentRecordPosted()" [attr.inert]="isCurrentRecordPosted() ? '' : null">
       @if (showTransactionHeader()) {
         <div class="inventory-transaction-header">
           @if (transactionNumberField(); as numField) {
@@ -53,13 +81,36 @@
               </div>
             </div>
           }
+          @if (procurementVendorHeaderField(); as vendorField) {
+            <div class="erp-form-group procurement-vendor-col">
+              <label class="erp-label">{{ vendorField.label }}</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="procurementVendorHeaderOptions(vendorField)"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(vendorField)"
+                  (ngModelChange)="collectFormField(vendorField.key, $event); maybeAutoCode(vendorField.key, $event)"
+                  [placeholder]="fieldTypingHint(vendorField)">
+                </ng-select>
+                @if (vendorField.addMaster) {
+                  <button type="button" class="erp-btn btn-white btn-icon"
+                    [title]="'Add ' + vendorField.addMaster"
+                    (click)="openAddMaster(vendorField.addMaster, vendorField.key)">
+                    <i class="pi pi-plus"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
           @if (transactionReferenceField(); as refField) {
+            @if (refField.key !== 'grnReference') {
             <div class="erp-form-group">
               <label class="erp-label">{{ refField.label }}</label>
+              <div class="inventory-reference-picker-field">
               @if (transactionReferenceUsesSelect(refField)) {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="transactionReferenceOptions(refField)"
-                  [searchable]="true" [clearable]="true"
+                  [searchable]="true" [clearable]="true" [virtualScroll]="true"
                   [ngModel]="formFieldValue(refField)"
                   (ngModelChange)="selectTransactionReference(refField, $event)"
                   [placeholder]="fieldTypingHint(refField)">
@@ -70,8 +121,21 @@
                   (ngModelChange)="collectFormField(refField.key, $event)"
                   [placeholder]="fieldTypingHint(refField)" />
               }
+                <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                  title="View posted GRNs" [disabled]="transactionReferenceLoading()"
+                  (click)="openPurchaseReferencePicker()">
+                  <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
+                </button>
+              </div>
             </div>
+            }
           }
+        </div>
+      }
+
+      @if (txSaveError()) {
+        <div class="inventory-error-msg" style="margin-top:-6px; margin-bottom:12px;">
+          {{ txSaveError() }}
         </div>
       }
 
@@ -88,6 +152,14 @@
                     <span class="switch-text switch-off">{{ fieldSwitchOffLabel(field) }}</span>
                   </span>
                 </label>
+              } @else if (field.key === 'receivingLocation') {
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(field)"
+                  (ngModelChange)="collectFormField(field.key, $event)"
+                  placeholder="Select Warehouse or Branch">
+                </ng-select>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="field.options || []" [searchable]="true" [clearable]="true"
@@ -138,23 +210,31 @@
       </div>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items">
+        <div class="inventory-line-items grn-grid-compact" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
-            <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
-              <i class="pi pi-plus"></i> Add Row
-            </button>
+            <div class="inventory-line-title-actions">
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
+                <i class="pi pi-plus"></i> Add Row
+              </button>
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
+                <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
+                {{ isLineGridFullscreen() ? 'Exit Full Screen' : 'Full Screen' }}
+              </button>
+            </div>
           </div>
           <div class="tbl-wrap">
+            @let renderedColumns = lineGridRenderColumns();
+            @let rowViews = entryLineRowViews();
             <table class="erp-table compact">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
-                  @for (column of config.lineColumns || []; track column) {
-                    <th>{{ column }}</th>
+                  @for (column of renderedColumns; track column) {
+                    <th>{{ lineGridColumnHeader(column) }}</th>
                   }
                 </tr>
               </thead>
@@ -167,27 +247,59 @@
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                       </div>
                     </td>
-                    @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
-                      <td [class.inventory-hint-anchor]="transactionStockControlHint(column, row, columnIndex, rowIndex)">
-                        @if (lineColumnOptions(column, row).length) {
+                    @let rowView = rowViews[rowIndex];
+                    @for (column of renderedColumns; track column) {
+                      @let columnIndex = lineGridSourceColumnIndex(column);
+                      @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
+                      @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
+                      <td [class.inventory-hint-anchor]="cellView?.stockHint">
+                        @if (!cellApplies) {
+                          <span class="inventory-grid-na">— N/A —</span>
+                        } @else if (lineGridCellReadonly(rowIndex, row, column)) {
+                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '—' }}</span>
+                        } @else if (lineGridColumnIsAttributeValue(column)) {
+                          @if (lineGridAttributeSelection(rowView, column); as attr) {
+                            @if (attr.isAuto) {
+                              <span class="inventory-grid-static-value">{{ attr.value || '—' }}</span>
+                            } @else {
+                              <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
+                                [items]="attr.options" [searchable]="false" [clearable]="false"
+                                [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
+                                placeholder="Select">
+                              </ng-select>
+                            }
+                          } @else {
+                            <span class="inventory-grid-empty-hint">—</span>
+                          }
+                        } @else if (lineGridColumnIsSerialValue(column) && isSerialApplicableRow(row)) {
+                          <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
+                            {{ serialPickerSummaryForRow(rowIndex, row) }}
+                          </button>
+                        } @else if (lineGridColumnIsSerialValue(column)) {
+                          <input class="erp-input inventory-grid-input"
+                            type="text"
+                            [ngModel]="lineGridSerialValue(rowIndex, row, column)"
+                            (ngModelChange)="setLineSerialValue(rowIndex, column, $event)"
+                            [placeholder]="'Enter ' + column" />
+                        } @else if (cellView?.options?.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
-                            [items]="lineColumnOptions(column, row)"
+                            [items]="cellView?.options || []"
                             [searchable]="true" [clearable]="false"
-                            [multiple]="lineColumnUsesMultiSelect(column, row)"
-                            [closeOnSelect]="!lineColumnUsesMultiSelect(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [multiple]="cellView?.usesMultiSelect"
+                            [closeOnSelect]="!cellView?.usesMultiSelect"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)">
+                            [placeholder]="cellView?.placeholder || ''">
                           </ng-select>
                         } @else {
                           <input class="erp-input inventory-grid-input"
-                            [type]="lineCellInputType(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [type]="cellView?.inputType"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)" />
+                            [placeholder]="cellView?.placeholder || ''" />
                         }
-                        @if (transactionStockControlHint(column, row, columnIndex, rowIndex); as stockHint) {
-                          <small [class]="transactionStockControlHintClass(column, row, columnIndex, rowIndex)">
+                        @if (cellApplies && cellView?.stockHint; as stockHint) {
+                          <small [class]="cellView?.stockHintClass">
                             <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                           </small>
                         }
@@ -196,23 +308,73 @@
                   </tr>
                 }
               </tbody>
+              <tfoot>
+                <tr class="inventory-line-total-row">
+                  <td class="text-center"></td>
+                  @for (column of renderedColumns; track column) {
+                    <td>
+                      @if (column === 'Product') {
+                        <strong>Total</strong>
+                      } @else if (column === 'Accepted Qty' || column === 'Amount') {
+                        <strong>{{ lineColumnTotalByColumn(column) }}</strong>
+                      }
+                    </td>
+                  }
+                </tr>
+              </tfoot>
             </table>
           </div>
+          @if (isLineGridFullscreen()) {
+            <div class="inventory-line-fullscreen-actions">
+              @if (saveError()) {
+                <div class="inventory-save-error">
+                  <span>{{ saveError() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              @if (saveMsg()) {
+                <div class="inventory-save-msg">
+                  <span>{{ saveMsg() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
+              <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || purchaseInvoiceIsPostedForm()" (click)="savePurchaseInvoiceDraft()">
+                <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
+                {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+              </button>
+              <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="postPurchaseInvoice()">
+                <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+                {{ isSaving() ? 'Posting...' : editingId() ? 'Post / Update PI' : 'Post PI' }}
+              </button>
+            </div>
+          }
         </div>
       }
+      </div>
 
       @if (saveError()) {
-        <div class="inventory-save-error">{{ saveError() }}</div>
+        <div class="inventory-save-error">
+          <span>{{ saveError() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
       @if (saveMsg()) {
-        <div class="inventory-save-msg">{{ saveMsg() }}</div>
+        <div class="inventory-save-msg">
+          <span>{{ saveMsg() }}</span>
+          <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+        </div>
       }
 
       <div class="inventory-form-actions">
         <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
-        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()">
-          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : editingId() ? 'pi pi-check' : 'pi pi-plus'"></i>
-          {{ isSaving() ? 'Saving...' : editingId() ? 'Update' : 'Save' }}
+        <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || purchaseInvoiceIsPostedForm()" (click)="savePurchaseInvoiceDraft()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
+          {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+        </button>
+        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || isCurrentRecordPosted()" (click)="postPurchaseInvoice()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+          {{ isSaving() ? 'Posting...' : editingId() ? 'Post / Update PI' : 'Post PI' }}
         </button>
       </div>
 
@@ -258,7 +420,8 @@
           </div>
           <div class="inventory-form-actions inventory-final-actions">
             <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Cancel</button>
-            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()"><i class="pi pi-check"></i> Save All</button>
+            <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || purchaseInvoiceIsPostedForm()" (click)="savePurchaseInvoiceDraft()"><i class="pi pi-save"></i> Save Draft</button>
+            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="postPurchaseInvoice()"><i class="pi pi-check-circle"></i> Post PI</button>
           </div>
         </div>
       }
@@ -272,18 +435,29 @@
         </div>
       </div>
       <div class="erp-table-toolbar tbl-toolbar-flush">
-        <span></span>
+        <span class="inventory-grid-range">{{ gridPageRangeLabel('records', liveRows()) }}</span>
         <div class="grid-export-actions">
           <button type="button" class="erp-btn btn-white btn-sm" title="Search" (click)="toggleGridSearch('records')"><i class="pi pi-search"></i></button>
           @if (isGridSearchOpen('records')) {
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="runGridToolbarAction('records', 'print')"><i class="pi pi-print"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
+          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          <span class="inventory-grid-divider"></span>
+          <div class="inventory-grid-pager">
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
+            <span class="inventory-grid-pager-label">{{ gridPageRangeLabel('records', liveRows()) }}</span>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Next page" [disabled]="!canGoNextGridPage('records', liveRows())" (click)="goNextGridPage('records', liveRows())"><i class="pi pi-chevron-right"></i></button>
+            <select class="inventory-grid-page-size" [value]="gridPageSize('records')" (change)="setGridPageSize('records', +$any($event.target).value)">
+              <option value="10">10 / page</option>
+              <option value="25">25 / page</option>
+              <option value="50">50 / page</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -302,13 +476,16 @@
             </tr>
           </thead>
           <tbody>
-            @for (row of gridRows('records', liveRows()); track $index) {
+            @for (row of pagedRows('records', liveRows()); track $index) {
               <tr>
                 <td class="text-center">
                   <div class="inventory-row-actions">
-                    @if (isAdmin()) {
+                    <button type="button" class="erp-btn btn-white btn-icon btn-sm pr-expand-btn" title="Toggle Items" (click)="toggleExpandGrn(row)">
+                      <i class="pi" [class.pi-chevron-down]="isExpandedGrn(row)" [class.pi-chevron-right]="!isExpandedGrn(row)"></i>
+                    </button>
+                    @if (canEditOrDeleteRow(row)) {
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete" (click)="cancelRecordByRow(row)"><i class="pi pi-trash"></i></button>
                     }
                   </div>
                 </td>
@@ -316,6 +493,56 @@
                   <td>{{ cell }}</td>
                 }
               </tr>
+              @if (isExpandedGrn(row)) {
+                <tr class="pr-expand-tr">
+                  <td [attr.colspan]="(config.columns?.length || 0) + 1">
+                    <div class="pr-expand-content">
+                      <div class="pr-expand-hdr">
+                        <i class="pi pi-list"></i>
+                        <span>Items in {{ row[0] }}</span>
+                      </div>
+                      @let piItems = grnExpandedItems(row);
+                      @let piColumns = grnExpandedColumns(row);
+                      @if (piItems.length) {
+                        <table class="pr-expand-items-table">
+                          <thead>
+                            <tr>
+                              @for (column of piColumns; track column.key) {
+                                <th>{{ column.label }}</th>
+                              }
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (item of piItems; track $index; let i = $index) {
+                              <tr>
+                                @for (column of piColumns; track column.key) {
+                                  <td>{{ grnExpandedCell(item, column, i) || '—' }}</td>
+                                }
+                              </tr>
+                            }
+                          </tbody>
+                          <tfoot>
+                            <tr class="grn-expand-total-row">
+                              <td [attr.colspan]="grnExpandedTotalColspan(row)" class="text-right"><strong>Total</strong></td>
+                              <td><strong>{{ grnExpandedTotal(row) }}</strong></td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      } @else {
+                        <span class="inventory-field-hint">No items found.</span>
+                      }
+                      @if (isPurchaseInvoiceDraftRow(row)) {
+                        <div class="grn-expand-actions">
+                          <button type="button" class="erp-btn btn-primary btn-sm" [disabled]="isSaving()" (click)="postPurchaseInvoiceRecordByRow(row)">
+                            <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+                            {{ isSaving() ? 'Posting...' : 'Post this PI' }}
+                          </button>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>
@@ -324,4 +551,60 @@
   </div>
 
   <app-inventory-quick-add-modal [host]="quickAddHost"></app-inventory-quick-add-modal>
+  <app-inventory-serial-picker-modal [host]="quickAddHost"></app-inventory-serial-picker-modal>
+
+  @if (refPickerOpen() && refPickerType()) {
+    <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
+      <div class="inventory-modal inventory-pr-items-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>Posted GRNs</h3>
+          <span style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="erp-btn btn-white btn-sm" (click)="useDirectPurchaseInvoice()">
+              <i class="pi pi-file-plus"></i> Direct Invoice
+            </button>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePurchaseReferencePicker()">
+              <i class="pi pi-times"></i>
+            </button>
+          </span>
+        </div>
+        <div class="inventory-modal-body">
+          @if (refPickerLoading()) {
+            <p>Loading posted GRNs...</p>
+          } @else if (!refPickerAvailableDocs().length) {
+            <p>No posted GRNs found. Close this tray to continue with a direct invoice.</p>
+          } @else {
+            <div class="erp-form-group" style="margin-bottom:10px;">
+              <input class="erp-input" type="text" placeholder="Search GRN no, vendor or date"
+                [ngModel]="refPickerSearch()" (ngModelChange)="refPickerSearch.set($event)" />
+            </div>
+            <div class="tbl-wrap">
+              <table class="erp-table compact">
+                <thead>
+                  <tr><th>GRN No</th><th>Date</th><th>Vendor</th><th>Status</th><th></th></tr>
+                </thead>
+                <tbody>
+                  @for (doc of refPickerDisplayDocs(); track doc.id) {
+                    <tr>
+                      <td>{{ doc.doc_number }}</td>
+                      <td>{{ gridDateDisplay(doc.doc_date) }}</td>
+                      <td>{{ doc.party_name }}</td>
+                      <td>{{ doc.status }}</td>
+                      <td>
+                        <button type="button" class="erp-btn btn-white btn-sm" (click)="selectPrimaryReference(doc)">
+                          Select
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              @if (refPickerHiddenCount() > 0) {
+                <p class="inventory-field-hint">Showing first 100. Use search to narrow {{ refPickerHiddenCount() }} more GRN(s).</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
 </div>

@@ -12,11 +12,13 @@ import {
   UomItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
+import { InventoryCategoryMasterComponent } from '../../Inventory_Masters/category-master/category-master';
+import { categoryMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
 
 @Component({
   selector: 'app-inventory-business-segments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryCategoryMasterComponent],
   templateUrl: './business-segments.html'
 })
 export class InventoryBusinessSegmentsComponent implements OnInit {
@@ -48,10 +50,8 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   saveMsg = signal('');
   saveError = signal('');
 
-  showCatPopup = signal(false);
-  newCategoryName = signal('');
-  addingCategory = signal(false);
-  catPopupError = signal('');
+  showCategoryMasterDialog = signal(false);
+  readonly categoryMasterConfig = categoryMasterConfig;
 
   showHsnPopup = signal(false);
   newHsnCode = signal('');
@@ -143,9 +143,18 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   onSegmentNameChange(name: string): void {
     const normalizedName = toInventoryTitleCase(name ?? '');
     this.segmentName.set(normalizedName);
-    if (!this.editingId()) {
-      this.segmentCode.set(this.autoCode(normalizedName));
+    if (!normalizedName.trim()) {
+      if (this.editingId() !== null) {
+        // Editing a saved segment — name cleared means user wants a fresh form.
+        this.clearForm();
+      } else {
+        // Fresh entry — only clear the auto-generated code.
+        this.segmentCode.set('');
+      }
+      return;
     }
+    if (this.editingId() !== null) return;
+    this.segmentCode.set(this.autoCode(normalizedName));
   }
 
   onSegmentCodeChange(code: string): void {
@@ -172,22 +181,14 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.newUomSymbol.set(String(applyInventoryTextCase(symbol ?? '', 'upper')));
   }
 
-  onNewCategoryNameChange(name: string): void {
-    this.newCategoryName.set(toInventoryTitleCase(name ?? ''));
-  }
-
+  // Global standard code format: PREFIX (first 3 alnum chars of name) - YY - 5-digit sequence.
+  // Matches generateCodeFromName() in inventory-screen-shell.ts, used across the other master screens.
   private autoCode(name: string): string {
-    const words = name.trim().replace(/[^A-Za-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 0);
-    let base: string;
-    if (words.length >= 2) {
-      base = words.slice(0, 3).map(w => w[0].toUpperCase()).join('');
-    } else if (words.length === 1) {
-      base = words[0].substring(0, 3).toUpperCase();
-    } else {
-      return '';
-    }
-    const seq = String(this.savedSegments().length + 1).padStart(3, '0');
-    return `${base}-${seq}`;
+    const prefix = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+    if (!prefix) return '';
+    const yy = new Date().getFullYear().toString().slice(-2);
+    const seq = String(this.savedSegments().length + 1).padStart(5, '0');
+    return `${prefix}-${yy}-${seq}`;
   }
 
   private normalizeKey(value: any): string {
@@ -253,49 +254,19 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     return this.uomIds().length;
   }
 
-  openCatPopup(): void {
-    this.newCategoryName.set('');
-    this.catPopupError.set('');
-    this.showCatPopup.set(true);
+  openCategoryMasterDialog(): void {
+    this.showCategoryMasterDialog.set(true);
   }
 
-  closeCatPopup(): void {
-    this.showCatPopup.set(false);
+  closeCategoryMasterDialog(): void {
+    this.showCategoryMasterDialog.set(false);
+    this.refreshCategories();
   }
 
-  submitCategory(): void {
-    const categoryName = this.newCategoryName().trim();
-    if (!categoryName) {
-      this.catPopupError.set('Category name is required.');
-      return;
-    }
-
-    const existing = this.categories().find(item => this.normalizeKey(item.category_name) === this.normalizeKey(categoryName));
-    if (existing?.id) {
-      this.categoryIds.update(ids => [...new Set([...ids, existing.id])]);
-      this.showCatPopup.set(false);
-      return;
-    }
-
-    this.addingCategory.set(true);
-    this.catPopupError.set('');
-    this.svc.quickAddCategory(categoryName, this.editingId()).subscribe({
-      next: res => {
-        if (res.data) {
-          const saved = res.data;
-          this.categories.update(list => this.dedupeByName(
-            [...list.filter(category => category.id !== saved.id), saved],
-            category => category.category_name
-          ));
-          this.categoryIds.update(ids => [...new Set([...ids, saved.id])]);
-        }
-        this.addingCategory.set(false);
-        this.showCatPopup.set(false);
-      },
-      error: err => {
-        this.addingCategory.set(false);
-        this.catPopupError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to add category.');
-      }
+  private refreshCategories(): void {
+    this.svc.getCategories().subscribe({
+      next: res => this.categories.set(this.dedupeByName(res.data ?? [], item => item.category_name)),
+      error: () => undefined
     });
   }
 
