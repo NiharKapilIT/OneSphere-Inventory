@@ -49,10 +49,10 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
 
   // ── Branch code auto-suggest & uniqueness ─────────────────────
   branchCodeChecking = signal(false);
-  branchCodeTaken    = signal(false);
+  branchCodeTaken = signal(false);
 
   private _codeWasManuallyEdited = false;
-  private _lastSuggestedCode     = '';
+  private _lastSuggestedCode = '';
   private _codeDebounce: ReturnType<typeof setTimeout> | null = null;
 
   filteredBranches = computed(() => {
@@ -227,7 +227,7 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   private suggestBranchCode(name: string): string {
     const firstLetter = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')[0];
     if (!firstLetter) return '';
-    const yy     = new Date().getFullYear().toString().slice(-2);
+    const yy = new Date().getFullYear().toString().slice(-2);
     const prefix = `${firstLetter}${yy}`;
     const serial = this.nextCodeSerial(prefix, this.branches().map(b => b.branchCode));
     return `${prefix}${serial}`;
@@ -251,7 +251,7 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     this.branchCodeChecking.set(true);
     this._codeDebounce = setTimeout(() => {
       this.branchCodeChecking.set(false);
-      const lower     = code.trim().toLowerCase();
+      const lower = code.trim().toLowerCase();
       const currentId = this.form().id;
       this.branchCodeTaken.set(
         this.branches().some(b => b.branchCode.toLowerCase() === lower && b.id !== currentId)
@@ -261,7 +261,7 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
 
   private clearBranchCodeState(): void {
     this._codeWasManuallyEdited = false;
-    this._lastSuggestedCode     = '';
+    this._lastSuggestedCode = '';
     this.branchCodeChecking.set(false);
     this.branchCodeTaken.set(false);
     if (this._codeDebounce) { clearTimeout(this._codeDebounce); this._codeDebounce = null; }
@@ -301,8 +301,18 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     } catch { return false; }
   }
 
+  // private async refreshSessionContext(): Promise<void> {
+  //   try {
+
   private async refreshSessionContext(): Promise<void> {
+    // Legacy Accounts-login sessions carry a JWT without company_id/active_branch_id
+    // claims, which /api/auth/me requires — calling it here 401s, and a repeat 401
+    // after the interceptor's silent refresh gets treated as a dead session and logs
+    // the user out.
+    if (sessionStorage.getItem('authSessionKind') === 'legacy') return;
+
     try {
+
       const response = await firstValueFrom(this.authService.me().pipe(timeout(8000)));
       if (response.data) {
         this.authService.setMultiTenantSession(response.data);
