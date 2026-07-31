@@ -14,11 +14,13 @@ import {
   BranchInvItem, InventoryConfigService, SegmentItem, WarehouseItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
+import { branchMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 
 @Component({
   selector: 'app-inventory-branch-master',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryScreenShell],
   templateUrl: './branch-master.html'
 })
 export class InventoryBranchMasterComponent implements OnInit {
@@ -93,6 +95,7 @@ export class InventoryBranchMasterComponent implements OnInit {
 
   readonly settingsRoute   = '/dashboard/settings/branch-management/manage-branches';
   readonly upgradeRoute    = '/dashboard/admin/subscription';
+  readonly branchMasterConfig = branchMasterConfig;
 
   ngOnInit(): void {
     forkJoin({
