@@ -8,11 +8,13 @@ import {
   TaxCodeSourceStatus
 } from '../../Inventory_Shared/inventory-config.service';
 import { toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
+import { taxCodeImportConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 
 @Component({
   selector: 'app-inventory-tax-code-import',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, InventoryScreenShell],
   templateUrl: './tax-code-import.html'
 })
 export class InventoryTaxCodeImportComponent implements OnInit {
@@ -27,6 +29,7 @@ export class InventoryTaxCodeImportComponent implements OnInit {
   readonly error = signal('');
   readonly summary = signal<TaxCodeImportSummary | null>(null);
   readonly sourceStatus = signal<TaxCodeSourceStatus | null>(null);
+  readonly taxCodeImportConfig = taxCodeImportConfig;
 
   ngOnInit(): void {
     this.loadSourceStatus();

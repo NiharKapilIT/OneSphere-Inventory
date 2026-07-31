@@ -22,6 +22,8 @@
         <button type="button" title="Reset dashboard layout" (click)="resetSectionOrder()"><i class="pi pi-th-large"></i></button>
       </div>
     </div>
+
+    <app-inventory-screen-shell [config]="inventoryDashboardConfig"></app-inventory-screen-shell>
   </header>
 
   @if (loadError()) {
@@ -206,10 +208,20 @@
 
           @case ('payablesReceivablesDonut') {
             <div class="inv-stock-mix-wrap">
-              <div class="inv-stock-mix-donut" [style.background]="payablesReceivablesDonutBackground()">
-                <div>
+              <div class="inv-stock-mix-chart">
+                <div class="inv-stock-mix-total">
                   <strong>{{ fmt(payablesReceivablesTotal()) }}</strong>
                   <span>Total Outstanding</span>
+                </div>
+                <div class="inv-stock-mix-bar-row">
+                  <span>Payables</span>
+                  <div class="inv-stock-mix-track"><i class="payables" [style.width.%]="payablesShare()"></i></div>
+                  <strong>{{ payablesShare() }}%</strong>
+                </div>
+                <div class="inv-stock-mix-bar-row">
+                  <span>Receivables</span>
+                  <div class="inv-stock-mix-track"><i class="receivables" [style.width.%]="receivablesShare()"></i></div>
+                  <strong>{{ receivablesShare() }}%</strong>
                 </div>
               </div>
               <div class="inv-stock-mix-list">

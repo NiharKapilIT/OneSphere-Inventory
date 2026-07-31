@@ -7,8 +7,6 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, forkJoin, from, map, of, switchMap } from 'rxjs';
-import { ReferenceDataBindEvent } from '../../../shared/reference-data-tray/reference-data-tray.models';
-import { ReferenceDataTrayService } from '../../../shared/reference-data-tray/reference-data-tray.service';
 import { ApiResponse, AttributeItem, AttributeValueItem, BranchInvItem, CategoryItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
 import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption } from '../inventory-transactions.service';
 import { applyInventoryTextCase, inventoryTextCaseForField, inventoryTextCaseForLineColumn, toInventoryTitleCase } from '../inventory-text-case.util';
@@ -148,7 +146,6 @@ const DC_PINCODE_FALLBACK: Record<string, { state: string; district: string; cit
 export class InventoryScreenShell implements OnInit {
   @Input({ required: true }) config!: InventoryScreenConfig;
 
-  private readonly referenceDataTrayService = inject(ReferenceDataTrayService);
   private readonly _dragScroll = inject(HorizDragScrollService);
   private readonly inventoryConfigService = inject(InventoryConfigService);
   protected readonly txService = inject(InventoryTransactionsService);
@@ -359,6 +356,7 @@ export class InventoryScreenShell implements OnInit {
   // Separate from lineSerialValueMap above, which drives the unrelated
   // named-sub-field system (e.g. IMEI No/Chassis No labels on one serial).
   readonly lineSerialUnitsMap = signal<Record<number, string[]>>({});
+  readonly lineGstIncludedMap = signal<Record<number, boolean>>({});
   readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited'; qtyNeeded: number; productId: number | null; productName: string } | null>(null);
   readonly serialPickerDraftValues = signal<string[]>([]);
   readonly serialPickerAvailableOptions = signal<{ id: number; serial_no: string }[]>([]);
@@ -1102,10 +1100,6 @@ export class InventoryScreenShell implements OnInit {
       }
     });
 
-    this.referenceDataTrayService.referenceBind$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(event => this.applyReferenceBinding(event));
-
     this.taxCodeSearch$
       .pipe(
         debounceTime(300),
@@ -1657,6 +1651,10 @@ export class InventoryScreenShell implements OnInit {
     return String(value ?? '').trim().toLowerCase();
   }
 
+  private compactKey(value: any): string {
+    return this.normalizeKey(value).replace(/[^a-z0-9]+/g, '');
+  }
+
   private normalizeFormFieldTextCase(key: string, value: any): any {
     const field = this.config?.fields?.find(item => item.key === key);
     const textCase = inventoryTextCaseForField(key, field?.label || this.labelFromKey(key), field?.type || 'text');
@@ -2148,6 +2146,39 @@ export class InventoryScreenShell implements OnInit {
           : { name: '', value: part };
       })
       .filter(part => part.name || part.value);
+  }
+
+  private serialNumbersFromRecordItem(item: any): string[] {
+    const structured = item?.serial_numbers ?? item?.serialNumbers;
+    if (Array.isArray(structured)) {
+      return structured
+        .map(value => String(value ?? '').trim())
+        .filter(Boolean);
+    }
+
+    const raw = String(item?.serial_no ?? item?.serialNo ?? '').trim();
+    if (!raw) return [];
+
+    const parts = this.attributeTextParts(raw);
+    const namedParts = parts.filter(part => part.name && part.value);
+    if (namedParts.length) {
+      const serialPart = namedParts.find(part => /(serial|chassis|chasis|imei|vin)/i.test(part.name)) ?? namedParts[0];
+      return serialPart?.value ? [serialPart.value] : [];
+    }
+
+    return raw
+      .split(/[,\n;|]+/)
+      .map(value => value.trim())
+      .filter(Boolean);
+  }
+
+  private lineSerialMapFromItems(items: any[] | null | undefined, startIndex = 0): Record<number, string[]> {
+    const serialMap: Record<number, string[]> = {};
+    (items || []).forEach((item: any, index: number) => {
+      const serials = this.serialNumbersFromRecordItem(item);
+      if (serials.length) serialMap[startIndex + index] = serials;
+    });
+    return serialMap;
   }
 
   protected productStockLimitsForLine(
@@ -3438,6 +3469,12 @@ export class InventoryScreenShell implements OnInit {
       case 'segmentSummary':
       case 'hsnSacReport':
         return ['Select filters such as segment, product, location and date range.', 'Generate the report.', 'Use export, print or mail actions for audit and management review.'];
+      case 'taxCodeImport':
+        return ['Choose the official CSV/XLSX source file.', 'Enter source name and source date.', 'Import, then review HSN/SAC suggestions before use.'];
+      case 'vendorPayment':
+        return ['Select vendor and voucher date.', 'Allocate amount against open purchase invoices.', 'Add payment mode and save the voucher.'];
+      case 'customerReceipt':
+        return ['Select customer and voucher date.', 'Allocate receipt against open sales invoices.', 'Add receipt mode and save the voucher.'];
       default:
         if (this.config?.kind === 'master') {
           return [`Create the ${this.config.title} record with code, name and required classification.`, 'Keep status active only when the setup is verified.', 'After saving, users can select this master in related transaction and report screens.'];
@@ -3514,6 +3551,24 @@ export class InventoryScreenShell implements OnInit {
       default:
         return this.config?.outputImpact || 'This setup affects downstream ERP selection, validation, reporting and posting behavior.';
     }
+  }
+
+  guideFields(): InventoryField[] {
+    return this.displayFields().slice(0, 6);
+  }
+
+  hiddenGuideFieldCount(): number {
+    return Math.max(0, this.displayFields().length - this.guideFields().length);
+  }
+
+  guideVideoUrl(): string {
+    return (this.config?.guideVideoUrl || '').trim();
+  }
+
+  shortText(value: string | null | undefined, maxLength = 120): string {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
   }
 
   fieldAdvice(field: InventoryField): string {
@@ -5054,8 +5109,11 @@ export class InventoryScreenShell implements OnInit {
       const gstPct = Number(item?.gst_rate ?? item?.gstRate ?? 0) || 0;
       const lineGross = qty * rate;
       const lineDiscount = lineGross * discPct / 100;
-      const lineTaxable = lineGross - lineDiscount;
-      const lineTax = lineTaxable * gstPct / 100;
+      const computedTaxable = lineGross - lineDiscount;
+      const savedTaxable = this.firstNumericValue(item, ['taxable_amount', 'taxableAmount']);
+      const savedTax = this.firstNumericValue(item, ['tax_amount', 'taxAmount', 'gst_amount', 'gstAmount']);
+      const lineTaxable = savedTaxable || computedTaxable;
+      const lineTax = savedTax || this.transactionLineTaxBreakup(qty, rate, discPct, gstPct, undefined, this.itemGstIncluded(item) ?? false).taxAmount;
       acc.gross += lineGross;
       acc.discount += lineDiscount;
       acc.taxable += lineTaxable;
@@ -5787,6 +5845,26 @@ export class InventoryScreenShell implements OnInit {
   // by this change). Cached once (not `new Date()` per call) so the same
   // reference is returned across renders — no change-detection churn.
   private readonly _todayDateValue = new Date();
+
+  // Public alias bound to [maxDate] on the header transaction-date picker
+  // (PO Date, GRN Date, PI Date, RFQ Date, PR Date, SO/SI Date, Return Date,
+  // Debit/Credit Note Date, DC Date, etc. — whichever field
+  // isPrimaryTransactionDateField() resolves for the current screen) so a
+  // user can never backdate the calendar into the future. Same instance as
+  // _todayDateValue, just exposed for templates.
+  readonly maxTransactionDate = this._todayDateValue;
+
+  // A handful of body-level date fields represent a real-world event that
+  // already happened by the time it's typed in (the vendor's own invoice
+  // date on GRN/PI), so those also get capped at today. Forward-looking
+  // fields — Expected Delivery, Due Date, Valid Till, Required Date,
+  // Delivery Date, Expected Return, Insurance Expiry, etc. — are left
+  // unrestricted since a future date is the whole point of those fields.
+  private readonly pastOrTodayBodyDateFieldKeys = new Set(['vendorInvoiceDate']);
+
+  bodyDateFieldMaxDate(field: InventoryField): Date | null {
+    return this.pastOrTodayBodyDateFieldKeys.has(field.key) ? this.maxTransactionDate : null;
+  }
 
   transactionDateValue(field: InventoryField): any {
     return this.datePickerValue(this.formValues()[field.key]) || this._todayDateValue;
@@ -6523,7 +6601,7 @@ export class InventoryScreenShell implements OnInit {
     const sourceValue = this.sourceFieldValue(field);
     if (sourceValue) return sourceValue;
 
-    if (this.isApiWired()) {
+    if (this.isApiWired() || this.config?.kind === 'transaction') {
       if (field.type === 'multiselect') return [];
       if (this.isStatusSwitchField(field)) return 'Active';
       if (this.isYesNoSwitchField(field)) return 'No';
@@ -6621,11 +6699,12 @@ export class InventoryScreenShell implements OnInit {
     const key = this.config?.key || '';
     if (this.entryLineRowsKey() !== key) {
       this.entryLineRowsKey.set(key);
+      this.lineGstIncludedMap.set({});
       if (key === 'productServiceMaster') {
         this.entryLineRows.set([this.blankLineRow()]);
       } else if (key === 'uomMaster' || key === 'variantMaster') {
         this.entryLineRows.set([this.blankLineRow()]);
-      } else if (this.isPurchaseTransactionKey(key)) {
+      } else if (this.config?.kind === 'transaction') {
         this.entryLineRows.set([this.blankLineRow()]);
       } else {
         const rows = this.lineRows();
@@ -6659,7 +6738,7 @@ export class InventoryScreenShell implements OnInit {
     const isGrnLinkedPi = this.isGrnLinkedPurchaseInvoice();
     return rows.map((row, rowIndex) => ({
       columns: columns.map((column, columnIndex) => isGrnLinkedPi
-        ? this.grnLinkedPurchaseInvoiceCellView(column, row, columnIndex)
+        ? this.grnLinkedPurchaseInvoiceCellView(column, row, columnIndex, rowIndex)
         : {
           options: this.lineColumnOptions(column, row),
           controlValue: this.lineCellControlValue(row[columnIndex], column, row),
@@ -6679,17 +6758,17 @@ export class InventoryScreenShell implements OnInit {
     return this.config?.key === 'purchaseInvoice' && !!this.optionalNumber(this.formValues()['grnId']);
   }
 
-  private grnLinkedPurchaseInvoiceCellView(column: string, row: string[], columnIndex: number): EntryLineColumnView {
+  private grnLinkedPurchaseInvoiceCellView(column: string, row: string[], columnIndex: number, rowIndex: number): EntryLineColumnView {
     const key = this.normalizeKey(column);
     return {
-      options: key.includes('gst') || key.includes('tax') ? ['0%', '5%', '12%', '18%', '28%'] : [],
+      options: [],
       controlValue: row[columnIndex] ?? '',
       usesMultiSelect: false,
       inputType: this.lineCellInputType(column, row),
       placeholder: '',
       stockHint: this.transactionStockControlHint(column, row, columnIndex),
       stockHintClass: this.transactionStockControlHintClass(column, row, columnIndex),
-      priceHint: null
+      priceHint: this.transactionPriceHint(column, row, rowIndex)
     };
   }
 
@@ -6839,12 +6918,170 @@ export class InventoryScreenShell implements OnInit {
     return column;
   }
 
+  lineGridColumnCssClass(column: string): string {
+    const classes: string[] = [];
+    if (this.lineGridColumnIsProduct(column)) classes.push('inventory-line-col-product');
+    if (this.lineGridColumnIsQuantity(column)) classes.push('inventory-line-col-qty');
+    if (this.lineGridColumnIsGstValue(column)) classes.push('inventory-line-col-gst');
+    if (this.lineGridColumnIsRate(column)) classes.push('inventory-line-col-rate');
+    if (this.lineGridColumnIsDiscount(column)) classes.push('inventory-line-col-disc');
+    if (this.lineGridColumnIsAmount(column)) classes.push('inventory-line-col-amount');
+    return classes.join(' ');
+  }
+
+  lineGridColumnIsProduct(column: string): boolean {
+    const key = this.compactKey(column);
+    return key.includes('product')
+      || key.includes('item')
+      || key.includes('sku')
+      || key.includes('material')
+      || key.includes('service');
+  }
+
+  lineGridColumnIsQuantity(column: string): boolean {
+    const key = this.compactKey(column);
+    return (key.includes('qty') || key.includes('quantity')) && !this.lineGridColumnIsAmount(column);
+  }
+
+  lineGridColumnIsGstValue(column: string): boolean {
+    const key = this.compactKey(column);
+    if (!key || this.lineGridColumnIsAmount(column)) return false;
+    return key === 'gst'
+      || key === 'tax'
+      || key === 'gstpct'
+      || key === 'taxpct'
+      || key === 'gstpercent'
+      || key === 'taxpercent'
+      || key === 'gstpercentage'
+      || key === 'taxpercentage'
+      || key.includes('gstrate')
+      || key.includes('taxrate');
+  }
+
+  lineGridColumnIsRate(column: string): boolean {
+    const key = this.compactKey(column);
+    return (key === 'rate' || key.includes('rate') || key.includes('price') || key.includes('cost'))
+      && !this.lineGridColumnIsGstValue(column)
+      && !this.lineGridColumnIsDiscount(column)
+      && !this.lineGridColumnIsAmount(column);
+  }
+
+  lineGridColumnIsDiscount(column: string): boolean {
+    const key = this.compactKey(column);
+    return key.includes('disc') || key.includes('discount');
+  }
+
+  lineGridColumnIsAmount(column: string): boolean {
+    const key = this.compactKey(column);
+    return key.includes('amount') || key.includes('total') || key.includes('value');
+  }
+
+  lineGridGstPercentText(row: string[], column: string): string {
+    return `${this.transactionLineGstPercent(this.normalizeLineRow(row), column)}%`;
+  }
+
+  lineGstIncluded(rowIndex: number): boolean {
+    return !!this.lineGstIncludedMap()[rowIndex];
+  }
+
+  toggleLineGstMode(rowIndex: number): void {
+    this.setLineGstMode(rowIndex, !this.lineGstIncluded(rowIndex));
+  }
+
+  setLineGstMode(rowIndex: number, included: boolean): void {
+    this.lineGstIncludedMap.update(map => ({ ...map, [rowIndex]: included }));
+    this.entryLineRows.update(rows => rows.map((row, index) => {
+      if (index !== rowIndex) return row;
+      const nextRow = this.normalizeLineRow(row);
+      this.recalculateLineRow(nextRow, rowIndex);
+      return nextRow;
+    }));
+  }
+
+  lineGstModeLabel(rowIndex: number): string {
+    return this.lineGstIncluded(rowIndex) ? 'Included' : 'Excluded';
+  }
+
+  private transactionLineGstPercent(row: string[], column?: string): number {
+    const normalized = this.normalizeLineRow(row);
+    const raw = column ? this.lineCellValue(normalized, column) : this.lineValue(normalized, ['gst', 'tax']);
+    const parsed = this.parseCurrency(raw);
+    if (String(raw || '').trim() !== '' && Number.isFinite(parsed)) return parsed;
+    return Number(this.lineRowProduct(normalized)?.gst_rate ?? 0) || 0;
+  }
+
+  private transactionLineTaxBreakup(qty: number, rate: number, discountPct: number, gstPct: number, rowIndex?: number, gstIncludedOverride?: boolean): {
+    gross: number;
+    discountAmount: number;
+    taxableAmount: number;
+    taxAmount: number;
+    total: number;
+    gstIncluded: boolean;
+  } {
+    const gross = qty * rate;
+    const discountAmount = gross * discountPct / 100;
+    const discountedGross = gross - discountAmount;
+    const gstIncluded = gstIncludedOverride ?? (rowIndex !== undefined ? this.lineGstIncluded(rowIndex) : false);
+    if (gstIncluded && gstPct > 0) {
+      const taxableAmount = discountedGross / (1 + gstPct / 100);
+      return {
+        gross,
+        discountAmount,
+        taxableAmount,
+        taxAmount: discountedGross - taxableAmount,
+        total: discountedGross,
+        gstIncluded
+      };
+    }
+    const taxAmount = discountedGross * gstPct / 100;
+    return {
+      gross,
+      discountAmount,
+      taxableAmount: discountedGross,
+      taxAmount,
+      total: discountedGross + taxAmount,
+      gstIncluded
+    };
+  }
+
+  private roundLineAmount(value: number): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private transactionLineTaxPayload(row: string[], rowIndex: number, qty: number, rate?: number, discountPct?: number, gstPct?: number): {
+    gst_inclusive: boolean;
+    taxable_amount: number;
+    tax_amount: number;
+    amount: number;
+  } {
+    const lineRate = rate ?? this.lineNumber(row, ['rate', 'list']);
+    const lineDiscountPct = discountPct ?? this.lineNumber(row, ['disc', 'discount']);
+    const lineGstPct = gstPct ?? this.transactionLineGstPercent(row);
+    const breakup = this.transactionLineTaxBreakup(qty, lineRate, lineDiscountPct, lineGstPct, rowIndex);
+    return {
+      gst_inclusive: breakup.gstIncluded,
+      taxable_amount: this.roundLineAmount(breakup.taxableAmount),
+      tax_amount: this.roundLineAmount(breakup.taxAmount),
+      amount: this.roundLineAmount(breakup.total)
+    };
+  }
+
   lineGridColumnIsAttributeValue(column: string): boolean {
     return this.lineGridAttributeColumnSet().has(this.normalizeKey(column));
   }
 
   lineGridColumnIsSerialValue(column: string): boolean {
     return this.lineGridSerialColumnSet().has(this.normalizeKey(column));
+  }
+
+  lineGridColumnIsSerialPicker(column: string): boolean {
+    const key = this.compactKey(column);
+    return this.lineGridColumnIsSerialValue(column)
+      || key.includes('serial')
+      || key.includes('chassis')
+      || key.includes('chasis')
+      || key.includes('imei')
+      || key.includes('vin');
   }
 
   lineGridAttributeSelection(rowView: EntryLineRowView | undefined, column: string): VariantAttrSelection | null {
@@ -6875,11 +7112,12 @@ export class InventoryScreenShell implements OnInit {
     if (this.config?.key !== 'purchaseInvoice' || !this.optionalNumber(this.formValues()['grnId'])) return false;
     if (this.lineGridColumnIsAttributeValue(column) || this.lineGridColumnIsSerialValue(column)) return true;
     const key = this.normalizeKey(column);
+    const compactKey = this.compactKey(column);
     return key === 'product'
       || key === 'variant'
       || key === 'uom'
-      || key === 'receivedqty'
-      || key === 'acceptedqty'
+      || compactKey === 'receivedqty'
+      || compactKey === 'acceptedqty'
       || key.includes('batch')
       || key.includes('serial')
       || key.includes('expiry');
@@ -6956,6 +7194,15 @@ export class InventoryScreenShell implements OnInit {
     });
     this.dismissedPriceHints.update(map => {
       const next: Record<number, string> = {};
+      for (const [key, val] of Object.entries(map)) {
+        const idx = Number(key);
+        if (idx < rowIndex) next[idx] = val;
+        else if (idx > rowIndex) next[idx - 1] = val;
+      }
+      return next;
+    });
+    this.lineGstIncludedMap.update(map => {
+      const next: Record<number, boolean> = {};
       for (const [key, val] of Object.entries(map)) {
         const idx = Number(key);
         if (idx < rowIndex) next[idx] = val;
@@ -7075,10 +7322,7 @@ export class InventoryScreenShell implements OnInit {
               const gstIdx = (this.config?.lineColumns || []).findIndex(c => c.toLowerCase().includes('gst'));
               if (gstIdx >= 0 && !nextRow[gstIdx]) {
                 const gstValue = `${Number(product.gst_rate)}%`;
-                const gstOptions = this.lineColumnOptions(this.config.lineColumns![gstIdx]);
-                if (gstOptions.some(option => this.optionEquals(option, gstValue))) {
-                  nextRow[gstIdx] = gstValue;
-                }
+                nextRow[gstIdx] = gstValue;
               }
             }
             this.applyProductPricingDefaults(nextRow, product);
@@ -7095,9 +7339,14 @@ export class InventoryScreenShell implements OnInit {
           this.syncPurchaseInvoiceSellingPrice(nextRow, normalizedValue, previousCellValue);
         }
       }
-      this.recalculateLineRow(nextRow);
+      this.recalculateLineRow(nextRow, rowIndex);
       return nextRow;
     }));
+    if (this.config?.kind === 'transaction' && (
+      colKey.includes('qty') || colKey.includes('return') || colKey.includes('dispatch') || colKey.includes('accepted')
+    )) {
+      this.trimLineSerialUnitsToCurrentQty(rowIndex);
+    }
   }
 
   setEntryLineYesNoCell(rowIndex: number, columnIndex: number, checked: boolean): void {
@@ -7114,6 +7363,11 @@ export class InventoryScreenShell implements OnInit {
     this.lineSerialValueMap.update(map => {
       const next = { ...map };
       Object.keys(next).filter(k => k.startsWith(`${rowIndex}_`)).forEach(k => delete next[k]);
+      return next;
+    });
+    this.lineGstIncludedMap.update(map => {
+      const next = { ...map };
+      delete next[rowIndex];
       return next;
     });
     this.entryLineRows.update(rows => rows.map((row, index) => index === rowIndex ? this.blankLineRow() : row));
@@ -7535,6 +7789,47 @@ export class InventoryScreenShell implements OnInit {
     return 'inventory-stock-hint inventory-price-hint inventory-hint-info';
   }
 
+  private transactionLineAmountPreview(row: string[], rowIndex?: number): {
+    qty: number;
+    rate: number;
+    discountPct: number;
+    gstPct: number;
+    gstIncluded: boolean;
+    discountAmount: number;
+    taxAmount: number;
+    total: number;
+  } | null {
+    const key = this.config?.key || '';
+    const qtyIndex = key === 'purchaseReturn' || key === 'salesReturn'
+      ? this.lineColumnIndex('Return Qty')
+      : (key === 'goodsReceipt' || key === 'purchaseInvoice')
+        ? this.lineColumnIndex('Accepted Qty')
+        : this.findColumnIndex(['qty', 'quantity', 'received', 'accepted', 'produced']);
+    const rateIndex = this.findColumnIndex(['rate', 'price', 'cost']);
+    const amountIndex = this.amountColumnIndex();
+    if (qtyIndex < 0 || rateIndex < 0 || amountIndex < 0) return null;
+
+    const qty = this.parseCurrency(row[qtyIndex]);
+    const rate = this.parseCurrency(row[rateIndex]);
+    if (!Number.isFinite(qty) || !Number.isFinite(rate) || qty <= 0 || rate <= 0) return null;
+
+    const discountIndex = this.findColumnIndex(['disc', 'discount']);
+    const taxIndex = this.findColumnIndex(['gst', 'tax']);
+    const discountPct = discountIndex >= 0 ? this.parseCurrency(row[discountIndex]) : 0;
+    const gstPct = taxIndex >= 0 ? this.transactionLineGstPercent(row, this.config?.lineColumns?.[taxIndex]) : this.transactionLineGstPercent(row);
+    const breakup = this.transactionLineTaxBreakup(qty, rate, discountPct, gstPct, rowIndex);
+    return {
+      qty,
+      rate,
+      discountPct,
+      gstPct,
+      gstIncluded: breakup.gstIncluded,
+      discountAmount: breakup.discountAmount,
+      taxAmount: breakup.taxAmount,
+      total: breakup.total
+    };
+  }
+
   // Rate entry hint for Sales Invoice/Sales Order — flags when the rate being
   // billed to the customer is below the product's cost price (a real loss),
   // or simply above/below its usual Selling Price (informational), factoring
@@ -7542,11 +7837,21 @@ export class InventoryScreenShell implements OnInit {
   // the customer will be charged, not just the raw rate.
   private transactionPriceHint(column: string, row: string[], rowIndex: number): PriceHintView | null {
     const key = this.config?.key || '';
-    if (key !== 'salesInvoice' && key !== 'salesOrder') return null;
-    if (this.normalizeKey(column) !== 'rate') return null;
+    if (this.config?.kind !== 'transaction') return null;
+    if (this.compactKey(column) !== 'rate') return null;
 
-    const rate = this.lineNumber(row, ['rate']);
-    if (!Number.isFinite(rate) || rate <= 0) return null;
+    const preview = this.transactionLineAmountPreview(row, rowIndex);
+    if (!preview) return null;
+
+    const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    const formula = preview.gstIncluded
+      ? `Qty ${fmt(preview.qty)} x Rs. ${fmt(preview.rate)} - Disc ${fmt(preview.discountPct)}% (GST ${fmt(preview.gstPct)}% included) = Rs. ${fmt(preview.total)}`
+      : `Qty ${fmt(preview.qty)} x Rs. ${fmt(preview.rate)} - Disc ${fmt(preview.discountPct)}% + GST ${fmt(preview.gstPct)}% = Rs. ${fmt(preview.total)}`;
+    const fingerprint = `${key}|${preview.qty}|${preview.rate}|${preview.discountPct}|${preview.gstPct}|${preview.gstIncluded}|${preview.total}`;
+
+    if (key !== 'salesInvoice' && key !== 'salesOrder') {
+      return { severity: 'info', fingerprint, message: formula };
+    }
 
     const product = this.lineRowProduct(row);
     const sellingPrice = this.firstPositiveCurrencyValue(
@@ -7555,33 +7860,25 @@ export class InventoryScreenShell implements OnInit {
       product?.sellingPrice
     );
     const costPrice = this.firstPositiveCurrencyValue(product?.cost_price, product?.costPrice);
-    if (sellingPrice <= 0 && costPrice <= 0) return null;
 
-    const discPct = this.lineNumber(row, ['disc']);
-    const gstPct = this.lineNumber(row, ['gst']);
-    const netRate = rate * (1 - (Number.isFinite(discPct) ? discPct : 0) / 100);
-    const withGst = netRate * (1 + (Number.isFinite(gstPct) ? gstPct : 0) / 100);
-    const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
-    const fingerprint = `${rate}|${discPct}|${gstPct}`;
-
-    if (costPrice > 0 && rate < costPrice) {
-      const loss = costPrice - rate;
+    if (costPrice > 0 && preview.rate < costPrice) {
+      const loss = costPrice - preview.rate;
       return {
         severity: 'error',
         fingerprint,
-        message: `Below cost ₹${fmt(costPrice)} — loss ₹${fmt(loss)}/unit. Net incl. disc+GST: ₹${fmt(withGst)}`
+        message: `${formula}. Below cost Rs. ${fmt(costPrice)}; loss Rs. ${fmt(loss)}/unit.`
       };
     }
-    if (sellingPrice > 0 && rate !== sellingPrice) {
-      const diff = rate - sellingPrice;
+    if (sellingPrice > 0 && preview.rate !== sellingPrice) {
+      const diff = preview.rate - sellingPrice;
       const pct = (Math.abs(diff) / sellingPrice) * 100;
       return {
         severity: diff < 0 ? 'warn' : 'info',
         fingerprint,
-        message: `${fmt(Math.abs(diff))} (${fmt(pct)}%) ${diff < 0 ? 'below' : 'above'} Selling Price ₹${fmt(sellingPrice)}. Net incl. disc+GST: ₹${fmt(withGst)}`
+        message: `${formula}. ${fmt(Math.abs(diff))} (${fmt(pct)}%) ${diff < 0 ? 'below' : 'above'} selling price Rs. ${fmt(sellingPrice)}.`
       };
     }
-    return null;
+    return { severity: 'info', fingerprint, message: formula };
   }
 
   // Hard bounds on the Rate a Sales Invoice/Sales Order line can be billed
@@ -8080,7 +8377,7 @@ export class InventoryScreenShell implements OnInit {
     }
     if (key.includes('rounding')) return ['Exact', '2 Decimals', 'Whole Number', 'Commercial Rounding'];
     if (key.includes('is purchase') || key.includes('is sales') || key === 'active') return ['Yes', 'No'];
-    if (key.includes('gst') || key.includes('tax')) return ['0%', '5%', '12%', '18%', '28%'];
+    if (key.includes('gst') || key.includes('tax')) return this.config?.kind === 'transaction' ? [] : ['0%', '5%', '12%', '18%', '28%'];
     if (this.isPolicyAwarePurchaseLineGrid() && this.isPolicyLineColumn(column)) return [];
     if (key.includes('batch')) return ['NA', 'LOT-FOOD-001', 'LOT-DRN-001', 'LOT-CBL-011'];
     if (key.includes('serial')) return ['NA', 'SN-1042..46', 'IMEI Required', 'Auto Capture'];
@@ -8280,7 +8577,7 @@ export class InventoryScreenShell implements OnInit {
     return [];
   }
 
-  private recalculateLineRow(row: string[]): void {
+  private recalculateLineRow(row: string[], rowIndex?: number): void {
     // GRN bills on what was actually kept, not what arrived — Amount = Accepted Qty x Rate.
     // The generic first-match lookup below would otherwise lock onto "Received Qty"
     // since it appears earlier in GRN's lineColumns than "Accepted Qty".
@@ -8314,9 +8611,9 @@ export class InventoryScreenShell implements OnInit {
     const qty = this.parseCurrency(row[qtyIndex]);
     const rate = this.parseCurrency(row[rateIndex]);
     const discountPercent = discountIndex >= 0 ? this.parseCurrency(row[discountIndex]) : 0;
-    const taxPercent = taxIndex >= 0 ? this.parseCurrency(row[taxIndex]) : 0;
-    const taxable = qty * rate * (1 - discountPercent / 100);
-    row[amountIndex] = Math.round(taxable * (1 + taxPercent / 100)).toLocaleString('en-IN');
+    const taxPercent = taxIndex >= 0 ? this.transactionLineGstPercent(row, this.config?.lineColumns?.[taxIndex]) : this.transactionLineGstPercent(row);
+    const total = this.transactionLineTaxBreakup(qty, rate, discountPercent, taxPercent, rowIndex).total;
+    row[amountIndex] = Math.round(total).toLocaleString('en-IN');
   }
 
   private amountColumnIndex(): number {
@@ -8343,31 +8640,6 @@ export class InventoryScreenShell implements OnInit {
   private parseCurrency(value: string): number {
     const numeric = Number(String(value || '').replace(/[^0-9.-]/g, ''));
     return Number.isFinite(numeric) ? numeric : 0;
-  }
-
-  private applyReferenceBinding(event: ReferenceDataBindEvent): void {
-    const screenKey = this.config?.key;
-    if (!screenKey || event.target !== screenKey) return;
-
-    const rows = event.rows.filter(row => row.target === screenKey);
-    if (!rows.length) {
-      this.boundReferenceFields.set({});
-      this.boundReferenceLabels.set([]);
-      this.entryLineRowsKey.set('');
-      return;
-    }
-
-    const fields = rows.reduce<Record<string, string>>((acc, row) => ({ ...acc, ...(row.fields || {}) }), {});
-    const labels = rows.map(row => row.sourceLabel);
-    const lines = rows.flatMap(row => row.lines || []);
-
-    this.boundReferenceFields.set(fields);
-    this.boundReferenceLabels.set(labels);
-
-    if (lines.length) {
-      this.entryLineRowsKey.set(screenKey);
-      this.entryLineRows.set(lines.map(row => this.normalizeLineRow(row)));
-    }
   }
 
   isPurchaseTransactionKey(key = this.config?.key || ''): boolean {
@@ -8597,7 +8869,7 @@ export class InventoryScreenShell implements OnInit {
   private referenceDocsForType(type: string, docs: PurchaseRefDoc[]): PurchaseRefDoc[] {
     if (type === 'PR')  return docs.filter(doc => this.normalizeKey(doc.status) === 'approved');
     if (type === 'RFQ') return docs.filter(doc => ['accepted', 'responsereceived'].includes(this.normalizeKey(doc.status)));
-    if (type === 'PO')  return docs.filter(doc => ['approved', 'confirmed', 'draft'].includes(this.normalizeKey(doc.status)));
+    if (type === 'PO')  return docs.filter(doc => ['approved', 'confirmed'].includes(this.normalizeKey(doc.status)));
     if (type === 'GRN') return this.filterPurchaseInvoiceAvailableGrnDocs(docs.filter(doc => this.normalizeKey(doc.status) === 'posted'));
     if (type === 'PI')  return this.filterPurchaseReturnAvailablePiDocs(docs.filter(doc => this.normalizeKey(doc.status) === 'posted'));
     if (type === 'SO')  return docs.filter(doc => this.normalizeKey(doc.status) === 'posted');
@@ -9120,6 +9392,7 @@ export class InventoryScreenShell implements OnInit {
     }
 
     this.formValues.update(values => ({ ...values, ...patch }));
+    const referenceSerialMap = this.lineSerialMapFromItems(doc.items || []);
     if (key === 'purchaseInvoice') {
       const applyRows = () => {
         this.entryLineRowsKey.set(key);
@@ -9127,12 +9400,7 @@ export class InventoryScreenShell implements OnInit {
         // Carry the serials captured at GRN receipt time through onto the PI
         // line — the picker button on a GRN-linked PI row is otherwise stuck
         // showing 0, even though inv_grn_items.serial_numbers has the data.
-        const serialMap: Record<number, string[]> = {};
-        (doc.items || []).forEach((item: any, index: number) => {
-          const serials = item?.serial_numbers || item?.serialNumbers;
-          if (Array.isArray(serials) && serials.length) serialMap[index] = serials;
-        });
-        if (Object.keys(serialMap).length) this.lineSerialUnitsMap.set(serialMap);
+        this.lineSerialUnitsMap.set(referenceSerialMap);
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
       else applyRows();
@@ -9140,6 +9408,9 @@ export class InventoryScreenShell implements OnInit {
       const applyRows = () => {
         this.entryLineRowsKey.set(key);
         this.entryLineRows.set(rows);
+        if (key === 'purchaseReturn') {
+          this.lineSerialUnitsMap.set(referenceSerialMap);
+        }
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
       else applyRows();
@@ -9230,23 +9501,25 @@ export class InventoryScreenShell implements OnInit {
     }
 
     this.formValues.update(values => ({ ...values, ...patch }));
+    const referenceSerialMap = this.lineSerialMapFromItems(doc.items || []);
     if (rows.length) {
       const applyRows = () => {
         this.entryLineRowsKey.set(key);
         this.entryLineRows.set(rows);
-      if (key === 'deliveryChallan' || key === 'salesInvoice') {
+        this.lineSerialUnitsMap.set(referenceSerialMap);
+        if (key === 'deliveryChallan' || key === 'salesInvoice') {
         // Carry each picked SO item's own id forward so DC/SI posting can
         // advance that SO item's delivered_qty/invoiced_qty (rule 4) — the
         // ref-docs endpoint only started returning SO item ids once this was
         // added (sp_get_purchase_docs_for_ref's WHEN 'SO' branch).
-        const nextMap: Record<number, { soItemId?: number; dcItemId?: number; siItemId?: number }> = {};
-        (doc.items || []).forEach((item: any, i: number) => {
-          nextMap[i] = key === 'deliveryChallan' && docType === 'SI'
-            ? { siItemId: item?.id ?? null }
-            : { soItemId: item?.id ?? null };
-        });
-        this.lineRefItemIdMap.set(nextMap);
-      }
+          const nextMap: Record<number, { soItemId?: number; dcItemId?: number; siItemId?: number }> = {};
+          (doc.items || []).forEach((item: any, i: number) => {
+            nextMap[i] = key === 'deliveryChallan' && docType === 'SI'
+              ? { siItemId: item?.id ?? null }
+              : { soItemId: item?.id ?? null };
+          });
+          this.lineRefItemIdMap.set(nextMap);
+        }
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
       else applyRows();
@@ -9394,6 +9667,7 @@ export class InventoryScreenShell implements OnInit {
       const startIndex = this.entryLineRows().length;
       this.entryLineRowsKey.set(key);
       this.entryLineRows.update(existing => [...existing, ...rows]);
+      this.lineSerialUnitsMap.update(map => ({ ...map, ...this.lineSerialMapFromItems(doc.items || [], startIndex) }));
       this.lineRefItemIdMap.update(map => {
         const next = { ...map };
         (doc.items || []).forEach((item: any, i: number) => {
@@ -9437,8 +9711,10 @@ export class InventoryScreenShell implements OnInit {
     this.entryLineRowsKey.set(key);
     if (mode === 'append') {
       this.entryLineRows.update(existing => [...existing, ...rows]);
+      this.lineSerialUnitsMap.update(map => ({ ...map, ...this.lineSerialMapFromItems(doc.items || [], startIndex) }));
     } else {
       this.entryLineRows.set(rows.length ? rows : [this.blankLineRow()]);
+      this.lineSerialUnitsMap.set(this.lineSerialMapFromItems(doc.items || []));
     }
     this.lineRefItemIdMap.update(map => {
       const next = mode === 'append' ? { ...map } : {};
@@ -9898,6 +10174,18 @@ export class InventoryScreenShell implements OnInit {
     return Math.round(rawQty * (factor > 0 ? factor : 1));
   }
 
+  private trimLineSerialUnitsToCurrentQty(rowIndex: number): void {
+    const serials = this.lineSerialUnitsMap()[rowIndex];
+    if (!serials?.length) return;
+
+    const row = this.normalizeLineRow(this.entryLineRows()[rowIndex] || []);
+    const product = this.lineRowProduct(row);
+    const qtyNeeded = this.serialPickerBaseQtyForRow(row, product);
+    if (qtyNeeded <= 0 || serials.length <= qtyNeeded) return;
+
+    this.lineSerialUnitsMap.update(map => ({ ...map, [rowIndex]: serials.slice(0, qtyNeeded) }));
+  }
+
   serialPickerSummaryForRow(rowIndex: number, row: string[]): string {
     const count = (this.lineSerialUnitsMap()[rowIndex] || []).length;
     const productName = this.lineValue(row, ['product', 'item', 'sku']);
@@ -9906,6 +10194,12 @@ export class InventoryScreenShell implements OnInit {
     const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
     const label = this.productSerialColumnLabels(product)[0] || 'Serial No';
     if (dcItemId) return count ? `${count} ${label}(s) from DC` : 'Loading…';
+
+    const purchaseReturnPiId = this.config?.key === 'purchaseReturn' ? this.optionalNumber(this.formValues()['piId']) : null;
+    const salesReturnInvoiceId = this.config?.key === 'salesReturn' ? this.optionalNumber(this.formValues()['invoiceId']) : null;
+    if (purchaseReturnPiId) return count ? `${count} ${label}(s) from PI` : 'Loading…';
+    if (salesReturnInvoiceId) return count ? `${count} ${label}(s) from Invoice` : 'Loading…';
+
     const verb = this.serialPickerModeForKey() === 'capture' ? 'Enter' : 'Select';
     return `${verb} ${label} (${count}/${qty || 0})`;
   }
@@ -9924,7 +10218,19 @@ export class InventoryScreenShell implements OnInit {
 
     const qtyNeeded = this.serialPickerBaseQtyForRow(row, product);
     const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
-    const mode: 'capture' | 'select' | 'inherited' = dcItemId ? 'inherited' : this.serialPickerModeForKey();
+
+    // Purchase Return against a known PI, and Sales Return against a known
+    // invoice, behave like Sales-Invoice-billing-a-Delivery-Challan: the
+    // exact units are already pinned to that source document, so they
+    // auto-bind instead of asking the user to re-pick them from an unscoped
+    // list of every in-stock/sold serial of the product. A Direct Purchase
+    // Return (no PI reference) or a Sales Return with no invoice chosen yet
+    // has no source to bind from, so those still fall back to manual select.
+    const purchaseReturnPiId = this.config?.key === 'purchaseReturn' ? this.optionalNumber(this.formValues()['piId']) : null;
+    const salesReturnInvoiceId = this.config?.key === 'salesReturn' ? this.optionalNumber(this.formValues()['invoiceId']) : null;
+    const boundToSource = !!dcItemId || !!purchaseReturnPiId || !!salesReturnInvoiceId;
+
+    const mode: 'capture' | 'select' | 'inherited' = boundToSource ? 'inherited' : this.serialPickerModeForKey();
 
     this.activeSerialPicker.set({ rowIndex, mode, qtyNeeded, productId: product.id, productName: product.product_name || productName });
     this.serialPickerDraftValues.set([...(this.lineSerialUnitsMap()[rowIndex] || [])]);
@@ -9950,11 +10256,40 @@ export class InventoryScreenShell implements OnInit {
       return;
     }
 
+    if (mode === 'inherited' && (purchaseReturnPiId || salesReturnInvoiceId)) {
+      this.serialPickerLoading.set(true);
+      const obs = purchaseReturnPiId
+        ? this.txService.getInstockSerialsForSource({ productId: product.id, sourceDocType: 'purchase_invoice', sourceDocId: purchaseReturnPiId })
+        : this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: salesReturnInvoiceId });
+      obs.pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: res => {
+            this.serialPickerLoading.set(false);
+            const options = (res.data || []).filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no);
+            // A return can be for fewer units than the source document had —
+            // bind the first qtyNeeded rather than every available serial, so
+            // a partial return doesn't over-bind past what's actually being returned.
+            const serials = options.map(s => s.serial_no).slice(0, qtyNeeded);
+            this.serialPickerAvailableOptions.set(options);
+            this.serialPickerDraftValues.set(serials);
+            this.lineSerialUnitsMap.update(map => ({ ...map, [rowIndex]: serials }));
+          },
+          error: () => {
+            this.serialPickerLoading.set(false);
+            this.serialPickerError.set(purchaseReturnPiId
+              ? 'Could not load serials for the referenced Purchase Invoice.'
+              : 'Could not load serials for the referenced Sales Invoice.');
+          }
+        });
+      return;
+    }
+
     if (mode === 'select') {
       this.serialPickerLoading.set(true);
+      const variantId = this.lineRowVariantId(product, row);
       const obs = this.config?.key === 'salesReturn'
         ? this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: this.optionalNumber(this.formValues()['invoiceId']) })
-        : this.txService.getAvailableSerials({ productId: product.id, warehouseId: this.resolveHeaderWarehouseId() });
+        : this.txService.getAvailableSerials({ productId: product.id, variantId, warehouseId: this.resolveHeaderWarehouseId() });
       obs.pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: res => {
@@ -9978,6 +10313,14 @@ export class InventoryScreenShell implements OnInit {
     }
   }
 
+  // Local-only "already entered" check (same row's draft list) runs first —
+  // instant, no round trip. Once that passes, sp_check_serial_duplicate asks
+  // whether this serial already exists anywhere else in the system for this
+  // product, and whether its Serial Number Policy allows repeats. This is a
+  // hint surfaced the moment the user types/scans the value — the same rule
+  // fn_post_grn_stock/fn_post_pi_stock enforces (blocking) at final Post, in
+  // 106_serial_policy_duplicates_and_return_binding.sql, so a disallowed
+  // duplicate is caught here instead of failing much later at Post.
   addSerialPickerCaptureValue(value: string): void {
     const picker = this.activeSerialPicker();
     const text = String(value || '').trim();
@@ -9988,15 +10331,81 @@ export class InventoryScreenShell implements OnInit {
       return;
     }
     if (current.length >= picker.qtyNeeded) return;
+
+    if (!picker.productId) {
+      this.commitSerialPickerCaptureValue(text);
+      return;
+    }
+
+    const rowIndex = picker.rowIndex;
     this.serialPickerError.set('');
+    this.txService.checkSerialDuplicate(picker.productId, text)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          // Picker may have moved to a different row/product while the
+          // request was in flight — don't commit into the wrong row.
+          if (this.activeSerialPicker()?.rowIndex !== rowIndex) return;
+          const exists = !!res.data?.exists;
+          const allowDuplicate = !!res.data?.allowDuplicate;
+          if (exists && !allowDuplicate) {
+            this.serialPickerError.set(
+              `This serial no. already exists: "${text}". Remove the duplicate, or enable "Allow Duplicate" on its Serial Number Policy if repeats are expected.`
+            );
+            return;
+          }
+          this.commitSerialPickerCaptureValue(text, exists);
+        },
+        // A failed lookup shouldn't block data entry — the authoritative
+        // check still runs server-side at Post either way.
+        error: () => this.commitSerialPickerCaptureValue(text)
+      });
+  }
+
+  private commitSerialPickerCaptureValue(text: string, isAllowedRepeat = false): void {
+    const picker = this.activeSerialPicker();
+    if (!picker) return;
+    const current = this.serialPickerDraftValues();
+    if (current.includes(text) || current.length >= picker.qtyNeeded) return;
     this.serialPickerDraftValues.set([...current, text]);
-    this.serialPickerMessage.set(`Serial number "${text}" saved.`);
+    this.serialPickerMessage.set(isAllowedRepeat
+      ? `Serial number "${text}" saved (already used elsewhere — repeat allowed by its policy).`
+      : `Serial number "${text}" saved.`);
     if (this.serialPickerMessageTimer) clearTimeout(this.serialPickerMessageTimer);
     this.serialPickerMessageTimer = setTimeout(() => this.serialPickerMessage.set(''), 1800);
   }
 
   removeSerialPickerCaptureValue(value: string): void {
     this.serialPickerDraftValues.set(this.serialPickerDraftValues().filter(s => s !== value));
+  }
+
+  // Bulk counterpart to addSerialPickerCaptureValue — adds a whole
+  // From-To generated range in one go. Silently skips values already in the
+  // draft (same "already entered" rule as the single-value path, just
+  // without blocking the rest of the range on one collision) and never adds
+  // past qtyNeeded. Returns how many were actually added so the modal can
+  // tell the user whether anything happened.
+  addSerialPickerRangeValues(values: string[]): number {
+    const picker = this.activeSerialPicker();
+    if (!picker || picker.mode !== 'capture' || !values.length) return 0;
+
+    const current = this.serialPickerDraftValues();
+    const remaining = picker.qtyNeeded - current.length;
+    const uniqueNew = values.filter(v => !current.includes(v));
+    const toAdd = uniqueNew.slice(0, Math.max(0, remaining));
+    if (!toAdd.length) return 0;
+
+    this.serialPickerError.set('');
+    this.serialPickerDraftValues.set([...current, ...toAdd]);
+    const skipped = values.length - toAdd.length;
+    this.serialPickerMessage.set(
+      skipped > 0
+        ? `${toAdd.length} serial number(s) added, ${skipped} skipped (duplicate or exceeds quantity needed).`
+        : `${toAdd.length} serial number(s) added.`
+    );
+    if (this.serialPickerMessageTimer) clearTimeout(this.serialPickerMessageTimer);
+    this.serialPickerMessageTimer = setTimeout(() => this.serialPickerMessage.set(''), 2500);
+    return toAdd.length;
   }
 
   closeSerialPicker(save: boolean): void {
@@ -10607,7 +11016,10 @@ export class InventoryScreenShell implements OnInit {
   }
 
   liveRows(): string[][] {
-    return this.isApiWired() ? this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects())) : (this.config?.rows || []);
+    if (this.isApiWired()) {
+      return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
+    }
+    return this.config?.kind === 'transaction' ? [] : (this.config?.rows || []);
   }
 
   loadApiRecords(): void {
@@ -11686,6 +12098,89 @@ export class InventoryScreenShell implements OnInit {
     return columns;
   }
 
+  private firstNumericValue(item: any, keys: string[]): number {
+    for (const key of keys) {
+      const raw = item?.[key];
+      if (raw === null || raw === undefined || String(raw).trim() === '') continue;
+      const value = Number(raw);
+      if (Number.isFinite(value)) return value;
+    }
+    return 0;
+  }
+
+  private itemGstIncluded(item: any): boolean | null {
+    const raw = item?.gst_inclusive ?? item?.gstInclusive;
+    if (raw === true || raw === false) return raw;
+    const text = String(raw ?? '').trim().toLowerCase();
+    if (text === 'true' || text === 'yes' || text === 'included') return true;
+    if (text === 'false' || text === 'no' || text === 'excluded') return false;
+    return null;
+  }
+
+  private inferExpandedLineGstIncluded(item: any, gstPct: number): boolean | null {
+    if (!gstPct) return false;
+    const stored = this.itemGstIncluded(item);
+    if (stored !== null) return stored;
+
+    const amount = this.firstNumericValue(item, ['amount', 'return_amount', 'returnAmount', 'line_total', 'lineTotal']);
+    const qty = this.firstNumericValue(item, ['qty', 'received_qty', 'receivedQty', 'accepted_qty', 'acceptedQty', 'return_qty', 'returnQty']);
+    const rate = this.firstNumericValue(item, ['rate']);
+    if (!amount || !qty || !rate) return null;
+
+    const discountPct = this.firstNumericValue(item, ['discount_pct', 'discountPct']);
+    const excludedTotal = this.roundLineAmount(this.transactionLineTaxBreakup(qty, rate, discountPct, gstPct, undefined, false).total);
+    const includedTotal = this.roundLineAmount(this.transactionLineTaxBreakup(qty, rate, discountPct, gstPct, undefined, true).total);
+    const roundedAmount = this.roundLineAmount(amount);
+    if (Math.abs(roundedAmount - includedTotal) <= 0.02) return true;
+    if (Math.abs(roundedAmount - excludedTotal) <= 0.02) return false;
+    return null;
+  }
+
+  private grnExpandedGstAmount(item: any): number {
+    const storedTax = this.firstNumericValue(item, ['tax_amount', 'taxAmount', 'gst_amount', 'gstAmount']);
+    if (storedTax) return this.roundLineAmount(storedTax);
+
+    const gstPct = this.firstNumericValue(item, ['gst_rate', 'gstRate']);
+    if (!gstPct) return 0;
+
+    const taxable = this.firstNumericValue(item, ['taxable_amount', 'taxableAmount']);
+    if (taxable) return this.roundLineAmount(taxable * gstPct / 100);
+
+    const qty = this.firstNumericValue(item, ['qty', 'received_qty', 'receivedQty', 'accepted_qty', 'acceptedQty', 'return_qty', 'returnQty']);
+    const rate = this.firstNumericValue(item, ['rate']);
+    const discountPct = this.firstNumericValue(item, ['discount_pct', 'discountPct']);
+    if (qty && rate) {
+      const included = this.inferExpandedLineGstIncluded(item, gstPct) ?? false;
+      return this.roundLineAmount(this.transactionLineTaxBreakup(qty, rate, discountPct, gstPct, undefined, included).taxAmount);
+    }
+
+    const amount = this.firstNumericValue(item, ['amount', 'return_amount', 'returnAmount', 'line_total', 'lineTotal']);
+    const included = this.inferExpandedLineGstIncluded(item, gstPct);
+    if (amount && included) {
+      const taxableFromTotal = amount / (1 + gstPct / 100);
+      return this.roundLineAmount(amount - taxableFromTotal);
+    }
+    return 0;
+  }
+
+  private grnExpandedGstCell(item: any): string {
+    const gstPct = this.firstNumericValue(item, ['gst_rate', 'gstRate']);
+    if (!gstPct) return '';
+    const taxAmount = this.grnExpandedGstAmount(item);
+    const percentText = `${gstPct}%`;
+    return taxAmount ? `${percentText} (${this.formatCurrency(taxAmount)})` : percentText;
+  }
+
+  private restoreLineGstModes(items: any[]): void {
+    const next: Record<number, boolean> = {};
+    (items || []).forEach((item, index) => {
+      const gstPct = this.firstNumericValue(item, ['gst_rate', 'gstRate']);
+      const included = this.itemGstIncluded(item) ?? this.inferExpandedLineGstIncluded(item, gstPct);
+      if (included !== null) next[index] = included;
+    });
+    this.lineGstIncludedMap.set(next);
+  }
+
   grnExpandedCell(item: any, column: GrnExpandedColumn, rowIndex: number): string {
     if (column.key === 'sno') return String(rowIndex + 1);
     if (column.key === 'description') return this.grnExpandedValue(item, 'description');
@@ -11708,7 +12203,7 @@ export class InventoryScreenShell implements OnInit {
     if (column.key === 'mrp') return this.grnExpandedValue(item, 'mrp', 'MRP');
     if (column.key === 'selling_price') return this.grnExpandedValue(item, 'selling_price', 'sellingPrice');
     if (column.key === 'disc_pct') return this.grnExpandedValue(item, 'discount_pct', 'discountPct');
-    if (column.key === 'gst_rate') return this.grnExpandedValue(item, 'gst_rate', 'gstRate');
+    if (column.key === 'gst_rate') return this.grnExpandedGstCell(item);
     if (column.key === 'batch_no') return this.grnExpandedValue(item, 'batch_no', 'batchNo');
     if (column.key === 'batch_serial') return this.grnExpandedValue(item, 'batch_serial', 'batchSerial');
     if (column.key === 'expiry_date') return this.gridDateDisplay(this.grnExpandedValue(item, 'expiry_date', 'expiryDate'));
@@ -12147,7 +12642,7 @@ export class InventoryScreenShell implements OnInit {
         }
         break;
       case 'serialNumberPolicy':
-        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', serialFormat: record.serial_format || '', captureStage: record.capture_stage || '', status: cap(record.status || 'active') });
+        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', serialFormat: record.serial_format || '', captureStage: record.capture_stage || '', allowDuplicate: record.allow_duplicate ? 'Yes' : 'No', status: cap(record.status || 'active') });
         break;
       case 'batchLotPolicy':
         this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', batchFormat: record.batch_format || '', expiryRequired: record.expiry_required ? 'Yes' : 'No', qcRequired: record.qc_required ? 'Yes' : 'No', status: cap(record.status || 'active') });
@@ -12295,10 +12790,27 @@ export class InventoryScreenShell implements OnInit {
     }
   }
 
+  // Reopening ANY saved draft (GRN, PI, DC, Sales Invoice, Purchase/Sales
+  // Return — whichever has serial-applicable lines) never restored
+  // lineSerialUnitsMap from the line items' already-saved serial_numbers —
+  // the picker showed "0 entered" on a line that actually had serials
+  // captured earlier, and posting either re-flagged it as incomplete or,
+  // worse, resent serial_numbers as null and wiped what was saved. Called
+  // once, generically, from both applyPurchaseRecordToForm and
+  // applySalesRecordToForm before their per-document-type branches run —
+  // record.items is the same shape across every transaction type here, and
+  // items without serial_numbers just don't add an entry. Always a full
+  // .set() (never merge) so switching to edit a different record can't leak
+  // a previously-edited record's serials into the new one.
+  private hydrateLineSerialUnitsFromRecord(record: any): void {
+    this.lineSerialUnitsMap.set(this.lineSerialMapFromItems(record?.items || []));
+  }
+
   private applyPurchaseRecordToForm(record: any): void {
     const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : 'Draft';
     this.txDocId.set(record.id ?? null);
     this.txDocStatus.set(record.status || 'draft');
+    this.hydrateLineSerialUnitsFromRecord(record);
 
     if (this.config?.key === 'purchaseRequisition') {
       this.txDocNumber.set(record.pr_number || '');
@@ -12393,6 +12905,7 @@ export class InventoryScreenShell implements OnInit {
         item.warehouse_name || record.warehouse_name || '',
         String(item.amount ?? '')
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       return;
     }
 
@@ -12425,6 +12938,7 @@ export class InventoryScreenShell implements OnInit {
       this.entryLineRowsKey.set(this.config.key);
       this.entryLineRows.set((record.items || []).map((item: any) => this.grnItemToLineRow(item))
         .concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       return;
     }
 
@@ -12454,6 +12968,7 @@ export class InventoryScreenShell implements OnInit {
       this.entryLineRowsKey.set(this.config.key);
       this.entryLineRows.set((record.items || []).map((item: any) => this.purchaseInvoiceItemToLineRow(item))
         .concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
     }
 
     if (this.config?.key === 'purchaseReturn') {
@@ -12487,6 +13002,7 @@ export class InventoryScreenShell implements OnInit {
         String(item.return_amount ?? ''),
         item.return_reason || ''
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
     }
 
     if (this.config?.key === 'debitNote') {
@@ -12524,6 +13040,7 @@ export class InventoryScreenShell implements OnInit {
     this.txDocId.set(record.id ?? null);
     this.txDocStatus.set(record.status || 'draft');
     this.txDocNumber.set(record.doc_number || '');
+    this.hydrateLineSerialUnitsFromRecord(record);
 
     if (this.config?.key === 'estimation' || this.config?.key === 'proformaInvoice') {
       this.formValues.set({
@@ -12546,6 +13063,7 @@ export class InventoryScreenShell implements OnInit {
         String(item.gst_rate ?? ''),
         String(item.amount ?? '')
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       return;
     }
 
@@ -12593,6 +13111,7 @@ export class InventoryScreenShell implements OnInit {
         set('Amount', String(item.amount ?? ''));
         return this.normalizeLineRow(row);
       }).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       // Re-populate the hidden reference-id map from the already-persisted
       // so_item_id/dc_item_id so re-saving an edited draft (without re-
       // picking any reference) doesn't silently drop them.
@@ -12629,6 +13148,7 @@ export class InventoryScreenShell implements OnInit {
         String(item.gst_rate ?? ''),
         String(item.amount ?? '')
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       return;
     }
 
@@ -12664,6 +13184,7 @@ export class InventoryScreenShell implements OnInit {
         String(item.expiry_date ?? item.expiryDate ?? ''),
         String(item.amount ?? '')
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
       return;
     }
 
@@ -12745,6 +13266,7 @@ export class InventoryScreenShell implements OnInit {
         String(item.return_amount ?? ''),
         item.reason || ''
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
+      this.restoreLineGstModes(record.items || []);
     }
 
     if (this.config?.key === 'creditNote') {
@@ -12970,7 +13492,7 @@ export class InventoryScreenShell implements OnInit {
           };
         }
       case 'serialNumberPolicy':
-        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || null, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), status: lc(v['status']) };
+        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || null, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), allow_duplicate: bool(v['allowDuplicate']), status: lc(v['status']) };
       case 'batchLotPolicy':
         return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || v['applicableFor'] || null, batch_format: v['batchFormat'] || null, expiry_required: bool(v['expiryRequired']), qc_required: bool(v['qcRequired']), status: lc(v['status']) };
       case 'barcodeConfiguration':
@@ -13516,6 +14038,11 @@ export class InventoryScreenShell implements OnInit {
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), false);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
       const { attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const qty = this.lineNumber(row, ['qty']);
+      const rate = this.lineNumber(row, ['rate', 'list']);
+      const discountPct = this.lineNumber(row, ['disc', 'discount']);
+      const gstRate = this.transactionLineGstPercent(row);
+      const taxPayload = this.transactionLineTaxPayload(row, index, qty, rate, discountPct, gstRate);
       const base: any = {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -13527,11 +14054,14 @@ export class InventoryScreenShell implements OnInit {
         uom_name,
         attribute_name,
         attribute_value,
-        qty: this.lineNumber(row, ['qty']),
-        rate: this.lineNumber(row, ['rate', 'list']),
-        discount_pct: this.lineNumber(row, ['disc', 'discount']),
-        gst_rate: this.lineNumber(row, ['gst', 'tax']),
-        amount: this.lineNumber(row, ['amount']),
+        qty,
+        rate,
+        discount_pct: discountPct,
+        gst_rate: gstRate,
+        gst_inclusive: taxPayload.gst_inclusive,
+        taxable_amount: taxPayload.taxable_amount,
+        tax_amount: taxPayload.tax_amount,
+        amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
         remarks: this.lineValue(row, ['remarks']) || null
       };
       if (this.config?.key === 'salesInvoice') {
@@ -13741,7 +14271,8 @@ export class InventoryScreenShell implements OnInit {
         required_qty: this.lineNumber(row, ['qty']),
         target_rate: this.lineNumber(row, ['target']),
         vendor_rate: this.lineNumber(row, ['vendor rate']),
-        gst_rate: this.lineNumber(row, ['gst', 'tax']),
+        gst_rate: this.transactionLineGstPercent(row),
+        gst_inclusive: this.lineGstIncluded(index),
         lead_time: this.lineValue(row, ['lead']),
         remarks: this.lineValue(row, ['remarks']) || null
       };
@@ -13757,12 +14288,11 @@ export class InventoryScreenShell implements OnInit {
       const qty = this.lineNumber(row, ['qty']);
       const rate = this.lineNumber(row, ['rate']);
       const discPct = this.lineNumber(row, ['disc', 'discount']);
-      const gstRate = this.lineNumber(row, ['gst', 'tax']);
+      const gstRate = this.transactionLineGstPercent(row);
+      const taxPayload = this.transactionLineTaxPayload(row, index, qty, rate, discPct, gstRate);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
       const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.lineValue(row, ['attribute']));
-      const taxable = qty * rate * (1 - discPct / 100);
-      const amount = Math.round((taxable + taxable * (gstRate / 100)) * 100) / 100;
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -13774,8 +14304,11 @@ export class InventoryScreenShell implements OnInit {
         qty, rate,
         discount_pct: discPct,
         gst_rate: gstRate,
+        gst_inclusive: taxPayload.gst_inclusive,
+        taxable_amount: taxPayload.taxable_amount,
+        tax_amount: taxPayload.tax_amount,
         warehouse_name: this.lineValue(row, ['warehouse', 'location']) || defaultWarehouse || null,
-        amount
+        amount: taxPayload.amount
       };
     });
   }
@@ -13790,6 +14323,10 @@ export class InventoryScreenShell implements OnInit {
       // an explicitly entered 0 (fully rejected) must not be silently overridden.
       const acceptedCellRaw = this.lineValue(row, ['accepted']).trim();
       const acceptedQty = acceptedCellRaw !== '' ? this.lineNumber(row, ['accepted']) : receivedQty;
+      const rate = this.lineNumber(row, ['rate']);
+      const discountPct = this.lineNumber(row, ['disc', 'discount']);
+      const gstRate = this.transactionLineGstPercent(row);
+      const taxPayload = this.transactionLineTaxPayload(row, index, receivedQty, rate, discountPct, gstRate);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
       const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
@@ -13808,14 +14345,18 @@ export class InventoryScreenShell implements OnInit {
         received_qty: receivedQty,
         accepted_qty: acceptedQty,
         rejected_qty: Math.max(0, receivedQty - acceptedQty),
-        rate: this.lineNumber(row, ['rate']),
-        discount_pct: this.lineNumber(row, ['disc', 'discount']),
-        gst_rate: this.lineNumber(row, ['gst', 'tax']),
+        rate,
+        discount_pct: discountPct,
+        gst_rate: gstRate,
+        gst_inclusive: taxPayload.gst_inclusive,
+        taxable_amount: taxPayload.taxable_amount,
+        tax_amount: taxPayload.tax_amount,
         batch_no: this.lineValue(row, ['batch']),
         serial_no: this.transactionLineSerialText(row, index),
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
         expiry_date: this.lineValue(row, ['expiry']) || null,
         warehouse_name: this.lineValue(row, ['warehouse', 'location']) || defaultWarehouse || null,
+        amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
         remarks: this.lineValue(row, ['remarks']) || null
       };
     });
@@ -13840,8 +14381,8 @@ export class InventoryScreenShell implements OnInit {
       const mrp = this.lineNumber(row, ['mrp']);
       const sellingPrice = this.lineNumber(row, ['selling price']);
       const discountPct = this.lineNumber(row, ['disc', 'discount']);
-      const gstRate = this.lineNumber(row, ['gst', 'tax']);
-      const taxable = qty * rate * (1 - discountPct / 100);
+      const gstRate = this.transactionLineGstPercent(row);
+      const taxPayload = this.transactionLineTaxPayload(row, index, qty, rate, discountPct, gstRate);
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -13860,11 +14401,14 @@ export class InventoryScreenShell implements OnInit {
         selling_price: sellingPrice || mrp,
         discount_pct: discountPct,
         gst_rate: gstRate,
+        gst_inclusive: taxPayload.gst_inclusive,
+        taxable_amount: taxPayload.taxable_amount,
+        tax_amount: taxPayload.tax_amount,
         batch_no: this.lineValue(row, ['batch']),
         serial_no: this.transactionLineSerialText(row, index),
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
         expiry_date: this.lineValue(row, ['expiry']) || null,
-        amount: this.lineNumber(row, ['amount']) || (taxable + (taxable * gstRate / 100)),
+        amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
         remarks: this.lineValue(row, ['remarks']) || null
       };
     });
@@ -13880,9 +14424,8 @@ export class InventoryScreenShell implements OnInit {
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const returnQty = this.lineNumber(row, ['return']);
       const rate = this.lineNumber(row, ['rate']);
-      const gstRate = this.lineNumber(row, ['gst', 'tax']);
-      const taxableAmount = returnQty * rate;
-      const taxAmount = taxableAmount * gstRate / 100;
+      const gstRate = this.transactionLineGstPercent(row);
+      const breakup = this.transactionLineTaxBreakup(returnQty, rate, 0, gstRate, index);
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -13899,9 +14442,10 @@ export class InventoryScreenShell implements OnInit {
         return_qty: returnQty,
         rate,
         gst_rate: gstRate,
-        taxable_amount: taxableAmount,
-        tax_amount: taxAmount,
-        return_amount: this.lineNumber(row, ['amount']) || (taxableAmount + taxAmount),
+        gst_inclusive: breakup.gstIncluded,
+        taxable_amount: breakup.taxableAmount,
+        tax_amount: breakup.taxAmount,
+        return_amount: this.lineNumber(row, ['amount']) || breakup.total,
         return_reason: this.lineValue(row, ['reason']) || null,
         serial_numbers: this.lineSerialUnitsMap()[index] || null
       };
@@ -13978,9 +14522,8 @@ export class InventoryScreenShell implements OnInit {
       const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
       const returnQty = this.lineNumber(row, ['return']);
       const rate = this.lineNumber(row, ['rate']);
-      const gstRate = this.lineNumber(row, ['gst', 'tax']);
-      const taxableAmount = returnQty * rate;
-      const taxAmount = taxableAmount * gstRate / 100;
+      const gstRate = this.transactionLineGstPercent(row);
+      const breakup = this.transactionLineTaxBreakup(returnQty, rate, 0, gstRate, index);
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -13997,9 +14540,10 @@ export class InventoryScreenShell implements OnInit {
         return_qty: returnQty,
         rate,
         gst_rate: gstRate,
-        taxable_amount: taxableAmount,
-        tax_amount: taxAmount,
-        return_amount: this.lineNumber(row, ['amount']) || (taxableAmount + taxAmount),
+        gst_inclusive: breakup.gstIncluded,
+        taxable_amount: breakup.taxableAmount,
+        tax_amount: breakup.taxAmount,
+        return_amount: this.lineNumber(row, ['amount']) || breakup.total,
         batch_no: this.lineValue(row, ['batch']) || null,
         serial_no: this.lineValue(row, ['serial']) || null,
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
@@ -14394,7 +14938,7 @@ export class InventoryScreenShell implements OnInit {
           cap(r.status || 'active')
         ]);
       case 'serialNumberPolicy':
-        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.serial_format || '', r.capture_stage || '', cap(r.status || 'active')]);
+        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.serial_format || '', r.capture_stage || '', r.allow_duplicate ? 'Yes' : 'No', cap(r.status || 'active')]);
       case 'batchLotPolicy':
         return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.batch_format || '', r.expiry_required ? 'Yes' : 'No', r.qc_required ? 'Yes' : 'No', cap(r.status || 'active')]);
       case 'barcodeConfiguration':

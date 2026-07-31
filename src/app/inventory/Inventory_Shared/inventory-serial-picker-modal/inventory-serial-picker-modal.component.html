@@ -38,6 +38,30 @@
               [disabled]="host.serialPickerDraftValues().length >= picker.qtyNeeded"
               placeholder="Type a serial number and press Enter" />
           </div>
+
+          <div class="erp-form-group inventory-serial-range-group">
+            <label>Add a Range</label>
+            <div class="inventory-serial-range-row"
+              style="display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: 8px;">
+              <span class="inventory-serial-range-label">From</span>
+              <input class="erp-input" type="text" [(ngModel)]="rangeFrom"
+                [disabled]="host.serialPickerDraftValues().length >= picker.qtyNeeded"
+                placeholder="e.g. SN0001" />
+              <span class="inventory-serial-range-label">To</span>
+              <input class="erp-input" type="text" [(ngModel)]="rangeTo"
+                [disabled]="host.serialPickerDraftValues().length >= picker.qtyNeeded"
+                placeholder="e.g. SN0010" />
+              <button type="button" class="erp-btn btn-white btn-sm"
+                [disabled]="host.serialPickerDraftValues().length >= picker.qtyNeeded"
+                (click)="addSerialRange()">
+                <i class="pi pi-plus"></i> Add
+              </button>
+            </div>
+            @if (rangeError) {
+              <small class="inventory-serial-range-error">{{ rangeError }}</small>
+            }
+          </div>
+
           <div class="inventory-serial-chip-list">
             @for (serial of host.serialPickerDraftValues(); track serial) {
               <span class="inventory-serial-chip">

@@ -13,12 +13,13 @@ import {
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 import { InventoryCategoryMasterComponent } from '../../Inventory_Masters/category-master/category-master';
-import { categoryMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { businessSegmentsConfig, categoryMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 
 @Component({
   selector: 'app-inventory-business-segments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryCategoryMasterComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryCategoryMasterComponent, InventoryScreenShell],
   templateUrl: './business-segments.html'
 })
 export class InventoryBusinessSegmentsComponent implements OnInit {
@@ -51,6 +52,7 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   saveError = signal('');
 
   showCategoryMasterDialog = signal(false);
+  readonly businessSegmentsConfig = businessSegmentsConfig;
   readonly categoryMasterConfig = categoryMasterConfig;
 
   showHsnPopup = signal(false);

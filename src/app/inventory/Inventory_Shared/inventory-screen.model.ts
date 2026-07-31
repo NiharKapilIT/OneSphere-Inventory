@@ -23,6 +23,8 @@ export interface InventoryScreenConfig {
   dependsOn?: InventoryDependency[];
   outputImpact?: string;
   screenMode?: string;
+  guideVideoUrl?: string;
+  guideVideoTitle?: string;
   posMode?: 'none' | 'switch' | 'pos';
   recordTitle?: string;
   recordSubtitle?: string;
@@ -610,6 +612,29 @@ export const hsnSacMappingConfig: InventoryScreenConfig = {
   ]
 };
 
+export const taxCodeImportConfig: InventoryScreenConfig = {
+  key: 'taxCodeImport',
+  title: 'HSN/SAC Tax Code Import',
+  subtitle: 'Import GST/CBIC HSN and SAC rate files for tax suggestions.',
+  kind: 'master',
+  icon: 'pi pi-upload',
+  dependsOn: [
+    { name: 'Official GST/CBIC file', status: 'Required' },
+    { name: 'Tax Classification Master', status: 'Ready' }
+  ],
+  outputImpact: 'Imported tax guide data supports HSN/SAC search and product tax review. Users must still verify GST classification before filing.',
+  screenMode: 'Configuration import',
+  fields: [
+    { key: 'sourceName', label: 'Source Name' },
+    { key: 'sourceUpdatedAt', label: 'Source Updated Date', type: 'date' },
+    { key: 'taxCodeFile', label: 'CSV / XLSX File', type: 'file' }
+  ],
+  columns: ['Source', 'Updated Date', 'Imported At', 'Rows Added', 'Rows Updated', 'Status'],
+  rows: [
+    ['GST/CBIC import', 'Latest source date', 'After import', 'HSN/SAC rows', 'Guide notes', 'Reviewed']
+  ]
+};
+
 export const vendorMasterConfig = partyMaster('vendorMaster', 'Vendor Master', 'Supplier and service vendor setup', 'pi pi-truck');
 export const customerMasterConfig = partyMaster('customerMaster', 'Customer Master', 'Customer, tenant, buyer and client setup', 'pi pi-users');
 
@@ -945,13 +970,14 @@ export const serialNumberPolicyConfig: InventoryScreenConfig = {
     { key: 'applicableCategory', label: 'Applicable Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
     { key: 'serialFormat', label: 'Serial Format' },
     { key: 'captureStage', label: 'Capture Stage', type: 'select', options: ['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration'] },
+    { key: 'allowDuplicate', label: 'Allow Duplicate Serial No.', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Policy Code', 'Policy Name', 'Applicable Category', 'Serial Format', 'Capture Stage', 'Status'],
+  columns: ['Policy Code', 'Policy Name', 'Applicable Category', 'Serial Format', 'Capture Stage', 'Allow Duplicate', 'Status'],
   rows: [
-    ['SNP-IMEI', 'IMEI Required', 'Mobile & Accessories', '15 digit IMEI', 'Both Inward and Sale', 'Active'],
-    ['SNP-SERIAL', 'Serial No Required', 'Computers & Devices', 'Brand serial number', 'Purchase Inward', 'Active'],
-    ['SNP-WAR', 'Warranty Serial Tracking', 'Electronics', 'Alphanumeric', 'Warranty Registration', 'Active']
+    ['SNP-IMEI', 'IMEI Required', 'Mobile & Accessories', '15 digit IMEI', 'Both Inward and Sale', 'No', 'Active'],
+    ['SNP-SERIAL', 'Serial No Required', 'Computers & Devices', 'Brand serial number', 'Purchase Inward', 'No', 'Active'],
+    ['SNP-WAR', 'Warranty Serial Tracking', 'Electronics', 'Alphanumeric', 'Warranty Registration', 'No', 'Active']
   ]
 };
 
@@ -1523,6 +1549,60 @@ export const hsnSacReportConfig = report(
 // ─────────────────────────────────────────────────────────────────────────────
 // PROCUREMENT TRANSACTIONS
 // ─────────────────────────────────────────────────────────────────────────────
+
+export const vendorPaymentConfig = transaction(
+  'vendorPayment',
+  'Vendor Payment',
+  'Settle vendor purchase invoices with full or partial allocation.',
+  'pi pi-arrow-up-right',
+  [
+    { name: 'Vendor Master', status: 'Ready' },
+    { name: 'Posted Purchase Invoice', status: 'Required' },
+    { name: 'Payment mode details', status: 'Required' }
+  ],
+  'Payment reduces vendor outstanding and prepares payable settlement details for Accounts.',
+  {
+    screenMode: 'Payment settlement',
+    fields: [
+      { key: 'vendor', label: 'Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
+      { key: 'voucherDate', label: 'Voucher Date', type: 'date' },
+      { key: 'amountToPay', label: 'Amount To Pay', type: 'number' },
+      { key: 'purchaseInvoice', label: 'Purchase Invoice Allocation', type: 'multiselect' },
+      { key: 'paymentMode', label: 'Payment Mode', type: 'select', options: INVENTORY_OPTIONS.paymentModes },
+      { key: 'narration', label: 'Narration', type: 'textarea' }
+    ],
+    lineTitle: 'Payment Allocations',
+    lineColumns: ['Purchase Invoice', 'Outstanding', 'This Payment', 'Balance'],
+    columns: ['Voucher No', 'Date', 'Vendor', 'Allocated Amount', 'Mode', 'Status']
+  }
+);
+
+export const customerReceiptConfig = transaction(
+  'customerReceipt',
+  'Customer Receipt',
+  'Record customer receipts against sales invoices with full or partial allocation.',
+  'pi pi-arrow-down-left',
+  [
+    { name: 'Customer Master', status: 'Ready' },
+    { name: 'Posted Sales Invoice', status: 'Required' },
+    { name: 'Receipt mode details', status: 'Required' }
+  ],
+  'Receipt reduces customer outstanding and prepares receivable settlement details for Accounts.',
+  {
+    screenMode: 'Receipt settlement',
+    fields: [
+      { key: 'customer', label: 'Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
+      { key: 'voucherDate', label: 'Voucher Date', type: 'date' },
+      { key: 'amountReceived', label: 'Amount Received', type: 'number' },
+      { key: 'salesInvoice', label: 'Sales Invoice Allocation', type: 'multiselect' },
+      { key: 'receiptMode', label: 'Receipt Mode', type: 'select', options: INVENTORY_OPTIONS.paymentModes },
+      { key: 'narration', label: 'Narration', type: 'textarea' }
+    ],
+    lineTitle: 'Receipt Allocations',
+    lineColumns: ['Sales Invoice', 'Outstanding', 'This Receipt', 'Balance'],
+    columns: ['Voucher No', 'Date', 'Customer', 'Allocated Amount', 'Mode', 'Status']
+  }
+);
 
 export const purchaseRequisitionConfig = transaction(
   'purchaseRequisition',

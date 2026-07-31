@@ -11,6 +11,8 @@ import { DestroyRef } from '@angular/core';
 import { InventoryConfigService, VendorItem, CustomerItem } from '../../Inventory_Shared/inventory-config.service';
 import { AvailableNote, OutstandingInvoice, PaymentVoucher, PaymentsService } from '../../Inventory_Shared/payments.service';
 import { StickyFooterOffsetService } from '../../../core/services/Common/sticky-footer-offset.service';
+import { customerReceiptConfig, vendorPaymentConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 
 type VoucherMode = 'pay' | 'receipt';
 type ModeRow = { modeKey: string; amount: number; refJson: Record<string, string> };
@@ -44,7 +46,7 @@ const TDS_SECTIONS: { value: string; label: string }[] = [
 @Component({
   selector: 'app-payment-receipt-voucher',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, ToastModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, ToastModule, InventoryScreenShell],
   providers: [MessageService],
   templateUrl: './payment-receipt-voucher.html',
   styleUrl: './payment-receipt-voucher.scss'
@@ -97,6 +99,7 @@ export class PaymentReceiptVoucherComponent {
   readonly partyLabel = computed(() => this.mode() === 'pay' ? 'Vendor' : 'Customer');
   readonly docLabel = computed(() => this.mode() === 'pay' ? 'Purchase Invoice' : 'Sales Invoice');
   readonly invoiceTypeKey = computed<'purchase_invoice' | 'sales_invoice'>(() => this.mode() === 'pay' ? 'purchase_invoice' : 'sales_invoice');
+  readonly guideConfig = computed(() => this.mode() === 'pay' ? vendorPaymentConfig : customerReceiptConfig);
 
   readonly selectedParty = computed(() => {
     const id = this.selectedPartyId();

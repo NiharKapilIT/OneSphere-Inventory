@@ -126,9 +126,13 @@ export interface GrnItem {
   rate: number;
   discount_pct: number;
   gst_rate: number;
+  gst_inclusive?: boolean;
+  taxable_amount?: number;
+  tax_amount?: number;
   amount: number;
   batch_no?: string;
   serial_no?: string;
+  serial_numbers?: string[] | null;
   expiry_date?: string;
   remarks?: string;
 }
@@ -179,8 +183,12 @@ export interface PiItem {
   selling_price?: number;
   discount_pct: number;
   gst_rate: number;
+  gst_inclusive?: boolean;
+  taxable_amount?: number;
+  tax_amount?: number;
   batch_no?: string;
   serial_no?: string;
+  serial_numbers?: string[] | null;
   expiry_date?: string;
   amount: number;
   remarks?: string;
@@ -231,6 +239,9 @@ export interface PurchaseOrderItem {
   rate: number;
   discount_pct: number;
   gst_rate: number;
+  gst_inclusive?: boolean;
+  taxable_amount?: number;
+  tax_amount?: number;
   warehouse_name?: string;
   amount: number;
 }
@@ -300,10 +311,12 @@ export interface PurchaseReturnItem {
   return_qty: number;
   rate: number;
   gst_rate?: number;
+  gst_inclusive?: boolean;
   taxable_amount?: number;
   tax_amount?: number;
   return_amount: number;
   return_reason?: string;
+  serial_numbers?: string[] | null;
   remarks?: string;
 }
 
@@ -406,6 +419,7 @@ export interface DeliveryChallanItem {
   dispatch_qty: number;
   invoiced_qty?: number;
   batch_serial?: string;
+  serial_numbers?: string[] | null;
   remarks?: string;
 }
 
@@ -474,10 +488,12 @@ export interface SalesReturnItem {
   return_qty: number;
   rate: number;
   gst_rate?: number;
+  gst_inclusive?: boolean;
   taxable_amount?: number;
   tax_amount?: number;
   return_amount: number;
   reason?: string;
+  serial_numbers?: string[] | null;
   remarks?: string;
 }
 
@@ -707,8 +723,12 @@ export class InventoryTransactionsService {
         rejected_qty: Number(i.rejectedQty || i.rejected_qty || 0),
         rate: Number(i.rate || 0), discount_pct: Number(i.discountPct || i.discount_pct || 0),
         gst_rate: Number(i.gstRate || i.gst_rate || 0),
+        gst_inclusive: !!(i.gstInclusive ?? i.gst_inclusive),
+        taxable_amount: Number(i.taxableAmount ?? i.taxable_amount ?? 0),
+        tax_amount: Number(i.taxAmount ?? i.tax_amount ?? i.gstAmount ?? i.gst_amount ?? 0),
         amount: Number(i.amount || 0),
         batch_no: i.batchNo || i.batch_no, serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
         expiry_date: i.expiryDate || i.expiry_date, remarks: i.remarks
       }))
     };
@@ -753,8 +773,12 @@ export class InventoryTransactionsService {
         selling_price: Number(i.sellingPrice ?? i.selling_price ?? 0),
         discount_pct: Number(i.discountPct || i.discount_pct || 0),
         gst_rate: Number(i.gstRate || i.gst_rate || 0),
+        gst_inclusive: !!(i.gstInclusive ?? i.gst_inclusive),
+        taxable_amount: Number(i.taxableAmount ?? i.taxable_amount ?? 0),
+        tax_amount: Number(i.taxAmount ?? i.tax_amount ?? i.gstAmount ?? i.gst_amount ?? 0),
         batch_no: i.batchNo || i.batch_no,
         serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
         expiry_date: i.expiryDate || i.expiry_date,
         amount: Number(i.amount || 0), remarks: i.remarks
       }))
@@ -885,6 +909,9 @@ export class InventoryTransactionsService {
         rate: Number(i.rate || 0),
         discount_pct: Number(i.discountPct || i.discount_pct || 0),
         gst_rate: Number(i.gstRate || i.gst_rate || 0),
+        gst_inclusive: !!(i.gstInclusive ?? i.gst_inclusive),
+        taxable_amount: Number(i.taxableAmount ?? i.taxable_amount ?? 0),
+        tax_amount: Number(i.taxAmount ?? i.tax_amount ?? i.gstAmount ?? i.gst_amount ?? 0),
         warehouse_name: i.warehouseName || i.warehouse_name,
         amount: Number(i.amount || 0)
       }))
@@ -939,6 +966,9 @@ export class InventoryTransactionsService {
       qty: Number(i.qty || 0), rate: Number(i.rate || 0),
       discount_pct: Number(i.discountPct || i.discount_pct || 0),
       gst_rate: Number(i.gstRate || i.gst_rate || 0),
+      gst_inclusive: !!(i.gstInclusive ?? i.gst_inclusive),
+      taxable_amount: Number(i.taxableAmount ?? i.taxable_amount ?? 0),
+      tax_amount: Number(i.taxAmount ?? i.tax_amount ?? i.gstAmount ?? i.gst_amount ?? 0),
       amount: Number(i.amount || 0), remarks: i.remarks
     };
   }
@@ -1022,6 +1052,7 @@ export class InventoryTransactionsService {
       items: (r?.items || []).map((i: any) => ({
         ...this.normSalesItem(i),
         batch_no: i.batchNo || i.batch_no, serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
         expiry_date: i.expiryDate || i.expiry_date,
         warehouse_name: i.warehouseName || i.warehouse_name,
         so_item_id: i.soItemId ?? i.so_item_id, dc_item_id: i.dcItemId ?? i.dc_item_id
@@ -1186,10 +1217,12 @@ export class InventoryTransactionsService {
         return_qty: i?.returnQty ?? i?.return_qty ?? 0,
         rate: i?.rate ?? 0,
         gst_rate: i?.gstRate ?? i?.gst_rate ?? 0,
+        gst_inclusive: !!(i?.gstInclusive ?? i?.gst_inclusive),
         taxable_amount: i?.taxableAmount ?? i?.taxable_amount ?? 0,
-        tax_amount: i?.taxAmount ?? i?.tax_amount ?? 0,
+        tax_amount: i?.taxAmount ?? i?.tax_amount ?? i?.gstAmount ?? i?.gst_amount ?? 0,
         return_amount: i?.returnAmount ?? i?.return_amount ?? 0,
         return_reason: i?.returnReason || i?.return_reason,
+        serial_numbers: i?.serialNumbers ?? i?.serial_numbers ?? null,
         remarks: i?.remarks
       } as PurchaseReturnItem))
     };
@@ -1304,6 +1337,7 @@ export class InventoryTransactionsService {
         dispatch_qty: i?.dispatchQty ?? i?.dispatch_qty ?? 0,
         invoiced_qty: i?.invoicedQty ?? i?.invoiced_qty ?? 0,
         batch_serial: i?.batchSerial || i?.batch_serial,
+        serial_numbers: i?.serialNumbers ?? i?.serial_numbers ?? null,
         remarks: i?.remarks
       } as DeliveryChallanItem))
     };
@@ -1374,6 +1408,29 @@ export class InventoryTransactionsService {
     );
   }
 
+  // Purchase Return side — in-stock serials scoped to the GRN/Purchase
+  // Invoice being returned against, so the return auto-binds exactly the
+  // units received on that document.
+  getInstockSerialsForSource(params: { productId: number; sourceDocType?: string | null; sourceDocId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+    let httpParams = new HttpParams().set('productId', String(params.productId));
+    if (params.sourceDocType) httpParams = httpParams.set('sourceDocType', params.sourceDocType);
+    if (params.sourceDocId) httpParams = httpParams.set('sourceDocId', String(params.sourceDocId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/instock-for-source'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => this.normSerialUnits(res))
+    );
+  }
+
+  // Live "already exists" hint for the serial picker — called as the user
+  // types/scans a serial. exists=true + allowDuplicate=false means the
+  // picker should block/warn before the user even gets to Post, where
+  // fn_post_grn_stock/fn_post_pi_stock would otherwise reject it anyway.
+  checkSerialDuplicate(productId: number, serialNo: string): Observable<ApiResponse<{ exists: boolean; allowDuplicate: boolean }>> {
+    const httpParams = new HttpParams().set('productId', String(productId)).set('serialNo', serialNo);
+    return this.http.get<ApiResponse<any>>(this.salesUrl('serials/check-duplicate'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => ({ ...res, data: { exists: !!res?.data?.exists, allowDuplicate: !!(res?.data?.allowDuplicate ?? res?.data?.allow_duplicate) } }))
+    );
+  }
+
   saveDeliveryChallan(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<any>> {
     const h = this.headers(); const body = this.toApiValue(payload);
     return id
@@ -1419,10 +1476,13 @@ export class InventoryTransactionsService {
         return_qty: i?.returnQty ?? i?.return_qty ?? 0,
         rate: i?.rate ?? 0,
         gst_rate: i?.gstRate ?? i?.gst_rate ?? 0,
+        gst_inclusive: !!(i?.gstInclusive ?? i?.gst_inclusive),
         taxable_amount: i?.taxableAmount ?? i?.taxable_amount ?? 0,
-        tax_amount: i?.taxAmount ?? i?.tax_amount ?? 0,
+        tax_amount: i?.taxAmount ?? i?.tax_amount ?? i?.gstAmount ?? i?.gst_amount ?? 0,
         return_amount: i?.returnAmount ?? i?.return_amount ?? 0,
-        reason: i?.reason, remarks: i?.remarks
+        reason: i?.reason,
+        serial_numbers: i?.serialNumbers ?? i?.serial_numbers ?? null,
+        remarks: i?.remarks
       } as SalesReturnItem))
     };
   }

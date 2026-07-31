@@ -3,6 +3,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
+import { inventoryDashboardConfig } from '../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import {
   DashboardDrilldownRow,
   DashboardStockRow,
@@ -12,9 +14,6 @@ import {
   InventoryDashboardService,
   SalesPiPendingFlagRow
 } from '../Inventory_Shared/inventory-dashboard.service';
-
-const PAYABLES_COLOR = '#e11d48';
-const RECEIVABLES_COLOR = '#2563eb';
 
 const SECTION_LAYOUT_KEY = 'inv-dashboard-section-layout-v3';
 const WIDTH_OPTIONS = [4, 6, 8, 12] as const;
@@ -97,7 +96,7 @@ interface GridPayload {
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, InventoryScreenShell],
   templateUrl: './inventory-dashboard.html'
 })
 export class InventoryDashboard {
@@ -112,6 +111,7 @@ export class InventoryDashboard {
   readonly dcPendingInvoiceLines = signal<DcPendingInvoiceLineRow[]>([]);
   readonly dashboardTime = signal(this.nowLabel());
   readonly activeModal = signal<GridPayload | null>(null);
+  readonly inventoryDashboardConfig = inventoryDashboardConfig;
 
   readonly sectionLayout = signal<SectionLayoutItem[]>(this.loadSectionLayout());
   readonly dragOverId = signal<string | null>(null);
@@ -230,12 +230,6 @@ export class InventoryDashboard {
     const total = this.payablesReceivablesTotal();
     return total > 0 ? 100 - this.payablesShare() : 0;
   });
-  readonly payablesReceivablesDonutBackground = computed(() => {
-    const share = this.payablesShare();
-    if (this.payablesReceivablesTotal() <= 0) return '#e2e8f0';
-    return `conic-gradient(${PAYABLES_COLOR} 0 ${share}%, ${RECEIVABLES_COLOR} ${share}% 100%)`;
-  });
-
   readonly filteredStockRows = computed<DashboardStockRow[]>(() => this.summary()?.stock_by_product ?? []);
 
   readonly filteredTransactions = computed<DashboardTransactionRow[]>(() => this.summary()?.recent_transactions ?? []);

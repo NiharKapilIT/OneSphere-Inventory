@@ -73,6 +73,7 @@
                   [ngModel]="transactionDateValue(dateField)"
                   (ngModelChange)="collectFormField(dateField.key, $event)"
                   [ngModelOptions]="{ standalone: true }"
+                  [maxDate]="maxTransactionDate"
                   dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true" [showIcon]="false" appendTo="body"
                   styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100">
@@ -175,6 +176,7 @@
                     [ngModel]="formFieldValue(field)"
                     (ngModelChange)="collectFormField(field.key, $event)"
                     [ngModelOptions]="{ standalone: true }"
+                    [maxDate]="bodyDateFieldMaxDate(field)"
                     dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
                     [readonlyInput]="true" [showIcon]="false" appendTo="body"
                     styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100">
@@ -234,7 +236,7 @@
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of renderedColumns; track column) {
-                    <th>{{ lineGridColumnHeader(column) }}</th>
+                    <th [class]="lineGridColumnCssClass(column)">{{ lineGridColumnHeader(column) }}</th>
                   }
                 </tr>
               </thead>
@@ -252,7 +254,7 @@
                       @let columnIndex = lineGridSourceColumnIndex(column);
                       @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
-                      <td [class.inventory-hint-anchor]="cellView?.stockHint">
+                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
                           <span class="inventory-grid-na">— N/A —</span>
                         } @else if (lineGridCellReadonly(rowIndex, row, column)) {
@@ -271,16 +273,24 @@
                           } @else {
                             <span class="inventory-grid-empty-hint">—</span>
                           }
-                        } @else if (lineGridColumnIsSerialValue(column) && isSerialApplicableRow(row)) {
+                        } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                           <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
                             {{ serialPickerSummaryForRow(rowIndex, row) }}
                           </button>
-                        } @else if (lineGridColumnIsSerialValue(column)) {
+                        } @else if (lineGridColumnIsSerialPicker(column)) {
                           <input class="erp-input inventory-grid-input"
                             type="text"
                             [ngModel]="lineGridSerialValue(rowIndex, row, column)"
                             (ngModelChange)="setLineSerialValue(rowIndex, column, $event)"
                             [placeholder]="'Enter ' + column" />
+                        } @else if (lineGridColumnIsGstValue(column)) {
+                          <div class="inventory-gst-cell" [class.inventory-gst-cell--included]="lineGstIncluded(rowIndex)">
+                            <span class="inventory-gst-rate-pill">{{ lineGridGstPercentText(row, column) }}</span>
+                            <div class="inventory-gst-mode-toggle" [title]="'GST ' + lineGstModeLabel(rowIndex)">
+                              <button type="button" [class.active]="!lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, false)">Excl</button>
+                              <button type="button" [class.active]="lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, true)">Incl</button>
+                            </div>
+                          </div>
                         } @else if (cellView?.options?.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
                             [items]="cellView?.options || []"
@@ -302,6 +312,17 @@
                           <small [class]="cellView?.stockHintClass">
                             <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                           </small>
+                        }
+                        @if (cellApplies && cellView?.priceHint; as priceHint) {
+                          @if (!isPriceHintDismissed(rowIndex, priceHint.fingerprint)) {
+                            <small [class]="transactionPriceHintClass(priceHint)">
+                              <i class="pi" [class.pi-exclamation-triangle]="priceHint.severity !== 'info'" [class.pi-info-circle]="priceHint.severity === 'info'" style="font-size:9px"></i>
+                              {{ priceHint.message }}
+                              <button type="button" class="inventory-price-hint-close" title="Dismiss" (click)="dismissPriceHint(rowIndex, priceHint.fingerprint)">
+                                <i class="pi pi-times"></i>
+                              </button>
+                            </small>
+                          }
                         }
                       </td>
                     }

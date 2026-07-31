@@ -395,6 +395,7 @@ export interface SerialPolicyItem {
   policy_name: string;
   serial_format?: string;
   capture_stage?: string;
+  allow_duplicate: boolean;
   description?: string;
   status: string;
 }
@@ -1376,6 +1377,7 @@ export class InventoryConfigService {
       policy_name: this.value(item, 'policy_name', 'policyName', ''),
       serial_format: this.value(item, 'serial_format', 'serialFormat'),
       capture_stage: this.value(item, 'capture_stage', 'captureStage'),
+      allow_duplicate: this.value(item, 'allow_duplicate', 'allowDuplicate', false),
       description: this.value(item, 'description', 'description'),
       status: this.value(item, 'status', 'status', 'active')
     };

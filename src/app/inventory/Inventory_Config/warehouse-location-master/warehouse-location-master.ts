@@ -8,6 +8,8 @@ import {
   InventoryConfigService, SegmentItem, WarehouseItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
+import { warehouseLocationMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -24,7 +26,7 @@ const CAPACITY_UNITS = ['sqft', 'sqyd', 'acres', 'gunta', 'cents', 'custom'];
 @Component({
   selector: 'app-inventory-warehouse',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryScreenShell],
   templateUrl: './warehouse-location-master.html'
 })
 export class InventoryWarehouseLocationMasterComponent implements OnInit {
@@ -76,6 +78,7 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
 
   readonly indianStates  = INDIAN_STATES;
   readonly capacityUnits = CAPACITY_UNITS;
+  readonly warehouseLocationMasterConfig = warehouseLocationMasterConfig;
 
   ngOnInit(): void {
     forkJoin({

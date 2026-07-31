@@ -28,6 +28,8 @@ export class App implements OnDestroy {
     '.dash-modal-header',
     '.login-demo-modal-header',
     '.inventory-modal-header',
+    '.inv-popup-head',
+    '.inv-modal-head',
     '.contact-modal-header',
     '.role-modal-header',
     '.p-dialog-header'
@@ -38,6 +40,8 @@ export class App implements OnDestroy {
     '.dash-modal',
     '.login-demo-modal',
     '.inventory-modal',
+    '.inv-popup-box',
+    '.inv-modal-panel',
     '.contact-modal',
     '.role-modal',
     '.payroll-slip-modal',

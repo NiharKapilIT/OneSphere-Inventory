@@ -22,7 +22,7 @@
     </button>
   }
 
-  @if (refPickerOpen() && refPickerType() && (!salesReferenceSecondaryType() || refPickerType() !== salesReferenceSecondaryType()) && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan') {
+  @if (refPickerOpen() && refPickerType() && (!salesReferenceSecondaryType() || refPickerType() !== salesReferenceSecondaryType()) && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan' && config.key !== 'purchaseInvoice' && config.key !== 'purchaseReturn' && config.key !== 'goodsReceipt') {
     <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
       <div class="inventory-modal inventory-modal--wide" (click)="$event.stopPropagation()">
         <div class="inventory-modal-header">
@@ -77,7 +77,7 @@
     </div>
   }
 
-  @if (refPickerOpen() && salesReferenceSecondaryType() && refPickerType() === salesReferenceSecondaryType() && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan') {
+  @if (refPickerOpen() && salesReferenceSecondaryType() && refPickerType() === salesReferenceSecondaryType() && config.key !== 'salesInvoice' && config.key !== 'salesReturn' && config.key !== 'deliveryChallan' && config.key !== 'purchaseInvoice' && config.key !== 'purchaseReturn' && config.key !== 'goodsReceipt') {
     <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
       <div class="inventory-modal inventory-modal--wide" (click)="$event.stopPropagation()">
         <div class="inventory-modal-header">
@@ -125,86 +125,83 @@
   </button>
 
   @if (advicePanelOpen()) {
-    <section class="inventory-advice-panel" aria-label="Screen guide">
+    <section class="inventory-advice-panel inventory-advice-panel--short" aria-label="Screen guide">
       <div class="inventory-advice-head">
         <div>
           <span class="inventory-advice-kicker">Screen guide</span>
           <h3><i class="pi pi-lightbulb"></i> {{ config.title }} Guide</h3>
-          <p>{{ screenUsageLabel() }}</p>
+          <p>{{ shortText(screenUsageLabel(), 150) }}</p>
         </div>
         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close guide panel" (click)="toggleAdvicePanel()">
           <i class="pi pi-times"></i>
         </button>
       </div>
 
-      <div class="inventory-advice-grid">
+      <div class="inventory-advice-grid inventory-advice-grid--short">
         <article class="inventory-advice-card">
-          <strong>What this screen is for</strong>
-          <span>{{ config.subtitle }}</span>
+          <strong>Use</strong>
+          <span>{{ shortText(config.subtitle, 140) }}</span>
           @if (config.screenMode) {
             <em>{{ config.screenMode }}</em>
           }
         </article>
 
         <article class="inventory-advice-card">
-          <strong>ERP effect</strong>
-          <span>{{ config.outputImpact || 'This screen supports ERP entry, validation, reporting, and downstream workflow.' }}</span>
-        </article>
-
-        <article class="inventory-advice-card">
-          <strong>Before using</strong>
-          @if (config.dependsOn?.length) {
-            <div class="inventory-advice-deps">
-              @for (dependency of config.dependsOn; track dependency.name) {
-                <span class="inventory-dependency-pill" [ngClass]="'status-' + dependency.status.toLowerCase().replace(' ', '-')">
-                  <i class="pi pi-circle-fill"></i>
-                  {{ dependency.name }}
-                  <em>{{ dependency.status }}</em>
-                </span>
-              }
-            </div>
-          } @else {
-            <span>No prerequisite setup is required for this screen.</span>
-          }
-        </article>
-      </div>
-
-      <div class="inventory-guide-procedure">
-        <article class="inventory-guide-block">
-          <strong>How to use this screen</strong>
-          <ol>
+          <strong>Steps</strong>
+          <ol class="inventory-guide-steps">
             @for (step of guideProcedureSteps(); track step) {
-              <li>{{ step }}</li>
+              <li>{{ shortText(step, 92) }}</li>
             }
           </ol>
         </article>
 
-        <article class="inventory-guide-block">
-          <strong>Practical example</strong>
-          <p>{{ guideExampleText() }}</p>
-        </article>
-
-        <article class="inventory-guide-block">
-          <strong>Important ERP impact</strong>
-          <p>{{ guideImpactText() }}</p>
+        <article class="inventory-advice-card inventory-guide-video-card">
+          <strong>{{ config.guideVideoTitle || 'Video' }}</strong>
+          @if (guideVideoUrl()) {
+            <video class="inventory-guide-video" controls preload="metadata" [src]="guideVideoUrl()"></video>
+          } @else {
+            <span class="inventory-guide-video-empty"><i class="pi pi-video"></i> Video can be attached for this screen.</span>
+          }
         </article>
       </div>
 
-      @if (displayFields().length) {
-        <div class="inventory-field-advice">
+      @if (config.dependsOn?.length) {
+        <div class="inventory-advice-deps inventory-advice-deps--short">
+          @for (dependency of config.dependsOn; track dependency.name) {
+            <span class="inventory-dependency-pill" [ngClass]="'status-' + dependency.status.toLowerCase().replace(' ', '-')">
+              <i class="pi pi-circle-fill"></i>
+              {{ dependency.name }}
+              <em>{{ dependency.status }}</em>
+            </span>
+          }
+        </div>
+      }
+
+      <div class="inventory-guide-impact">
+        <strong>Impact</strong>
+        <span>{{ shortText(guideImpactText(), 180) }}</span>
+      </div>
+
+      @if (guideFields().length) {
+        <div class="inventory-field-advice inventory-field-advice--short">
           <div class="inventory-field-advice-title">
-            <strong>Field guide</strong>
-            <span>{{ displayFields().length }} fields in this screen</span>
+            <strong>Key fields</strong>
+            <span>
+              {{ guideFields().length }} shown
+              @if (hiddenGuideFieldCount() > 0) {
+                of {{ displayFields().length }}
+              }
+            </span>
           </div>
 
           <div class="inventory-field-advice-list">
-            @for (field of displayFields(); track field.key) {
+            @for (field of guideFields(); track field.key) {
               <article class="inventory-field-advice-item">
                 <div>
                   <strong>{{ field.label }}</strong>
-                  <span>{{ fieldAdvice(field) }}</span>
+                  <span>{{ shortText(fieldAdvice(field), 100) }}</span>
                 </div>
-                <p>{{ fieldEffect(field) }}</p>
+                <p>{{ shortText(fieldEffect(field), 120) }}</p>
               </article>
             }
           </div>
