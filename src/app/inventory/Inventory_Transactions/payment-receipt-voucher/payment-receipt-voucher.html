@@ -1,20 +1,7 @@
 <p-toast position="top-right" />
 <div class="module-page inventory-page pay-receipt-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="mode() === 'pay' ? 'pi pi-arrow-up-right' : 'pi pi-arrow-down-left'"></i> {{ mode() === 'pay' ? 'Vendor Payment' : 'Customer Receipt' }}</h2>
-        <p>
-          @if (mode() === 'pay') {
-            Settle outstanding Purchase Invoices of a vendor — full, partial, or across multiple invoices.
-          } @else {
-            Record money received against Sales Invoices of a customer — full, partial, or across multiple invoices.
-          }
-        </p>
-      </div>
-      <app-inventory-screen-shell [config]="guideConfig()"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="guideConfig()"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       <div class="inventory-fieldset-title"><span><i class="pi pi-user"></i> Select {{ partyLabel() }}</span></div>

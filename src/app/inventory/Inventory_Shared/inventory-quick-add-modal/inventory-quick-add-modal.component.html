@@ -6,7 +6,7 @@
             <h3>{{ host.activeAddMaster() === 'New Segment' ? 'Add New Segment' : 'Add ' + host.activeAddMaster() }}</h3>
             <p>
               @if (host.activeAddMaster() === 'HSN / SAC') {
-                Fetch from government source, use a ready API, or add manually for demo mapping.
+                Search the uploaded HSN/SAC tax master while you type, or enter a new code manually.
               } @else if (host.activeAddMaster() === 'Category') {
                 Add a clean product category after checking similar existing categories.
               } @else if (host.activeAddMaster() === 'UOM') {
@@ -57,76 +57,48 @@
         }
 
         @if (host.activeAddMaster() === 'HSN / SAC') {
-          <div class="inventory-lookup-source">
-            @for (source of host.hsnSourceOptions; track source) {
-              <button type="button" class="erp-btn btn-white">
-                <i [class]="source === 'Manual Entry' ? 'pi pi-pencil' : source === 'Ready API' ? 'pi pi-cloud-download' : 'pi pi-globe'"></i>
-                {{ source }}
-              </button>
-            }
-          </div>
           <div class="inventory-form-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Search Keyword</label>
-              <input class="erp-input" type="text" placeholder="Product, service or code keyword" />
+            <div class="erp-form-group span-2">
+              <label class="erp-label">HSN/SAC Code <span class="text-danger">*</span></label>
+              <app-hsn-sac-picker
+                [code]="host.quickAddCode()"
+                (codeChange)="host.onQuickAddCodeChange($event)"
+                [description]="host.quickAddName()"
+                (descriptionChange)="host.onQuickAddNameChange($event)"
+                [gstRate]="host.quickAddHsnGstRate()"
+                (gstRateChange)="host.quickAddHsnGstRate.set($event)"
+                [allowQuickAdd]="false"
+                placeholder="Type a code to search the tax master, e.g. 8471 or 998313">
+              </app-hsn-sac-picker>
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">HSN/SAC Code</label>
-              <input class="erp-input" type="text" placeholder="Fetched code or manual entry" />
+              <label class="erp-label">Description <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                placeholder="What this code covers" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">GST Rate</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['0', '5', '12', '18', '28']" [searchable]="true" [clearable]="true" [ngModel]="'18'" placeholder="Select GST"></ng-select>
+              <label class="erp-label">Type</label>
+              <select class="erp-input" [ngModel]="host.quickAddHsnType()" (ngModelChange)="host.quickAddHsnType.set($event)">
+                <option value="HSN">HSN</option>
+                <option value="SAC">SAC</option>
+              </select>
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Source</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.hsnSourceOptions" [searchable]="true" [clearable]="true" [ngModel]="'Government API'" placeholder="Select Source"></ng-select>
+              <label class="erp-label">GST %</label>
+              <input class="erp-input" type="number" min="0" max="100" step="0.01"
+                [ngModel]="host.quickAddHsnGstRate()"
+                (ngModelChange)="host.quickAddHsnGstRate.set($event === '' ? null : +$event)"
+                placeholder="18" />
             </div>
           </div>
-          <div class="inventory-form-grid">
-            <div class="erp-form-group"><label class="erp-label">CGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">SGST %</label><input class="erp-input" type="number" placeholder="9" /></div>
-            <div class="erp-form-group"><label class="erp-label">IGST %</label><input class="erp-input" type="number" placeholder="18" /></div>
-            <div class="erp-form-group"><label class="erp-label">Cess %</label><input class="erp-input" type="number" placeholder="0" /></div>
-          </div>
+          @if (host.quickAddError()) {
+            <p class="inventory-error-msg">{{ host.quickAddError() }}</p>
+          }
           <div class="inventory-duplicate-advice">
-            <strong>Product auto-binding</strong>
-            <span>When a product category or product is selected later, Product Master should fetch the matching HSN/SAC code and GST breakup from this master.</span>
-          </div>
-          <div class="inventory-mini-table">
-            <div class="inventory-mini-title">Fetched / Available HSN / SAC Codes</div>
-            <table class="erp-table compact">
-              <thead>
-                <tr>
-                  <th class="text-center">Actions</th>
-                  @for (column of ['HSN/SAC Code', 'Description', 'GST %', 'CGST %', 'SGST %', 'IGST %', 'Cess %', 'Effective Date', 'Status']; track column; let columnIndex = $index) {
-                    <th class="inventory-sortable-th">
-                      <button type="button" class="inventory-sort-btn" (click)="host.sortBy('hsnLookup', columnIndex)">
-                        <span>{{ column }}</span>
-                        <i [class]="host.sortIcon('hsnLookup', columnIndex)"></i>
-                      </button>
-                    </th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (row of host.gridRows('hsnLookup', host.hsnLookupRows); track row[0]) {
-                  <tr>
-                    <td class="text-center">
-                      <div class="inventory-row-actions">
-                      @if (host.isAdmin()) {
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
-                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
-                      }
-                    </div>
-                    </td>
-                    @for (cell of row; track $index) {
-                      <td>{{ cell }}</td>
-                    }
-                  </tr>
-                }
-              </tbody>
-            </table>
+            <strong>Saved codes are shared</strong>
+            <span>Saving here adds the code to the same HSN/SAC tax master used by Product Master, Business Segments and everywhere else an HSN/SAC field appears — it becomes searchable immediately.</span>
           </div>
         } @else if (host.activeAddMaster() === 'Category') {
           <app-quick-add-category
@@ -677,10 +649,9 @@
               <input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Applicable Category</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.categoryOptions" [searchable]="true" [clearable]="true" [addTag]="true" addTagText="Use as category:" [ngModel]="host.formValues()['quickApplicableCategory']" (ngModelChange)="host.collectFormField('quickApplicableCategory', $event)" placeholder="Select or type category"></ng-select>
+              <label class="erp-label">Format Notes <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text" [ngModel]="host.formValues()['quickSerialFormat']" (ngModelChange)="host.collectFormField('quickSerialFormat', $event)" placeholder="Free-text reference note, e.g. 15-digit IMEI" />
             </div>
-            <div class="erp-form-group"><label class="erp-label">Serial Format</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickSerialFormat']" (ngModelChange)="host.collectFormField('quickSerialFormat', $event)" placeholder="15 digit IMEI / alphanumeric serial" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Capture Stage</label>
               <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickCaptureStage']" (ngModelChange)="host.collectFormField('quickCaptureStage', $event)" placeholder="Select Stage"></ng-select>
@@ -698,10 +669,9 @@
               <input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">Applicable For (Category)</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.categoryOptions" [searchable]="true" [clearable]="true" [addTag]="true" addTagText="Use as category:" [ngModel]="host.formValues()['quickApplicableFor']" (ngModelChange)="host.collectFormField('quickApplicableFor', $event)" placeholder="Select or type category"></ng-select>
+              <label class="erp-label">Format Notes <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text" [ngModel]="host.formValues()['quickBatchFormat']" (ngModelChange)="host.collectFormField('quickBatchFormat', $event)" placeholder="Free-text reference note, e.g. YYYYMMDD-SUPPLIER-SEQ" />
             </div>
-            <div class="erp-form-group"><label class="erp-label">Batch / Lot Format</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickBatchFormat']" (ngModelChange)="host.collectFormField('quickBatchFormat', $event)" placeholder="YYYYMMDD-SUPPLIER-SEQ" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Expiry Required</label>
               <label class="inventory-labeled-switch yes-no">
@@ -720,29 +690,27 @@
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Vendor') {
           <div class="inventory-form-grid">
-            @if (host.config?.key === 'goodsReceipt') {
-              <div class="erp-form-group span-2">
-                <label class="erp-label">Search Global Contact</label>
-                <div class="inventory-field-with-add">
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                    [items]="host.partyContactOptions()" bindLabel="name"
-                    [searchable]="true" [clearable]="true"
-                    [ngModel]="host.quickVendorLinkedContact()"
-                    (ngModelChange)="host.selectQuickVendorContact($event)"
-                    placeholder="Type search vendor from Global Contact">
-                    <ng-template ng-option-tmp let-item="item">
-                      <div class="inventory-contact-option">
-                        <strong>{{ item.name }}</strong>
-                        <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
-                      </div>
-                    </ng-template>
-                  </ng-select>
-                  <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
-                    <i class="pi pi-plus"></i>
-                  </button>
-                </div>
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Search Global Contact</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.partyContactOptions()" bindLabel="name"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="host.quickVendorLinkedContact()"
+                  (ngModelChange)="host.selectQuickVendorContact($event)"
+                  placeholder="Type search vendor from Global Contact">
+                  <ng-template ng-option-tmp let-item="item">
+                    <div class="inventory-contact-option">
+                      <strong>{{ item.name }}</strong>
+                      <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                    </div>
+                  </ng-template>
+                </ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
+                  <i class="pi pi-plus"></i>
+                </button>
               </div>
-            }
+            </div>
             <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
             <div class="erp-form-group"><label class="erp-label">Vendor Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
             <div class="erp-form-group">
@@ -771,11 +739,32 @@
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Customer') {
           <div class="inventory-form-grid">
+            <div class="erp-form-group span-2">
+              <label class="erp-label">Search Global Contact</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="host.partyContactOptions()" bindLabel="name"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="host.quickCustomerLinkedContact()"
+                  (ngModelChange)="host.selectQuickCustomerContact($event)"
+                  placeholder="Type search customer from Global Contact">
+                  <ng-template ng-option-tmp let-item="item">
+                    <div class="inventory-contact-option">
+                      <strong>{{ item.name }}</strong>
+                      <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                    </div>
+                  </ng-template>
+                </ng-select>
+                <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
+                  <i class="pi pi-plus"></i>
+                </button>
+              </div>
+            </div>
             <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
             <div class="erp-form-group"><label class="erp-label">Customer Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
             <div class="erp-form-group">
               <label class="erp-label">Customer Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail', 'Wholesale', 'Corporate', 'Government', 'Export']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickCustomerType'] || 'Retail'" (ngModelChange)="host.collectFormField('quickCustomerType', $event)" placeholder="Select type"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickCustomerType'] || 'Company'" (ngModelChange)="host.collectFormField('quickCustomerType', $event)" placeholder="Select type"></ng-select>
             </div>
             <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickCustomerMobile']" (ngModelChange)="host.collectFormField('quickCustomerMobile', $event)" placeholder="Primary contact number" /></div>
             <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickCustomerEmail']" (ngModelChange)="host.collectFormField('quickCustomerEmail', $event)" placeholder="Customer email" /></div>
@@ -813,8 +802,10 @@
             <button type="button" class="erp-btn btn-white" (click)="host.closeAddMaster()"><i class="pi pi-times"></i> Cancel</button>
             <button type="button" class="erp-btn btn-primary"
               (click)="host.activeAddMaster() === 'UOM' ? host.saveQuickUom() :
+                       host.activeAddMaster() === 'HSN / SAC' ? host.saveQuickHsnSac() :
                        host.activeAddMaster() === 'Product Type' ? host.saveQuickProductType() :
                        host.activeAddMaster() === 'Brand' ? host.saveQuickBrand() :
+                       host.activeAddMaster() === 'Manufacturer' ? host.saveQuickManufacturer() :
                        host.activeAddMaster() === 'Variant' ? host.saveQuickVariant() :
                        host.activeAddMaster() === 'Attribute' ? host.saveQuickAttribute() :
                        host.activeAddMaster() === 'Contact Person' ? host.saveQuickContact() :

@@ -1,0 +1,74 @@
+<div class="tax-suggest-wrap hsn-sac-picker">
+  <input class="erp-input" type="text"
+    [ngModel]="code"
+    (ngModelChange)="onCodeInput($event)"
+    [placeholder]="placeholder" />
+
+  @if (suggesting()) {
+    <span class="tax-suggest-status"><i class="pi pi-spin pi-spinner"></i> Searching…</span>
+  }
+
+  @if (suggestions().length || searchMessage()) {
+    <div class="tax-suggest-panel">
+      @for (item of suggestions(); track item.id) {
+        <button type="button" class="tax-suggest-item" (click)="selectSuggestion(item)">
+          <span class="tax-suggest-code">{{ item.code }}</span>
+          <span class="tax-suggest-desc">{{ item.description }}</span>
+          @if (item.category) {
+            <span class="tax-suggest-cat">{{ item.category }}</span>
+          }
+          <span class="tax-suggest-rate">{{ taxRateLabel(item.gst_rate) }}</span>
+        </button>
+      }
+      @if (searchMessage()) {
+        <div class="tax-suggest-empty">
+          {{ searchMessage() }}
+          @if (canOfferQuickAdd() && !showQuickAdd()) {
+            <button type="button" class="hsn-picker-add-link" (click)="openQuickAdd()">
+              <i class="pi pi-plus"></i> Add "{{ code }}" to the tax master
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  @if (showQuickAdd()) {
+    <div class="hsn-picker-quickadd">
+      <div class="hsn-picker-quickadd-title">
+        <i class="pi pi-plus-circle"></i> Save "{{ code }}" as a new HSN / SAC code
+      </div>
+      <div class="hsn-picker-quickadd-grid">
+        <div class="erp-form-group">
+          <label class="erp-label">Type</label>
+          <select class="erp-input" [ngModel]="quickAddType()" (ngModelChange)="quickAddType.set($event)">
+            <option value="HSN">HSN</option>
+            <option value="SAC">SAC</option>
+          </select>
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">GST %</label>
+          <input class="erp-input" type="number" min="0" max="100" step="0.01"
+            [ngModel]="quickAddGstRate()" (ngModelChange)="quickAddGstRate.set($event === '' ? null : +$event)"
+            placeholder="18" />
+        </div>
+        <div class="erp-form-group span-2">
+          <label class="erp-label">Description <span class="text-danger">*</span></label>
+          <input class="erp-input" type="text"
+            [ngModel]="quickAddDescription()" (ngModelChange)="quickAddDescription.set($event)"
+            placeholder="What this code covers" />
+        </div>
+      </div>
+      @if (quickAddError()) {
+        <p class="inventory-error-msg">{{ quickAddError() }}</p>
+      }
+      <div class="hsn-picker-quickadd-actions">
+        <button type="button" class="erp-btn btn-white btn-sm" (click)="cancelQuickAdd()">Cancel</button>
+        <button type="button" class="erp-btn btn-primary btn-sm" [disabled]="quickAddSaving()" (click)="submitQuickAdd()">
+          <i [class]="quickAddSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+          {{ quickAddSaving() ? 'Saving...' : 'Save to Tax Master' }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

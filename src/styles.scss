@@ -1099,6 +1099,29 @@ a {
   }
 }
 
+.inventory-readonly-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: default;
+  box-shadow: none !important;
+
+  &--empty {
+    color: #94a3b8;
+    font-weight: 400;
+    font-style: italic;
+  }
+}
+
 .erp-select,
 select.erp-input {
   appearance: none;
@@ -6977,8 +7000,7 @@ body .p-connected-overlay {
   display: grid;
   gap: 14px;
   min-height: 0;
-  padding: 18px 20px 28px;
-  background: #f6f8fb;
+ 
   color: #111827;
 }
 
@@ -9536,7 +9558,8 @@ body .p-connected-overlay {
 
 .inventory-shell {
   display: grid;
-  gap: 18px;
+  gap: 5px;
+ 
 }
 
 .inventory-header,
@@ -9645,6 +9668,43 @@ body .p-connected-overlay {
   border-color: color-mix(in srgb, var(--clr-p2, #0891b2) 40%, #dbe8f9);
   background: color-mix(in srgb, var(--clr-p2, #0891b2) 8%, white);
   color: var(--clr-p1, #0c4a6e);
+}
+
+.inventory-page > .inventory-shell > app-inventory-screen-shell,
+.inventory-page > .inventory-shell > app-inventory-screen-shell > .inventory-shared-guide {
+  display: contents;
+}
+
+.inventory-breadcrumb-guide {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.inventory-breadcrumb-guide > .erp-btn[title="Screen guide"] {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 3px 9px !important;
+  border-radius: 0 !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  gap: 4px;
+  box-shadow: none;
+}
+
+.inventory-breadcrumb-guide > .erp-btn[title="Screen guide"] i {
+  font-size: 11px;
+}
+
+.inventory-breadcrumb-guide > .inventory-advice-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 300;
+  width: min(860px, calc(100vw - 36px));
+  max-height: calc(100vh - 178px);
+  overflow: auto;
 }
 
 .inventory-kicker {
@@ -10312,6 +10372,35 @@ body .p-connected-overlay {
 
 .inventory-form-grid.inventory-config-grid .span-2 {
   grid-column: span 3;
+}
+
+// Sales Order: Payment Terms, Due Date, Delivery Date and the Credit Sale
+// switch all share one line — Delivery Date kept narrow, switch pinned to
+// the right edge of the line.
+.sales-order-terms-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.sales-order-payment-terms-col {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.sales-order-due-date-col {
+  flex: 0 1 150px;
+  min-width: 130px;
+}
+
+.sales-order-delivery-date-col {
+  flex: 0 0 120px;
+}
+
+.sales-order-credit-switch-col {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .inventory-field-with-add {
@@ -11058,27 +11147,37 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
   gap: 6px;
   width: 100%;
   min-height: var(--grn-grid-control-height);
+  padding: 3px 5px;
+  border-radius: 10px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.inventory-gst-cell--included {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
 }
 
 .inventory-gst-rate-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
+  min-width: 48px;
   height: 28px;
-  padding: 0 8px;
-  border: 1px solid #bfdbfe;
+  padding: 0 9px;
+  border: 1.5px solid #93c5fd;
   border-radius: 999px;
-  background: #eff6ff;
+  background: #ffffff;
   color: #1d4ed8;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 800;
   line-height: 1;
 }
 
 .inventory-gst-cell--included .inventory-gst-rate-pill {
-  border-color: #a7f3d0;
-  background: #ecfdf5;
+  border-color: #6ee7b7;
+  background: #ffffff;
   color: #047857;
 }
 
@@ -11087,52 +11186,58 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
   align-items: center;
   height: 28px;
   padding: 2px;
-  border: 1px solid #c7d9f1;
+  border: 1.5px solid #93c5fd;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #eaf3ff 100%);
   color: #475569;
   cursor: pointer;
   flex: 0 0 auto;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 2px rgba(15, 23, 42, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 1px 3px rgba(15, 23, 42, 0.1);
 }
 
 .inventory-gst-mode-toggle button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 22px;
-  padding: 0 6px;
+  min-width: 38px;
+  height: 24px;
+  padding: 0 7px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   line-height: 1;
   transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .inventory-gst-mode-toggle button:not(.active):hover {
-  background: #eaf3ff;
+  background: #dbeafe;
   color: #1d4ed8;
 }
 
 .inventory-gst-mode-toggle button.active {
   background: #2563eb;
   color: #fff;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.18);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.32);
 }
 
 .inventory-gst-cell--included .inventory-gst-mode-toggle {
-  border-color: #b8ead5;
-  background: linear-gradient(180deg, #ffffff 0%, #f0fdf8 100%);
+  border-color: #6ee7b7;
+  background: linear-gradient(180deg, #ffffff 0%, #e3fbf1 100%);
+}
+
+.inventory-gst-cell--included .inventory-gst-mode-toggle button:not(.active):hover {
+  background: #d1fae5;
+  color: #047857;
 }
 
 .inventory-gst-cell--included .inventory-gst-mode-toggle button.active {
   background: #059669;
-  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.18);
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.32);
 }
 
 .inventory-gst-mode-toggle button:focus-visible {
@@ -11168,6 +11273,51 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
 .grn-grid-compact .inventory-grid-empty-hint {
   justify-content: center;
   color: #94a3b8;
+}
+
+/* Drag-to-resize columns — GRN's Received Items grid only (see
+   goods-receipt.html, the only template with the inventory-resizable-table
+   class on its line-items <table>). table-layout: fixed makes a resized
+   <th>'s width stick for the whole column; unresized columns keep sharing
+   the remaining space as before. */
+.inventory-resizable-table {
+  table-layout: fixed;
+
+  th {
+    position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.inventory-col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+  z-index: 2;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    bottom: 15%;
+    right: 3px;
+    width: 2px;
+    border-radius: 2px;
+    background: rgba(148, 163, 184, 0.5);
+    transition: background 0.15s ease;
+  }
+
+  &:hover::after,
+  &:active::after {
+    background: #2563eb;
+  }
 }
 
 .variant-picker-option {
@@ -13029,6 +13179,16 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.inv-popup-box--category-add {
+  width: min(980px, 95vw);
+  max-height: 90vh;
+
+  .inv-popup-body {
+    overflow: auto;
+    min-height: 0;
+  }
 }
 
 .inv-popup-head {

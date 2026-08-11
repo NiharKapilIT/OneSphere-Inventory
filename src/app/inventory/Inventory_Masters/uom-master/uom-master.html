@@ -1,13 +1,6 @@
 <div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     @if (config.kind === 'dashboard') {
       <section class="inventory-section inventory-segment-summary">
@@ -294,6 +287,10 @@
                   </div>
                 </div>
                 <div class="erp-form-group"><label class="erp-label">UOM Code</label><input class="erp-input" type="text" placeholder="NOS / KG / BAG" [ngModel]="formFieldValue({key:'uomCode', label:'UOM Code', type:'text'})" (ngModelChange)="collectFormField('uomCode', $event)" /></div>
+                <div class="erp-form-group">
+                  <label class="erp-label">UOM Symbol <span class="erp-label-hint">used everywhere in place of the name</span></label>
+                  <input class="erp-input" type="text" placeholder="Nos / Kg / Bag" [ngModel]="formFieldValue({key:'uomSymbol', label:'UOM Symbol', type:'text'})" (ngModelChange)="collectFormField('uomSymbol', $event)" />
+                </div>
                 <div class="erp-form-group">
                   <label class="erp-label">Decimal Allowed</label>
                   <label class="inventory-labeled-switch yes-no">

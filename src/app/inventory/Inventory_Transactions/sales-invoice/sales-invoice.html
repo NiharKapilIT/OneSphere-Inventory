@@ -1,13 +1,6 @@
-﻿<div class="module-page inventory-page">
+<div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       @if (isApiWired()) {
@@ -182,75 +175,7 @@
           }
         </div>
 
-        <section class="inventory-fieldset delivery-challan-fieldset">
-          <div class="inventory-fieldset-title inventory-fieldset-title-row">
-            <span><i class="pi pi-map-marker"></i> Place of Supply</span>
-            <label class="inventory-labeled-switch yes-no">
-              <input type="checkbox" [checked]="placeOfSupplyEnabled()" (change)="togglePlaceOfSupply($any($event.target).checked)" />
-              <span class="inventory-switch-track">
-                <span class="switch-text switch-on">Yes</span>
-                <span class="switch-text switch-off">No</span>
-              </span>
-            </label>
-          </div>
-          @if (placeOfSupplyEnabled()) {
-            <div class="inventory-form-grid delivery-address-grid">
-              <div class="erp-form-group">
-                <label class="erp-label">House No / Plot No</label>
-                <input class="erp-input" type="text"
-                  [ngModel]="formValues()['deliveryHouseNo'] || ''"
-                  (ngModelChange)="updateDcDeliveryAddressPart('deliveryHouseNo', $event)"
-                  placeholder="House No / Plot No" />
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">Street / Area</label>
-                <input class="erp-input" type="text"
-                  [ngModel]="formValues()['deliveryStreet'] || ''"
-                  (ngModelChange)="updateDcDeliveryAddressPart('deliveryStreet', $event)"
-                  placeholder="Street, area or landmark" />
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">State</label>
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="dcAddressStates" [searchable]="true" [clearable]="true"
-                  [ngModel]="formValues()['deliveryState'] || ''"
-                  (ngModelChange)="onDcDeliveryStateChange($event)"
-                  placeholder="Select state">
-                </ng-select>
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">District</label>
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="dcDistrictOptions()" [searchable]="true" [clearable]="true"
-                  [ngModel]="formValues()['deliveryDistrict'] || ''"
-                  (ngModelChange)="updateDcDeliveryAddressPart('deliveryDistrict', $event)"
-                  placeholder="Select district">
-                </ng-select>
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">City / Town</label>
-                <input class="erp-input" type="text"
-                  [ngModel]="formValues()['deliveryCity'] || ''"
-                  (ngModelChange)="updateDcDeliveryAddressPart('deliveryCity', $event)"
-                  placeholder="City or town" />
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">Pincode</label>
-                <input class="erp-input" type="text" maxlength="6"
-                  [ngModel]="formValues()['deliveryPincode'] || ''"
-                  (ngModelChange)="onDcDeliveryPincodeChange($event)"
-                  placeholder="6-digit pincode" />
-              </div>
-              <div class="erp-form-group span-2">
-                <label class="erp-label">Full Delivery Address</label>
-                <textarea class="erp-input" rows="2"
-                  [ngModel]="formValues()['deliveryAddress'] || ''"
-                  (ngModelChange)="collectFormField('deliveryAddress', $event)"
-                  placeholder="Auto-filled from address details or enter manually"></textarea>
-              </div>
-            </div>
-          }
-        </section>
+        <app-inventory-delivery-address [host]="this"></app-inventory-delivery-address>
 
         <section class="inventory-fieldset delivery-challan-fieldset">
           <div class="inventory-fieldset-title inventory-fieldset-title-row">
@@ -394,12 +319,15 @@
           <div class="tbl-wrap">
             @let renderedColumns = lineGridRenderColumns();
             @let rowViews = entryLineRowViews();
-            <table class="erp-table compact">
+            <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of renderedColumns; track column) {
-                    <th [class]="lineGridColumnCssClass(column)">{{ lineGridColumnHeader(column) }}</th>
+                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                      {{ lineGridColumnHeader(column) }}
+                      <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                    </th>
                   }
                 </tr>
               </thead>
@@ -419,13 +347,13 @@
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
                       <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
-                          <span class="inventory-grid-na">— N/A —</span>
+                          <span class="inventory-grid-na">� N/A �</span>
                         } @else if (lineGridCellReadonly(rowIndex, row, column)) {
-                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '—' }}</span>
+                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '�' }}</span>
                         } @else if (lineGridColumnIsAttributeValue(column)) {
                           @if (lineGridAttributeSelection(rowView, column); as attr) {
                             @if (attr.isAuto) {
-                              <span class="inventory-grid-static-value">{{ attr.value || '—' }}</span>
+                              <span class="inventory-grid-static-value">{{ attr.value || '�' }}</span>
                             } @else {
                               <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
                                 [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -434,7 +362,7 @@
                               </ng-select>
                             }
                           } @else {
-                            <span class="inventory-grid-empty-hint">—</span>
+                            <span class="inventory-grid-empty-hint">�</span>
                           }
                         } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                           <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
@@ -745,11 +673,11 @@
           <thead>
             <tr>
               <th class="text-center">Actions</th>
-              @for (column of config.columns || []; track column; let columnIndex = $index) {
+              @for (col of visibleRecordColumns(); track col.index) {
                 <th class="inventory-sortable-th">
-                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', columnIndex)">
-                    <span>{{ column }}</span>
-                    <i [class]="sortIcon('records', columnIndex)"></i>
+                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', col.index)">
+                    <span>{{ col.label }}</span>
+                    <i [class]="sortIcon('records', col.index)"></i>
                   </button>
                 </th>
               }
@@ -774,13 +702,13 @@
                     }
                   </div>
                 </td>
-                @for (cell of row.slice(0, (config.columns || []).length); track $index) {
-                  <td>{{ cell }}</td>
+                @for (col of visibleRecordColumns(); track col.index) {
+                  <td>{{ row[col.index] }}</td>
                 }
               </tr>
               @if (isExpandedGrn(row)) {
                 <tr class="pr-expand-tr">
-                  <td [attr.colspan]="(config.columns?.length || 0) + 1">
+                  <td [attr.colspan]="(visibleRecordColumns().length || 0) + 1">
                     <div class="pr-expand-content">
                       <div class="pr-expand-hdr">
                         <i class="pi pi-list"></i>
@@ -801,7 +729,7 @@
                             @for (item of siItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of siColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '—' }}</td>
+                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
                                 }
                               </tr>
                             }
@@ -875,7 +803,7 @@
                 <tbody>
                   @for (doc of refPickerDisplayDocs(); track referenceDocTrackKey(doc)) {
                     <tr>
-                      @if (refPickerDocsHaveType()) { <td>{{ doc.doc_type || '—' }}</td> }
+                      @if (refPickerDocsHaveType()) { <td>{{ doc.doc_type || '�' }}</td> }
                       <td>{{ doc.doc_number }}</td>
                       <td>{{ gridDateDisplay(doc.doc_date) }}</td>
                       <td>{{ doc.party_name }}</td>

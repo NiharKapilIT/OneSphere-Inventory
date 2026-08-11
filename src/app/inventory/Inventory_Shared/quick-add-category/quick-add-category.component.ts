@@ -1,9 +1,9 @@
-import { Component, DestroyRef, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, OnInit, Output, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CategoryItem, InventoryConfigService } from '../inventory-config.service';
+import { BatchPolicyItem, CategoryItem, InventoryConfigService, SerialPolicyItem } from '../inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../inventory-text-case.util';
 
 @Component({
@@ -13,7 +13,7 @@ import { applyInventoryTextCase, toInventoryTitleCase } from '../inventory-text-
   templateUrl: './quick-add-category.component.html',
   styleUrl: './quick-add-category.component.scss'
 })
-export class QuickAddCategoryComponent {
+export class QuickAddCategoryComponent implements OnInit {
   private svc = inject(InventoryConfigService);
   private destroyRef = inject(DestroyRef);
 
@@ -22,7 +22,10 @@ export class QuickAddCategoryComponent {
   @Input() set existingCategoryNames(v: string[]) { this.categoryNames.set(this.mergePolicyNames(v ?? [])); }
   @Input() set existingCategoryCodes(v: string[]) { this.categoryCodes.set(this.mergePolicyNames(v ?? [])); }
   @Input() segmentId: number | null = null;
+  @Input() deferSave = false;
+  @Input() saveButtonLabel = 'Save';
   @Output() saved = new EventEmitter<CategoryItem>();
+  @Output() staged = new EventEmitter<CategoryItem>();
   @Output() cancelled = new EventEmitter<void>();
 
   catName = signal('');
@@ -38,6 +41,8 @@ export class QuickAddCategoryComponent {
 
   localSerialPolicies = signal<string[]>([]);
   localBatchPolicies = signal<string[]>([]);
+  private serialPolicyObjects = signal<SerialPolicyItem[]>([]);
+  private batchPolicyObjects = signal<BatchPolicyItem[]>([]);
   private categoryNames = signal<string[]>([]);
   private categoryCodes = signal<string[]>([]);
 
@@ -80,6 +85,11 @@ export class QuickAddCategoryComponent {
     if (!input) return false;
     return this.localSerialPolicies().some(n => n.toLowerCase() === input);
   });
+
+  ngOnInit(): void {
+    this.refreshSerialPolicies();
+    this.refreshBatchPolicies();
+  }
 
   onCatNameChange(val: string): void {
     const name = toInventoryTitleCase(val ?? '');
@@ -134,6 +144,93 @@ export class QuickAddCategoryComponent {
     return String(value ?? '').trim().toLowerCase();
   }
 
+  private policyNames(items: Array<{ policy_name?: string | null }> | undefined): string[] {
+    return (items ?? [])
+      .map(item => String(item.policy_name ?? '').trim())
+      .filter(Boolean);
+  }
+
+  private dedupePolicies<T extends { id: number; policy_name: string }>(items: T[]): T[] {
+    const seen = new Set<string>();
+    return items.filter(item => {
+      const key = item.id ? `id:${item.id}` : `name:${this.normalizeKey(item.policy_name)}`;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private matchingPolicyName(options: string[], value: string): string | null {
+    const key = this.normalizeKey(value);
+    return key ? options.find(name => this.normalizeKey(name) === key) ?? null : null;
+  }
+
+  private serialPolicyId(name: string | null): number | null {
+    const key = this.normalizeKey(name);
+    return key ? this.serialPolicyObjects().find(item => this.normalizeKey(item.policy_name) === key)?.id ?? null : null;
+  }
+
+  private batchPolicyId(name: string | null): number | null {
+    const key = this.normalizeKey(name);
+    return key ? this.batchPolicyObjects().find(item => this.normalizeKey(item.policy_name) === key)?.id ?? null : null;
+  }
+
+  private isAlreadyExistsMessage(message: string): boolean {
+    return /already exists/i.test(message);
+  }
+
+  private refreshSerialPolicies(selectName = '', duplicateMessage = ''): void {
+    this.svc.getSerialPolicies(null, null, false)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const policies = res.data ?? [];
+          this.serialPolicyObjects.set(policies);
+          const names = this.policyNames(policies);
+          const merged = this.mergePolicyNames(this.localSerialPolicies(), names);
+          this.localSerialPolicies.set(merged);
+          const match = this.matchingPolicyName(merged, selectName);
+          if (match) {
+            this.serialPolicyName.set(match);
+            this.closeInlineSerialAdd();
+          } else if (selectName && duplicateMessage) {
+            this.inlineSerialError.set(duplicateMessage);
+          }
+        },
+        error: () => {
+          if (selectName && duplicateMessage) {
+            this.inlineSerialError.set(duplicateMessage);
+          }
+        }
+      });
+  }
+
+  private refreshBatchPolicies(selectName = '', duplicateMessage = ''): void {
+    this.svc.getBatchPolicies(null, null, false)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const policies = res.data ?? [];
+          this.batchPolicyObjects.set(policies);
+          const names = this.policyNames(policies);
+          const merged = this.mergePolicyNames(this.localBatchPolicies(), names);
+          this.localBatchPolicies.set(merged);
+          const match = this.matchingPolicyName(merged, selectName);
+          if (match) {
+            this.batchPolicyName.set(match);
+            this.closeInlineBatchAdd();
+          } else if (selectName && duplicateMessage) {
+            this.inlineBatchError.set(duplicateMessage);
+          }
+        },
+        error: () => {
+          if (selectName && duplicateMessage) {
+            this.inlineBatchError.set(duplicateMessage);
+          }
+        }
+      });
+  }
+
   private nextCategorySequence(yy: string): number {
     const matchingSequences = this.categoryCodes()
       .map(code => String(code ?? '').match(new RegExp(`-${yy}-(\\d+)$`))?.[1])
@@ -143,6 +240,20 @@ export class QuickAddCategoryComponent {
       return Math.max(...matchingSequences) + 1;
     }
     return this.categoryCodes().length + 1;
+  }
+
+  private clearCategoryForm(): void {
+    this.catName.set('');
+    this.catCode.set('');
+    this.catDescription.set('');
+    this.catStatus.set('Active');
+    this.serialApplicable.set(false);
+    this.batchApplicable.set(false);
+    this.serialPolicyName.set(null);
+    this.batchPolicyName.set(null);
+    this.error.set('');
+    this.closeInlineSerialAdd();
+    this.closeInlineBatchAdd();
   }
 
   setSerialApplicable(val: boolean): void {
@@ -197,16 +308,29 @@ export class QuickAddCategoryComponent {
           this.savingInlineSerial.set(false);
           if (res.success) {
             const policyName = res.data?.policy_name || name;
+            if (res.data) {
+              this.serialPolicyObjects.update(list => this.dedupePolicies([...list, res.data!]));
+            }
             this.localSerialPolicies.update(list => this.mergePolicyNames(list, [policyName]));
             this.serialPolicyName.set(policyName);
             this.closeInlineSerialAdd();
           } else {
-            this.inlineSerialError.set(res.message || 'Failed to save serial policy.');
+            const message = res.message || 'Failed to save serial policy.';
+            if (this.isAlreadyExistsMessage(message)) {
+              this.refreshSerialPolicies(name, 'Policy already exists. Select it from the dropdown.');
+            } else {
+              this.inlineSerialError.set(message);
+            }
           }
         },
         error: (err: any) => {
           this.savingInlineSerial.set(false);
-          this.inlineSerialError.set(err?.error?.message ?? err?.error?.title ?? 'Failed to save serial policy.');
+          const message = err?.error?.message ?? err?.error?.title ?? 'Failed to save serial policy.';
+          if (this.isAlreadyExistsMessage(message)) {
+            this.refreshSerialPolicies(name, 'Policy already exists. Select it from the dropdown.');
+          } else {
+            this.inlineSerialError.set(message);
+          }
         }
       });
   }
@@ -253,16 +377,29 @@ export class QuickAddCategoryComponent {
           this.savingInlineBatch.set(false);
           if (res.success) {
             const policyName = res.data?.policy_name || name;
+            if (res.data) {
+              this.batchPolicyObjects.update(list => this.dedupePolicies([...list, res.data!]));
+            }
             this.localBatchPolicies.update(list => this.mergePolicyNames(list, [policyName]));
             this.batchPolicyName.set(policyName);
             this.closeInlineBatchAdd();
           } else {
-            this.inlineBatchError.set(res.message || 'Failed to save batch policy.');
+            const message = res.message || 'Failed to save batch policy.';
+            if (this.isAlreadyExistsMessage(message)) {
+              this.refreshBatchPolicies(name, 'Policy already exists. Select it from the dropdown.');
+            } else {
+              this.inlineBatchError.set(message);
+            }
           }
         },
         error: (err: any) => {
           this.savingInlineBatch.set(false);
-          this.inlineBatchError.set(err?.error?.message ?? err?.error?.title ?? 'Failed to save batch policy.');
+          const message = err?.error?.message ?? err?.error?.title ?? 'Failed to save batch policy.';
+          if (this.isAlreadyExistsMessage(message)) {
+            this.refreshBatchPolicies(name, 'Policy already exists. Select it from the dropdown.');
+          } else {
+            this.inlineBatchError.set(message);
+          }
         }
       });
   }
@@ -293,16 +430,26 @@ export class QuickAddCategoryComponent {
       this.error.set('Category code already exists. Change the code or select the existing category.');
       return;
     }
-    this.svc.saveCategory({
+    const payload: CategoryItem = {
+      id: 0,
       category_code: code,
       category_name: name,
       description: this.catDescription().trim(),
       serial_applicable: this.serialApplicable(),
+      serial_policy_id: this.serialApplicable() ? this.serialPolicyId(serialPolicy) : null,
       serial_policy_name: serialPolicy,
       batch_applicable: this.batchApplicable(),
+      batch_policy_id: this.batchApplicable() ? this.batchPolicyId(batchPolicy) : null,
       batch_policy_name: batchPolicy,
       status: this.catStatus().toLowerCase()
-    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    };
+    if (this.deferSave) {
+      this.saving.set(false);
+      this.staged.emit(payload);
+      this.clearCategoryForm();
+      return;
+    }
+    this.svc.saveCategory(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.saving.set(false);
         if (res.success && res.data) {

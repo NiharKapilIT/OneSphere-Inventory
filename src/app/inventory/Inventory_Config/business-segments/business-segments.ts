@@ -3,7 +3,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import {
   CategoryItem,
   HsnSacItem,
@@ -12,14 +12,14 @@ import {
   UomItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
-import { InventoryCategoryMasterComponent } from '../../Inventory_Masters/category-master/category-master';
-import { businessSegmentsConfig, categoryMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
+import { businessSegmentsConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
+import { QuickAddCategoryComponent } from '../../Inventory_Shared/quick-add-category/quick-add-category.component';
 
 @Component({
   selector: 'app-inventory-business-segments',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryCategoryMasterComponent, InventoryScreenShell],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, InventoryScreenShell, QuickAddCategoryComponent],
   templateUrl: './business-segments.html'
 })
 export class InventoryBusinessSegmentsComponent implements OnInit {
@@ -52,8 +52,24 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   saveError = signal('');
 
   showCategoryMasterDialog = signal(false);
+  pendingCategories = signal<CategoryItem[]>([]);
+  savingPendingCategories = signal(false);
+  categoryPopupError = signal('');
   readonly businessSegmentsConfig = businessSegmentsConfig;
-  readonly categoryMasterConfig = categoryMasterConfig;
+  readonly categoryNameOptions = computed(() =>
+    this.categories().map(item => item.category_name).filter(Boolean)
+  );
+  readonly categoryCodeOptions = computed(() =>
+    this.categories().map(item => item.category_code).filter(Boolean)
+  );
+  readonly categoryDialogNameOptions = computed(() => [
+    ...this.categoryNameOptions(),
+    ...this.pendingCategories().map(item => item.category_name).filter(Boolean)
+  ]);
+  readonly categoryDialogCodeOptions = computed(() => [
+    ...this.categoryCodeOptions(),
+    ...this.pendingCategories().map(item => item.category_code).filter(Boolean)
+  ]);
 
   showHsnPopup = signal(false);
   newHsnCode = signal('');
@@ -257,17 +273,133 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   }
 
   openCategoryMasterDialog(): void {
+    this.categoryPopupError.set('');
     this.showCategoryMasterDialog.set(true);
   }
 
   closeCategoryMasterDialog(): void {
+    if (this.savingPendingCategories()) return;
     this.showCategoryMasterDialog.set(false);
+    this.pendingCategories.set([]);
+    this.categoryPopupError.set('');
     this.refreshCategories();
   }
 
-  private refreshCategories(): void {
+  onQuickCategorySaved(category: CategoryItem): void {
+    this.categories.update(list => this.dedupeByName([
+      ...list.filter(item => item.id !== category.id),
+      category
+    ], item => item.category_name));
+    if (category.id) {
+      this.categoryIds.update(ids => [...new Set([...ids, category.id])]);
+    }
+    this.showCategoryMasterDialog.set(false);
+    this.saveMsg.set('Category added and selected.');
+    this.refreshCategories(category);
+    setTimeout(() => this.saveMsg.set(''), 4000);
+  }
+
+  onQuickCategoryStaged(category: CategoryItem): void {
+    const hasDuplicate = this.pendingCategories().some(item =>
+      this.normalizeKey(item.category_name) === this.normalizeKey(category.category_name)
+      || this.normalizeKey(item.category_code) === this.normalizeKey(category.category_code)
+    );
+    if (hasDuplicate) {
+      this.categoryPopupError.set('Category already added to temp grid.');
+      return;
+    }
+    this.pendingCategories.update(rows => [...rows, category]);
+    this.categoryPopupError.set('');
+  }
+
+  removePendingCategory(index: number): void {
+    this.pendingCategories.update(rows => rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  savePendingCategories(): void {
+    const rows = this.pendingCategories();
+    if (!rows.length) {
+      this.categoryPopupError.set('Add at least one category to temp grid.');
+      return;
+    }
+
+    this.savingPendingCategories.set(true);
+    this.categoryPopupError.set('');
+    const requests = rows.map(row => this.svc.saveCategory(this.categoryPayload(row)).pipe(
+      map(res => ({ row, res, error: null as any })),
+      catchError(error => of({ row, res: null, error }))
+    ));
+
+    forkJoin(requests).subscribe({
+      next: results => {
+        const savedCategories = results
+          .filter(result => result.res?.success && result.res.data)
+          .map(result => result.res!.data!);
+        const failedRows = results
+          .filter(result => !(result.res?.success && result.res.data))
+          .map(result => result.row);
+
+        if (savedCategories.length) {
+          this.categories.update(list => this.dedupeByName([...list, ...savedCategories], item => item.category_name));
+          const savedIds = savedCategories.map(item => item.id).filter(Boolean);
+          this.categoryIds.update(ids => [...new Set([...ids, ...savedIds])]);
+        }
+
+        this.pendingCategories.set(failedRows);
+        this.savingPendingCategories.set(false);
+
+        if (failedRows.length) {
+          const firstFailure = results.find(result => !(result.res?.success && result.res.data));
+          const message = firstFailure?.res?.message
+            ?? firstFailure?.error?.error?.title
+            ?? firstFailure?.error?.error?.message
+            ?? 'Some categories failed to save.';
+          this.categoryPopupError.set(savedCategories.length
+            ? `${savedCategories.length} saved. ${failedRows.length} failed. ${message}`
+            : message);
+          return;
+        }
+
+        this.showCategoryMasterDialog.set(false);
+        this.saveMsg.set(savedCategories.length === 1 ? 'Category added and selected.' : `${savedCategories.length} categories added and selected.`);
+        this.refreshCategories();
+        setTimeout(() => this.saveMsg.set(''), 4000);
+      },
+      error: err => {
+        this.savingPendingCategories.set(false);
+        this.categoryPopupError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to save categories.');
+      }
+    });
+  }
+
+  private categoryPayload(category: CategoryItem): Record<string, any> {
+    return {
+      category_code: category.category_code,
+      category_name: category.category_name,
+      description: category.description ?? '',
+      serial_applicable: !!category.serial_applicable,
+      serial_policy_id: category.serial_applicable ? category.serial_policy_id ?? null : null,
+      serial_policy_name: category.serial_policy_name ?? null,
+      batch_applicable: !!category.batch_applicable,
+      batch_policy_id: category.batch_applicable ? category.batch_policy_id ?? null : null,
+      batch_policy_name: category.batch_policy_name ?? null,
+      status: category.status || 'active'
+    };
+  }
+
+  private refreshCategories(selectCategory?: CategoryItem): void {
     this.svc.getCategories().subscribe({
-      next: res => this.categories.set(this.dedupeByName(res.data ?? [], item => item.category_name)),
+      next: res => {
+        const categories = this.dedupeByName(res.data ?? [], item => item.category_name);
+        this.categories.set(categories);
+        const categoryId = selectCategory?.id || categories.find(item =>
+          this.normalizeKey(item.category_name) === this.normalizeKey(selectCategory?.category_name)
+          || this.normalizeKey(item.category_code) === this.normalizeKey(selectCategory?.category_code)
+        )?.id;
+        if (categoryId) {
+          this.categoryIds.update(ids => [...new Set([...ids, categoryId])]);
+        }
+      },
       error: () => undefined
     });
   }

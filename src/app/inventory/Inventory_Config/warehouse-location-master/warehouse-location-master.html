@@ -2,17 +2,24 @@
   <div class="inventory-shell">
 
     <!-- ── Header ──────────────────────────────────────────────────────── -->
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory Config</span>
-        <h2><i class="pi pi-building"></i> Warehouse Setup</h2>
-        <p>Define warehouses with segment, location, capacity and address details.</p>
-      </div>
-      <app-inventory-screen-shell [config]="warehouseLocationMasterConfig"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="warehouseLocationMasterConfig"></app-inventory-screen-shell>
 
     <!-- ── Form card ────────────────────────────────────────────────────── -->
     <section class="inventory-section">
+      <div class="product-segment-bar">
+        <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
+        @if (segmentCount() === 1) {
+          <span class="erp-badge badge-info">{{ segmentOptions()[0] }}</span>
+        } @else {
+          <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
+            [items]="segmentOptions()" [searchable]="false" [clearable]="false"
+            [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
+            placeholder="Select Segment">
+          </ng-select>
+        }
+        <span class="product-segment-bar-hint">Warehouses added here belong to this segment.</span>
+      </div>
+
       <div class="inventory-section-title">
         <div>
           <h3>{{ editingId() ? 'Edit Warehouse' : 'New Warehouse' }}</h3>
@@ -24,21 +31,6 @@
       </div>
 
       <div class="inventory-form-grid inventory-config-grid">
-
-        <!-- Segment -->
-        <div class="erp-form-group">
-          <label class="erp-label">Business Segment</label>
-          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-            [items]="segments()"
-            bindLabel="segment_name"
-            bindValue="id"
-            [searchable]="true"
-            [clearable]="true"
-            [ngModel]="segmentId()"
-            (ngModelChange)="segmentId.set($event)"
-            placeholder="Select segment (optional)">
-          </ng-select>
-        </div>
 
         <!-- Warehouse Name -->
         <div class="erp-form-group erp-exist-wrap">

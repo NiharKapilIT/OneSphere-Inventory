@@ -565,16 +565,17 @@ export const uomMasterConfig: InventoryScreenConfig = {
   fields: [
     { key: 'uomName', label: 'UOM Name' },
     { key: 'uomCode', label: 'UOM Code' },
+    { key: 'uomSymbol', label: 'UOM Symbol' },
     { key: 'decimalAllowed', label: 'Decimal Allowed', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['UOM Code', 'UOM Name', 'Decimal Allowed', 'Status'],
+  columns: ['UOM Code', 'UOM Name', 'UOM Symbol', 'Decimal Allowed', 'Status'],
   rows: [
-    ['NOS', 'Numbers', 'No', 'Active'],
-    ['BAG', 'Bag', 'Yes', 'Active'],
-    ['KG', 'Kilogram', 'Yes', 'Active'],
-    ['SFT', 'Square Feet', 'Yes', 'Active'],
-    ['LTR', 'Litre', 'Yes', 'Active']
+    ['NOS', 'Numbers', 'Nos', 'No', 'Active'],
+    ['BAG', 'Bag', 'Bag', 'Yes', 'Active'],
+    ['KG', 'Kilogram', 'Kg', 'Yes', 'Active'],
+    ['SFT', 'Square Feet', 'Sft', 'Yes', 'Active'],
+    ['LTR', 'Litre', 'Ltr', 'Yes', 'Active']
   ]
 };
 
@@ -871,7 +872,7 @@ export const brandMasterConfig: InventoryScreenConfig = {
     { key: 'brandName', label: 'Brand Name' },
     { key: 'brandCode', label: 'Brand Code' },
     { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'manufacturer', label: 'Manufacturer', type: 'select', options: ['Dell Technologies', 'Samsung India', 'AgroFresh Foods', 'AeroTech Labs', 'BuildCast Industries', 'Kitchen Fresh Foods', 'Beverage World', 'House Brand'], addMaster: 'Manufacturer' },
+    { key: 'manufacturer', label: 'Manufacturer', type: 'select', options: [], allowCustomValue: true, addMaster: 'Manufacturer' },
     { key: 'brandLogo', label: 'Brand Logo (Optional)', type: 'file' },
     { key: 'description', label: 'Description', type: 'textarea' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
@@ -900,24 +901,22 @@ export const attributeMasterConfig: InventoryScreenConfig = {
   screenMode: 'Master setup',
   fields: [
     { key: 'attributeName', label: 'Attribute Name' },
+    { key: 'possibleValues', label: 'Attribute Values', type: 'tags' },
     { key: 'attributeCode', label: 'Attribute Code' },
     { key: 'attributeType', label: 'Data Type', type: 'select', options: ['List', 'Text', 'Number', 'Date', 'Dropdown', 'Multi Select', 'Yes/No'] },
-    { key: 'displayOrder', label: 'Display Order', type: 'number' },
     { key: 'mandatoryFlag', label: 'Mandatory Flag', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Attribute Code', 'Attribute Name', 'Data Type', 'Values (Usage)', 'Usage Count', 'Display Order', 'Status'],
+  columns: ['Attribute Code', 'Attribute Name', 'Data Type', 'Values (Usage)', 'Usage Count', 'Status'],
   rows: [
-    ['ATTR-COLOR', 'Color', 'List', 'Black, White, Silver, Blue', '0', '10', 'Active'],
-    ['ATTR-STORAGE', 'Storage Capacity', 'List', '64GB, 128GB, 256GB, 512GB', '0', '20', 'Active'],
-    ['ATTR-EXPIRY', 'Expiry Date', 'Date', 'Date picker value', '0', '30', 'Active'],
-    ['ATTR-GRADE', 'Grade', 'List', 'A, B, C, Premium', '0', '40', 'Active'],
-    ['ATTR-SPICE', 'Spice Level', 'List', 'Mild, Medium, Spicy', '0', '50', 'Active'],
-    ['ATTR-MEAL', 'Meal Type', 'List', 'Veg, Non-Veg, Vegan', '0', '60', 'Active'],
-    ['ATTR-ROOM', 'Room Type', 'List', 'Standard, Deluxe, Suite', '0', '70', 'Active']
-  ],
-  lineTitle: 'Attribute Values',
-  lineColumns: ['Value Code', 'Value Name', 'Status', 'Sort Order']
+    ['ATTR-COLOR', 'Color', 'List', 'Black, White, Silver, Blue', '0', 'Active'],
+    ['ATTR-STORAGE', 'Storage Capacity', 'List', '64GB, 128GB, 256GB, 512GB', '0', 'Active'],
+    ['ATTR-EXPIRY', 'Expiry Date', 'Date', 'Date picker value', '0', 'Active'],
+    ['ATTR-GRADE', 'Grade', 'List', 'A, B, C, Premium', '0', 'Active'],
+    ['ATTR-SPICE', 'Spice Level', 'List', 'Mild, Medium, Spicy', '0', 'Active'],
+    ['ATTR-MEAL', 'Meal Type', 'List', 'Veg, Non-Veg, Vegan', '0', 'Active'],
+    ['ATTR-ROOM', 'Room Type', 'List', 'Standard, Deluxe, Suite', '0', 'Active']
+  ]
 };
 
 export const variantMasterConfig: InventoryScreenConfig = {
@@ -968,7 +967,7 @@ export const serialNumberPolicyConfig: InventoryScreenConfig = {
     { key: 'policyName', label: 'Policy Name' },
     { key: 'policyCode', label: 'Policy Code' },
     { key: 'applicableCategory', label: 'Applicable Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'serialFormat', label: 'Serial Format' },
+    { key: 'serialFormat', label: 'Format Notes (optional)' },
     { key: 'captureStage', label: 'Capture Stage', type: 'select', options: ['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration'] },
     { key: 'allowDuplicate', label: 'Allow Duplicate Serial No.', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
@@ -997,7 +996,7 @@ export const batchLotPolicyConfig: InventoryScreenConfig = {
     { key: 'policyName', label: 'Policy Name' },
     { key: 'policyCode', label: 'Policy Code' },
     { key: 'applicableCategory', label: 'Applicable Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'batchFormat', label: 'Batch / Lot Format' },
+    { key: 'batchFormat', label: 'Format Notes (optional)' },
     { key: 'expiryRequired', label: 'Expiry Required', type: 'select', options: ['Yes', 'No'] },
     { key: 'qcRequired', label: 'QC Required', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
@@ -1813,15 +1812,14 @@ export const salesOrderConfig = transaction(
       { key: 'soNo', label: 'SO Number' },
       { key: 'soDate', label: 'SO Date', type: 'date' },
       { key: 'customer', label: 'Party / Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
+      { key: 'creditSale', label: 'Credit Sale', type: 'select', options: ['Yes', 'No'] },
       { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
       { key: 'dueDate', label: 'Due Date', type: 'date' },
       { key: 'deliveryDate', label: 'Delivery Date', type: 'date' },
-      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'placeOfSupply', label: 'Place of Supply' },
       { key: 'deliveryAddress', label: 'Delivery Address', type: 'textarea' }
     ],
     lineTitle: 'Order Items',
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST %', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Expected Rate (Exp. Rate)', 'GST %', 'Batch No', 'Expiry Date', 'Amount'],
     lineRows: [],
     columns: ['SO No', 'SO Date', 'Customer', 'Amount', 'Delivery Date', 'Status'],
     rows: [

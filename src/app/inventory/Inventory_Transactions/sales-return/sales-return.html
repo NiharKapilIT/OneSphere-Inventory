@@ -1,13 +1,6 @@
-﻿<div class="module-page inventory-page">
+<div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       @if (isApiWired()) {
@@ -179,12 +172,17 @@
             </button>
           </div>
           <div class="tbl-wrap">
-            <table class="erp-table compact">
+            <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of config.lineColumns || []; track column) {
-                    <th [class]="lineGridColumnCssClass(column)">{{ column }}</th>
+                    @if (isLineColumnVisible(column)) {
+                      <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                        {{ column }}
+                        <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                      </th>
+                    }
                   }
                 </tr>
               </thead>
@@ -198,54 +196,56 @@
                       </div>
                     </td>
                     @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
-                      @let cellView = entryLineRowViews()[rowIndex]?.columns?.[columnIndex];
-                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
-                        @if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
-                          <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
-                            {{ serialPickerSummaryForRow(rowIndex, row) }}
-                          </button>
-                        } @else if (lineGridColumnIsGstValue(column)) {
-                          <div class="inventory-gst-cell" [class.inventory-gst-cell--included]="lineGstIncluded(rowIndex)">
-                            <span class="inventory-gst-rate-pill">{{ lineGridGstPercentText(row, column) }}</span>
-                            <div class="inventory-gst-mode-toggle" [title]="'GST ' + lineGstModeLabel(rowIndex)">
-                              <button type="button" [class.active]="!lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, false)">Excl</button>
-                              <button type="button" [class.active]="lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, true)">Incl</button>
+                      @if (isLineColumnVisible(column)) {
+                        @let cellView = entryLineRowViews()[rowIndex]?.columns?.[columnIndex];
+                        <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
+                          @if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
+                            <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
+                              {{ serialPickerSummaryForRow(rowIndex, row) }}
+                            </button>
+                          } @else if (lineGridColumnIsGstValue(column)) {
+                            <div class="inventory-gst-cell" [class.inventory-gst-cell--included]="lineGstIncluded(rowIndex)">
+                              <span class="inventory-gst-rate-pill">{{ lineGridGstPercentText(row, column) }}</span>
+                              <div class="inventory-gst-mode-toggle" [title]="'GST ' + lineGstModeLabel(rowIndex)">
+                                <button type="button" [class.active]="!lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, false)">Excl</button>
+                                <button type="button" [class.active]="lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, true)">Incl</button>
+                              </div>
                             </div>
-                          </div>
-                        } @else if (cellView?.options?.length) {
-                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
-                            [items]="cellView?.options || []"
-                            [searchable]="true" [clearable]="false"
-                            [multiple]="cellView?.usesMultiSelect"
-                            [closeOnSelect]="!cellView?.usesMultiSelect"
-                            [ngModel]="cellView?.controlValue"
-                            (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="cellView?.placeholder || ''">
-                          </ng-select>
-                        } @else {
-                          <input class="erp-input inventory-grid-input"
-                            [type]="cellView?.inputType"
-                            [ngModel]="cellView?.controlValue"
-                            (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="cellView?.placeholder || ''" />
-                        }
-                        @if (cellView?.stockHint; as stockHint) {
-                          <small [class]="cellView?.stockHintClass">
-                            <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
-                          </small>
-                        }
-                        @if (cellView?.priceHint; as priceHint) {
-                          @if (!isPriceHintDismissed(rowIndex, priceHint.fingerprint)) {
-                            <small [class]="transactionPriceHintClass(priceHint)">
-                              <i class="pi" [class.pi-exclamation-triangle]="priceHint.severity !== 'info'" [class.pi-info-circle]="priceHint.severity === 'info'" style="font-size:9px"></i>
-                              {{ priceHint.message }}
-                              <button type="button" class="inventory-price-hint-close" title="Dismiss" (click)="dismissPriceHint(rowIndex, priceHint.fingerprint)">
-                                <i class="pi pi-times"></i>
-                              </button>
+                          } @else if (cellView?.options?.length) {
+                            <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
+                              [items]="cellView?.options || []"
+                              [searchable]="true" [clearable]="false"
+                              [multiple]="cellView?.usesMultiSelect"
+                              [closeOnSelect]="!cellView?.usesMultiSelect"
+                              [ngModel]="cellView?.controlValue"
+                              (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
+                              [placeholder]="cellView?.placeholder || ''">
+                            </ng-select>
+                          } @else {
+                            <input class="erp-input inventory-grid-input"
+                              [type]="cellView?.inputType"
+                              [ngModel]="cellView?.controlValue"
+                              (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
+                              [placeholder]="cellView?.placeholder || ''" />
+                          }
+                          @if (cellView?.stockHint; as stockHint) {
+                            <small [class]="cellView?.stockHintClass">
+                              <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                             </small>
                           }
-                        }
-                      </td>
+                          @if (cellView?.priceHint; as priceHint) {
+                            @if (!isPriceHintDismissed(rowIndex, priceHint.fingerprint)) {
+                              <small [class]="transactionPriceHintClass(priceHint)">
+                                <i class="pi" [class.pi-exclamation-triangle]="priceHint.severity !== 'info'" [class.pi-info-circle]="priceHint.severity === 'info'" style="font-size:9px"></i>
+                                {{ priceHint.message }}
+                                <button type="button" class="inventory-price-hint-close" title="Dismiss" (click)="dismissPriceHint(rowIndex, priceHint.fingerprint)">
+                                  <i class="pi pi-times"></i>
+                                </button>
+                              </small>
+                            }
+                          }
+                        </td>
+                      }
                     }
                   </tr>
                 }
@@ -367,11 +367,11 @@
           <thead>
             <tr>
               <th class="text-center">Actions</th>
-              @for (column of config.columns || []; track column; let columnIndex = $index) {
+              @for (col of visibleRecordColumns(); track col.index) {
                 <th class="inventory-sortable-th">
-                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', columnIndex)">
-                    <span>{{ column }}</span>
-                    <i [class]="sortIcon('records', columnIndex)"></i>
+                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', col.index)">
+                    <span>{{ col.label }}</span>
+                    <i [class]="sortIcon('records', col.index)"></i>
                   </button>
                 </th>
               }
@@ -391,13 +391,13 @@
                     }
                   </div>
                 </td>
-                @for (cell of row.slice(0, (config.columns || []).length); track $index) {
-                  <td>{{ cell }}</td>
+                @for (col of visibleRecordColumns(); track col.index) {
+                  <td>{{ row[col.index] }}</td>
                 }
               </tr>
               @if (isExpandedGrn(row)) {
                 <tr class="pr-expand-tr">
-                  <td [attr.colspan]="(config.columns?.length || 0) + 1">
+                  <td [attr.colspan]="(visibleRecordColumns().length || 0) + 1">
                     <div class="pr-expand-content">
                       <div class="pr-expand-hdr">
                         <i class="pi pi-list"></i>
@@ -418,7 +418,7 @@
                             @for (item of returnItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of returnColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '—' }}</td>
+                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
                                 }
                               </tr>
                             }
@@ -484,11 +484,16 @@
             <div class="tbl-wrap">
               <table class="erp-table compact">
                 <thead>
-                  <tr><th>Invoice No</th><th>Date</th><th>Customer</th><th>Status</th><th></th></tr>
+                  <tr><th class="text-center">Items</th><th>Invoice No</th><th>Date</th><th>Customer</th><th>Status</th><th></th></tr>
                 </thead>
                 <tbody>
                   @for (doc of refPickerDisplayDocs(); track doc.id) {
                     <tr>
+                      <td class="text-center">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Show items / available qty" (click)="toggleRefPickerExpand(doc.id)">
+                          <i class="pi" [class.pi-chevron-down]="isRefPickerExpanded(doc.id)" [class.pi-chevron-right]="!isRefPickerExpanded(doc.id)"></i>
+                        </button>
+                      </td>
                       <td>{{ doc.doc_number }}</td>
                       <td>{{ gridDateDisplay(doc.doc_date) }}</td>
                       <td>{{ doc.party_name }}</td>
@@ -499,6 +504,48 @@
                         </button>
                       </td>
                     </tr>
+                    @if (isRefPickerExpanded(doc.id)) {
+                      <tr class="pr-expand-tr">
+                        <td colspan="6">
+                          <div class="pr-expand-content">
+                            @if ((doc.items || []).length) {
+                              <table class="pr-expand-items-table">
+                                <thead>
+                                  <tr>
+                                    <th>Product</th>
+                                    <th>Variant / Attribute</th>
+                                    <th>UOM</th>
+                                    <th>Invoiced Qty</th>
+                                    <th>Already Returned</th>
+                                    <th>Available to Return</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (item of doc.items; track $index) {
+                                    <tr>
+                                      <td>{{ item.product_name }}</td>
+                                      <td>{{ refPickerItemVariantText(item) }}</td>
+                                      <td>{{ item.uom_name || '-' }}</td>
+                                      <td>{{ item.qty }}</td>
+                                      <td>{{ refPickerItemReturnedQty(item) }}</td>
+                                      <td>
+                                        @if (refPickerItemAvailableQty(item) <= 0) {
+                                          <span class="erp-badge badge-danger">0</span>
+                                        } @else {
+                                          <strong>{{ refPickerItemAvailableQty(item) }}</strong>
+                                        }
+                                      </td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            } @else {
+                              <span class="inventory-field-hint">No items found on this invoice.</span>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
                   }
                 </tbody>
               </table>

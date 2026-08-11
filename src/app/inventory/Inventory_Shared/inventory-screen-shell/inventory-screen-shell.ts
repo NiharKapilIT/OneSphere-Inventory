@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HorizDragScrollService } from '../horiz-drag-scroll.directive';
-import { Component, DestroyRef, ElementRef, HostListener, Input, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
+import { AfterViewChecked, AfterViewInit, Component, DestroyRef, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -143,8 +143,10 @@ const DC_PINCODE_FALLBACK: Record<string, { state: string; district: string; cit
   imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule],
   templateUrl: './inventory-screen-shell.html'
 })
-export class InventoryScreenShell implements OnInit {
+export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChecked, OnDestroy {
   @Input({ required: true }) config!: InventoryScreenConfig;
+  @ViewChild('guideButton') private guideButton?: ElementRef<HTMLElement>;
+  @ViewChild('guidePanel') private guidePanel?: ElementRef<HTMLElement>;
 
   private readonly _dragScroll = inject(HorizDragScrollService);
   private readonly inventoryConfigService = inject(InventoryConfigService);
@@ -158,6 +160,11 @@ export class InventoryScreenShell implements OnInit {
   readonly refPickerDocs  = signal<PurchaseRefDoc[]>([]);
   readonly refPickerSearch = signal('');
   readonly refPickerLoading = signal(false);
+  // Drill-down row in the reference-picker tray (Purchase Return's "Posted
+  // Purchase Invoices" / Sales Return's "Posted Sales Invoices") — lets the
+  // user see each item's already-returned vs still-available qty before
+  // picking a document, instead of picking blind.
+  readonly refPickerExpandedDocId = signal<number | null>(null);
   readonly transactionReferenceDocs = signal<PurchaseRefDoc[]>([]);
   readonly transactionReferenceLoading = signal(false);
   private transactionReferenceOptionsCacheKey = '';
@@ -187,10 +194,14 @@ export class InventoryScreenShell implements OnInit {
   readonly partyContactRequired = signal(false);
   readonly selectedPartyContact = signal<GlobalContactOption | null>(null);
   readonly selectedPartyContactPerson = signal<GlobalContactOption | null>(null);
-  // Global Contact linked to the "Vendor" quick-add modal when opened from
-  // Goods Receipt (see saveQuickVendor()/selectQuickVendorContact()) — mirrors
-  // selectedPartyContact's role on Vendor Master, scoped to that one nested flow.
+  // Global Contact linked to the "Vendor"/"Customer" quick-add modal when
+  // opened from any transaction screen's "+" button (see
+  // saveQuickVendor()/selectQuickVendorContact() and
+  // saveQuickCustomer()/selectQuickCustomerContact()) — mirrors
+  // selectedPartyContact's role on Vendor Master / Customer Master, scoped to
+  // that nested quick-add flow.
   readonly quickVendorLinkedContact = signal<GlobalContactOption | null>(null);
+  readonly quickCustomerLinkedContact = signal<GlobalContactOption | null>(null);
   readonly consumptionApprovalRequired = signal(false);
   readonly approvalLevel = signal('Single Level');
   readonly selectedLevelOneApprover = signal<GlobalContactOption | null>(null);
@@ -246,6 +257,7 @@ export class InventoryScreenShell implements OnInit {
   readonly gstGuide = signal<GstRateGuide | null>(null);
   readonly gstGuideLoading = signal(false);
   private readonly taxCodeSearch$ = new Subject<{ query: string; category: string; autoPick: boolean }>();
+  private guidePortalHost?: HTMLElement;
 
   // ── API form-capture state ────────────────────────────────────────────────
   readonly genericNameValue = signal('');
@@ -291,6 +303,13 @@ export class InventoryScreenShell implements OnInit {
   readonly isSavingQuickAdd   = signal(false);
   readonly quickAddError      = signal('');
   readonly addMasterSourceFieldKey = signal<string | null>(null);
+
+  // Scratch fields for the "+ Add HSN / SAC" quick-add popup — kept separate
+  // from hsnSacCode/gstRate (the product form's own tax fields) so opening
+  // this popup while a product already has an HSN code selected doesn't
+  // clobber that selection before the popup is saved or cancelled.
+  readonly quickAddHsnType    = signal<'HSN' | 'SAC'>('HSN');
+  readonly quickAddHsnGstRate = signal<number | null>(null);
 
   // Suggestions shown when typing in quick-add Name fields to prevent duplicates
   readonly quickAddSuggestions = computed(() => {
@@ -350,7 +369,22 @@ export class InventoryScreenShell implements OnInit {
   // from when a DC/SI reference is picked — read back by deliveryChallanItems()
   // and salesLineItems() at save time so remaining-qty tracking (SO/DC) can
   // be threaded through without changing the visible grid columns.
-  readonly lineRefItemIdMap = signal<Record<number, { soItemId?: number; dcItemId?: number; siItemId?: number }>>({});
+  //
+  // attributeId/attributeName/attributeValue (Purchase Return/Sales Return
+  // only): the referenced PI/Invoice item's attribute already comes through
+  // as clean structured fields (attribute_id/attribute_value) — routing it
+  // through the grid's free-text "Attribute" cell and back out via
+  // resolveLineAttribute() (display text -> re-parsed structured data) is a
+  // lossy round trip that was silently dropping it, which broke the
+  // "already returned" qty match in sp_get_*_docs_for_ref's WHEN 'PI'/'SI'
+  // branches (attribute_id/attribute_value have to match exactly). Carrying
+  // it here instead sidesteps that round trip entirely for reference-picked
+  // rows; purchaseReturnItems()/salesReturnItems() fall back to
+  // resolveLineAttribute() only for manually-added rows with no entry here.
+  readonly lineRefItemIdMap = signal<Record<number, {
+    soItemId?: number; dcItemId?: number; siItemId?: number;
+    attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null;
+  }>>({});
   // Serial number tracking (per-unit picker) — finalized list of serial
   // numbers per line, entered (capture) or picked (select) via the popup.
   // Separate from lineSerialValueMap above, which drives the unrelated
@@ -360,6 +394,14 @@ export class InventoryScreenShell implements OnInit {
   readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited'; qtyNeeded: number; productId: number | null; productName: string } | null>(null);
   readonly serialPickerDraftValues = signal<string[]>([]);
   readonly serialPickerAvailableOptions = signal<{ id: number; serial_no: string }[]>([]);
+  // "select" mode tracks the checked STATE by unique unit id, not by
+  // serial_no text — a serial policy with allow_duplicate=true means two
+  // different physical units can legitimately share the same serial_no
+  // (e.g. two GRNs both received units "1".."8"), and a text-keyed toggle
+  // can't tell them apart: checking one silently checks/unchecks its twin
+  // too. serialPickerDraftValues (text) stays the actual save payload —
+  // this signal is purely the picker's own selection bookkeeping.
+  readonly serialPickerSelectedIds = signal<Set<number>>(new Set());
   readonly serialPickerLoading = signal(false);
   readonly serialPickerError = signal('');
   readonly serialPickerMessage = signal('');
@@ -997,7 +1039,8 @@ export class InventoryScreenShell implements OnInit {
     }
   ];
 
-  // Real Global Contacts, used by Vendor Master and Customer Master (see
+  // Real Global Contacts, used by Vendor Master, Customer Master, and the
+  // Vendor/Customer "+" quick-add modal on every transaction screen (see
   // loadContacts()/loadGlobalMstContacts()/ngOnInit). Every other consumer of
   // `globalContacts` (Approval Workflow approver pickers, etc.) is untouched
   // and keeps using the static demo array above.
@@ -1005,8 +1048,11 @@ export class InventoryScreenShell implements OnInit {
   // Shared cross-app contacts (global.tbl_mst_contact) — see
   // loadGlobalMstContacts()/ngOnInit and 067_global_contact_writeback.sql.
   private readonly loadedGlobalMstContacts = signal<ContactItem[]>([]);
+  // Real Global Contacts merged list — feeds Vendor Master / Customer
+  // Master's own contact picker AND the Vendor/Customer "+" quick-add modal's
+  // "Search Global Contact" field wherever it's opened from (any transaction
+  // screen), so quick-add always binds to the same real contact data.
   protected readonly partyContactOptions = computed<GlobalContactOption[]>(() => {
-    if (this.config?.key !== 'vendorMaster' && this.config?.key !== 'customerMaster' && this.config?.key !== 'goodsReceipt') return this.globalContacts;
     const toOption = (c: ContactItem, source: 'inv_contacts' | 'global_contact'): GlobalContactOption => ({
       id: c.id,
       name: c.name,
@@ -1073,6 +1119,14 @@ export class InventoryScreenShell implements OnInit {
   });
 
   constructor() {
+    // Safety net for startLineGridColumnResize(): if the component is
+    // destroyed mid-drag (route navigation while a resize handle is still
+    // held down), drop the document-level listeners rather than leaking them.
+    this.destroyRef.onDestroy(() => {
+      if (this.lineGridResizeMoveHandler) document.removeEventListener('mousemove', this.lineGridResizeMoveHandler);
+      if (this.lineGridResizeUpHandler) document.removeEventListener('mouseup', this.lineGridResizeUpHandler);
+    });
+
     effect(() => {
       const segment = this.selectedSegment();
       untracked(() => this.onSelectedSegmentChanged(segment));
@@ -1155,10 +1209,11 @@ export class InventoryScreenShell implements OnInit {
       this.isAdmin.set(true); // dev fallback — no token means dev mode
     }
     this.loadLookupOptions();
-    if (this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster' || this.config?.key === 'goodsReceipt') {
-      this.loadContacts();
-      this.loadGlobalMstContacts();
-    }
+    // Loaded on every screen (not just Vendor/Customer Master + GRN) so the
+    // Vendor/Customer "+" quick-add's "Search Global Contact" field binds to
+    // real data no matter which transaction screen it's opened from.
+    this.loadContacts();
+    this.loadGlobalMstContacts();
 
     if (this.config?.key === 'productServiceMaster') {
       this.productTaxUomRequired.set(true);
@@ -1179,6 +1234,50 @@ export class InventoryScreenShell implements OnInit {
     if (this.config?.key === 'productServiceMaster' || this.config?.key === 'hsnSacMapping') {
       this.loadTaxCodeSourceStatus();
       this.loadGstGuide();
+    }
+  }
+
+  ngAfterViewInit(): void {
+    this.syncGuidePortal();
+  }
+
+  ngAfterViewChecked(): void {
+    this.syncGuidePortal();
+  }
+
+  ngOnDestroy(): void {
+    this.guidePortalHost?.remove();
+  }
+
+  private syncGuidePortal(): void {
+    const button = this.guideButton?.nativeElement;
+    if (!button) return;
+
+    const breadcrumbInner = document.querySelector<HTMLElement>('.breadcrumb-bar .bc-inner');
+    if (!breadcrumbInner) return;
+
+    if (!this.guidePortalHost) {
+      this.guidePortalHost = document.createElement('span');
+      this.guidePortalHost.className = 'inventory-breadcrumb-guide';
+    }
+
+    // Mount inside the Pay/Receipt toggle's own flex group (not as a plain
+    // .bc-inner flex child) so Guide shares its already-collision-proof
+    // absolute right-edge anchor instead of landing in the same reserved
+    // gutter via a separate, uncoordinated position and overlapping it.
+    const payToggle = breadcrumbInner.querySelector<HTMLElement>('.bc-pay-toggle');
+    const guideParent = payToggle || breadcrumbInner;
+    if (this.guidePortalHost.parentElement !== guideParent) {
+      guideParent.prepend(this.guidePortalHost);
+    }
+
+    if (button.parentElement !== this.guidePortalHost) {
+      this.guidePortalHost.appendChild(button);
+    }
+
+    const panel = this.guidePanel?.nativeElement;
+    if (panel && panel.parentElement !== this.guidePortalHost) {
+      this.guidePortalHost.appendChild(panel);
     }
   }
 
@@ -2385,6 +2484,51 @@ export class InventoryScreenShell implements OnInit {
       || (!!branchName && this.optionEquals(item.branch_name, branchName))
     );
     return this.optionalNumber(branch?.branch_id) ?? rawId;
+  }
+
+  // The supplying/receiving branch's own GST registration for a purchase or
+  // sales document — used to decide CGST+SGST vs IGST (see
+  // isInterstateTransaction()/purchaseInvoiceFinancials()/
+  // salesInvoiceFinancials()). Falls back from a direct branch_id to the
+  // recorded warehouse's branch_id, since PI/SI records commonly carry only
+  // a warehouse.
+  private ourBranchForRecord(record: any): BranchInvItem | null {
+    const branchId = this.branchIdFromRecord(record);
+    if (branchId) {
+      const branch = this.loadedBranchObjects().find(item => Number(item.branch_id) === branchId || Number(item.id) === branchId);
+      if (branch) return branch;
+    }
+    const warehouseId = this.optionalNumber(record?.warehouse_id ?? record?.warehouseId);
+    const warehouse = warehouseId ? this.loadedWarehouseObjects().find(item => Number(item.id) === warehouseId) : null;
+    const warehouseBranchId = this.optionalNumber(warehouse?.branch_id);
+    if (warehouseBranchId) {
+      return this.loadedBranchObjects().find(item => Number(item.branch_id) === warehouseBranchId || Number(item.id) === warehouseBranchId) || null;
+    }
+    return null;
+  }
+
+  private gstStateCodeFromGstin(gstin: string | null | undefined): string {
+    const clean = String(gstin || '').trim();
+    return /^\d{2}/.test(clean) ? clean.slice(0, 2) : '';
+  }
+
+  // true => interstate (IGST); false => intrastate (CGST+SGST); null => not
+  // enough data on one side to tell, so the caller keeps the old CGST+SGST
+  // default rather than guessing.
+  private isInterstateTransaction(
+    ourGstin: string | null | undefined, ourState: string | null | undefined,
+    theirGstin: string | null | undefined, theirState: string | null | undefined,
+    placeOfSupply?: string | null
+  ): boolean | null {
+    const ourCode = this.gstStateCodeFromGstin(ourGstin);
+    const theirCode = this.gstStateCodeFromGstin(theirGstin);
+    if (ourCode && theirCode) return ourCode !== theirCode;
+
+    const ourStateKey = this.normalizeKey(ourState || '');
+    const theirStateKey = this.normalizeKey(placeOfSupply || theirState || '');
+    if (ourStateKey && theirStateKey) return ourStateKey !== theirStateKey;
+
+    return null;
   }
 
   private uomNameFromSelection(value: string | null | undefined): string | null {
@@ -3627,6 +3771,9 @@ export class InventoryScreenShell implements OnInit {
         : 'Map contact person in Branch Master for selected branch';
     }
 
+    if (field.key === 'serialFormat') return 'Free-text reference note, not validated — e.g. 15-digit IMEI';
+    if (field.key === 'batchFormat') return 'Free-text reference note, not validated — e.g. YYYYMMDD-SUPPLIER-SEQ';
+
     if (this.isStatusSwitchField(field)) return 'Switch to Active when this record can be used';
     if (this.isYesNoSwitchField(field)) return `Switch Yes when ${label.toLowerCase()} applies`;
     if (field.type === 'date') return `Select ${label} date`;
@@ -3739,6 +3886,8 @@ export class InventoryScreenShell implements OnInit {
     this._quickAddCodeManuallySet = false;
     this.quickAddUomSymbol.set('');
     this.quickAddUomType.set('Base');
+    this.quickAddHsnType.set('HSN');
+    this.quickAddHsnGstRate.set(null);
 
     if (master === 'Variant') {
       this.quickAddVariantRows.set([{name: '', value: ''}]);
@@ -3746,6 +3895,10 @@ export class InventoryScreenShell implements OnInit {
 
     if (master === 'Vendor') {
       this.quickVendorLinkedContact.set(null);
+    }
+
+    if (master === 'Customer') {
+      this.quickCustomerLinkedContact.set(null);
     }
 
     if (master === 'Attribute') {
@@ -3759,14 +3912,19 @@ export class InventoryScreenShell implements OnInit {
     }
 
     if (master === 'Serial Number Policy' || master === 'Batch / Lot Policy') {
-      // Pre-populate category: from parent Category modal name, or from the product's selected category
+      // The Applicable Category field is no longer shown in this popup (it's
+      // implied by wherever the popup was opened from), so it must never carry
+      // a stale value from a previous quick-add into this one — always clear
+      // first, then auto-fill from context: the parent Category modal's
+      // in-progress name, the category being created/edited on Category
+      // Master's own screen, or the product's currently selected category.
+      const fieldKey = master === 'Serial Number Policy' ? 'quickApplicableCategory' : 'quickApplicableFor';
       const parentCat = current === 'Category'
         ? currentName
-        : (this.selectedProductCategory() || '');
-      if (parentCat) {
-        const fieldKey = master === 'Serial Number Policy' ? 'quickApplicableCategory' : 'quickApplicableFor';
-        this.formValues.update(fv => ({ ...fv, [fieldKey]: parentCat }));
-      }
+        : this.config?.key === 'categoryMaster'
+          ? String(this.formValues()['categoryName'] || '').trim()
+          : (this.selectedProductCategory() || '');
+      this.formValues.update(fv => ({ ...fv, [fieldKey]: parentCat }));
     }
   }
 
@@ -3841,7 +3999,7 @@ export class InventoryScreenShell implements OnInit {
   }
 
   private static readonly QUICK_ADD_MASTERS_WITH_AUTO_CODE = new Set([
-    'Variant', 'UOM', 'Serial Number Policy', 'Batch / Lot Policy', 'Brand', 'Product Type', 'Vendor', 'Customer'
+    'Variant', 'UOM', 'Serial Number Policy', 'Batch / Lot Policy', 'Brand', 'Product Type', 'Vendor', 'Customer', 'Manufacturer'
   ]);
 
   onQuickAddNameChange(name: string): void {
@@ -3982,6 +4140,86 @@ export class InventoryScreenShell implements OnInit {
           this.quickAddError.set(this.apiErrorMessage(err, 'Failed to save UOM.'));
         }
       });
+  }
+
+  saveQuickHsnSac(): void {
+    const code = this.quickAddCode().trim().toUpperCase();
+    const description = this.quickAddName().trim();
+    if (!code) { this.quickAddError.set('HSN/SAC code is required.'); return; }
+    if (!description) { this.quickAddError.set('Description is required.'); return; }
+    if (this.isSavingQuickAdd()) return;
+
+    const type = this.quickAddHsnType();
+    const gstRate = this.quickAddHsnGstRate() ?? 0;
+    const parentBeforeSave = this.quickAddParentMaster();
+    const sourceKey = this.addMasterSourceFieldKey();
+
+    this.isSavingQuickAdd.set(true);
+    this.quickAddError.set('');
+    this.inventoryConfigService.quickAddHsnSac(code, type, description, gstRate)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: ApiResponse<HsnSacItem>) => {
+          this.isSavingQuickAdd.set(false);
+          if (res.success && res.data) {
+            const saved = res.data;
+            if (!this.hsnSacOptionList().some(o => this.optionEquals(o, saved.code))) {
+              this.hsnSacOptionList.update(opts => [...opts, saved.code]);
+            }
+            this.loadedHsnSacObjects.update(items =>
+              items.some(item => item.id === saved.id) ? items : [...items, saved]
+            );
+            if (sourceKey) {
+              this.collectFormField(sourceKey, saved.code);
+            }
+            if (this.config?.key === 'productServiceMaster' && !parentBeforeSave) {
+              this.hsnSacCode.set(saved.code);
+              this.hsnSacDescription.set(saved.description || description);
+              this.gstRate.set(saved.gst_rate ?? gstRate);
+              this.collectFormField('hsnSacCode', saved.code);
+              this.collectFormField('gstRate', saved.gst_rate ?? gstRate);
+            }
+            if (parentBeforeSave === 'Business Segment') {
+              const cur: string[] = Array.isArray(this.formValues()['segmentHsnCodes']) ? this.formValues()['segmentHsnCodes'] : [];
+              if (!cur.includes(saved.code)) this.collectFormField('segmentHsnCodes', [...cur, saved.code]);
+            }
+            this.completeQuickGlobalMasterSave(saved, 'hsnSacMapping', () => {
+              this.restoreParentModal();
+              this.loadLookupOptions();
+            });
+          } else {
+            this.quickAddError.set(res.message || 'Failed to save HSN/SAC code.');
+          }
+        },
+        error: (err: any) => {
+          this.isSavingQuickAdd.set(false);
+          this.quickAddError.set(this.apiErrorMessage(err, 'Failed to save HSN/SAC code.'));
+        }
+      });
+  }
+
+  // Manufacturer has no backing master table today — it is a free-text label
+  // stored directly on the Brand record (see buildPayload's brandMaster case
+  // and sp_upsert_brand's `manufacturer` column). So this quick-add has
+  // nothing to persist to on its own: it records the typed name into the
+  // shared suggestion pool (manufacturerOptionList, the same list Brand
+  // Master's own Manufacturer field now reads from) and writes it back into
+  // whichever field opened the popup, mirroring how the other name-only
+  // quick-adds behave.
+  saveQuickManufacturer(): void {
+    const name = this.quickAddName().trim();
+    if (!name) { this.quickAddError.set('Manufacturer name is required.'); return; }
+
+    if (!this.manufacturerOptionList().some(o => this.optionEquals(o, name))) {
+      this.manufacturerOptionList.update(opts => [...opts, name]);
+    }
+    const sourceKey = this.addMasterSourceFieldKey();
+    if (sourceKey) {
+      this.collectFormField(sourceKey, name);
+    } else if (this.config?.key === 'brandMaster') {
+      this.collectFormField('manufacturer', name);
+    }
+    this.restoreParentModal();
   }
 
   saveQuickProductType(): void {
@@ -4198,12 +4436,16 @@ export class InventoryScreenShell implements OnInit {
             this.selectPartyContact(contactOption);
           }
           // Contact Person was opened as a nested quick-add from within the
-          // "Vendor" quick-add (Goods Receipt's Add Vendor flow) — feed the
-          // new contact back into that vendor form instead of a party master.
+          // "Vendor"/"Customer" quick-add (opened from any transaction
+          // screen's "+" button) — feed the new contact back into that
+          // vendor/customer form instead of a party master.
           const feedIntoQuickVendor = this.quickAddParentMaster() === 'Vendor';
+          const feedIntoQuickCustomer = this.quickAddParentMaster() === 'Customer';
           this.restoreParentModal();
           if (feedIntoQuickVendor) {
             this.selectQuickVendorContact(contactOption);
+          } else if (feedIntoQuickCustomer) {
+            this.selectQuickCustomerContact(contactOption);
           }
         } else {
           this.quickAddError.set(res.message || 'Failed to save contact.');
@@ -4271,21 +4513,24 @@ export class InventoryScreenShell implements OnInit {
     if (this.isSavingQuickAdd()) return;
     const v = this.formValues();
     const code = this.quickAddCode().trim() || this.generateCodeFromName(name) || null;
+    const linkedContact = this.quickCustomerLinkedContact();
     this.isSavingQuickAdd.set(true);
     this.quickAddError.set('');
-    this.inventoryConfigService.saveCustomer({
+    this.saveCustomerWithContactWriteback({
       segment_id: this.selectedSegmentId(),
       segment_name: String(v['segment'] || this.selectedSegment() || '').trim() || null,
       customer_code: code,
       customer_name: name,
-      customer_type: v['quickCustomerType'] || 'Retail',
+      customer_type: v['quickCustomerType'] || 'Company',
       gstin: v['quickCustomerGstin'] || null,
       pan: v['quickCustomerPan'] || null,
       mobile: v['quickCustomerMobile'] || null,
       email: v['quickCustomerEmail'] || null,
       address: v['quickCustomerAddress'] || null,
       credit_limit: Number(v['quickCustomerCreditLimit']) || 0,
-      status: v['quickCustomerStatus'] === 'Inactive' ? 'inactive' : 'active'
+      status: v['quickCustomerStatus'] === 'Inactive' ? 'inactive' : 'active',
+      contact_id: linkedContact?.id ?? null,
+      contact_source: linkedContact?.source ?? null
     }, null).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: ApiResponse<any>) => {
         this.isSavingQuickAdd.set(false);
@@ -4298,6 +4543,7 @@ export class InventoryScreenShell implements OnInit {
           }
           const sourceKey = this.addMasterSourceFieldKey();
           if (sourceKey) this.collectFormField(sourceKey, savedName);
+          this.quickCustomerLinkedContact.set(null);
           this.restoreParentModal();
         } else {
           this.quickAddError.set(res.message || 'Failed to save customer.');
@@ -4385,13 +4631,22 @@ export class InventoryScreenShell implements OnInit {
     if (this.isSavingQuickAdd()) return;
     const v = this.formValues();
     const code = this.quickAddCode().trim() || null;
+    const categoryName = String(v['quickApplicableCategory'] || '').trim() || null;
+    // sp_upsert_serial_policy links the category by id only — category_name is
+    // read-only (used on the way out to join the display label back), so the
+    // auto-filled category from context has to be resolved to an id here or
+    // it silently never links, same fix as the main Serial Number Policy screen.
+    const categoryId = categoryName
+      ? this.loadedCategoryObjects().find(item => this.optionEquals(item.category_name, categoryName))?.id ?? null
+      : null;
     this.isSavingQuickAdd.set(true);
     this.quickAddError.set('');
     this.inventoryConfigService.saveSerialPolicy({
       segment_id: this.selectedSegmentId(),
       policy_code: code,
       policy_name: name,
-      category_name: v['quickApplicableCategory'] || null,
+      category_id: categoryId,
+      category_name: categoryName,
       serial_format: v['quickSerialFormat'] || null,
       capture_stage: this.normalizeCaptureStage(v['quickCaptureStage']),
       status: 'active'
@@ -4563,7 +4818,7 @@ export class InventoryScreenShell implements OnInit {
 
   // Same auto-fill as selectPartyContact(), but targets the standalone
   // "Vendor" quick-add modal's own fields (used when that modal is opened
-  // from Goods Receipt) instead of a Vendor Master top-level form.
+  // from any transaction screen) instead of a Vendor Master top-level form.
   selectQuickVendorContact(contact: GlobalContactOption | null): void {
     this.quickVendorLinkedContact.set(contact);
     this.quickAddName.set(contact?.name || '');
@@ -4577,6 +4832,25 @@ export class InventoryScreenShell implements OnInit {
       quickVendorGstin: contact?.gstin || '',
       quickVendorPan: contact?.pan || '',
       quickVendorAddress: contact?.address || ''
+    }));
+  }
+
+  // Same auto-fill as selectQuickVendorContact(), but targets the "Customer"
+  // quick-add modal's own fields (used when that modal is opened from any
+  // transaction screen) instead of a Customer Master top-level form.
+  selectQuickCustomerContact(contact: GlobalContactOption | null): void {
+    this.quickCustomerLinkedContact.set(contact);
+    this.quickAddName.set(contact?.name || '');
+    if (!this._quickAddCodeManuallySet) {
+      this.quickAddCode.set(contact?.name ? this.generateCodeFromName(contact.name) : '');
+    }
+    this.formValues.update(fv => ({
+      ...fv,
+      quickCustomerMobile: contact?.mobile || '',
+      quickCustomerEmail: contact?.email || '',
+      quickCustomerGstin: contact?.gstin || '',
+      quickCustomerPan: contact?.pan || '',
+      quickCustomerAddress: contact?.address || ''
     }));
   }
 
@@ -4604,7 +4878,10 @@ export class InventoryScreenShell implements OnInit {
         pan: payload['pan'] || null,
         gstin: payload['gstin'] || null,
         address: payload['address'] || null,
-        mark_supplier: this.config?.key === 'vendorMaster'
+        // Keyed off the payload shape (not config.key) so this stays correct
+        // when the vendor save comes through the quick-add modal opened from
+        // a non-Vendor-Master screen, e.g. GRN/Purchase Order/etc.
+        mark_supplier: !!payload['vendor_name']
       }, contactId).pipe(catchError(() => of(null)));
     }
     if (contactSource === 'inv_contacts') {
@@ -5123,7 +5400,7 @@ export class InventoryScreenShell implements OnInit {
   }
 
   private purchaseInvoiceFinancials(record: any): {
-    gross: number; discount: number; taxable: number; tax: number; cgst: number; sgst: number; total: number; roundOff: number;
+    gross: number; discount: number; taxable: number; tax: number; cgst: number; sgst: number; igst: number; isInterstate: boolean; total: number; roundOff: number;
   } {
     const computed = this.documentFinancials(record?.items || []);
     const storedTaxable = Number(record?.subtotal ?? record?.subTotal ?? 0) || 0;
@@ -5131,30 +5408,51 @@ export class InventoryScreenShell implements OnInit {
     const total = Number(record?.total_amount ?? record?.totalAmount ?? 0) || (computed.taxable + computed.tax);
     const taxable = computed.taxable || storedTaxable;
     const tax = computed.tax || storedTax;
+
+    const vendor = this.vendorForRecord(record);
+    const branch = this.ourBranchForRecord(record);
+    const isInterstate = !!this.isInterstateTransaction(
+      branch?.gstin, branch?.state,
+      record?.vendor_gstin || record?.vendorGstin || vendor?.gstin, vendor?.state
+    );
+
     return {
       gross: computed.gross || taxable,
       discount: computed.discount,
       taxable,
       tax,
-      cgst: tax / 2,
-      sgst: tax / 2,
+      cgst: isInterstate ? 0 : tax / 2,
+      sgst: isInterstate ? 0 : tax / 2,
+      igst: isInterstate ? tax : 0,
+      isInterstate,
       total,
       roundOff: total - (taxable + tax)
     };
   }
 
   private salesInvoiceFinancials(record: any): {
-    gross: number; discount: number; taxable: number; tax: number; cgst: number; sgst: number; total: number; roundOff: number;
+    gross: number; discount: number; taxable: number; tax: number; cgst: number; sgst: number; igst: number; isInterstate: boolean; total: number; roundOff: number;
   } {
     const computed = this.documentFinancials(record?.items || []);
     const total = computed.taxable + computed.tax;
+
+    const customer = this.customerForRecord(record);
+    const branch = this.ourBranchForRecord(record);
+    const isInterstate = !!this.isInterstateTransaction(
+      branch?.gstin, branch?.state,
+      record?.customer_gstin || record?.customerGstin || customer?.gstin, customer?.state,
+      record?.place_of_supply || record?.placeOfSupply || null
+    );
+
     return {
       gross: computed.gross,
       discount: computed.discount,
       taxable: computed.taxable,
       tax: computed.tax,
-      cgst: computed.tax / 2,
-      sgst: computed.tax / 2,
+      cgst: isInterstate ? 0 : computed.tax / 2,
+      sgst: isInterstate ? 0 : computed.tax / 2,
+      igst: isInterstate ? computed.tax : 0,
+      isInterstate,
       total,
       roundOff: 0
     };
@@ -5213,8 +5511,9 @@ export class InventoryScreenShell implements OnInit {
       ['Sub total', this.moneyValue(totals.gross)],
       ['Discount', totals.discount ? `-${this.moneyValue(totals.discount)}` : this.moneyValue(0)],
       ['Taxable amount', this.moneyValue(totals.taxable)],
-      ['CGST', this.moneyValue(totals.cgst)],
-      ['SGST', this.moneyValue(totals.sgst)],
+      ...(totals.isInterstate
+        ? [['IGST', this.moneyValue(totals.igst)]]
+        : [['CGST', this.moneyValue(totals.cgst)], ['SGST', this.moneyValue(totals.sgst)]]),
       ['Round off', this.moneyValue(totals.roundOff)]
     ];
     const documentHtml = `
@@ -5348,8 +5647,9 @@ export class InventoryScreenShell implements OnInit {
       ['Sub total', this.moneyValue(totals.gross)],
       ['Discount', totals.discount ? `-${this.moneyValue(totals.discount)}` : this.moneyValue(0)],
       ['Taxable amount', this.moneyValue(totals.taxable)],
-      ['CGST', this.moneyValue(totals.cgst)],
-      ['SGST', this.moneyValue(totals.sgst)]
+      ...(totals.isInterstate
+        ? [['IGST', this.moneyValue(totals.igst)]]
+        : [['CGST', this.moneyValue(totals.cgst)], ['SGST', this.moneyValue(totals.sgst)]])
     ];
     const documentHtml = `
       <section class="inventory-print-doc">
@@ -5705,7 +6005,7 @@ export class InventoryScreenShell implements OnInit {
       && field.key !== dateKey
       && field.key !== referenceKey
       && field.key !== procurementVendorKey
-      && !(this.config?.key === 'salesOrder' && (field.key === 'customer' || field.key === 'paymentTerms' || field.key === 'dueDate' || field.key === 'deliveryAddress' || field.key === 'warehouse' || field.key === 'placeOfSupply'))
+      && !(this.config?.key === 'salesOrder' && (field.key === 'customer' || field.key === 'creditSale' || field.key === 'paymentTerms' || field.key === 'dueDate' || field.key === 'deliveryDate' || field.key === 'deliveryAddress'))
       && !(this.config?.key === 'salesInvoice' && (field.key === 'customer' || field.key === 'referenceNo' || field.key === 'paymentTerms' || field.key === 'dueDate' || field.key === 'placeOfSupply' || field.key === 'warehouse' || field.key === 'transportMode' || field.key === 'vehicleNo' || field.key === 'deliveryAddress' || field.key === 'customerNotes' || field.key === 'internalNotes'))
       && !(this.config?.key === 'purchaseInvoice' && field.key === 'grnReference')
       && !(this.config?.key === 'purchaseInvoice' && field.key === 'status')
@@ -6037,6 +6337,9 @@ export class InventoryScreenShell implements OnInit {
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
+    // Drop any attribute data carried from a previously-picked PI (see
+    // lineRefItemIdMap's doc comment) — this is now a blank, unrelated row.
+    this.lineRefItemIdMap.set({});
   }
 
   useDirectPurchaseReturn(): void {
@@ -6195,6 +6498,10 @@ export class InventoryScreenShell implements OnInit {
     if (resetRows) {
       this.entryLineRowsKey.set(key);
       this.entryLineRows.set([this.blankLineRow()]);
+      // Rows are blank now — drop whatever so/dc/si item id or (Sales
+      // Return) attribute data lineRefItemIdMap carried from the previous
+      // reference, or it would stale-leak onto these unrelated new rows.
+      this.lineRefItemIdMap.set({});
     }
     return true;
   }
@@ -6546,6 +6853,14 @@ export class InventoryScreenShell implements OnInit {
 
     if (key === 'brand' || addMaster === 'brand') {
       return this.brandOptions;
+    }
+
+    if (key === 'manufacturer' || addMaster === 'manufacturer') {
+      return this.manufacturerOptions;
+    }
+
+    if (key === 'placeofsupply') {
+      return this.dcAddressStates;
     }
 
     if (key === 'variant' || addMaster === 'variant') {
@@ -6916,6 +7231,49 @@ export class InventoryScreenShell implements OnInit {
       return 'Serial No.';
     }
     return column;
+  }
+
+  // Drag-to-resize column widths for the line-items grid (GRN's Received
+  // Items grid, per the user's explicit ask — the markup that opts into this
+  // via the "inventory-resizable-table" class is only in goods-receipt.html).
+  // Keyed per-screen so widths chosen on one config never bleed into another.
+  private readonly lineGridColumnWidths = signal<Record<string, number>>({});
+  private lineGridResizeState: { key: string; startX: number; startWidth: number } | null = null;
+  private lineGridResizeMoveHandler: ((event: MouseEvent) => void) | null = null;
+  private lineGridResizeUpHandler: (() => void) | null = null;
+
+  private lineGridColumnWidthKey(column: string): string {
+    return `${this.config?.key || ''}:${this.normalizeKey(column)}`;
+  }
+
+  lineGridColumnWidthPx(column: string): string | null {
+    const width = this.lineGridColumnWidths()[this.lineGridColumnWidthKey(column)];
+    return width ? `${width}px` : null;
+  }
+
+  startLineGridColumnResize(event: MouseEvent, column: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+    const th = (event.currentTarget as HTMLElement)?.closest('th');
+    const startWidth = th?.getBoundingClientRect().width || 120;
+    const key = this.lineGridColumnWidthKey(column);
+    this.lineGridResizeState = { key, startX: event.clientX, startWidth };
+
+    this.lineGridResizeMoveHandler = (moveEvent: MouseEvent) => {
+      const state = this.lineGridResizeState;
+      if (!state) return;
+      const nextWidth = Math.max(70, Math.round(state.startWidth + (moveEvent.clientX - state.startX)));
+      this.lineGridColumnWidths.update(map => ({ ...map, [state.key]: nextWidth }));
+    };
+    this.lineGridResizeUpHandler = () => {
+      this.lineGridResizeState = null;
+      if (this.lineGridResizeMoveHandler) document.removeEventListener('mousemove', this.lineGridResizeMoveHandler);
+      if (this.lineGridResizeUpHandler) document.removeEventListener('mouseup', this.lineGridResizeUpHandler);
+      this.lineGridResizeMoveHandler = null;
+      this.lineGridResizeUpHandler = null;
+    };
+    document.addEventListener('mousemove', this.lineGridResizeMoveHandler);
+    document.addEventListener('mouseup', this.lineGridResizeUpHandler);
   }
 
   lineGridColumnCssClass(column: string): string {
@@ -7338,6 +7696,66 @@ export class InventoryScreenShell implements OnInit {
         if (this.config?.key === 'purchaseInvoice' && this.normalizeKey(column) === 'mrp') {
           this.syncPurchaseInvoiceSellingPrice(nextRow, normalizedValue, previousCellValue);
         }
+        // UOM is user-editable on every transaction screen except a
+        // GRN-linked Purchase Invoice (lineGridCellReadonly locks the whole
+        // row there). Any per-unit price already sitting in this row — Rate,
+        // and on GRN/Purchase Invoice also MRP/Selling Price, which are
+        // editable there (Sales Order/Invoice's MRP/Selling Price are
+        // read-only procurement-side reference values and deliberately left
+        // alone) — was captured in the PREVIOUS uom and has to be rescaled
+        // or it keeps billing the newly selected unit at the old unit's
+        // price. Qty-like columns scale by oldFactor/newFactor; price
+        // columns scale the OPPOSITE way (newFactor/oldFactor) so
+        // Amount = Qty x Rate keeps representing the same real value across
+        // the switch. Without this, a "1 Box" (= 10 Nos) line switched to
+        // "Numbers" kept Rate at the full per-Box price, so entering "2"
+        // Numbers priced out at 10x what those 2 units are actually worth —
+        // e.g. Rs. 15,00,000/Box shown unchanged as Rs. 15,00,000 per Number
+        // instead of the correct Rs. 1,50,000.
+        const uomSwitchScreens = new Set(['purchaseReturn', 'salesReturn', 'goodsReceipt', 'purchaseInvoice', 'salesOrder', 'salesInvoice']);
+        if (uomSwitchScreens.has(this.config?.key || '')
+          && this.normalizeKey(column) === 'uom'
+          && previousCellValue && normalizedValue
+          && !this.sameUomSelection(previousCellValue, normalizedValue)
+        ) {
+          const uomSwitchProduct = this.findProductBySelection(this.lineValue(nextRow, ['product', 'item', 'sku']));
+          if (uomSwitchProduct) {
+            const oldFactor = this.productUomConversionFactorForSelection(uomSwitchProduct, previousCellValue);
+            const newFactor = this.productUomConversionFactorForSelection(uomSwitchProduct, normalizedValue);
+            if (oldFactor > 0 && newFactor > 0) {
+              if (this.config?.key === 'purchaseReturn' || this.config?.key === 'salesReturn') {
+                // Invoice/Invoiced Qty is the OTHER document's own qty,
+                // carried in its UOM at reference-pick time — converting it
+                // is what made "Return Qty cannot be greater than Invoice
+                // Qty" compare like-for-like instead of rejecting a
+                // perfectly valid return entered in the new UOM.
+                const invoiceQtyIdx = (this.config?.lineColumns || []).findIndex(c => {
+                  const k = c.toLowerCase();
+                  return k.includes('invoice') && k.includes('qty');
+                });
+                if (invoiceQtyIdx >= 0) {
+                  const currentInvoiceQty = this.parseDecimalNumber(nextRow[invoiceQtyIdx]);
+                  if (Number.isFinite(currentInvoiceQty) && currentInvoiceQty > 0) {
+                    const convertedInvoiceQty = (currentInvoiceQty * oldFactor) / newFactor;
+                    nextRow[invoiceQtyIdx] = String(Math.round(convertedInvoiceQty * 10000) / 10000);
+                  }
+                }
+              }
+
+              const priceColumnNeedles = (this.config?.key === 'goodsReceipt' || this.config?.key === 'purchaseInvoice')
+                ? ['rate', 'mrp', 'selling']
+                : ['rate'];
+              (this.config?.lineColumns || []).forEach((col, idx) => {
+                const key = col.toLowerCase();
+                if (!priceColumnNeedles.some(needle => key.includes(needle))) return;
+                const currentPrice = this.parseDecimalNumber(nextRow[idx]);
+                if (!Number.isFinite(currentPrice) || currentPrice <= 0) return;
+                const convertedPrice = (currentPrice * newFactor) / oldFactor;
+                nextRow[idx] = String(Math.round(convertedPrice * 100) / 100);
+              });
+            }
+          }
+        }
       }
       this.recalculateLineRow(nextRow, rowIndex);
       return nextRow;
@@ -7397,9 +7815,7 @@ export class InventoryScreenShell implements OnInit {
   }
 
   visibleLineColumns(): string[] {
-    const columns = this.config?.lineColumns || [];
-    if (!this.isPolicyAwarePurchaseLineGrid()) return columns;
-    return columns.filter(column => this.shouldShowPolicyLineColumn(column));
+    return (this.config?.lineColumns || []).filter(column => this.isLineColumnVisible(column));
   }
 
   private lineGridAttributeColumnNames(): string[] {
@@ -7636,12 +8052,20 @@ export class InventoryScreenShell implements OnInit {
     // selling rate, while PI's Rate is
     // the vendor purchase rate (must NOT be overwritten from selling price)
     // — only MRP/Selling Price are safe to auto-bind on both.
-    if (this.config?.key === 'salesInvoice' || this.config?.key === 'salesOrder') {
-      this.setLineColumnDefault(row, ['rate'], this.productSellingPrice(product, row), true);
-    }
     if (this.config?.key === 'salesInvoice' || this.config?.key === 'salesOrder' || this.config?.key === 'purchaseInvoice') {
       this.setLineColumnDefault(row, ['mrp'], this.productMrp(product), true);
       this.setLineColumnDefault(row, ['selling'], this.productSellingPrice(product, row), true);
+    }
+    if (this.config?.key === 'salesInvoice') {
+      // Explicit request: Sales Invoice Rate defaults to MRP when the
+      // product has one, only falling back to Selling Price when it
+      // doesn't — the reverse priority of Sales Order below, which keeps
+      // Rate = Selling Price. setLineColumnDefault only fills a blank/zero
+      // cell, so a rate already carried from an SO/DC reference is untouched.
+      const mrp = this.productMrp(product);
+      this.setLineColumnDefault(row, ['rate'], mrp > 0 ? mrp : this.productSellingPrice(product, row), true);
+    } else if (this.config?.key === 'salesOrder') {
+      this.setLineColumnDefault(row, ['rate'], this.productSellingPrice(product, row), true);
     }
   }
 
@@ -7849,7 +8273,11 @@ export class InventoryScreenShell implements OnInit {
       : `Qty ${fmt(preview.qty)} x Rs. ${fmt(preview.rate)} - Disc ${fmt(preview.discountPct)}% + GST ${fmt(preview.gstPct)}% = Rs. ${fmt(preview.total)}`;
     const fingerprint = `${key}|${preview.qty}|${preview.rate}|${preview.discountPct}|${preview.gstPct}|${preview.gstIncluded}|${preview.total}`;
 
-    if (key !== 'salesInvoice' && key !== 'salesOrder') {
+    // Sales Order's Rate is only the price expected/quoted to the customer,
+    // not a bounded billing rate — no cost/selling-price comparison here,
+    // just the plain calculation breakdown. Sales Invoice keeps the
+    // cost/selling-price comparison below.
+    if (key !== 'salesInvoice') {
       return { severity: 'info', fingerprint, message: formula };
     }
 
@@ -7881,13 +8309,16 @@ export class InventoryScreenShell implements OnInit {
     return { severity: 'info', fingerprint, message: formula };
   }
 
-  // Hard bounds on the Rate a Sales Invoice/Sales Order line can be billed
-  // at: never above MRP (when the product has one), never below cost price.
-  // Checked on the raw Rate before Disc % — an applied discount is a visible,
-  // deliberate business decision and can legitimately bring the net amount
-  // below either bound; this only blocks a wrong Rate typed directly.
+  // Hard bounds on the Rate a Sales Invoice line can be billed at: never
+  // above MRP (when the product has one), never below cost price. Checked on
+  // the raw Rate before Disc % — an applied discount is a visible, deliberate
+  // business decision and can legitimately bring the net amount below either
+  // bound; this only blocks a wrong Rate typed directly.
+  // Sales Order is deliberately excluded — its Rate is only the price
+  // expected/quoted to the customer, not a bounded billing rate, so no
+  // MRP/cost validation applies there.
   private validateSalesRateBounds(): string {
-    if (this.config?.key !== 'salesInvoice' && this.config?.key !== 'salesOrder') return '';
+    if (this.config?.key !== 'salesInvoice') return '';
     const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     for (const row of this.activeSalesLineRows()) {
       const rate = this.lineNumber(row, ['rate']);
@@ -8070,7 +8501,11 @@ export class InventoryScreenShell implements OnInit {
     rowIndex?: number
   ): { message: string; severity: 'info' | 'warn' | 'error' } | null {
     const key = this.config?.key || '';
-    if (key !== 'salesOrder' && key !== 'deliveryChallan' && key !== 'salesInvoice') return null;
+    // Sales Order is an estimate of customer demand, not a stock commitment —
+    // the goods can still be procured after the order is placed, so no
+    // available-stock hint/check applies here. Only Delivery Challan and
+    // Sales Invoice actually move stock out, so only those get this hint.
+    if (key !== 'deliveryChallan' && key !== 'salesInvoice') return null;
     const actionableColumn = key === 'deliveryChallan' ? 'dispatch qty' : 'qty';
     if (String(column || '').trim().toLowerCase() !== actionableColumn) return null;
 
@@ -8291,6 +8726,29 @@ export class InventoryScreenShell implements OnInit {
     return '';
   }
 
+  // Sales-side mirror of validatePurchaseReturnLineItems above — Sales
+  // Return previously had no line-level qty check at all, so a Return Qty
+  // greater than what was invoiced could be saved outright. invoiced_qty
+  // is set on salesReturnItems() by setEntryLineCell's UOM-switch handler
+  // (converted into whatever UOM the row's UOM cell currently shows), so by
+  // the time this runs both sides are denominated in the same UOM.
+  private validateSalesReturnLineItems(items: any[]): string {
+    if (!Array.isArray(items) || !items.length) {
+      return 'Add at least one product line to the Sales Return before saving.';
+    }
+    for (const item of items) {
+      const productName = String(item?.product_name || '').trim();
+      if (!productName) return 'Every Sales Return line needs a Product selected.';
+      const invoiceQty = Number(item?.invoiced_qty) || 0;
+      const returnQty = Number(item?.return_qty) || 0;
+      if (returnQty <= 0) return `"${productName}": Return Qty must be greater than zero.`;
+      if (invoiceQty > 0 && returnQty > invoiceQty) {
+        return `"${productName}": Return Qty cannot be greater than Invoice Qty.`;
+      }
+    }
+    return '';
+  }
+
   private isInwardStockControlQtyColumn(column: string): boolean {
     const key = this.normalizeKey(column);
     if (this.config?.key === 'goodsReceipt') {
@@ -8410,6 +8868,16 @@ export class InventoryScreenShell implements OnInit {
       || this.config?.key === 'salesInvoice';
   }
 
+  // Screens whose grid should hide Batch No / Serial No / Expiry Date columns
+  // entirely when nothing in the current rows needs them (see
+  // isLineColumnVisible below) — kept separate from isPolicyAwarePurchaseLineGrid
+  // so adding Purchase Return here doesn't also switch on that gate's other,
+  // unrelated purchase-only behaviors (dynamic attribute/serial columns,
+  // Accepted-Qty-driven Amount recalculation) for a screen that doesn't use them.
+  private isPolicyColumnHidingScreen(): boolean {
+    return this.isPolicyAwarePurchaseLineGrid() || this.config?.key === 'purchaseReturn';
+  }
+
   private isPolicyLineColumn(column: string): boolean {
     const key = String(column || '').toLowerCase();
     return key.includes('batch') || key.includes('lot') || key.includes('serial') || key.includes('expiry');
@@ -8429,6 +8897,19 @@ export class InventoryScreenShell implements OnInit {
       const product = this.findProductBySelection(productName);
       return !!product && this.productSupportsLinePolicy(product, column);
     });
+  }
+
+  // Per-column visibility for the line grid's <th>/<td> loops — a Batch No /
+  // Serial No / Expiry Date column disappears entirely on screens in
+  // isPolicyColumnHidingScreen() when no current row either already has a
+  // value there or is for a product configured to need it (batch_applicable
+  // / serial_applicable / expiry_applicable). Any other column, or any
+  // screen not in that set, is always visible — this only ever hides
+  // columns that are structurally irrelevant right now, never one the user
+  // could otherwise type into (Rate/GST/Qty/etc. are untouched).
+  isLineColumnVisible(column: string): boolean {
+    if (!this.isPolicyColumnHidingScreen()) return true;
+    return this.shouldShowPolicyLineColumn(column);
   }
 
   private productSupportsLinePolicy(product: ProductItem, column: string): boolean {
@@ -9239,6 +9720,33 @@ export class InventoryScreenShell implements OnInit {
   closePurchaseReferencePicker(): void {
     this.refPickerOpen.set(false);
     this.refPickerLoading.set(false);
+    this.refPickerExpandedDocId.set(null);
+  }
+
+  isRefPickerExpanded(docId: number): boolean {
+    return this.refPickerExpandedDocId() === docId;
+  }
+
+  toggleRefPickerExpand(docId: number): void {
+    this.refPickerExpandedDocId.set(this.isRefPickerExpanded(docId) ? null : docId);
+  }
+
+  // "Available qty" for a reference-picker item — remaining_qty is what the
+  // sp_get_*_docs_for_ref procedures already compute (qty minus whatever a
+  // prior return already took), falling back to the raw qty for shapes that
+  // don't carry a returned/remaining figure.
+  refPickerItemAvailableQty(item: any): number {
+    const remaining = item?.remaining_qty ?? item?.remainingQty;
+    if (remaining !== undefined && remaining !== null && remaining !== '') return Number(remaining) || 0;
+    return Number(item?.qty ?? 0) || 0;
+  }
+
+  refPickerItemReturnedQty(item: any): number {
+    return Number(item?.returned_qty ?? item?.returnedQty ?? 0) || 0;
+  }
+
+  refPickerItemVariantText(item: any): string {
+    return [item?.variant_name, item?.attribute_value].filter(part => String(part || '').trim()).join(' / ') || '-';
   }
 
   private primaryReferenceValue(): string {
@@ -9374,6 +9882,11 @@ export class InventoryScreenShell implements OnInit {
     } else if (key === 'purchaseReturn') {
       patch['piId'] = doc.id;
       patch['piReference'] = doc.doc_number;
+      // The referenced PI's own grn_id, when it's a GRN-linked PI — the
+      // serial picker needs this to look up serials under the GRN's source_
+      // doc_type/id instead of the PI's, since a GRN-linked PI never writes
+      // its own inv_serial_units rows (see openSerialPicker()).
+      patch['piGrnId'] = doc.grn_id ?? null;
       patch['vendorId'] = doc.vendor_id ?? null;
       patch['warehouseId'] = doc.warehouse_id ?? null;
       patch['warehouse'] = doc.warehouse_name || doc.branch_name || doc.remarks || this.formValues()['warehouse'] || '';
@@ -9401,15 +9914,29 @@ export class InventoryScreenShell implements OnInit {
         // line — the picker button on a GRN-linked PI row is otherwise stuck
         // showing 0, even though inv_grn_items.serial_numbers has the data.
         this.lineSerialUnitsMap.set(referenceSerialMap);
+        // Carry the referenced GRN item's own attribute_id through directly
+        // (see attributeRefMapFromItems' doc comment) — a GRN-linked PI line
+        // needs this for its own serial picker's source-scoped lookup, same
+        // reasoning as Purchase Return below.
+        this.lineRefItemIdMap.set(this.attributeRefMapFromItems(doc.items || []));
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
       else applyRows();
     } else if (rows.length) {
+      // Purchase Return deliberately does NOT inherit the referenced PI's
+      // own serial_numbers snapshot here — that field is just the PI's
+      // original received-serials record, not "what's still returnable".
+      // Setting lineSerialUnitsMap from it pre-filled every new return with
+      // the PI's first N serials regardless of whether those specific units
+      // were already consumed by an earlier return, which is exactly what
+      // surfaced as "Serial number X is not available" at Post (or the
+      // openSerialPicker self-heal notice on reopen). The user must pick
+      // from openSerialPicker's live, source-scoped, in-stock list instead.
       const applyRows = () => {
         this.entryLineRowsKey.set(key);
         this.entryLineRows.set(rows);
-        if (key === 'purchaseReturn') {
-          this.lineSerialUnitsMap.set(referenceSerialMap);
+        if (key === 'purchaseReturn' || key === 'goodsReceipt') {
+          this.lineRefItemIdMap.set(this.attributeRefMapFromItems(doc.items || []));
         }
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
@@ -9506,19 +10033,44 @@ export class InventoryScreenShell implements OnInit {
       const applyRows = () => {
         this.entryLineRowsKey.set(key);
         this.entryLineRows.set(rows);
-        this.lineSerialUnitsMap.set(referenceSerialMap);
+        // Sales Return deliberately does NOT inherit the referenced
+        // invoice's own serial_numbers snapshot here — same reasoning as
+        // the purchase-side selectPrimaryReference fix: that field is the
+        // invoice's original sold-serials record, not "what's still
+        // returnable" once an earlier return against the same invoice has
+        // already consumed some of them. The user picks from
+        // openSerialPicker's live, invoice-scoped, still-sold list instead.
+        if (key !== 'salesReturn') {
+          this.lineSerialUnitsMap.set(referenceSerialMap);
+        }
         if (key === 'deliveryChallan' || key === 'salesInvoice') {
         // Carry each picked SO item's own id forward so DC/SI posting can
         // advance that SO item's delivered_qty/invoiced_qty (rule 4) — the
         // ref-docs endpoint only started returning SO item ids once this was
-        // added (sp_get_purchase_docs_for_ref's WHEN 'SO' branch).
-          const nextMap: Record<number, { soItemId?: number; dcItemId?: number; siItemId?: number }> = {};
+        // added (sp_get_purchase_docs_for_ref's WHEN 'SO' branch). Merged
+        // with the same item's own attribute_id/attribute_value (see
+        // attributeRefMapFromItems' doc comment) — DC/SI's own serial
+        // picker and save payload need that too, same reasoning as
+        // Purchase/Sales Return below.
+          const attrMap = this.attributeRefMapFromItems(doc.items || []);
+          const nextMap: Record<number, { soItemId?: number; dcItemId?: number; siItemId?: number; attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null }> = {};
           (doc.items || []).forEach((item: any, i: number) => {
-            nextMap[i] = key === 'deliveryChallan' && docType === 'SI'
-              ? { siItemId: item?.id ?? null }
-              : { soItemId: item?.id ?? null };
+            nextMap[i] = {
+              ...attrMap[i],
+              ...(key === 'deliveryChallan' && docType === 'SI'
+                ? { siItemId: item?.id ?? null }
+                : { soItemId: item?.id ?? null })
+            };
           });
           this.lineRefItemIdMap.set(nextMap);
+        } else if (key === 'salesReturn') {
+          // See lineRefItemIdMap's doc comment — carries the referenced
+          // invoice item's attribute_id/attribute_value through directly
+          // instead of round-tripping it via the grid's free-text
+          // "Attribute" cell, which was silently dropping it and breaking
+          // the "already returned" qty match in sp_get_sales_docs_for_ref's
+          // WHEN 'SI' branch.
+          this.lineRefItemIdMap.set(this.attributeRefMapFromItems(doc.items || []));
         }
       };
       if (closeBeforeRows) setTimeout(applyRows, 0);
@@ -9891,12 +10443,19 @@ export class InventoryScreenShell implements OnInit {
 
     if (screenKey === 'purchaseReturn') {
       // columns: Product, Variant, Attribute, UOM, Invoice Qty, Return Qty, Rate, GST, Return Amount, Return Reason
-      const explicitRemaining = item?.remaining_qty ?? item?.remainingQty;
+      // "Invoice Qty" is what the column header says it is — the qty
+      // actually invoiced on this PI line, a fixed historical fact — not
+      // qty-still-returnable-after-prior-returns. It was previously set from
+      // remaining_qty (qty minus already returned), which happened to look
+      // right only because remaining_qty itself was miscomputed as the full
+      // original qty (115/116's attribute-matching fix); once that started
+      // computing correctly, this cell started showing the reduced number
+      // under a column that promises the original one. The reference
+      // picker's own drill-down (Purchase Return's "Pick PI Reference" tray)
+      // is where remaining/already-returned qty belongs, and already shows
+      // it — this cell doesn't need to duplicate it.
       const originalInvoiceQty = Number(item?.qty ?? item?.received_qty ?? item?.receivedQty ?? requiredQty ?? 0) || 0;
-      const reservedQty = sourceDoc && (explicitRemaining === undefined || explicitRemaining === null || String(explicitRemaining).trim() === '')
-        ? this.purchaseReturnReservedQtyForPiLine(sourceDoc, item)
-        : 0;
-      const invoiceQty = String(Math.max(0, Number(explicitRemaining ?? originalInvoiceQty) - reservedQty) || '');
+      const invoiceQty = String(originalInvoiceQty || '');
       const variant = this.referenceItemVariantText(item);
       const attribute = this.referenceItemAttributeText(item);
       const row = this.normalizeLineRow([product, variant, attribute, uom, invoiceQty, '', rate, gst, '', '']);
@@ -9957,9 +10516,12 @@ export class InventoryScreenShell implements OnInit {
       // Remaining qty, whichever source this item came from: a DC pick sets
       // remaining_qty (dispatch_qty - invoiced_qty); a direct SO pick carries
       // qty/invoiced_qty instead. Rule 4: never pre-fill more than what's
-      // actually left un-invoiced on the source line. MRP/Selling Price are
-      // left blank here — SO/DC items don't carry price, same as PI leaves
-      // them blank unless the source (GRN) item itself had them.
+      // actually left un-invoiced on the source line. SO/DC items don't
+      // carry price of their own, so MRP/Selling Price/Rate fall back to the
+      // product master's own values below (applyProductPricingDefaults) —
+      // same defaulting a manually-added line already gets — instead of
+      // being left blank and forcing the user to re-type prices that are
+      // already on the product.
       const variant = this.referenceItemVariantText(item);
       const attribute = item?.attribute_value || item?.attributeValue || this.referenceItemAttributeText(item);
       let dispatchQty: string;
@@ -9988,6 +10550,8 @@ export class InventoryScreenShell implements OnInit {
       set('Disc %', discount);
       set('GST', gst);
       set('Amount', String(item?.amount ?? ''));
+      const refProduct = this.findProductBySelection(product);
+      if (refProduct) this.applyProductPricingDefaults(row, refProduct);
       this.recalculateLineRow(row);
       return row;
     }
@@ -10134,6 +10698,17 @@ export class InventoryScreenShell implements OnInit {
   // message instead of surfacing as a raw Postgres exception after Post.
   private serialCoverageValidationMessage(): string {
     if (!this.config?.lineColumns?.length) return '';
+    // Sales Order, Purchase Order, Quotations, RFQ, etc. never carry a Serial
+    // No / IMEI line column — serial units are only captured on documents
+    // that actually move stock (GRN, DC, Invoice, Return). Without this
+    // guard, isSerialApplicableRow() (driven purely by the product master
+    // flag) forced serial capture at the order stage too, before the
+    // product/warehouse/qty is even finalized.
+    const hasSerialColumn = this.config.lineColumns.some(column => {
+      const normalized = column.toLowerCase();
+      return normalized.includes('serial') || normalized.includes('imei');
+    });
+    if (!hasSerialColumn) return '';
     const rows = this.directEntryLineRows();
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex];
@@ -10195,11 +10770,6 @@ export class InventoryScreenShell implements OnInit {
     const label = this.productSerialColumnLabels(product)[0] || 'Serial No';
     if (dcItemId) return count ? `${count} ${label}(s) from DC` : 'Loading…';
 
-    const purchaseReturnPiId = this.config?.key === 'purchaseReturn' ? this.optionalNumber(this.formValues()['piId']) : null;
-    const salesReturnInvoiceId = this.config?.key === 'salesReturn' ? this.optionalNumber(this.formValues()['invoiceId']) : null;
-    if (purchaseReturnPiId) return count ? `${count} ${label}(s) from PI` : 'Loading…';
-    if (salesReturnInvoiceId) return count ? `${count} ${label}(s) from Invoice` : 'Loading…';
-
     const verb = this.serialPickerModeForKey() === 'capture' ? 'Enter' : 'Select';
     return `${verb} ${label} (${count}/${qty || 0})`;
   }
@@ -10211,6 +10781,22 @@ export class InventoryScreenShell implements OnInit {
     return warehouse?.id ?? this.optionalNumber(headerField) ?? null;
   }
 
+  // A serial already picked in a DIFFERENT row of the same not-yet-saved
+  // document must not be offered again — sp_get_available_serials (and the
+  // source-scoped equivalents) only know a unit's status in the DB, which
+  // still reads 'in_stock'/'sold' until this document is actually saved, so
+  // nothing server-side stops the same physical unit being picked twice
+  // across two rows in one draft. This is the client-side backstop for that.
+  private serialUnitsUsedInOtherRows(excludeRowIndex: number): Set<string> {
+    const used = new Set<string>();
+    const map = this.lineSerialUnitsMap();
+    for (const key of Object.keys(map)) {
+      if (Number(key) === excludeRowIndex) continue;
+      for (const serial of map[Number(key)] || []) used.add(serial);
+    }
+    return used;
+  }
+
   openSerialPicker(rowIndex: number, row: string[]): void {
     const productName = this.lineValue(row, ['product', 'item', 'sku']);
     const product = this.findProductBySelection(productName);
@@ -10220,21 +10806,32 @@ export class InventoryScreenShell implements OnInit {
     const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
 
     // Purchase Return against a known PI, and Sales Return against a known
-    // invoice, behave like Sales-Invoice-billing-a-Delivery-Challan: the
-    // exact units are already pinned to that source document, so they
-    // auto-bind instead of asking the user to re-pick them from an unscoped
-    // list of every in-stock/sold serial of the product. A Direct Purchase
-    // Return (no PI reference) or a Sales Return with no invoice chosen yet
-    // has no source to bind from, so those still fall back to manual select.
+    // invoice, scope the pickable list to that source document's own units
+    // (still handled below) but let the user choose which ones — e.g. the
+    // specific damaged unit — instead of silently auto-binding the first N.
+    // A Direct Purchase Return (no PI reference) or a Sales Return with no
+    // invoice chosen yet has no source to scope to, so those fall back to
+    // the unscoped manual-select list further down.
     const purchaseReturnPiId = this.config?.key === 'purchaseReturn' ? this.optionalNumber(this.formValues()['piId']) : null;
+    // A GRN-linked PI never writes its own inv_serial_units rows — those
+    // serials were already captured under the GRN's own id when the GRN was
+    // posted (fn_post_grn_stock), and fn_post_pi_stock deliberately doesn't
+    // touch stock/serials again for a GRN-linked PI. So when the referenced
+    // PI has a grn_id, the lookup below has to key off 'grn'/that grn_id
+    // instead of 'purchase_invoice'/the PI's own id, or it always comes back
+    // empty for the (far more common) GRN -> PI -> Purchase Return flow.
+    const purchaseReturnGrnId = this.config?.key === 'purchaseReturn' ? this.optionalNumber(this.formValues()['piGrnId']) : null;
     const salesReturnInvoiceId = this.config?.key === 'salesReturn' ? this.optionalNumber(this.formValues()['invoiceId']) : null;
-    const boundToSource = !!dcItemId || !!purchaseReturnPiId || !!salesReturnInvoiceId;
 
-    const mode: 'capture' | 'select' | 'inherited' = boundToSource ? 'inherited' : this.serialPickerModeForKey();
+    // Only SI billing a specific DC item stays truly "inherited" (no user
+    // choice) — those units are reserved 1:1 against that exact DC item, so
+    // there's nothing to pick between.
+    const mode: 'capture' | 'select' | 'inherited' = dcItemId ? 'inherited' : this.serialPickerModeForKey();
 
     this.activeSerialPicker.set({ rowIndex, mode, qtyNeeded, productId: product.id, productName: product.product_name || productName });
     this.serialPickerDraftValues.set([...(this.lineSerialUnitsMap()[rowIndex] || [])]);
     this.serialPickerAvailableOptions.set([]);
+    this.serialPickerSelectedIds.set(new Set());
     this.serialPickerError.set('');
     this.serialPickerMessage.set('');
 
@@ -10256,61 +10853,112 @@ export class InventoryScreenShell implements OnInit {
       return;
     }
 
-    if (mode === 'inherited' && (purchaseReturnPiId || salesReturnInvoiceId)) {
+    if (mode === 'select') {
       this.serialPickerLoading.set(true);
+      const variantId = this.lineRowVariantId(product, row);
+      // A single referenced GRN/PI/Invoice can carry the same product across
+      // multiple variants — scope the source-bound lookups down to this
+      // row's own variant/attribute too, or a return against one variant
+      // would also offer serials that actually belong to a different one.
+      const variantText = this.lineValue(row, ['variant']);
+      const attributeText = this.transactionLineAttributeText(row, rowIndex);
+      // Prefer the referenced document's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap at reference-pick time) over
+      // re-deriving it from the grid's free-text "Attribute" cell — that
+      // round trip returns null outright for any multi-attribute product
+      // and is what was silently emptying this exact source-scoped serial
+      // lookup for attribute-tracked products.
+      const refAttrForPicker = this.lineRefItemIdMap()[rowIndex];
+      const resolvedAttrForPicker = this.resolveLineAttribute(product, variantText, attributeText);
+      const attributeId = refAttrForPicker?.attributeId !== undefined ? refAttrForPicker.attributeId : resolvedAttrForPicker.attribute_id;
+      const attributeValue = refAttrForPicker?.attributeValue !== undefined ? refAttrForPicker.attributeValue : resolvedAttrForPicker.attribute_value;
       const obs = purchaseReturnPiId
-        ? this.txService.getInstockSerialsForSource({ productId: product.id, sourceDocType: 'purchase_invoice', sourceDocId: purchaseReturnPiId })
-        : this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: salesReturnInvoiceId });
+        ? this.txService.getInstockSerialsForSource(purchaseReturnGrnId
+            ? { productId: product.id, sourceDocType: 'grn', sourceDocId: purchaseReturnGrnId, variantId, attributeId, attributeValue }
+            : { productId: product.id, sourceDocType: 'purchase_invoice', sourceDocId: purchaseReturnPiId, variantId, attributeId, attributeValue })
+        : this.config?.key === 'salesReturn'
+          ? this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: salesReturnInvoiceId, variantId, attributeId, attributeValue })
+          : this.txService.getAvailableSerials({ productId: product.id, variantId, warehouseId: this.resolveHeaderWarehouseId() });
+      const usedElsewhere = this.serialUnitsUsedInOtherRows(rowIndex);
+      const previouslySaved = [...this.serialPickerDraftValues()];
       obs.pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: res => {
             this.serialPickerLoading.set(false);
-            const options = (res.data || []).filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no);
-            // A return can be for fewer units than the source document had —
-            // bind the first qtyNeeded rather than every available serial, so
-            // a partial return doesn't over-bind past what's actually being returned.
-            const serials = options.map(s => s.serial_no).slice(0, qtyNeeded);
+            const options = (res.data || [])
+              .filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no)
+              .filter(s => !usedElsewhere.has(s.serial_no));
             this.serialPickerAvailableOptions.set(options);
-            this.serialPickerDraftValues.set(serials);
-            this.lineSerialUnitsMap.update(map => ({ ...map, [rowIndex]: serials }));
+
+            // Re-derive the checked ids from whatever this row had saved
+            // before (e.g. re-opening an existing draft) by matching against
+            // the freshly-fetched, currently-available options — one id per
+            // remembered value, never the same id twice. Anything that no
+            // longer matches (already returned/sold/reserved elsewhere since
+            // this was last saved) silently drops out here instead of
+            // surviving as a stale value that only fails at Post time with a
+            // raw "Serial number X is not available" database error.
+            const selectedIds = new Set<number>();
+            const stillValid: string[] = [];
+            for (const value of previouslySaved) {
+              const match = options.find(o => o.serial_no === value && !selectedIds.has(o.id));
+              if (match) {
+                selectedIds.add(match.id);
+                stillValid.push(value);
+              }
+            }
+            this.serialPickerSelectedIds.set(selectedIds);
+            if (stillValid.length !== previouslySaved.length) {
+              this.serialPickerDraftValues.set(stillValid);
+              this.lineSerialUnitsMap.update(map => ({ ...map, [rowIndex]: stillValid }));
+              this.serialPickerError.set(
+                `${previouslySaved.length - stillValid.length} previously selected serial(s) are no longer available and were removed — please reselect.`
+              );
+            }
           },
           error: () => {
             this.serialPickerLoading.set(false);
             this.serialPickerError.set(purchaseReturnPiId
               ? 'Could not load serials for the referenced Purchase Invoice.'
-              : 'Could not load serials for the referenced Sales Invoice.');
+              : this.config?.key === 'salesReturn'
+                ? 'Could not load serials for the referenced Sales Invoice.'
+                : 'Could not load available serials.');
           }
-        });
-      return;
-    }
-
-    if (mode === 'select') {
-      this.serialPickerLoading.set(true);
-      const variantId = this.lineRowVariantId(product, row);
-      const obs = this.config?.key === 'salesReturn'
-        ? this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: this.optionalNumber(this.formValues()['invoiceId']) })
-        : this.txService.getAvailableSerials({ productId: product.id, variantId, warehouseId: this.resolveHeaderWarehouseId() });
-      obs.pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: res => {
-            this.serialPickerLoading.set(false);
-            this.serialPickerAvailableOptions.set((res.data || []).filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no));
-          },
-          error: () => { this.serialPickerLoading.set(false); this.serialPickerError.set('Could not load available serials.'); }
         });
     }
   }
 
-  toggleSerialPickerValue(serialNo: string): void {
+  // Keyed by the option's unique unit id (not its serial_no text) so two
+  // different physical units that legitimately share the same serial text
+  // (allow_duplicate serial policy) can be selected/deselected independently
+  // — see serialPickerSelectedIds above for why a text-keyed toggle breaks.
+  isSerialPickerOptionChecked(optionId: number): boolean {
+    return this.serialPickerSelectedIds().has(optionId);
+  }
+
+  toggleSerialPickerOption(option: { id: number; serial_no: string }): void {
     const picker = this.activeSerialPicker();
     if (!picker || picker.mode === 'inherited') return;
-    const current = this.serialPickerDraftValues();
-    if (current.includes(serialNo)) {
-      this.serialPickerDraftValues.set(current.filter(s => s !== serialNo));
+    const selected = this.serialPickerSelectedIds();
+    const next = new Set(selected);
+    if (next.has(option.id)) {
+      next.delete(option.id);
     } else {
-      if (current.length >= picker.qtyNeeded) return;
-      this.serialPickerDraftValues.set([...current, serialNo]);
+      if (next.size >= picker.qtyNeeded) return;
+      next.add(option.id);
     }
+    this.serialPickerSelectedIds.set(next);
+    const options = this.serialPickerAvailableOptions();
+    this.serialPickerDraftValues.set(options.filter(o => next.has(o.id)).map(o => o.serial_no));
+  }
+
+  // Duplicate serial_no text in the current options list (allow_duplicate
+  // policy) is otherwise indistinguishable to the user — surface a short
+  // "Unit #<id>" hint next to those specific rows only.
+  serialPickerOptionLabel(option: { id: number; serial_no: string }): string {
+    const options = this.serialPickerAvailableOptions();
+    const isDuplicateText = options.filter(o => o.serial_no === option.serial_no).length > 1;
+    return isDuplicateText ? `${option.serial_no} (Unit #${option.id})` : option.serial_no;
   }
 
   // Local-only "already entered" check (same row's draft list) runs first —
@@ -10416,6 +11064,7 @@ export class InventoryScreenShell implements OnInit {
     this.activeSerialPicker.set(null);
     this.serialPickerDraftValues.set([]);
     this.serialPickerAvailableOptions.set([]);
+    this.serialPickerSelectedIds.set(new Set());
     this.serialPickerError.set('');
     this.serialPickerMessage.set('');
     if (this.serialPickerMessageTimer) {
@@ -10431,6 +11080,7 @@ export class InventoryScreenShell implements OnInit {
 
   clearConfigForm(): void {
     this.formValues.set({});
+    this.deliveryAddressOverride.set(null);
     this.isLineGridFullscreen.set(false);
     this._autoCodeFields.clear();
     this.genericNameValue.set('');
@@ -10538,6 +11188,7 @@ export class InventoryScreenShell implements OnInit {
     this.formValues.set({
       uomCode: record.uom_code || '',
       uomName: record.uom_name || '',
+      uomSymbol: record.uom_symbol || '',
       decimalAllowed: record.decimal_allowed || false,
       isBaseUom: record.is_base_uom || false,
       status: cap(record.status || 'active')
@@ -10678,6 +11329,37 @@ export class InventoryScreenShell implements OnInit {
     if (!terms) return;
     const docDate = next['invoiceDate'] || next['soDate'] || next['transactionDate'] || next['docDate'];
     next['dueDate'] = this.purchaseInvoiceDueDate(docDate, terms) || next['dueDate'] || null;
+  }
+
+  // Backing state for the shared <app-inventory-delivery-address> component
+  // (see inventory-delivery-address.component.ts) — the "Deliver to a
+  // different address?" Yes/No switch shown on Sales Order, Sales Invoice
+  // and Delivery Challan. `null` means "not explicitly touched yet": in that
+  // state the switch auto-reflects whether the loaded record already has
+  // delivery-address data, so editing an older document with an address
+  // already filled in doesn't hide it. Reset in clearConfigForm()/
+  // editRecordByRow() below so a fresh or newly-loaded document starts from
+  // that auto-detected state again rather than carrying over the previous
+  // record's explicit toggle choice.
+  private readonly deliveryAddressOverride = signal<boolean | null>(null);
+
+  deliveryAddressEnabled(): boolean {
+    const override = this.deliveryAddressOverride();
+    if (override !== null) return override;
+    const v = this.formValues();
+    return !!(v['deliveryHouseNo'] || v['deliveryStreet'] || v['deliveryState'] || v['deliveryDistrict']
+      || v['deliveryCity'] || v['deliveryPincode'] || v['deliveryAddress']);
+  }
+
+  toggleDeliveryAddress(checked: boolean): void {
+    this.deliveryAddressOverride.set(checked);
+    if (!checked) {
+      this.formValues.update(v => ({
+        ...v,
+        deliveryHouseNo: '', deliveryStreet: '', deliveryState: '',
+        deliveryDistrict: '', deliveryCity: '', deliveryPincode: '', deliveryAddress: ''
+      }));
+    }
   }
 
   dcDistrictOptions(): string[] {
@@ -11020,6 +11702,20 @@ export class InventoryScreenShell implements OnInit {
       return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
     }
     return this.config?.kind === 'transaction' ? [] : (this.config?.rows || []);
+  }
+
+  // Existing Saved Records grid: hides any column that's blank across every
+  // currently loaded row (e.g. "PO: Reference" on GRNs that were never linked
+  // to a PO) rather than always reserving space for it. Each entry keeps its
+  // original index into config.columns/row so sortBy()/sortIcon() — which
+  // address that full, unfiltered index — need no changes; templates iterate
+  // this instead of config.columns directly and read row[col.index] per cell.
+  visibleRecordColumns(): { label: string; index: number }[] {
+    const columns = this.config?.columns || [];
+    const rows = this.liveRows();
+    return columns
+      .map((label, index) => ({ label, index }))
+      .filter(col => !rows.length || rows.some(row => String(row?.[col.index] ?? '').trim() !== ''));
   }
 
   loadApiRecords(): void {
@@ -11749,6 +12445,9 @@ export class InventoryScreenShell implements OnInit {
     this.isBatchSaving.set(true);
     this.saveMsg.set('');
     this.saveError.set('');
+    const failedRows: typeof rows = [];
+    let savedCount = 0;
+    const keepFailedRowsOnError = this.config?.key === 'categoryMaster';
 
     const saveOne = (payload: Record<string, any>): Observable<ApiResponse<any>> => {
       switch (this.config?.key) {
@@ -11792,13 +12491,17 @@ export class InventoryScreenShell implements OnInit {
             catchError(err => of({ success: false, message: this.apiErrorMessage(err, 'Record saved, but segment mapping failed.'), data: null }))
           );
         }),
-        catchError(err => of({ success: false, message: this.apiErrorMessage(err, 'Save failed'), data: null }))
+        map(res => ({ row, res })),
+        catchError(err => of({ row, res: { success: false, message: this.apiErrorMessage(err, 'Save failed'), data: null } }))
       )),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: (res: ApiResponse<any>) => {
+      next: ({ row, res }: { row: typeof rows[number]; res: ApiResponse<any> }) => {
         if (!res.success) {
+          failedRows.push(row);
           this.saveError.update(e => e ? e : (res.message || 'One or more records failed to save.'));
+        } else {
+          savedCount++;
         }
       },
       error: (err: any) => {
@@ -11808,10 +12511,16 @@ export class InventoryScreenShell implements OnInit {
       },
       complete: () => {
         this.isBatchSaving.set(false);
-        this.pendingRows.set([]);
+        this.pendingRows.set(keepFailedRowsOnError ? failedRows : []);
         this.editingPendingIndex.set(null);
-        const count = rows.length;
-        this.saveMsg.set(`${count} record${count !== 1 ? 's' : ''} saved.`);
+        if (keepFailedRowsOnError && failedRows.length) {
+          const failCount = failedRows.length;
+          this.saveMsg.set(savedCount ? `${savedCount} record${savedCount !== 1 ? 's' : ''} saved.` : '');
+          this.saveError.set(this.saveError() || `${failCount} record${failCount !== 1 ? 's' : ''} failed to save.`);
+        } else {
+          const count = rows.length;
+          this.saveMsg.set(`${count} record${count !== 1 ? 's' : ''} saved.`);
+        }
         this.loadApiRecords();
         this.loadLookupOptions();
         setTimeout(() => this.saveMsg.set(''), 3000);
@@ -12287,6 +12996,13 @@ export class InventoryScreenShell implements OnInit {
     return part?.value || '';
   }
 
+  // Prefers the structured serial_numbers array (serialNumbersFromRecordItem
+  // — the authoritative field every item table now carries) and falls back
+  // to the legacy free-text serial_no column only when that array is empty.
+  // Purchase Return and Delivery Challan items never had a serial_no column
+  // at all (083_serial_number_tracking.sql), so without this fallback their
+  // drill-down never showed captured/returned serials no matter what was
+  // actually on the record.
   private grnExpandedSerialNames(items: any[]): string[] {
     const names: string[] = [];
     const seen = new Set<string>();
@@ -12299,9 +13015,10 @@ export class InventoryScreenShell implements OnInit {
     };
 
     for (const item of items) {
+      if (!this.serialNumbersFromRecordItem(item).length) continue;
+
       const raw = this.grnExpandedValue(item, 'serial_no', 'serialNo');
-      if (!raw) continue;
-      const named = this.attributeTextParts(raw).filter(part => part.name);
+      const named = raw ? this.attributeTextParts(raw).filter(part => part.name) : [];
       if (named.length) {
         named.forEach(part => add(part.name));
         continue;
@@ -12316,12 +13033,16 @@ export class InventoryScreenShell implements OnInit {
   }
 
   private grnExpandedSerialValue(item: any, label: string): string {
+    const serials = this.serialNumbersFromRecordItem(item);
+    if (!serials.length) return '';
     const raw = this.grnExpandedValue(item, 'serial_no', 'serialNo');
-    if (!raw) return '';
-    const parts = this.attributeTextParts(raw);
-    const named = parts.find(part => part.name && this.optionEquals(part.name, label));
-    if (named) return named.value;
-    return parts.some(part => part.name) ? '' : raw;
+    if (raw) {
+      const parts = this.attributeTextParts(raw);
+      const named = parts.find(part => part.name && this.optionEquals(part.name, label));
+      if (named) return named.value;
+      if (parts.some(part => part.name)) return '';
+    }
+    return serials.join(', ');
   }
 
   private salesInvoiceRecordForRow(row: string[]): any | null {
@@ -12497,6 +13218,7 @@ export class InventoryScreenShell implements OnInit {
 
   editRecordByRow(row: string[]): void {
     if (!this.isApiWired()) return;
+    this.deliveryAddressOverride.set(null);
     if (this.config?.key === 'productServiceMaster' && !this.isAdmin()) {
       this.saveMsg.set('');
       this.saveError.set('Only admin can edit Product Master records.');
@@ -12595,7 +13317,6 @@ export class InventoryScreenShell implements OnInit {
         this.formValues.set({ brandCode: record.brand_code || '', brandName: record.brand_name || '', manufacturer: record.manufacturer || '', description: record.description || '', status: cap(record.status || 'active') });
         break;
       case 'attributeMaster':
-        this.formValues.set({ attributeCode: record.attribute_code || '', attributeName: record.attribute_name || '', attributeType: record.data_type || record.attribute_type || 'Text', displayOrder: record.display_order ?? 100, mandatoryFlag: record.is_mandatory ? 'Yes' : 'No', status: cap(record.status || 'active') });
         {
           const values = (record.values || []).length
             ? record.values
@@ -12611,8 +13332,21 @@ export class InventoryScreenShell implements OnInit {
             v.id !== undefined && v.id !== null ? String(v.id) : '',
             String(v.usage_count ?? 0)
           ]);
+          // rows is kept as the edit-time snapshot (name -> code/id) even though the
+          // grid UI is gone — buildPayload's attributeMaster case diffs the tag list
+          // typed into `possibleValues` against this snapshot so existing value
+          // codes/ids are preserved and values removed from the tags get deactivated
+          // instead of silently orphaned.
           this.entryLineRowsKey.set('attributeMaster');
           this.entryLineRows.set(rows.length ? rows : [this.blankLineRow()]);
+          this.formValues.set({
+            attributeCode: record.attribute_code || '',
+            attributeName: record.attribute_name || '',
+            possibleValues: rows.map((r: string[]) => r[1]).filter(Boolean).join(', '),
+            attributeType: record.data_type || record.attribute_type || 'Text',
+            mandatoryFlag: record.is_mandatory ? 'Yes' : 'No',
+            status: cap(record.status || 'active')
+          });
         }
         break;
       case 'productGroupMaster':
@@ -12982,6 +13716,7 @@ export class InventoryScreenShell implements OnInit {
         vendor: record.vendor_name || '',
         piId: record.pi_id ?? null,
         piReference: record.pi_number || '',
+        piGrnId: record.pi_grn_id ?? null,
         debitNoteRef: record.debit_note_ref || '',
         warehouseId: record.warehouse_id ?? null,
         warehouse: record.warehouse_name || '',
@@ -13000,9 +13735,22 @@ export class InventoryScreenShell implements OnInit {
         String(item.rate ?? ''),
         String(item.gst_rate ?? ''),
         String(item.return_amount ?? ''),
+        '',
         item.return_reason || ''
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
       this.restoreLineGstModes(record.items || []);
+      // Restore the already-saved attribute_id/attribute_value per line (see
+      // lineRefItemIdMap's doc comment) so re-saving this draft keeps using
+      // the exact values instead of falling back to resolveLineAttribute().
+      const purchaseReturnAttrMap: Record<number, { attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null }> = {};
+      (record.items || []).forEach((item: any, i: number) => {
+        purchaseReturnAttrMap[i] = {
+          attributeId: item?.attribute_id ?? item?.attributeId ?? null,
+          attributeName: item?.attribute_name ?? item?.attributeName ?? null,
+          attributeValue: item?.attribute_value ?? item?.attributeValue ?? null
+        };
+      });
+      this.lineRefItemIdMap.set(purchaseReturnAttrMap);
     }
 
     if (this.config?.key === 'debitNote') {
@@ -13158,12 +13906,10 @@ export class InventoryScreenShell implements OnInit {
         soDate: record.doc_date || null,
         customerId: record.customer_id ?? null,
         customer: record.customer_name || '',
+        creditSale: (record.payment_terms || record.due_date) ? 'Yes' : 'No',
         paymentTerms: record.payment_terms || '',
         dueDate: record.due_date || null,
         deliveryDate: record.delivery_date || null,
-        warehouseId: record.warehouse_id ?? null,
-        warehouse: record.warehouse_name || '',
-        placeOfSupply: record.place_of_supply || '',
         deliveryAddress: record.delivery_location || '',
         status: cap(record.status || 'draft')
       });
@@ -13175,12 +13921,8 @@ export class InventoryScreenShell implements OnInit {
         item.uom_name || '',
         String(item.qty ?? ''),
         String(item.rate ?? ''),
-        String(item.mrp ?? item.MRP ?? ''),
-        String(item.selling_price ?? item.sellingPrice ?? ''),
-        String(item.discount_pct ?? ''),
         String(item.gst_rate ?? ''),
         item.batch_no || '',
-        item.serial_no || '',
         String(item.expiry_date ?? item.expiryDate ?? ''),
         String(item.amount ?? '')
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
@@ -13267,6 +14009,18 @@ export class InventoryScreenShell implements OnInit {
         item.reason || ''
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
       this.restoreLineGstModes(record.items || []);
+      // Restore the already-saved attribute_id/attribute_value per line (see
+      // lineRefItemIdMap's doc comment) so re-saving this draft keeps using
+      // the exact values instead of falling back to resolveLineAttribute().
+      const salesReturnAttrMap: Record<number, { attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null }> = {};
+      (record.items || []).forEach((item: any, i: number) => {
+        salesReturnAttrMap[i] = {
+          attributeId: item?.attribute_id ?? item?.attributeId ?? null,
+          attributeName: item?.attribute_name ?? item?.attributeName ?? null,
+          attributeValue: item?.attribute_value ?? item?.attributeValue ?? null
+        };
+      });
+      this.lineRefItemIdMap.set(salesReturnAttrMap);
     }
 
     if (this.config?.key === 'creditNote') {
@@ -13377,6 +14131,7 @@ export class InventoryScreenShell implements OnInit {
           segment_id: selectedSegmentId,
           uom_code: v['uomCode'] || '',
           uom_name: v['uomName'] || '',
+          uom_symbol: v['uomSymbol'] || null,
           decimal_allowed: v['decimalAllowed'] === true || v['decimalAllowed'] === 'Yes',
           is_base_uom: !!existing?.is_base_uom,
           conversions: existingConversions,
@@ -13385,6 +14140,7 @@ export class InventoryScreenShell implements OnInit {
       }
       case 'categoryMaster':
         return {
+          segment_id: selectedSegmentId,
           category_code: v['categoryCode'] || '',
           category_name: v['categoryName'] || '',
           description: v['description'] || '',
@@ -13419,22 +14175,39 @@ export class InventoryScreenShell implements OnInit {
       case 'brandMaster':
         return { segment_id: selectedSegmentId, brand_code: v['brandCode'] || null, brand_name: v['brandName'] || '', category_name: v['categoryName'] || null, manufacturer: v['manufacturer'] || null, description: v['description'] || null, status: lc(v['status']) };
       case 'attributeMaster': {
-        const valueRows = [
-          ...this.entryLineRows(),
-          ...this.attributeValuesPendingDeactivate()
-        ]
-          .filter(row => row.some(cell => String(cell ?? '').trim()))
+        // The values grid UI is gone — values are now typed as comma-separated
+        // tags into the "Attribute Values" field (v['possibleValues']). To avoid
+        // regressing edit behaviour, the edit-time snapshot captured into
+        // entryLineRows() by editRecordByRow is used purely as a name -> {code,id}
+        // lookup: tags matching an existing name reuse its code/id (so codes don't
+        // churn and updates target the right row), brand-new tags get value_code:
+        // null so the backend auto-generates one, and any existing value whose name
+        // is no longer present in the tags is sent back with status 'inactive'
+        // instead of silently staying active but orphaned.
+        const tagNames = String(v['possibleValues'] || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        const existingRows = this.entryLineRows().filter(row => String(row[1] || '').trim());
+        const existingByName = new Map(existingRows.map(row => [this.normalizeKey(row[1]), row]));
+        const keptKeys = new Set(tagNames.map(name => this.normalizeKey(name)));
+        const activeValueRows = tagNames.map((name, index) => {
+          const existing = existingByName.get(this.normalizeKey(name));
+          return {
+            value_code: existing?.[0] || null,
+            value_name: name,
+            status: 'active',
+            sort_order: (index + 1) * 10,
+            id: existing?.[4] ? Number(existing[4]) : null
+          };
+        });
+        const deactivatedValueRows = existingRows
+          .filter(row => !keptKeys.has(this.normalizeKey(row[1])))
           .map((row, index) => ({
-            value_code: String(row[0] || '').trim() || null,
-            value_name: String(row[1] || '').trim(),
-            status: lc(row[2] || 'active'),
-            sort_order: Number(row[3]) || ((index + 1) * 10),
+            value_code: row[0] || null,
+            value_name: row[1],
+            status: 'inactive',
+            sort_order: Number(row[3]) || ((activeValueRows.length + index + 1) * 10),
             id: row[4] ? Number(row[4]) : null
-          }))
-          .filter(row => row.value_name);
-        const rawValues = valueRows.length
-          ? valueRows.map(row => row.value_name)
-          : String(v['possibleValues'] || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+          }));
+        const valueRows = [...activeValueRows, ...deactivatedValueRows];
         return {
           segment_id: selectedSegmentId,
           attribute_code: v['attributeCode'] || null,
@@ -13442,8 +14215,8 @@ export class InventoryScreenShell implements OnInit {
           category_name: v['categoryName'] || null,
           attribute_type: this.attributeTypeForApi(v['attributeType']),
           data_type: this.attributeTypeForApi(v['attributeType']),
-          display_order: Number(v['displayOrder']) || 100,
-          possible_values: rawValues.length ? rawValues : null,
+          display_order: 100,
+          possible_values: tagNames.length ? tagNames : null,
           values: valueRows,
           is_mandatory: bool(v['mandatoryFlag']),
           status: lc(v['status'])
@@ -13491,10 +14264,20 @@ export class InventoryScreenShell implements OnInit {
             status: lc(v['status'] || 'active')
           };
         }
-      case 'serialNumberPolicy':
-        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || null, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), allow_duplicate: bool(v['allowDuplicate']), status: lc(v['status']) };
-      case 'batchLotPolicy':
-        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_name: v['applicableCategory'] || v['applicableFor'] || null, batch_format: v['batchFormat'] || null, expiry_required: bool(v['expiryRequired']), qc_required: bool(v['qcRequired']), status: lc(v['status']) };
+      case 'serialNumberPolicy': {
+        const categoryName = v['applicableCategory'] || null;
+        const categoryId = categoryName
+          ? this.loadedCategoryObjects().find(item => this.optionEquals(item.category_name, categoryName))?.id ?? null
+          : null;
+        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_id: categoryId, category_name: categoryName, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), allow_duplicate: bool(v['allowDuplicate']), status: lc(v['status']) };
+      }
+      case 'batchLotPolicy': {
+        const categoryName = v['applicableCategory'] || v['applicableFor'] || null;
+        const categoryId = categoryName
+          ? this.loadedCategoryObjects().find(item => this.optionEquals(item.category_name, categoryName))?.id ?? null
+          : null;
+        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_id: categoryId, category_name: categoryName, batch_format: v['batchFormat'] || null, expiry_required: bool(v['expiryRequired']), qc_required: bool(v['qcRequired']), status: lc(v['status']) };
+      }
       case 'barcodeConfiguration':
         return {
           category_name: v['categoryName'] || null,
@@ -13915,23 +14698,20 @@ export class InventoryScreenShell implements OnInit {
     }
 
     if (this.config?.key === 'salesOrder') {
-      const soWarehouse = this.findWarehouseBySelection(v['warehouse']);
+      const creditSale = v['creditSale'] === 'Yes';
       return {
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
         doc_number: docNo('soNo', 'SO Number'),
         doc_date: docDate('soDate'),
-        due_date: v['dueDate'] || null,
+        due_date: creditSale ? (v['dueDate'] || null) : null,
         delivery_date: v['deliveryDate'] || null,
         customer_id: customerId,
         customer_name: customerName,
         customer_gstin: customerGstin,
-        payment_terms: v['paymentTerms'] || null,
+        payment_terms: creditSale ? (v['paymentTerms'] || null) : null,
         delivery_location: v['deliveryAddress'] || null,
-        warehouse_id: soWarehouse?.id ?? this.optionalNumber(v['warehouseId']),
-        warehouse_name: soWarehouse?.warehouse_name || v['warehouse'] || null,
-        place_of_supply: v['placeOfSupply'] || null,
         reference_no: null,
         remarks: v['remarks'] || null,
         status: status(v['status'], 'draft'),
@@ -14037,7 +14817,21 @@ export class InventoryScreenShell implements OnInit {
       const variantText = this.lineValue(row, ['variant']);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), false);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      // Prefer the referenced SO/DC item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking a
+      // reference) over re-deriving it from the grid's free-text
+      // "Attribute" cell — see attributeRefMapFromItems' doc comment.
+      // attribute_id itself was previously missing from this payload
+      // entirely (only name/value were sent), so inv_sales_order_items and
+      // inv_sales_invoice_items always saved attribute_id = NULL regardless
+      // of what the backend expected, breaking attribute-scoped matching
+      // for every downstream Sales Return/DC/SI on an attribute-tracked
+      // product.
+      const salesRefAttr = refMap[index];
+      const salesResolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = salesRefAttr?.attributeId !== undefined ? salesRefAttr.attributeId : salesResolvedAttr.attribute_id;
+      const attribute_name = salesRefAttr?.attributeName !== undefined ? salesRefAttr.attributeName : salesResolvedAttr.attribute_name;
+      const attribute_value = salesRefAttr?.attributeValue !== undefined ? salesRefAttr.attributeValue : salesResolvedAttr.attribute_value;
       const qty = this.lineNumber(row, ['qty']);
       const rate = this.lineNumber(row, ['rate', 'list']);
       const discountPct = this.lineNumber(row, ['disc', 'discount']);
@@ -14052,6 +14846,7 @@ export class InventoryScreenShell implements OnInit {
         variant_name,
         uom_id,
         uom_name,
+        attribute_id,
         attribute_name,
         attribute_value,
         qty,
@@ -14177,17 +14972,60 @@ export class InventoryScreenShell implements OnInit {
       if (!grouped.has(name)) grouped.set(name, []);
       if (val && !grouped.get(name)!.includes(val)) grouped.get(name)!.push(val);
     }
+    const stockWarehouseId = this.salesOrderAttributeStockWarehouseId();
+    const productId = product?.id ?? null;
+
     return Array.from(grouped.entries()).map(([name, options]) => {
       const mapValue = valueMap[`${rowIndex}_${name}`];
       const rowAttrParts = this.attributeTextParts(rowAttrValue);
       const namedRowAttrValue = rowAttrParts.find(part => part.name && this.optionEquals(part.name, name))?.value || '';
       const plainRowAttrValue = rowAttrParts.length === 1 && !rowAttrParts[0].name ? rowAttrParts[0].value : rowAttrValue;
-      const savedValue = mapValue !== undefined
+      const committedValue = mapValue !== undefined
         ? mapValue
         : (namedRowAttrValue && options.includes(namedRowAttrValue)
           ? namedRowAttrValue
-          : (plainRowAttrValue && options.includes(plainRowAttrValue) ? plainRowAttrValue : (options.length === 1 ? options[0] : '')));
-      return { name, options, value: savedValue, isAuto: options.length <= 1 };
+          : (plainRowAttrValue && options.includes(plainRowAttrValue) ? plainRowAttrValue : ''));
+
+      let displayOptions = options;
+      if (stockWarehouseId && productId) {
+        const inStock = this.filterAttributeOptionsByWarehouseStock(productId, variantId, options, stockWarehouseId);
+        // Keep an already-committed value visible/selectable even if it has
+        // since gone out of stock (e.g. editing an older draft) — the filter
+        // only narrows the choices offered for a fresh pick.
+        displayOptions = committedValue && !inStock.includes(committedValue) ? [...inStock, committedValue] : inStock;
+      }
+
+      const value = committedValue || (displayOptions.length === 1 ? displayOptions[0] : '');
+      return { name, options: displayOptions, value, isAuto: displayOptions.length <= 1 };
+    });
+  }
+
+  // Always null: a Sales Order is customer demand, not a stock commitment,
+  // so attribute-value choices are never narrowed by current stock — the
+  // goods can still be procured after the order is placed. This was
+  // Sales-Order-only to begin with (every other screen already got null
+  // here), so returning null unconditionally disables the filter below for
+  // good; buildLineAttrSelections() then shows every mapped value unfiltered.
+  private salesOrderAttributeStockWarehouseId(): number | null {
+    return null;
+  }
+
+  // Narrows an attribute's selectable values down to those with stock > 0 in
+  // the given warehouse, reusing the same per-value sp_get_available_stock
+  // cache the Qty stock hint already populates. A value with no cache entry
+  // yet is kept visible (and its fetch kicked off) rather than hidden, so the
+  // dropdown doesn't flash empty while stock data is still loading in.
+  private filterAttributeOptionsByWarehouseStock(productId: number, variantId: number | null, options: string[], warehouseId: number): string[] {
+    const cache = this.availableStockCache();
+    return options.filter(value => {
+      const key = this.availableStockKey(productId, variantId, value);
+      const rows = cache[key];
+      if (rows === undefined) {
+        this.fetchAvailableStockForLine(productId, variantId, value);
+        return true;
+      }
+      const here = this.stockRowForWarehouse(rows, warehouseId);
+      return Number(here?.available || 0) > 0;
     });
   }
 
@@ -14213,6 +15051,27 @@ export class InventoryScreenShell implements OnInit {
         return nextRow;
       }));
     }
+  }
+
+  // Shared builder for lineRefItemIdMap's attribute fields from a reference
+  // document's own items — used by every reference-pick handler (PO->GRN,
+  // GRN->PI, PI->Purchase Return, SO->DC, SO/DC->SI, Invoice->Sales Return)
+  // so the structured attribute_id the source document already carries
+  // doesn't have to round-trip through the grid's free-text "Attribute"
+  // cell and back out via resolveLineAttribute() below — a lossy trip that
+  // returns null outright for any multi-attribute product (see that
+  // function's own doc comment) and depends on variant-master load timing
+  // even for a single-attribute one.
+  private attributeRefMapFromItems(items: any[]): Record<number, { attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null }> {
+    const attrMap: Record<number, { attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null }> = {};
+    (items || []).forEach((item: any, i: number) => {
+      attrMap[i] = {
+        attributeId: item?.attribute_id ?? item?.attributeId ?? null,
+        attributeName: item?.attribute_name ?? item?.attributeName ?? null,
+        attributeValue: item?.attribute_value ?? item?.attributeValue ?? null
+      };
+    });
+    return attrMap;
   }
 
   private resolveLineAttribute(
@@ -14329,7 +15188,15 @@ export class InventoryScreenShell implements OnInit {
       const taxPayload = this.transactionLineTaxPayload(row, index, receivedQty, rate, discountPct, gstRate);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      // Prefer the referenced PO item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking a PO
+      // reference) over re-deriving it from the grid's free-text
+      // "Attribute" cell — see attributeRefMapFromItems' doc comment.
+      const grnRefAttr = this.lineRefItemIdMap()[index];
+      const grnResolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = grnRefAttr?.attributeId !== undefined ? grnRefAttr.attributeId : grnResolvedAttr.attribute_id;
+      const attribute_name = grnRefAttr?.attributeName !== undefined ? grnRefAttr.attributeName : grnResolvedAttr.attribute_name;
+      const attribute_value = grnRefAttr?.attributeValue !== undefined ? grnRefAttr.attributeValue : grnResolvedAttr.attribute_value;
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -14369,7 +15236,15 @@ export class InventoryScreenShell implements OnInit {
       const variantText = this.lineValue(row, ['variant']);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      // Prefer the referenced GRN item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking a GRN
+      // reference) over re-deriving it from the grid's free-text
+      // "Attribute" cell — see attributeRefMapFromItems' doc comment.
+      const piRefAttr = this.lineRefItemIdMap()[index];
+      const piResolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = piRefAttr?.attributeId !== undefined ? piRefAttr.attributeId : piResolvedAttr.attribute_id;
+      const attribute_name = piRefAttr?.attributeName !== undefined ? piRefAttr.attributeName : piResolvedAttr.attribute_name;
+      const attribute_value = piRefAttr?.attributeValue !== undefined ? piRefAttr.attributeValue : piResolvedAttr.attribute_value;
       const acceptedRaw = this.lineValue(row, ['accepted']).trim();
       const receivedRaw = this.lineValue(row, ['received']).trim();
       const qty = acceptedRaw !== ''
@@ -14420,7 +15295,16 @@ export class InventoryScreenShell implements OnInit {
       const product = this.findProductBySelection(productName);
       const variantText = this.lineValue(row, ['variant']);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.lineValue(row, ['attribute']));
+      // Prefer the referenced PI item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking a PI
+      // reference) over re-deriving it from the grid's free-text "Attribute"
+      // cell — see lineRefItemIdMap's doc comment for why the text
+      // round-trip was silently dropping it.
+      const refAttr = this.lineRefItemIdMap()[index];
+      const resolvedAttr = this.resolveLineAttribute(product, variantText, this.lineValue(row, ['attribute']));
+      const attribute_id = refAttr?.attributeId !== undefined ? refAttr.attributeId : resolvedAttr.attribute_id;
+      const attribute_name = refAttr?.attributeName !== undefined ? refAttr.attributeName : resolvedAttr.attribute_name;
+      const attribute_value = refAttr?.attributeValue !== undefined ? refAttr.attributeValue : resolvedAttr.attribute_value;
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const returnQty = this.lineNumber(row, ['return']);
       const rate = this.lineNumber(row, ['rate']);
@@ -14489,8 +15373,15 @@ export class InventoryScreenShell implements OnInit {
       const variantText = this.lineValue(row, ['variant']);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), false);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
       const ref = refMap[index];
+      // Prefer the referenced SO item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking a
+      // reference) over re-deriving it from the grid's free-text
+      // "Attribute" cell — see attributeRefMapFromItems' doc comment.
+      const dcResolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = ref?.attributeId !== undefined ? ref.attributeId : dcResolvedAttr.attribute_id;
+      const attribute_name = ref?.attributeName !== undefined ? ref.attributeName : dcResolvedAttr.attribute_name;
+      const attribute_value = ref?.attributeValue !== undefined ? ref.attributeValue : dcResolvedAttr.attribute_value;
       return {
         sno: index + 1,
         so_item_id: ref?.soItemId ?? null,
@@ -14519,7 +15410,16 @@ export class InventoryScreenShell implements OnInit {
       const variantText = this.lineValue(row, ['variant']);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), false);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
-      const { attribute_id, attribute_name, attribute_value } = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      // Prefer the referenced invoice item's own attribute_id/attribute_value
+      // (carried via lineRefItemIdMap when this row came from picking an
+      // Invoice reference) over re-deriving it from the grid's attribute
+      // cell state — see lineRefItemIdMap's doc comment for why that
+      // round-trip was silently dropping it.
+      const refAttr = this.lineRefItemIdMap()[index];
+      const resolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = refAttr?.attributeId !== undefined ? refAttr.attributeId : resolvedAttr.attribute_id;
+      const attribute_name = refAttr?.attributeName !== undefined ? refAttr.attributeName : resolvedAttr.attribute_name;
+      const attribute_value = refAttr?.attributeValue !== undefined ? refAttr.attributeValue : resolvedAttr.attribute_value;
       const returnQty = this.lineNumber(row, ['return']);
       const rate = this.lineNumber(row, ['rate']);
       const gstRate = this.transactionLineGstPercent(row);
@@ -14737,6 +15637,11 @@ export class InventoryScreenShell implements OnInit {
       if (!hasValue(payload['customer_name'])) return `Customer is required for ${this.config?.title || 'this document'}.`;
     }
 
+    if (this.config?.key === 'salesReturn') {
+      const returnItemsError = this.validateSalesReturnLineItems(payload['items']);
+      if (returnItemsError) return returnItemsError;
+    }
+
     if (this.config?.key === 'salesInvoice') {
       if (!hasValue(payload['doc_number'])) return 'Invoice No. is required for Sales Invoice.';
       if (!hasValue(payload['doc_date'])) return 'Invoice Date is required for Sales Invoice.';
@@ -14885,6 +15790,7 @@ export class InventoryScreenShell implements OnInit {
         return records.map(r => [
           r.uom_code || '',
           r.uom_name || '',
+          r.uom_symbol || '',
           r.decimal_allowed ? 'Yes' : 'No',
           cap(r.status || 'active')
         ]);
@@ -14922,7 +15828,6 @@ export class InventoryScreenShell implements OnInit {
             r.data_type || r.attribute_type || '',
             values,
             String(usageTotal),
-            String(r.display_order ?? ''),
             cap(r.status || 'active')
           ];
         });

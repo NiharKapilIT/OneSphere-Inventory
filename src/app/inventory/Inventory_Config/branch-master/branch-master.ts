@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import {
   AccessControlService, BranchResponse
 } from '../../../core/services/Settings/access-control.service';
@@ -27,7 +27,6 @@ export class InventoryBranchMasterComponent implements OnInit {
   private svc          = inject(InventoryConfigService);
   private access       = inject(AccessControlService);
   private subSvc       = inject(SubscriptionService);
-  private router       = inject(Router);
 
   // ── Form state ────────────────────────────────────────────────────────
   selectedSettingsBranchId = signal<number | null>(null);
@@ -51,20 +50,21 @@ export class InventoryBranchMasterComponent implements OnInit {
   warehouses       = signal<WarehouseItem[]>([]);
 
   readonly selectedSettingsBranch = computed(() =>
-    this.settingsBranches().find(b => b.id === this.selectedSettingsBranchId()) ?? null
+    this.settingsBranches().find(b => Number(b.id) === Number(this.selectedSettingsBranchId())) ?? null
   );
 
   // Warehouse currently linked (inv_warehouses.branch_id) to the selected branch, if any.
   readonly linkedWarehouse = computed(() => {
     const id = this.selectedSettingsBranchId();
     if (!id) return null;
-    return this.warehouses().find(w => w.branch_id === id) ?? null;
+    return this.warehouses().find(w => Number(w.branch_id) === Number(id)) ?? null;
   });
 
   readonly alreadyConfigured = computed(() => {
     const id = this.selectedSettingsBranchId();
     if (!id || this.editingId()) return null;
-    return this.savedBranches().find(b => b.branch_id === id) ?? null;
+    const branch = this.savedBranchForOption(id);
+    return branch?.id ? branch : null;
   });
 
   readonly visibleSavedBranches = computed(() => {
@@ -72,6 +72,20 @@ export class InventoryBranchMasterComponent implements OnInit {
     return selectedSegmentId
       ? this.savedBranches().filter(branch => branch.segment_id === selectedSegmentId)
       : this.savedBranches();
+  });
+
+  readonly segmentOptions = computed(() =>
+    this.segments().map(item => item.segment_name).filter(Boolean)
+  );
+  readonly segmentCount = computed(() => this.segmentOptions().length);
+  readonly selectedSegment = computed(() =>
+    this.segments().find(item => item.id === this.segmentId())?.segment_name ?? ''
+  );
+  readonly segmentWarehouses = computed(() => {
+    const selectedSegmentId = this.segmentId();
+    return selectedSegmentId
+      ? this.warehouses().filter(item => !item.segment_id || item.segment_id === selectedSegmentId)
+      : this.warehouses();
   });
 
   // ── Subscription quota ────────────────────────────────────────────────
@@ -93,36 +107,85 @@ export class InventoryBranchMasterComponent implements OnInit {
   saveMsg   = signal('');
   saveError = signal('');
 
-  readonly settingsRoute   = '/dashboard/settings/branch-management/manage-branches';
   readonly upgradeRoute    = '/dashboard/admin/subscription';
   readonly branchMasterConfig = branchMasterConfig;
 
   ngOnInit(): void {
     forkJoin({
-      segments:     this.svc.getSegments(),
-      branches:     this.svc.getBranchesInv(true),
-      settings:     this.access.getBranches(),
-      subscription: this.subSvc.getSubscription(),
-      warehouses:   this.svc.getWarehouses(true)
+      segments:     this.svc.getSegments(true).pipe(catchError(() => of({ success: false, message: '', data: [] as SegmentItem[] }))),
+      branches:     this.svc.getBranchesInv(true).pipe(catchError(() => of({ success: false, message: '', data: [] as BranchInvItem[] }))),
+      settings:     this.access.getBranches().pipe(catchError(() => of({ success: false, message: '', data: [] as BranchResponse[] }))),
+      subscription: this.subSvc.getSubscription().pipe(catchError(() => of({ success: false, data: null as SubscriptionPlan | null }))),
+      warehouses:   this.svc.getWarehouses(true).pipe(catchError(() => of({ success: false, message: '', data: [] as WarehouseItem[] })))
     }).subscribe({
       next: ({ segments, branches, settings, subscription, warehouses }) => {
         this.segments.set(segments.data       ?? []);
         this.savedBranches.set(branches.data  ?? []);
-        this.settingsBranches.set(
-          (settings.data ?? []).filter(b => b.status === 'active')
-        );
+        this.settingsBranches.set(this.mergeSettingsBranches(
+          settings.data ?? [],
+          this.registrationBranches(),
+          this.inventoryBranchesAsSettings(branches.data ?? [])
+        ));
         this.subscription.set(subscription.data ?? null);
         this.warehouses.set(warehouses.data ?? []);
+        this.applyDefaultSegment();
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
     });
   }
 
+  openQuickAddPopup(): void {
+    this.quickBranchName.set('');
+    this.quickBranchCode.set('');
+    this.quickBranchError.set('');
+    this.showQuickAdd.set(true);
+  }
+
+  refreshSettingsBranches(): void {
+    forkJoin({
+      settings: this.access.getBranches().pipe(catchError(() => of({ success: false, message: '', data: [] as BranchResponse[] }))),
+      branches: this.svc.getBranchesInv(true).pipe(catchError(() => of({ success: false, message: '', data: [] as BranchInvItem[] })))
+    }).subscribe({
+      next: ({ settings, branches }) => {
+        const inventoryBranches = branches.data ?? [];
+        this.savedBranches.set(inventoryBranches);
+        this.settingsBranches.set(this.mergeSettingsBranches(
+          settings.data ?? [],
+          this.registrationBranches(),
+          this.inventoryBranchesAsSettings(inventoryBranches)
+        ));
+      },
+      error: () => this.settingsBranches.set(this.mergeSettingsBranches(
+        this.settingsBranches(),
+        this.registrationBranches(),
+        this.inventoryBranchesAsSettings(this.savedBranches())
+      ))
+    });
+  }
+
+  onSegmentChangedByUser(segmentName: string): void {
+    const segment = this.segments().find(item => item.segment_name === segmentName);
+    this.segmentId.set(segment?.id ?? null);
+    const warehouse = this.warehouses().find(item => item.id === this.warehouseId());
+    if (segment?.id && warehouse?.segment_id && warehouse.segment_id !== segment.id) {
+      this.warehouseId.set(null);
+    }
+  }
+
   // Selecting a branch pre-fills whichever warehouse is already linked to it.
   onSettingsBranchSelected(id: number | null): void {
-    this.selectedSettingsBranchId.set(id);
-    this.warehouseId.set(this.warehouses().find(w => w.branch_id === id)?.id ?? null);
+    const branchId = Number(id) || null;
+    this.selectedSettingsBranchId.set(branchId);
+    const configured = this.savedBranchForOption(branchId);
+    if (configured?.segment_id || configured?.segment_name) {
+      this.segmentId.set(this.resolveSegmentId(configured.segment_id, configured.segment_name));
+    }
+    const linked = this.warehouses().find(w => Number(w.branch_id) === Number(branchId));
+    if (linked?.segment_id && linked.segment_id !== this.segmentId()) {
+      this.segmentId.set(linked.segment_id);
+    }
+    this.warehouseId.set(linked?.id ?? null);
   }
 
   // ── Quick-add branch ──────────────────────────────────────────────────
@@ -166,7 +229,7 @@ export class InventoryBranchMasterComponent implements OnInit {
     }).subscribe({
       next: res => {
         const created = res.data;
-        this.settingsBranches.update(list => [...list, created]);
+        this.settingsBranches.set(this.mergeSettingsBranches(this.settingsBranches(), [created]));
         this.selectedSettingsBranchId.set(created.id);
         this.subscription.update(s => s
           ? { ...s, currentBranchCount: s.currentBranchCount + 1 }
@@ -189,11 +252,6 @@ export class InventoryBranchMasterComponent implements OnInit {
     this.quickBranchName.set('');
     this.quickBranchCode.set('');
     this.quickBranchError.set('');
-  }
-
-  goToSettingsBranch(): void {
-    sessionStorage.setItem('inventoryBranchReturnUrl', '/dashboard/inventory/configuration/branch-config');
-    this.router.navigate([this.settingsRoute]);
   }
 
   segmentName(id: number | null | undefined): string {
@@ -226,6 +284,10 @@ export class InventoryBranchMasterComponent implements OnInit {
       this.saveError.set('Please select a branch');
       return;
     }
+    if (this.segments().length && !this.segmentId()) {
+      this.saveError.set('Please select a Business Segment');
+      return;
+    }
     this.saveError.set('');
 
     this.pendingBranches.update(rows => [...rows, {
@@ -249,12 +311,12 @@ export class InventoryBranchMasterComponent implements OnInit {
 
   clearForm(): void {
     this.selectedSettingsBranchId.set(null);
-    this.segmentId.set(null);
     this.status.set('active');
     this.editingId.set(null);
     this.warehouseId.set(null);
     this.saveError.set('');
     this.cancelQuickAdd();
+    this.applyDefaultSegment();
   }
 
   saveAll(): void {
@@ -277,7 +339,13 @@ export class InventoryBranchMasterComponent implements OnInit {
     this.svc.batchSaveBranchesInv(batch).subscribe({
       next: res => {
         this.pendingBranches.set([]);
-        this.savedBranches.set(res.data ?? []);
+        const saved = res.data ?? [];
+        this.savedBranches.set(saved);
+        this.settingsBranches.set(this.mergeSettingsBranches(
+          this.settingsBranches(),
+          this.registrationBranches(),
+          this.inventoryBranchesAsSettings(saved)
+        ));
         this.saving.set(false);
         this.saveMsg.set(`${batch.length} branch configuration(s) saved`);
         setTimeout(() => this.saveMsg.set(''), 4000);
@@ -324,11 +392,205 @@ export class InventoryBranchMasterComponent implements OnInit {
   editBranch(br: BranchInvItem): void {
     // Rows sourced only from Settings (not yet configured for inventory) have no id yet —
     // treat as a new inventory config entry rather than an edit.
+    const option = this.branchOptionForSavedBranch(br);
     this.editingId.set(br.id ?? null);
-    this.selectedSettingsBranchId.set(br.branch_id ?? null);
-    this.segmentId.set(br.segment_id ?? null);
+    this.selectedSettingsBranchId.set(option?.id ?? br.branch_id ?? null);
+    this.segmentId.set(this.resolveSegmentId(br.segment_id, br.segment_name));
     this.status.set((br.status || 'active').toLowerCase());
-    this.warehouseId.set(this.warehouses().find(w => w.branch_id === br.branch_id)?.id ?? null);
+    this.warehouseId.set(this.warehouses().find(w => Number(w.branch_id) === Number(option?.id ?? br.branch_id))?.id ?? null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private applyDefaultSegment(): void {
+    if (this.segmentId() || !this.segments().length) return;
+    this.segmentId.set(this.segments()[0].id);
+  }
+
+  private inventoryBranchesAsSettings(branches: BranchInvItem[]): BranchResponse[] {
+    const companyId = Number(sessionStorage.getItem('companyId') || 0);
+    return branches
+      .map((branch): BranchResponse | null => {
+        const matched = this.branchOptionForSavedBranch(branch);
+        const id = Number(branch.branch_id ?? matched?.id) || 0;
+        if (!id) return null;
+        return {
+          id,
+          companyId: branch.company_id || companyId,
+          branchCode: branch.branch_code || matched?.branchCode || '',
+          branchName: branch.branch_name || matched?.branchName || '',
+          email: null,
+          mobile: null,
+          address: branch.address ?? null,
+          city: branch.city ?? null,
+          state: branch.state ?? null,
+          country: null,
+          pincode: branch.pincode ?? null,
+          isHeadOffice: !!branch.is_head_office || this.looseKey(branch.branch_code) === 'ho',
+          isDefault: !!branch.is_head_office || this.looseKey(branch.branch_code) === 'ho',
+          status: branch.status || 'active'
+        };
+      })
+      .filter((branch): branch is BranchResponse => !!branch && !!branch.branchName);
+  }
+
+  private savedBranchForOption(branchId: number | null): BranchInvItem | null {
+    if (!branchId) return null;
+    const option = this.settingsBranches().find(branch => Number(branch.id) === Number(branchId)) ?? null;
+    return this.savedBranches().find(branch => Number(branch.branch_id) === Number(branchId))
+      ?? (option ? this.savedBranches().find(branch => this.sameBranchIdentity(branch, option)) ?? null : null);
+  }
+
+  private branchOptionForSavedBranch(branch: BranchInvItem): BranchResponse | null {
+    const directId = Number(branch.branch_id) || 0;
+    return this.settingsBranches().find(option => Number(option.id) === directId)
+      ?? this.settingsBranches().find(option => this.sameBranchIdentity(branch, option))
+      ?? null;
+  }
+
+  private sameBranchIdentity(branch: BranchInvItem, option: BranchResponse): boolean {
+    const branchCode = this.looseKey(branch.branch_code);
+    const optionCode = this.looseKey(option.branchCode);
+    if (branchCode && optionCode && branchCode === optionCode) return true;
+    const branchName = this.looseKey(branch.branch_name);
+    const optionName = this.looseKey(option.branchName);
+    return !!branchName && !!optionName && branchName === optionName;
+  }
+
+  private resolveSegmentId(segmentId: number | null | undefined, segmentName?: string | null): number | null {
+    const directId = Number(segmentId) || 0;
+    if (directId && this.segments().some(segment => Number(segment.id) === directId)) return directId;
+    const key = this.looseKey(segmentName);
+    if (key) {
+      const matched = this.segments().find(segment => this.looseKey(segment.segment_name) === key);
+      if (matched) return matched.id;
+    }
+    return this.segmentId() ?? this.segments()[0]?.id ?? null;
+  }
+
+  private looseKey(value: string | null | undefined): string {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  private registrationBranches(): BranchResponse[] {
+    const branches: BranchResponse[] = [];
+    try {
+      const raw = JSON.parse(sessionStorage.getItem('authBranches') || '[]') as Array<Partial<BranchResponse>>;
+      const companyId = Number(sessionStorage.getItem('companyId') || 0);
+      branches.push(...raw
+        .filter(item => !!item?.id && !!item?.branchName)
+        .map(item => ({
+          id: Number(item.id),
+          companyId,
+          branchCode: String(item.branchCode || ''),
+          branchName: String(item.branchName || ''),
+          email: item.email ?? null,
+          mobile: item.mobile ?? null,
+          address: item.address ?? null,
+          city: item.city ?? null,
+          state: item.state ?? null,
+          country: item.country ?? null,
+          pincode: item.pincode ?? null,
+          isHeadOffice: !!item.isHeadOffice,
+          isDefault: !!item.isDefault,
+          status: item.status || 'active'
+        })));
+    } catch {}
+
+    branches.push(...this.tenantOptionBranches());
+    const current = this.currentSessionBranch();
+    if (current) branches.push(current);
+    return this.mergeSettingsBranches(branches);
+  }
+
+  private mergeSettingsBranches(...groups: BranchResponse[][]): BranchResponse[] {
+    const byId = new Set<number>();
+    const byCode = new Set<string>();
+    const byName = new Set<string>();
+    const branches: BranchResponse[] = [];
+    for (const branch of groups.flat()) {
+      if (!branch || String(branch.status || 'active').toLowerCase() !== 'active') continue;
+      const id = Number(branch.id) || 0;
+      const code = String(branch.branchCode || '').trim().toLowerCase();
+      const name = String(branch.branchName || '').trim().toLowerCase();
+      if (id && byId.has(id)) continue;
+      if (code && byCode.has(code)) continue;
+      if (name && byName.has(name)) continue;
+      if (id) byId.add(id);
+      if (code) byCode.add(code);
+      if (name) byName.add(name);
+      branches.push(branch);
+    }
+    return branches.sort((a, b) =>
+      String(a.branchName || '').localeCompare(String(b.branchName || ''))
+    );
+  }
+
+  private tenantOptionBranches(): BranchResponse[] {
+    try {
+      const companyId = Number(sessionStorage.getItem('companyId') || 0);
+      const raw = JSON.parse(sessionStorage.getItem('authTenantOptions') || '[]') as Array<{
+        companyId?: number;
+        branches?: Array<Partial<BranchResponse>>;
+      }>;
+      return raw
+        .filter(option => !companyId || Number(option.companyId) === companyId)
+        .flatMap(option => option.branches ?? [])
+        .filter(item => !!item?.id && !!item?.branchName)
+        .map(item => ({
+          id: Number(item.id),
+          companyId,
+          branchCode: String(item.branchCode || ''),
+          branchName: String(item.branchName || ''),
+          email: item.email ?? null,
+          mobile: item.mobile ?? null,
+          address: item.address ?? null,
+          city: item.city ?? null,
+          state: item.state ?? null,
+          country: item.country ?? null,
+          pincode: item.pincode ?? null,
+          isHeadOffice: !!item.isHeadOffice,
+          isDefault: !!item.isDefault,
+          status: item.status || 'active'
+        }));
+    } catch {
+      return [];
+    }
+  }
+
+  private currentSessionBranch(): BranchResponse | null {
+    try {
+      const details = JSON.parse(sessionStorage.getItem('CompanyDetails') || '{}') as Partial<BranchResponse> & {
+        branchId?: number;
+        branchCode?: string;
+        branchName?: string;
+      };
+      const id = Number(details.branchId || sessionStorage.getItem('branchId') || 0);
+      if (!id) return null;
+
+      const rawName = String(details.branchName || '').trim();
+      const rawCode = String(details.branchCode || sessionStorage.getItem('branchCode') || '').trim();
+      const branchName = rawName || (rawCode.toUpperCase() === 'HO' ? 'Head Office' : '');
+      const branchCode = rawCode || (branchName.toLowerCase() === 'head office' ? 'HO' : '');
+      if (!branchName) return null;
+
+      return {
+        id,
+        companyId: Number(sessionStorage.getItem('companyId') || 0),
+        branchCode,
+        branchName,
+        email: null,
+        mobile: null,
+        address: null,
+        city: null,
+        state: null,
+        country: null,
+        pincode: null,
+        isHeadOffice: branchName.toLowerCase() === 'head office' || branchCode.toUpperCase() === 'HO',
+        isDefault: true,
+        status: 'active'
+      };
+    } catch {
+      return null;
+    }
   }
 }

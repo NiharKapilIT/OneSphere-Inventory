@@ -196,6 +196,6 @@
   </button>
   <button type="button" class="erp-btn btn-primary" [disabled]="saving()" (click)="save()">
     <i [class]="saving() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
-    {{ saving() ? 'Saving...' : 'Save' }}
+    {{ saving() ? 'Saving...' : saveButtonLabel }}
   </button>
 </div>

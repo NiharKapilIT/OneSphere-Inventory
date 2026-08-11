@@ -115,6 +115,7 @@
   }
 
   <button
+    #guideButton
     type="button"
     class="erp-btn btn-white btn-sm"
     [class.active]="advicePanelOpen()"
@@ -125,7 +126,7 @@
   </button>
 
   @if (advicePanelOpen()) {
-    <section class="inventory-advice-panel inventory-advice-panel--short" aria-label="Screen guide">
+    <section #guidePanel class="inventory-advice-panel inventory-advice-panel--short" aria-label="Screen guide">
       <div class="inventory-advice-head">
         <div>
           <span class="inventory-advice-kicker">Screen guide</span>

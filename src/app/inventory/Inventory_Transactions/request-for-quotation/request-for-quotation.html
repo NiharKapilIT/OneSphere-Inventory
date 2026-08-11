@@ -1,13 +1,6 @@
 <div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     <section class="inventory-section rfq-entry-section">
       <div class="rfq-entry-head">
@@ -167,17 +160,16 @@
           </button>
         </div>
         <div class="tbl-wrap rfq-items-wrap">
-          <table class="erp-table compact rfq-line-table">
+          <table class="erp-table compact rfq-line-table inventory-resizable-table">
             <thead>
               <tr>
                 <th class="text-center">Actions</th>
-                <th>Product</th>
-                <th>Variant</th>
-                <th>Attribute</th>
-                <th>Qty</th>
-                <th>UOM</th>
-                <th class="text-center">Lead Days</th>
-                <th>Remarks</th>
+                @for (column of ['Product', 'Variant', 'Attribute', 'Qty', 'UOM', 'Lead Days', 'Remarks']; track column) {
+                  <th [style.width]="lineGridColumnWidthPx(column)">
+                    {{ column }}
+                    <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                  </th>
+                }
               </tr>
             </thead>
             <tbody>

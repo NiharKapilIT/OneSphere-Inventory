@@ -1,0 +1,69 @@
+<section class="inventory-fieldset delivery-challan-fieldset">
+  <div class="inventory-fieldset-title inventory-fieldset-title-row">
+    <span><i class="pi pi-map-marker"></i> Delivery Address</span>
+    <label class="inventory-labeled-switch yes-no" title="Deliver to a different address?">
+      <input type="checkbox" [checked]="host.deliveryAddressEnabled()" (change)="host.toggleDeliveryAddress($any($event.target).checked)" />
+      <span class="inventory-switch-track">
+        <span class="switch-text switch-on">Yes</span>
+        <span class="switch-text switch-off">No</span>
+      </span>
+    </label>
+  </div>
+  @if (host.deliveryAddressEnabled()) {
+    <div class="inventory-form-grid delivery-address-grid">
+      <div class="erp-form-group">
+        <label class="erp-label">House No / Plot No</label>
+        <input class="erp-input" type="text"
+          [ngModel]="host.formValues()['deliveryHouseNo'] || ''"
+          (ngModelChange)="host.updateDcDeliveryAddressPart('deliveryHouseNo', $event)"
+          placeholder="House No / Plot No" />
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">Street / Area</label>
+        <input class="erp-input" type="text"
+          [ngModel]="host.formValues()['deliveryStreet'] || ''"
+          (ngModelChange)="host.updateDcDeliveryAddressPart('deliveryStreet', $event)"
+          placeholder="Street, area or landmark" />
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">State</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+          [items]="host.dcAddressStates" [searchable]="true" [clearable]="true"
+          [ngModel]="host.formValues()['deliveryState'] || ''"
+          (ngModelChange)="host.onDcDeliveryStateChange($event)"
+          placeholder="Select state">
+        </ng-select>
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">District</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+          [items]="host.dcDistrictOptions()" [searchable]="true" [clearable]="true"
+          [ngModel]="host.formValues()['deliveryDistrict'] || ''"
+          (ngModelChange)="host.updateDcDeliveryAddressPart('deliveryDistrict', $event)"
+          placeholder="Select district">
+        </ng-select>
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">City / Town</label>
+        <input class="erp-input" type="text"
+          [ngModel]="host.formValues()['deliveryCity'] || ''"
+          (ngModelChange)="host.updateDcDeliveryAddressPart('deliveryCity', $event)"
+          placeholder="City or town" />
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">Pincode</label>
+        <input class="erp-input" type="text" maxlength="6"
+          [ngModel]="host.formValues()['deliveryPincode'] || ''"
+          (ngModelChange)="host.onDcDeliveryPincodeChange($event)"
+          placeholder="6-digit pincode" />
+      </div>
+      <div class="erp-form-group span-2">
+        <label class="erp-label">Full Delivery Address</label>
+        <textarea class="erp-input" rows="2"
+          [ngModel]="host.formValues()['deliveryAddress'] || ''"
+          (ngModelChange)="host.collectFormField('deliveryAddress', $event)"
+          placeholder="Auto-filled from address details or enter manually"></textarea>
+      </div>
+    </div>
+  }
+</section>

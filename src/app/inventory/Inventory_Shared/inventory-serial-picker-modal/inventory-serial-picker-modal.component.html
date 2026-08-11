@@ -96,9 +96,9 @@
               @for (option of host.serialPickerAvailableOptions(); track option.id) {
                 <label class="inventory-serial-select-row">
                   <input type="checkbox"
-                    [checked]="host.serialPickerDraftValues().includes(option.serial_no)"
-                    (change)="host.toggleSerialPickerValue(option.serial_no)" />
-                  <span>{{ option.serial_no }}</span>
+                    [checked]="host.isSerialPickerOptionChecked(option.id)"
+                    (change)="host.toggleSerialPickerOption(option)" />
+                  <span>{{ host.serialPickerOptionLabel(option) }}</span>
                 </label>
               } @empty {
                 <span class="inventory-grid-empty-hint">No serial numbers available to select.</span>
@@ -112,7 +112,7 @@
         <button type="button" class="erp-btn btn-white" (click)="host.closeSerialPicker(false)">Cancel</button>
         @if (picker.mode !== 'inherited') {
           <button type="button" class="erp-btn btn-primary"
-            [disabled]="host.serialPickerDraftValues().length !== picker.qtyNeeded"
+            [disabled]="host.serialPickerDraftValues().length === 0"
             (click)="host.closeSerialPicker(true)">
             Save ({{ host.serialPickerDraftValues().length }}/{{ picker.qtyNeeded }})
           </button>

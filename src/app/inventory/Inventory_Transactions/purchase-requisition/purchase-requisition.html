@@ -1,13 +1,6 @@
 <div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       <!-- Business Segment Bar -->
@@ -148,16 +141,16 @@
           </button>
         </div>
         <div class="tbl-wrap pr-items-wrap">
-          <table class="erp-table compact pr-line-table">
+          <table class="erp-table compact pr-line-table inventory-resizable-table">
             <thead>
               <tr>
                 <th class="text-center">Actions</th>
-                <th>Product</th>
-                <th>Variant</th>
-                <th>Attribute</th>
-                <th>UOM</th>
-                <th>Request Qty</th>
-                <th>Remarks</th>
+                @for (column of ['Product', 'Variant', 'Attribute', 'UOM', 'Request Qty', 'Remarks']; track column) {
+                  <th [style.width]="lineGridColumnWidthPx(column)">
+                    {{ column }}
+                    <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                  </th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -318,11 +311,11 @@
           <thead>
             <tr>
               <th class="text-center">Actions</th>
-              @for (column of config.columns || []; track column; let columnIndex = $index) {
+              @for (col of visibleRecordColumns(); track col.index) {
                 <th class="inventory-sortable-th">
-                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', columnIndex)">
-                    <span>{{ column }}</span>
-                    <i [class]="sortIcon('records', columnIndex)"></i>
+                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', col.index)">
+                    <span>{{ col.label }}</span>
+                    <i [class]="sortIcon('records', col.index)"></i>
                   </button>
                 </th>
               }
@@ -353,13 +346,13 @@
                     </button>
                   </div>
                 </td>
-                @for (cell of row.slice(0, (config.columns || []).length); track $index; let colIdx = $index) {
-                  <td [class.pr-no-nowrap]="colIdx === 0" [class.pr-approved-status]="isApprovedPr(row) && colIdx === ((config.columns?.length || 1) - 1)">{{ cell }}</td>
+                @for (col of visibleRecordColumns(); track col.index) {
+                  <td [class.pr-no-nowrap]="col.index === 0" [class.pr-approved-status]="isApprovedPr(row) && col.index === ((config.columns?.length || 1) - 1)">{{ row[col.index] }}</td>
                 }
               </tr>
               @if (isExpandedPr(row)) {
                 <tr class="pr-expand-tr">
-                  <td [attr.colspan]="(config.columns?.length || 0) + 1">
+                  <td [attr.colspan]="(visibleRecordColumns().length || 0) + 1">
                     <div class="pr-expand-content">
                       @if (getPrExpandedItems(row).length) {
                         <table class="pr-expand-items-table" style="width:auto;min-width:unset">

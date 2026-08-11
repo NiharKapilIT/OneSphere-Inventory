@@ -1,16 +1,6 @@
 <div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory Config</span>
-        <h2><i class="pi pi-upload"></i> HSN/SAC Tax Code Import</h2>
-        <p>Upload official GST/CBIC CSV or XLSX exports, including HSN goods, SAC services and GST rate guide sheets.</p>
-      </div>
-      <button type="button" class="erp-btn btn-white" (click)="loadSourceStatus()" title="Refresh source status">
-        <i class="pi pi-refresh"></i> Refresh
-      </button>
-      <app-inventory-screen-shell [config]="taxCodeImportConfig"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="taxCodeImportConfig"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       <div class="inventory-section-title">

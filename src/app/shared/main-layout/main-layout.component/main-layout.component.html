@@ -536,12 +536,12 @@
           <span class="bc-spacer"></span>
 
           <div class="bc-pay-toggle" *ngIf="breadcrumbPath.module?.name === 'Inventory'">
-            <button type="button" class="erp-btn btn-sm" routerLink="/dashboard/inventory/transactions/vendor-payment"
-              routerLinkActive="btn-primary" #payActive="routerLinkActive" [class.btn-white]="!payActive.isActive" title="Vendor Payment">
+            <button type="button" class="bc-badge-btn bc-badge-pay" routerLink="/dashboard/inventory/transactions/vendor-payment"
+              routerLinkActive="active" #payActive="routerLinkActive" title="Pay Against Purchase (Vendor Payment)">
               <i class="pi pi-arrow-up-right"></i> Pay
             </button>
-            <button type="button" class="erp-btn btn-sm" routerLink="/dashboard/inventory/transactions/customer-receipt"
-              routerLinkActive="btn-primary" #rcvActive="routerLinkActive" [class.btn-white]="!rcvActive.isActive" title="Customer Receipt">
+            <button type="button" class="bc-badge-btn bc-badge-receipt" routerLink="/dashboard/inventory/transactions/customer-receipt"
+              routerLinkActive="active" #rcvActive="routerLinkActive" title="Receipt Against Sale (Customer Receipt)">
               <i class="pi pi-arrow-down-left"></i> Receipt
             </button>
           </div>

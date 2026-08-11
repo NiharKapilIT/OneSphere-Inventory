@@ -70,6 +70,14 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
       : this.savedWarehouses();
   });
 
+  readonly segmentOptions = computed(() =>
+    this.segments().map(item => item.segment_name).filter(Boolean)
+  );
+  readonly segmentCount = computed(() => this.segmentOptions().length);
+  readonly selectedSegment = computed(() =>
+    this.segments().find(item => item.id === this.segmentId())?.segment_name ?? ''
+  );
+
   // ── Page state ────────────────────────────────────────────────────────
   loading   = signal(true);
   saving    = signal(false);
@@ -88,10 +96,16 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
       next: ({ segments, warehouses }) => {
         this.segments.set(segments.data          ?? []);
         this.savedWarehouses.set(warehouses.data ?? []);
+        this.applyDefaultSegment();
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
     });
+  }
+
+  onSegmentChangedByUser(segmentName: string): void {
+    const segment = this.segments().find(item => item.segment_name === segmentName);
+    this.segmentId.set(segment?.id ?? null);
   }
 
   onNameChange(name: string): void {
@@ -178,7 +192,7 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   }
 
   clearForm(): void {
-    this.segmentId.set(null); this.warehouseName.set(''); this.warehouseCode.set('');
+    this.warehouseName.set(''); this.warehouseCode.set('');
     this.state.set(''); this.district.set(''); this.address.set('');
     this.city.set(''); this.pincode.set(''); this.capacity.set(null);
     this.capacityUnit.set('sqft'); this.customCapacityUnit.set('');
@@ -249,5 +263,10 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
       this.customCapacityUnit.set('');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private applyDefaultSegment(): void {
+    if (this.segmentId() || !this.segments().length) return;
+    this.segmentId.set(this.segments()[0].id);
   }
 }

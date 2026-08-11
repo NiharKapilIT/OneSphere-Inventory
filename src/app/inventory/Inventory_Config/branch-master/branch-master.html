@@ -2,54 +2,30 @@
   <div class="inventory-shell">
 
     <!-- ── Header ──────────────────────────────────────────────────────── -->
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory Config</span>
-        <h2><i class="pi pi-map-marker"></i> Branch Configuration</h2>
-        <p>Map your company branches to inventory segments and define their operational role.</p>
-      </div>
-      <div class="branch-quota-block">
-        @if (subscription()) {
-          <div class="branch-quota-bar">
-            <span class="branch-quota-item"
-              [class.quota-warn]="subscription()!.currentBranchCount >= subscription()!.maxBranches">
-              <i class="pi pi-building"></i>
-              {{ subscription()!.currentBranchCount }} / {{ subscription()!.maxBranches }} Branches
-            </span>
-            <span class="branch-quota-sep">·</span>
-            <span class="branch-quota-item"
-              [class.quota-warn]="subscription()!.currentUserCount >= subscription()!.maxUsers">
-              <i class="pi pi-users"></i>
-              {{ subscription()!.currentUserCount }} / {{ subscription()!.maxUsers }} Users
-            </span>
-            @if (branchLimitReached() || userLimitReached()) {
-              <a [routerLink]="upgradeRoute" class="branch-quota-upgrade">
-                <i class="pi pi-arrow-up-right"></i> Upgrade Plan
-              </a>
-            }
-          </div>
-        }
-        <button type="button" class="erp-btn btn-white" (click)="goToSettingsBranch()">
-          <i class="pi pi-external-link"></i> Manage in Settings
-        </button>
-      </div>
-      <app-inventory-screen-shell [config]="branchMasterConfig"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="branchMasterConfig"></app-inventory-screen-shell>
 
-    <!-- ── Info note ────────────────────────────────────────────────────── -->
-    <div class="inventory-info-note">
-      <i class="pi pi-info-circle"></i>
-      Branches are created and managed in <strong>Settings → Branch Management</strong>.
-      Here the Admin selects a branch, assigns it to a <strong>Segment</strong> and links its
-      <strong>Default Warehouse</strong> so procurement and sales flows are scoped correctly.
-    </div>
-
+    
+    
     <!-- ── Form card ────────────────────────────────────────────────────── -->
     <section class="inventory-section">
+      <div class="product-segment-bar">
+        <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
+        @if (segmentCount() === 1) {
+          <span class="erp-badge badge-info">{{ segmentOptions()[0] }}</span>
+        } @else {
+          <ng-select class="erp-ng-select inventory-ng-select product-segment-select" appendTo="body"
+            [items]="segmentOptions()" [searchable]="false" [clearable]="false"
+            [ngModel]="selectedSegment()" (ngModelChange)="onSegmentChangedByUser($event)"
+            placeholder="Select Segment">
+          </ng-select>
+        }
+        <span class="product-segment-bar-hint">Branch and warehouse mapping here belongs to this segment.</span>
+      </div>
+
       <div class="inventory-section-title">
         <div>
           <h3>{{ editingId() ? 'Edit Branch Config' : 'New Branch Config' }}</h3>
-          <p>Select a branch, assign a segment and activity types, then click <strong>+ Add</strong>.</p>
+          <p>Assign a Branch and mapp to the Warehouse,  for new branch click <strong>+ Add</strong>.</p>
         </div>
         @if (editingId()) {
           <span class="erp-badge badge-warning"><i class="pi pi-pencil"></i> Editing #{{ editingId() }}</span>
@@ -62,17 +38,11 @@
         <div class="erp-form-group span-2">
           <label class="erp-label">
             Branch <span class="text-danger">*</span>
-            <span class="erp-label-hint">pulled from Settings → Branch Management</span>
+            <span class="erp-label-hint">pulled from branch records</span>
           </label>
 
           @if (loading()) {
             <div class="inventory-loading" style="padding: 8px 0;"><i class="pi pi-spin pi-spinner"></i> Loading branches…</div>
-          } @else if (settingsBranches().length === 0) {
-            <div class="inventory-info-note" style="margin-top:4px; border-color: #fde68a; background:#fffbeb;">
-              <i class="pi pi-exclamation-triangle" style="color:#b45309;"></i>
-              No active branches found. Create one below or go to
-              <strong>Settings → Branch Management</strong>.
-            </div>
           } @else {
             <div class="inventory-field-with-add">
               <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
@@ -97,11 +67,17 @@
                 </ng-template>
               </ng-select>
               <button type="button" class="erp-btn btn-white btn-icon"
-                title="Add new branch here"
-                (click)="showQuickAdd.set(!showQuickAdd())">
-                <i [class]="showQuickAdd() ? 'pi pi-times' : 'pi pi-plus'"></i>
+                title="Add new branch"
+                (click)="openQuickAddPopup()">
+                <i class="pi pi-plus"></i>
               </button>
             </div>
+            @if (settingsBranches().length === 0) {
+              <div class="inventory-info-note" style="margin-top:4px; border-color: #fde68a; background:#fffbeb;">
+                <i class="pi pi-exclamation-triangle" style="color:#b45309;"></i>
+                No active branches found from registration or branch records. Click <strong>+</strong> to add a branch.
+              </div>
+            }
           }
 
           <!-- Already configured warning -->
@@ -115,74 +91,6 @@
             </div>
           }
 
-          <!-- Quick-add branch inline panel -->
-          @if (showQuickAdd()) {
-            <div class="branch-quickadd-panel">
-              <div class="branch-quickadd-header">
-                <i class="pi pi-plus-circle"></i> Create New Branch
-                <span class="erp-label-hint ms-1">saves directly to Settings</span>
-              </div>
-              <div class="inventory-form-grid inventory-config-grid" style="margin-top:10px;">
-                <div class="erp-form-group">
-                  <label class="erp-label">Branch Name <span class="text-danger">*</span></label>
-                  <input class="erp-input" type="text"
-                    [ngModel]="quickBranchName()"
-                    (ngModelChange)="onQuickNameChange($event)"
-                    placeholder="e.g. Chennai South Branch" />
-                </div>
-                <div class="erp-form-group">
-                  <label class="erp-label">Branch Code
-                  </label>
-                  <input class="erp-input" type="text"
-                    [ngModel]="quickBranchCode()"
-                    (ngModelChange)="onQuickCodeChange($event)"
-                    placeholder="e.g. CSB-001" />
-                </div>
-              </div>
-              @if (branchLimitReached()) {
-                <div class="inventory-save-msg save-err" style="margin: 8px 0 0;">
-                  <i class="pi pi-lock"></i>
-                  Branch limit reached ({{ subscription()!.currentBranchCount }}/{{ subscription()!.maxBranches }}).
-                  <a [routerLink]="upgradeRoute" class="ms-1" style="color:inherit;font-weight:700;">Upgrade your plan</a>
-                  to add more branches.
-                </div>
-              }
-              @if (quickBranchError() && !branchLimitReached()) {
-                <div class="inventory-save-msg save-err" style="margin: 6px 0 0;">
-                  <i class="pi pi-times-circle"></i> {{ quickBranchError() }}
-                </div>
-              }
-              <div class="inventory-form-actions" style="padding-top: 8px;">
-                <button type="button" class="erp-btn btn-white" (click)="cancelQuickAdd()">
-                  Cancel
-                </button>
-                <button type="button" class="erp-btn btn-primary"
-                  [disabled]="quickBranchSaving() || branchLimitReached()"
-                  (click)="saveQuickBranch()">
-                  @if (quickBranchSaving()) { <i class="pi pi-spin pi-spinner"></i> Saving… }
-                  @else { <i class="pi pi-save"></i> Create & Select }
-                </button>
-                <button type="button" class="erp-btn btn-white ms-auto" (click)="goToSettingsBranch()">
-                  <i class="pi pi-external-link"></i> Full Setup in Settings
-                </button>
-              </div>
-            </div>
-          }
-        </div>
-
-        <!-- Business Segment -->
-        <div class="erp-form-group">
-          <label class="erp-label">Business Segment</label>
-          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-            [items]="segments()"
-            bindLabel="segment_name"
-            bindValue="id"
-            [searchable]="true"
-            [clearable]="true"
-            [ngModel]="segmentId()"
-            (ngModelChange)="segmentId.set($event)"
-            placeholder="Select segment (optional)">
-          </ng-select>
         </div>
 
         <!-- Default Warehouse -->
@@ -193,7 +101,7 @@
           </label>
           <div class="inventory-field-with-add">
             <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-              [items]="warehouses()"
+              [items]="segmentWarehouses()"
               bindLabel="warehouse_name"
               bindValue="id"
               [searchable]="true"
@@ -365,6 +273,60 @@
         </div>
       }
     </section>
+
+    @if (showQuickAdd()) {
+      <div class="inv-popup-backdrop" (click)="cancelQuickAdd()"></div>
+      <div class="inv-popup-box">
+        <div class="inv-popup-head">
+          <h4><i class="pi pi-plus-circle"></i> New Branch</h4>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="cancelQuickAdd()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="inv-popup-body">
+          <div class="inv-popup-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">Branch Name <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="quickBranchName()"
+                (ngModelChange)="onQuickNameChange($event)"
+                placeholder="e.g. Chennai South Branch" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Branch Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="quickBranchCode()"
+                (ngModelChange)="onQuickCodeChange($event)"
+                placeholder="e.g. CSB-001" />
+            </div>
+          </div>
+          @if (branchLimitReached()) {
+            <div class="inventory-save-msg save-err">
+              <i class="pi pi-lock"></i>
+              Branch limit reached ({{ subscription()!.currentBranchCount }}/{{ subscription()!.maxBranches }}).
+              <a [routerLink]="upgradeRoute" class="ms-1" style="color:inherit;font-weight:700;">Upgrade your plan</a>
+              to add more branches.
+            </div>
+          }
+          @if (quickBranchError() && !branchLimitReached()) {
+            <div class="inventory-save-msg save-err">
+              <i class="pi pi-times-circle"></i> {{ quickBranchError() }}
+            </div>
+          }
+          <div class="inventory-form-actions" style="padding-top: 4px;">
+            <button type="button" class="erp-btn btn-white" (click)="cancelQuickAdd()">
+              Cancel
+            </button>
+            <button type="button" class="erp-btn btn-primary"
+              [disabled]="quickBranchSaving() || branchLimitReached()"
+              (click)="saveQuickBranch()">
+              @if (quickBranchSaving()) { <i class="pi pi-spin pi-spinner"></i> Saving... }
+              @else { <i class="pi pi-save"></i> Create & Select }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
   </div>
 </div>

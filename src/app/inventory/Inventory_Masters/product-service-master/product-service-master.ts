@@ -8,11 +8,12 @@ import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-sh
 import { productServiceMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { ProductItem } from '../../Inventory_Shared/inventory-config.service';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
+import { HsnSacPickerComponent } from '../../Inventory_Shared/hsn-sac-picker/hsn-sac-picker.component';
 
 @Component({
   selector: 'app-inventory-product-service-master',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, HsnSacPickerComponent],
   templateUrl: './product-service-master.html'
 })
 export class InventoryProductServiceMasterComponent extends InventoryScreenShell {

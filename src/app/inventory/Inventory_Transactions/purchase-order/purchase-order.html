@@ -1,13 +1,6 @@
-﻿<div class="module-page inventory-page">
+<div class="module-page inventory-page">
   <div class="inventory-shell">
-    <div class="inventory-header">
-      <div>
-        <span class="inventory-kicker">Inventory workspace</span>
-        <h2><i [class]="config.icon"></i> {{ config.title }}</h2>
-        <p>{{ config.subtitle }}</p>
-      </div>
-      <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
-    </div>
+    <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
     <section class="inventory-section">
       @if (isApiWired()) {
@@ -199,12 +192,15 @@
             </button>
           </div>
           <div class="tbl-wrap">
-            <table class="erp-table compact">
+            <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of config.lineColumns || []; track column) {
-                    <th [class]="lineGridColumnCssClass(column)">{{ column }}</th>
+                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                      {{ column }}
+                      <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                    </th>
                   }
                 </tr>
               </thead>
@@ -228,7 +224,7 @@
                                 <div class="inventory-attr-item">
                                   <span class="inventory-attr-label">{{ attr.name }}</span>
                                   @if (attr.isAuto) {
-                                    <span class="erp-badge badge-info">{{ attr.value || '—' }}</span>
+                                    <span class="erp-badge badge-info">{{ attr.value || '�' }}</span>
                                   } @else {
                                     <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
                                       [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -240,7 +236,7 @@
                               }
                             </div>
                           } @else {
-                            <span class="inventory-grid-empty-hint">—</span>
+                            <span class="inventory-grid-empty-hint">�</span>
                           }
                         } @else if (lineGridColumnIsGstValue(column)) {
                           <div class="inventory-gst-cell" [class.inventory-gst-cell--included]="lineGstIncluded(rowIndex)">
@@ -400,11 +396,11 @@
           <thead>
             <tr>
               <th class="text-center">Actions</th>
-              @for (column of config.columns || []; track column; let columnIndex = $index) {
+              @for (col of visibleRecordColumns(); track col.index) {
                 <th class="inventory-sortable-th">
-                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', columnIndex)">
-                    <span>{{ column }}</span>
-                    <i [class]="sortIcon('records', columnIndex)"></i>
+                  <button type="button" class="inventory-sort-btn" (click)="sortBy('records', col.index)">
+                    <span>{{ col.label }}</span>
+                    <i [class]="sortIcon('records', col.index)"></i>
                   </button>
                 </th>
               }
@@ -421,8 +417,8 @@
                     }
                   </div>
                 </td>
-                @for (cell of row.slice(0, (config.columns || []).length); track $index) {
-                  <td>{{ cell }}</td>
+                @for (col of visibleRecordColumns(); track col.index) {
+                  <td>{{ row[col.index] }}</td>
                 }
               </tr>
             }

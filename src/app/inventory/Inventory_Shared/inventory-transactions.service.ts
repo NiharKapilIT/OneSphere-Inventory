@@ -290,6 +290,7 @@ export interface PurchaseRefDoc {
   payment_terms?: string;
   so_id?: number;
   so_number?: string;
+  grn_id?: number;
   status: string;
   remarks?: string;
   items: any[];
@@ -330,6 +331,7 @@ export interface PurchaseReturn {
   vendor_name?: string;
   pi_id?: number;
   pi_number?: string;
+  pi_grn_id?: number;
   debit_note_ref?: string;
   warehouse_id?: number;
   warehouse_name?: string;
@@ -1194,6 +1196,7 @@ export class InventoryTransactionsService {
       vendor_name: r?.vendorName || r?.vendor_name,
       pi_id: r?.piId ?? r?.pi_id,
       pi_number: r?.piNumber || r?.pi_number,
+      pi_grn_id: r?.piGrnId ?? r?.pi_grn_id,
       debit_note_ref: r?.debitNoteRef || r?.debit_note_ref,
       warehouse_id: r?.warehouseId ?? r?.warehouse_id,
       warehouse_name: r?.warehouseName || r?.warehouse_name,
@@ -1400,9 +1403,12 @@ export class InventoryTransactionsService {
     );
   }
 
-  getSoldSerialsForReturn(params: { productId: number; invoiceId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+  getSoldSerialsForReturn(params: { productId: number; invoiceId?: number | null; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null }): Observable<ApiResponse<SerialUnit[]>> {
     let httpParams = new HttpParams().set('productId', String(params.productId));
     if (params.invoiceId) httpParams = httpParams.set('invoiceId', String(params.invoiceId));
+    if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
+    if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
+    if (params.attributeValue) httpParams = httpParams.set('attributeValue', params.attributeValue);
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/sold-for-return'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => this.normSerialUnits(res))
     );
@@ -1410,11 +1416,17 @@ export class InventoryTransactionsService {
 
   // Purchase Return side — in-stock serials scoped to the GRN/Purchase
   // Invoice being returned against, so the return auto-binds exactly the
-  // units received on that document.
-  getInstockSerialsForSource(params: { productId: number; sourceDocType?: string | null; sourceDocId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+  // units received on that document. variantId/attributeId/attributeValue
+  // further narrow to the exact variant/attribute of the row being
+  // returned, since one GRN/PI can carry the same product across multiple
+  // variants (115_return_serial_variant_scope.sql).
+  getInstockSerialsForSource(params: { productId: number; sourceDocType?: string | null; sourceDocId?: number | null; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null }): Observable<ApiResponse<SerialUnit[]>> {
     let httpParams = new HttpParams().set('productId', String(params.productId));
     if (params.sourceDocType) httpParams = httpParams.set('sourceDocType', params.sourceDocType);
     if (params.sourceDocId) httpParams = httpParams.set('sourceDocId', String(params.sourceDocId));
+    if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
+    if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
+    if (params.attributeValue) httpParams = httpParams.set('attributeValue', params.attributeValue);
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/instock-for-source'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => this.normSerialUnits(res))
     );
@@ -1576,6 +1588,7 @@ export class InventoryTransactionsService {
           payment_terms: (r as any).paymentTerms || (r as any).payment_terms,
           so_id: (r as any).soId ?? (r as any).so_id,
           so_number: (r as any).soNumber || (r as any).so_number,
+          grn_id: (r as any).grnId ?? (r as any).grn_id,
           status: (r as any).status || '', remarks: (r as any).remarks,
           items: (r as any).items || []
         }));
