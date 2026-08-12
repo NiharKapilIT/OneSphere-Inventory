@@ -7733,10 +7733,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         // UOM is user-editable on every transaction screen except a
         // GRN-linked Purchase Invoice (lineGridCellReadonly locks the whole
         // row there). Any per-unit price already sitting in this row — Rate,
-        // and on GRN/Purchase Invoice also MRP/Selling Price, which are
-        // editable there (Sales Order/Invoice's MRP/Selling Price are
-        // read-only procurement-side reference values and deliberately left
-        // alone) — was captured in the PREVIOUS uom and has to be rescaled
+        // and on GRN/Purchase Invoice/Sales Invoice also MRP/Selling Price.
+        // Sales Invoice's visible price columns must follow the selected
+        // UOM instead of showing base-UOM values while billing a Box/Lot.
+        // The value was captured in the PREVIOUS uom and has to be rescaled
         // or it keeps billing the newly selected unit at the old unit's
         // price. Qty-like columns scale by oldFactor/newFactor; price
         // columns scale the OPPOSITE way (newFactor/oldFactor) so
@@ -7776,7 +7776,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
                 }
               }
 
-              const priceColumnNeedles = (this.config?.key === 'goodsReceipt' || this.config?.key === 'purchaseInvoice')
+              const priceColumnNeedles = (this.config?.key === 'goodsReceipt' || this.config?.key === 'purchaseInvoice' || this.config?.key === 'salesInvoice')
                 ? ['rate', 'mrp', 'selling']
                 : ['rate'];
               (this.config?.lineColumns || []).forEach((col, idx) => {
@@ -8070,9 +8070,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private productCostPriceUomFactor(product: ProductItem | null | undefined): number {
     if (!product) return 1;
-    const purchaseUom = this.productUomConversionsForTransaction(product, 'purchaseOrder')
-      .find(conversion => conversion.is_default_purchase || conversion.is_purchase_uom);
-    const factor = Number(purchaseUom?.conversion_factor);
+    const conversions = this.activeProductUomConversions(product);
+    const purchaseUom = conversions.find(conversion => conversion.is_default_purchase)
+      ?? conversions.find(conversion => conversion.is_purchase_uom);
+    const fallbackUom = conversions.length === 1
+      ? conversions[0]
+      : conversions.find(conversion => {
+          const candidate = Number(conversion.conversion_factor);
+          return Number.isFinite(candidate) && candidate > 1;
+        });
+    const factor = Number((purchaseUom ?? fallbackUom)?.conversion_factor);
     return Number.isFinite(factor) && factor > 0 ? factor : 1;
   }
 
@@ -8084,6 +8091,27 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return (costPrice / costUomFactor) * (lineUomFactor > 0 ? lineUomFactor : 1);
   }
 
+  private lineMoneyText(value: number): string {
+    if (!Number.isFinite(value) || value <= 0) return '';
+    const rounded = Math.round(value * 100) / 100;
+    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  }
+
+  private productSalesPriceForUomSelection(
+    product: ProductItem | null | undefined,
+    uomSelection: string | null | undefined,
+    baseUomPrice: number,
+    key = 'salesInvoice'
+  ): number {
+    if (!product || !Number.isFinite(baseUomPrice) || baseUomPrice <= 0) return baseUomPrice;
+    const factor = this.productUomConversionFactorForSelection(product, uomSelection, key);
+    return baseUomPrice * (factor > 0 ? factor : 1);
+  }
+
+  private productSalesPriceForLineUom(product: ProductItem | null | undefined, row: string[], baseUomPrice: number): number {
+    return this.productSalesPriceForUomSelection(product, this.lineValue(row, ['uom']), baseUomPrice, 'salesInvoice');
+  }
+
   private setLineColumnDefault(row: string[], needles: string[], value: number, replaceZero = false): void {
     if (!Number.isFinite(value) || value <= 0) return;
     const idx = (this.config?.lineColumns || []).findIndex(column => {
@@ -8093,7 +8121,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (idx < 0) return;
     const current = String(row[idx] ?? '').trim();
     if (!current || (replaceZero && this.parseCurrency(current) === 0)) {
-      row[idx] = String(value);
+      row[idx] = this.lineMoneyText(value) || String(value);
     }
   }
 
@@ -8102,19 +8130,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // selling rate, while PI's Rate is
     // the vendor purchase rate (must NOT be overwritten from selling price)
     // — only MRP/Selling Price are safe to auto-bind on both.
-    if (this.config?.key === 'salesInvoice' || this.config?.key === 'salesOrder' || this.config?.key === 'purchaseInvoice') {
+    if (this.config?.key === 'salesInvoice') {
+      const mrp = this.productSalesPriceForLineUom(product, row, this.productMrp(product));
+      const selling = this.productSalesPriceForLineUom(product, row, this.productSellingPrice(product, row));
+      this.setLineColumnDefault(row, ['mrp'], mrp, true);
+      this.setLineColumnDefault(row, ['selling'], selling, true);
+      this.setLineColumnDefault(row, ['rate'], mrp > 0 ? mrp : selling, true);
+    } else if (this.config?.key === 'salesOrder' || this.config?.key === 'purchaseInvoice') {
       this.setLineColumnDefault(row, ['mrp'], this.productMrp(product), true);
       this.setLineColumnDefault(row, ['selling'], this.productSellingPrice(product, row), true);
     }
-    if (this.config?.key === 'salesInvoice') {
-      // Explicit request: Sales Invoice Rate defaults to MRP when the
-      // product has one, only falling back to Selling Price when it
-      // doesn't — the reverse priority of Sales Order below, which keeps
-      // Rate = Selling Price. setLineColumnDefault only fills a blank/zero
-      // cell, so a rate already carried from an SO/DC reference is untouched.
-      const mrp = this.productMrp(product);
-      this.setLineColumnDefault(row, ['rate'], mrp > 0 ? mrp : this.productSellingPrice(product, row), true);
-    } else if (this.config?.key === 'salesOrder') {
+    if (this.config?.key === 'salesOrder') {
       this.setLineColumnDefault(row, ['rate'], this.productSellingPrice(product, row), true);
     }
   }
@@ -8332,10 +8358,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     const product = this.lineRowProduct(row);
+    const productSellingForLineUom = this.productSalesPriceForLineUom(product, row, this.productSellingPrice(product, row));
     const sellingPrice = this.firstPositiveCurrencyValue(
       String(this.lineValue(row, ['selling price'])),
-      product?.selling_price,
-      product?.sellingPrice
+      productSellingForLineUom
     );
     const costPrice = this.productCostPriceForLineUom(product, row);
 
@@ -8374,7 +8400,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const rate = this.lineNumber(row, ['rate']);
       if (!Number.isFinite(rate) || rate <= 0) continue;
       const product = this.lineRowProduct(row);
-      const mrp = this.firstPositiveCurrencyValue(String(this.lineValue(row, ['mrp'])), product?.mrp, (product as any)?.Mrp);
+      const productMrpForLineUom = this.productSalesPriceForLineUom(product, row, this.productMrp(product));
+      const mrp = this.firstPositiveCurrencyValue(String(this.lineValue(row, ['mrp'])), productMrpForLineUom);
       const costPrice = this.productCostPriceForLineUom(product, row);
       const productName = this.lineValue(row, ['product', 'item', 'sku']) || 'Line item';
       if (mrp > 0 && rate > mrp) {
@@ -8588,14 +8615,24 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!rows) return null;
 
     const qty = this.parseDecimalNumber(row[columnIndex]);
-    const fmt = (value: number) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
+    const lineUom = this.uomNameFromSelection(this.lineValue(row, ['uom'])) || this.productBaseUomLabel(product);
+    const lineFactor = this.productUomConversionFactorForSelection(product, lineUom, key);
+    const uomLabel = lineUom ? ` ${lineUom}` : '';
+    const valueInLineUom = (value: number) => lineFactor > 0 ? Number(value || 0) / lineFactor : Number(value || 0);
+    const fmt = (value: number) => `${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 })}${uomLabel}`;
+    const displayRows = rows.map(stockRow => ({
+      ...stockRow,
+      on_hand: valueInLineUom(stockRow.on_hand),
+      pending_dc_qty: valueInLineUom(stockRow.pending_dc_qty),
+      available: valueInLineUom(stockRow.available)
+    }));
 
     if (warehouseId) {
-      const here = this.stockRowForWarehouse(rows, warehouseId);
+      const here = this.stockRowForWarehouse(displayRows, warehouseId);
       const hereAvailable = here?.available ?? 0;
       if (Number.isFinite(qty) && qty > hereAvailable) {
         const short = qty - hereAvailable;
-        const others = this.otherWarehousesWithStock(rows, warehouseId).slice(0, 2);
+        const others = this.otherWarehousesWithStock(displayRows, warehouseId).slice(0, 2);
         const message = others.length
           ? `Short by ${fmt(short)} here — available at ${others.map(o => `${o.warehouse_name || 'another warehouse'}: ${fmt(o.available)}`).join(', ')}`
           : `Short by ${fmt(short)} here — no stock at other warehouses either`;
@@ -8606,8 +8643,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     // No specific warehouse to compare against (Sales Order) — surface the
     // cross-warehouse breakdown directly.
-    const total = this.sumStockRows(rows);
-    const breakdown = this.otherWarehousesWithStock(rows, null)
+    const total = this.sumStockRows(displayRows);
+    const breakdown = this.otherWarehousesWithStock(displayRows, null)
       .slice(0, 3)
       .map(r => `${r.warehouse_name || 'Warehouse'}: ${fmt(r.available)}`)
       .join(', ');
@@ -8645,9 +8682,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const available = warehouseId
         ? (this.stockRowForWarehouse(rows, warehouseId)?.available ?? 0)
         : this.sumStockRows(rows).available;
-      if (qty > available) {
+      const lineUom = this.uomNameFromSelection(this.lineValue(row, ['uom'])) || this.productBaseUomLabel(product);
+      const lineFactor = this.productUomConversionFactorForSelection(product, lineUom, this.config?.key || '');
+      const availableInLineUom = lineFactor > 0 ? available / lineFactor : available;
+      if (qty > availableInLineUom) {
         const scope = attributeValue ? ` (${attributeValue})` : variantText ? ` (${variantText})` : '';
-        results.push(`${product.product_name || productName}${scope}: qty ${qty} > available ${available}`);
+        const uomLabel = lineUom ? ` ${lineUom}` : '';
+        results.push(`${product.product_name || productName}${scope}: qty ${qty}${uomLabel} > available ${this.formatStockLimitQty(availableInLineUom)}${uomLabel}`);
       }
     });
     return results;
@@ -9657,12 +9698,34 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.optionalNumber(customer?.id ?? this.formValues()['customerId']);
   }
 
+  private referenceItemProgressQty(item: any, ...keys: string[]): number {
+    for (const key of keys) {
+      const value = Number(item?.[key]);
+      if (Number.isFinite(value) && value > 0) return value;
+    }
+    return 0;
+  }
+
+  private salesOrderHasDeliveryProgress(doc: PurchaseRefDoc): boolean {
+    return (doc.items || []).some((item: any) =>
+      this.referenceItemProgressQty(item, 'delivered_qty', 'deliveredQty') > 0
+    );
+  }
+
+  private salesOrderHasDirectInvoiceProgress(doc: PurchaseRefDoc): boolean {
+    return (doc.items || []).some((item: any) =>
+      this.referenceItemProgressQty(item, 'invoiced_qty', 'invoicedQty') > 0
+    );
+  }
+
   private deliveryChallanReferenceDocsFromResponses(
     so: ApiResponse<PurchaseRefDoc[]>,
     si: ApiResponse<PurchaseRefDoc[]>
   ): PurchaseRefDoc[] {
     const soDocs = so.success
-      ? this.referenceDocsForType('SO', so.data || []).map(doc => ({ ...doc, doc_type: 'SO' }))
+      ? this.referenceDocsForType('SO', so.data || [])
+          .map(doc => ({ ...doc, doc_type: 'SO' }))
+          .filter(doc => !this.salesOrderHasDirectInvoiceProgress(doc))
       : [];
     const siDocs = si.success
       ? this.referenceDocsForType('SI', si.data || [])
@@ -9724,7 +9787,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     dc: ApiResponse<PurchaseRefDoc[]>
   ): PurchaseRefDoc[] {
     const soDocs = so.success
-      ? this.referenceDocsForType('SO', so.data || []).map(doc => ({ ...doc, doc_type: 'SO' }))
+      ? this.referenceDocsForType('SO', so.data || [])
+          .map(doc => ({ ...doc, doc_type: 'SO' }))
+          .filter(doc => !this.salesOrderHasDeliveryProgress(doc))
       : [];
     const dcDocs = dc.success
       ? this.referenceDocsForType('DC', dc.data || []).map(doc => ({ ...doc, doc_type: 'DC' }))
@@ -10143,7 +10208,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const docAny = doc as any;
       const paymentTerms = docAny.payment_terms || docAny.paymentTerms || customer?.payment_term_name || '';
       const invoiceDate = this.isoDateValue(this.formValues()['invoiceDate']) || this.todayIso();
-      patch['soId'] = doc.id;
+      patch['soId'] = docType === 'SO' ? doc.id : null;
       patch['soReference'] = doc.doc_number;
       patch['referenceNo'] = doc.doc_number;
       patch['customerId'] = doc.vendor_id ?? null;
@@ -10203,7 +10268,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               ...attrMap[i],
               ...(key === 'deliveryChallan' && docType === 'SI'
                 ? { siItemId: item?.id ?? null }
-                : { soItemId: item?.id ?? null })
+                : key === 'salesInvoice' && docType === 'DC'
+                  ? { dcItemId: item?.id ?? null, soItemId: item?.so_item_id ?? item?.soItemId ?? null }
+                  : { soItemId: item?.id ?? null })
             };
           });
           this.lineRefItemIdMap.set(nextMap);
@@ -10402,10 +10469,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // "editable downward only".
   private appendDeliveryChallanToSalesInvoice(doc: PurchaseRefDoc, mode: 'append' | 'replace' = 'replace'): void {
     const key = 'salesInvoice';
-    const rows = (doc.items || []).map((item: any) => this.referenceItemToLineRow(item, key));
-    const startIndex = mode === 'append' ? this.entryLineRows().length : 0;
+    const rows = (doc.items || []).map((item: any) => this.referenceItemToLineRow(item, key, doc));
+    const effectiveMode: 'append' | 'replace' = mode === 'append' && this.activeSalesLineRows().length ? 'append' : 'replace';
+    const startIndex = effectiveMode === 'append' ? this.entryLineRows().length : 0;
     this.entryLineRowsKey.set(key);
-    if (mode === 'append') {
+    if (effectiveMode === 'append') {
       this.entryLineRows.update(existing => [...existing, ...rows]);
       this.lineSerialUnitsMap.update(map => ({ ...map, ...this.lineSerialMapFromItems(doc.items || [], startIndex) }));
     } else {
@@ -10413,7 +10481,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.lineSerialUnitsMap.set(this.lineSerialMapFromItems(doc.items || []));
     }
     this.lineRefItemIdMap.update(map => {
-      const next = mode === 'append' ? { ...map } : {};
+      const next = effectiveMode === 'append' ? { ...map } : {};
       (doc.items || []).forEach((item: any, i: number) => {
         next[startIndex + i] = { dcItemId: item?.id ?? null, soItemId: item?.so_item_id ?? item?.soItemId ?? null };
       });
@@ -10422,13 +10490,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const customerId = doc.vendor_id ?? null;
     this.formValues.update(values => ({
       ...values,
-      customerId: mode === 'append' ? (values['customerId'] ?? customerId) : (customerId ?? values['customerId']),
-      customer: mode === 'append' ? (values['customer'] || doc.party_name || '') : (doc.party_name || values['customer'] || ''),
-      warehouseId: mode === 'append' ? (values['warehouseId'] ?? (doc.warehouse_id ?? null)) : (doc.warehouse_id ?? values['warehouseId']),
-      warehouse: mode === 'append' ? (values['warehouse'] || doc.warehouse_name || doc.remarks || '') : (doc.warehouse_name || doc.remarks || values['warehouse'] || ''),
-      referenceNo: mode === 'append' ? (values['referenceNo'] || doc.doc_number) : doc.doc_number
+      customerId: effectiveMode === 'append' ? (values['customerId'] ?? customerId) : (customerId ?? values['customerId']),
+      customer: effectiveMode === 'append' ? (values['customer'] || doc.party_name || '') : (doc.party_name || values['customer'] || ''),
+      warehouseId: effectiveMode === 'append' ? (values['warehouseId'] ?? (doc.warehouse_id ?? null)) : (doc.warehouse_id ?? values['warehouseId']),
+      warehouse: effectiveMode === 'append' ? (values['warehouse'] || doc.warehouse_name || doc.remarks || '') : (doc.warehouse_name || doc.remarks || values['warehouse'] || ''),
+      referenceNo: effectiveMode === 'append' ? (values['referenceNo'] || doc.doc_number) : doc.doc_number
     }));
-    this.boundReferenceLabels.update(labels => mode === 'append' ? [...labels, doc.doc_number] : [doc.doc_number]);
+    this.boundReferenceLabels.update(labels => effectiveMode === 'append' ? [...labels, doc.doc_number] : [doc.doc_number]);
     this.closePurchaseReferencePicker();
   }
 
@@ -10689,9 +10757,25 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       set('Attribute', attribute);
       set('UOM', uom);
       set('Qty', dispatchQty);
-      set('Rate', rate);
-      set('MRP', String(item?.mrp ?? item?.Mrp ?? refProduct?.mrp ?? ''));
-      set('Selling Price', String(item?.selling_price ?? item?.sellingPrice ?? refProduct?.selling_price ?? refProduct?.sellingPrice ?? ''));
+      const mrp = this.firstPositiveCurrencyValue(item?.mrp, item?.Mrp, refProduct?.mrp);
+      const sellingPrice = this.firstPositiveCurrencyValue(
+        item?.selling_price,
+        item?.sellingPrice,
+        (refProduct as any)?.selling_price,
+        (refProduct as any)?.sellingPrice
+      );
+      set('MRP', this.lineMoneyText(this.productSalesPriceForUomSelection(refProduct, uom, mrp, 'salesInvoice')));
+      set('Selling Price', this.lineMoneyText(this.productSalesPriceForUomSelection(refProduct, uom, sellingPrice, 'salesInvoice')));
+      const procurementRate = this.firstPositiveCurrencyValue(
+        item?.mrp,
+        item?.Mrp,
+        item?.selling_price,
+        item?.sellingPrice,
+        refProduct?.mrp,
+        (refProduct as any)?.selling_price,
+        (refProduct as any)?.sellingPrice
+      );
+      set('Rate', this.lineMoneyText(this.productSalesPriceForUomSelection(refProduct, uom, procurementRate, 'salesInvoice')));
       set('Disc %', discount);
       set('GST', gst);
       set('Amount', String(item?.amount ?? ''));
@@ -10836,6 +10920,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return !!product?.serial_applicable;
   }
 
+  private inheritedSalesSerialSource(rowIndex: number): { dcItemId?: number | null; siItemId?: number | null } | null {
+    const key = this.config?.key || '';
+    const ref = this.lineRefItemIdMap()[rowIndex];
+    if (key === 'salesInvoice' && ref?.dcItemId) return { dcItemId: ref.dcItemId };
+    if (key === 'deliveryChallan' && ref?.siItemId) return { siItemId: ref.siItemId };
+    return null;
+  }
+
   // Mirrors the backend's fn_post_grn_stock / fn_validate_serial_transition
   // checks (Database/Migrations/inventory/083_serial_number_tracking.sql) so
   // a missing/incomplete serial capture is caught here as a clear inline
@@ -10862,8 +10954,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // Inherited rows (Sales Invoice billing a Delivery Challan) get their
       // serials reserved server-side when the picker is opened — not a
       // local capture gap, so skip rather than false-flag them here.
-      const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
-      if (dcItemId) continue;
+      if (this.inheritedSalesSerialSource(rowIndex)) continue;
 
       const product = this.findProductBySelection(productName);
       const qtyNeeded = this.serialPickerBaseQtyForRow(row, product);
@@ -10910,10 +11001,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const productName = this.lineValue(row, ['product', 'item', 'sku']);
     const product = this.findProductBySelection(productName);
     const qty = this.serialPickerBaseQtyForRow(row, product);
-    const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
+    const inheritedSource = this.inheritedSalesSerialSource(rowIndex);
+    const dcItemId = inheritedSource?.dcItemId ?? null;
+    const siItemId = inheritedSource?.siItemId ?? null;
     const label = this.productSerialColumnLabels(product)[0] || 'Serial No';
     if (dcItemId) return count ? `${count} ${label}(s) from DC` : 'Loading…';
 
+    if (siItemId) return count ? `${count} ${label}(s) from SI` : 'Loading...';
     const verb = this.serialPickerModeForKey() === 'capture' ? 'Enter' : 'Select';
     return `${verb} ${label} (${count}/${qty || 0})`;
   }
@@ -10947,7 +11041,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!product?.serial_applicable) return;
 
     const qtyNeeded = this.serialPickerBaseQtyForRow(row, product);
-    const dcItemId = this.config?.key === 'salesInvoice' ? this.lineRefItemIdMap()[rowIndex]?.dcItemId : null;
+    const inheritedSource = this.inheritedSalesSerialSource(rowIndex);
+    const dcItemId = inheritedSource?.dcItemId ?? null;
+    const siItemId = inheritedSource?.siItemId ?? null;
 
     // Purchase Return against a known PI, and Sales Return against a known
     // invoice, scope the pickable list to that source document's own units
@@ -10970,7 +11066,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Only SI billing a specific DC item stays truly "inherited" (no user
     // choice) — those units are reserved 1:1 against that exact DC item, so
     // there's nothing to pick between.
-    const mode: 'capture' | 'select' | 'inherited' = dcItemId ? 'inherited' : this.serialPickerModeForKey();
+    const mode: 'capture' | 'select' | 'inherited' = inheritedSource ? 'inherited' : this.serialPickerModeForKey();
 
     this.activeSerialPicker.set({ rowIndex, mode, qtyNeeded, productId: product.id, productName: product.product_name || productName });
     this.serialPickerDraftValues.set([...(this.lineSerialUnitsMap()[rowIndex] || [])]);
@@ -10979,14 +11075,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.serialPickerError.set('');
     this.serialPickerMessage.set('');
 
-    if (mode === 'inherited' && dcItemId) {
+    if (mode === 'inherited' && inheritedSource) {
       this.serialPickerLoading.set(true);
-      this.txService.getReservedSerialsForDcItem(dcItemId)
+      const inheritedSerials$ = dcItemId
+        ? this.txService.getReservedSerialsForDcItem(dcItemId)
+        : this.txService.getSoldSerialsForSiItem(siItemId!);
+      inheritedSerials$
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: res => {
             this.serialPickerLoading.set(false);
-            const options = (res.data || []).filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no);
+            const options = (res.data || [])
+              .map((s, index) => ({ id: Number(s?.id) || -(index + 1), serial_no: String(s?.serial_no || '').trim() }))
+              .filter((s): s is { id: number; serial_no: string } => !!s.serial_no);
             const existingSerials = this.lineSerialUnitsMap()[rowIndex] || this.serialPickerDraftValues();
             const serials = options.length ? options.map(s => s.serial_no) : existingSerials;
             this.serialPickerAvailableOptions.set(options);
@@ -14933,7 +15034,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         doc_date: docDate('invoiceDate'),
         due_date: v['dueDate'] || null,
         so_id: this.optionalNumber(v['soId']),
-        so_number: v['soReference'] || null,
+        so_number: this.optionalNumber(v['soId']) ? (v['soReference'] || null) : null,
         reference_no: v['referenceNo'] || v['soReference'] || null,
         customer_id: customerId,
         customer_name: customerName,

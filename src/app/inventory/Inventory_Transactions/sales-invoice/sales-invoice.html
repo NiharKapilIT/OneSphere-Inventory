@@ -40,12 +40,6 @@
                     <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
                   </button>
                 }
-                @if (formFieldValue(refField)) {
-                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
-                    title="View referenced document's items" (click)="viewReferenceDetails(refField)">
-                    <i class="pi pi-eye"></i>
-                  </button>
-                }
               </div>
             </div>
           }
