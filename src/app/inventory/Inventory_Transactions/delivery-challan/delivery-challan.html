@@ -40,6 +40,12 @@
                     <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
                   </button>
                 }
+                @if (formFieldValue(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                    title="View referenced document's items" (click)="viewReferenceDetails(refField)">
+                    <i class="pi pi-eye"></i>
+                  </button>
+                }
               </div>
             </div>
           }
@@ -147,61 +153,7 @@
       }
 
       @if (config.key === 'deliveryChallan') {
-        <section class="inventory-fieldset delivery-challan-fieldset">
-          <div class="inventory-fieldset-title"><i class="pi pi-truck"></i> Vehicle Details</div>
-          <div class="inventory-form-grid delivery-challan-form-grid">
-            @if (bodyFieldByKey('vehicle'); as field) {
-              <div class="erp-form-group">
-                <label class="erp-label">{{ field.label }}</label>
-                <div class="inventory-field-with-add">
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                    [items]="field.options || []" [searchable]="true" [clearable]="true"
-                    [ngModel]="formFieldValue(field)"
-                    (ngModelChange)="collectFormField(field.key, $event)"
-                    [placeholder]="fieldTypingHint(field)">
-                  </ng-select>
-                  @if (field.addMaster) {
-                    <button type="button" class="erp-btn btn-white btn-icon"
-                      [title]="'Add ' + field.addMaster"
-                      (click)="openAddMaster(field.addMaster, field.key)">
-                      <i class="pi pi-plus"></i>
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-            @if (bodyFieldByKey('transporter'); as field) {
-              <div class="erp-form-group">
-                <label class="erp-label">{{ field.label }}</label>
-                <div class="inventory-field-with-add">
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                    [items]="field.options || []" [searchable]="true" [clearable]="true"
-                    [ngModel]="formFieldValue(field)"
-                    (ngModelChange)="collectFormField(field.key, $event)"
-                    [placeholder]="fieldTypingHint(field)">
-                  </ng-select>
-                  @if (field.addMaster) {
-                    <button type="button" class="erp-btn btn-white btn-icon"
-                      [title]="'Add ' + field.addMaster"
-                      (click)="openAddMaster(field.addMaster, field.key)">
-                      <i class="pi pi-plus"></i>
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-            @if (bodyFieldByKey('lrNo'); as field) {
-              <div class="erp-form-group">
-                <label class="erp-label">{{ field.label }}</label>
-                <input class="erp-input" type="text"
-                  [ngModel]="formFieldValue(field)"
-                  (ngModelChange)="collectFormField(field.key, $event)"
-                  [placeholder]="fieldTypingHint(field)" />
-              </div>
-            }
-          </div>
-        </section>
-
+        <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
         <app-inventory-delivery-address [host]="this"></app-inventory-delivery-address>
       }
 
@@ -654,11 +606,16 @@
             <div class="tbl-wrap">
               <table class="erp-table compact">
                 <thead>
-                  <tr><th>Type</th><th>Doc No</th><th>Date</th><th>Customer</th><th>Status</th><th></th></tr>
+                  <tr><th class="text-center">Items</th><th>Type</th><th>Doc No</th><th>Date</th><th>Customer</th><th>Status</th><th></th></tr>
                 </thead>
                 <tbody>
                   @for (doc of refPickerDisplayDocs(); track doc.id) {
                     <tr>
+                      <td class="text-center">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Show items" (click)="toggleRefPickerExpand(doc.id)">
+                          <i class="pi" [class.pi-chevron-down]="isRefPickerExpanded(doc.id)" [class.pi-chevron-right]="!isRefPickerExpanded(doc.id)"></i>
+                        </button>
+                      </td>
                       <td>{{ doc.doc_type || '�' }}</td>
                       <td>{{ doc.doc_number }}</td>
                       <td>{{ gridDateDisplay(doc.doc_date) }}</td>
@@ -670,6 +627,42 @@
                         </button>
                       </td>
                     </tr>
+                    @if (isRefPickerExpanded(doc.id)) {
+                      <tr class="pr-expand-tr">
+                        <td colspan="7">
+                          <div class="pr-expand-content">
+                            @if ((doc.items || []).length) {
+                              <table class="pr-expand-items-table">
+                                <thead>
+                                  <tr>
+                                    <th>Product</th>
+                                    <th>Variant / Attribute</th>
+                                    <th>UOM</th>
+                                    <th>Qty</th>
+                                    <th>Rate</th>
+                                    <th>Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (item of doc.items; track $index) {
+                                    <tr>
+                                      <td>{{ item.product_name }}</td>
+                                      <td>{{ refPickerItemVariantText(item) }}</td>
+                                      <td>{{ item.uom_name || '-' }}</td>
+                                      <td>{{ refPickerItemQtyDisplay(item) }}</td>
+                                      <td>{{ refPickerItemRateDisplay(item) }}</td>
+                                      <td>{{ refPickerItemAmountDisplay(item) }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            } @else {
+                              <span class="inventory-field-hint">No items found on this document.</span>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
                   }
                 </tbody>
               </table>

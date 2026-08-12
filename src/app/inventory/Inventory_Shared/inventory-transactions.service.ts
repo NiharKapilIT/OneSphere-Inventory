@@ -1387,9 +1387,11 @@ export class InventoryTransactionsService {
     return { ...res, data: (res.data ?? []).map((r: any) => ({ id: r?.id, serial_no: r?.serialNo || r?.serial_no })) };
   }
 
-  getAvailableSerials(params: { productId: number; variantId?: number | null; warehouseId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+  getAvailableSerials(params: { productId: number; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
     let httpParams = new HttpParams().set('productId', String(params.productId));
     if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
+    if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
+    if (params.attributeValue) httpParams = httpParams.set('attributeValue', params.attributeValue);
     if (params.warehouseId) httpParams = httpParams.set('warehouseId', String(params.warehouseId));
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/available'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => this.normSerialUnits(res))
@@ -1399,6 +1401,13 @@ export class InventoryTransactionsService {
   getReservedSerialsForDcItem(dcItemId: number): Observable<ApiResponse<SerialUnit[]>> {
     const httpParams = new HttpParams().set('dcItemId', String(dcItemId));
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/reserved-for-dc-item'), { headers: this.headers(), params: httpParams }).pipe(
+      map(res => this.normSerialUnits(res))
+    );
+  }
+
+  getSoldSerialsForSiItem(siItemId: number): Observable<ApiResponse<SerialUnit[]>> {
+    const httpParams = new HttpParams().set('siItemId', String(siItemId));
+    return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/sold-for-si-item'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => this.normSerialUnits(res))
     );
   }
@@ -1599,4 +1608,41 @@ export class InventoryTransactionsService {
       })
     );
   }
+
+  // ── Transport Details (shared across every goods-moving transaction screen) ─
+
+  getTransportDetails(docType: string, docId: number): Observable<ApiResponse<TransportDetails>> {
+    const httpParams = new HttpParams().set('docType', docType).set('docId', String(docId));
+    return this.http.get<ApiResponse<TransportDetails>>(this.url('transport-details'), { headers: this.headers(), params: httpParams });
+  }
+
+  saveTransportDetails(details: TransportDetails): Observable<ApiResponse<TransportDetails>> {
+    return this.http.post<ApiResponse<TransportDetails>>(this.url('transport-details'), details, { headers: this.headers() });
+  }
+
+  // ── IFSC lookup (feeds the shared Bank Details component's Bank/Branch
+  // auto-populate) — proxied server-side, see CommonController.GetIfscDetails.
+  getIfscDetails(code: string): Observable<{ ifsc: string; bankName: string | null; branchName: string | null }> {
+    return this.http.get<{ ifsc: string; bankName: string | null; branchName: string | null }>(
+      `${this.base()}/Common/GetIfscDetails`, { headers: this.headers(), params: new HttpParams().set('code', code) }
+    );
+  }
+}
+
+export interface TransportDetails {
+  id?: number;
+  docType: string;
+  docId: number;
+  vehicleType?: string | null;
+  vehicleName?: string | null;
+  vehicleNo?: string | null;
+  weighingEnabled?: boolean;
+  beforeWeight?: number | null;
+  beforeWeightPhoto?: string | null;
+  afterWeight?: number | null;
+  afterWeightPhoto?: string | null;
+  driverEnabled?: boolean;
+  driverName?: string | null;
+  driverContactNo?: string | null;
+  driverLicenseNo?: string | null;
 }

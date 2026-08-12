@@ -8,10 +8,12 @@ import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-sh
 import { shipmentEntryConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
 
+import { InventoryTransportDetailsComponent } from '../../Inventory_Shared/inventory-transport-details/inventory-transport-details.component';
+
 @Component({
   selector: 'app-inventory-shipment-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryTransportDetailsComponent],
   templateUrl: './shipment-entry.html'
 })
 export class InventoryShipmentEntryComponent extends InventoryScreenShell {

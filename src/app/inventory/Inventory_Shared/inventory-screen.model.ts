@@ -374,7 +374,13 @@ function partyMaster(key: string, title: string, subtitle: string, icon: string)
       ...(isVendor ? [] : [{ key: 'shippingAddress', label: 'Shipping Address', type: 'textarea' as const, addMaster: 'Location Address' }]),
       { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
       { key: 'creditLimit', label: 'Credit Limit', type: 'number' },
-      ...(isVendor ? [{ key: 'bankDetails', label: 'Bank Details', type: 'textarea' as const }] : [{ key: 'priceList', label: 'Price List', type: 'select' as const, options: ['Retail Price List', 'Dealer Price List', 'Corporate Price List'] }]),
+      // Bank Details used to be a free-text field here (vendor only, and
+      // never actually wired into the save payload) -- replaced by the
+      // shared app-inventory-bank-details component (structured Payee
+      // Name/Account No./IFSC/Bank/Branch, IFSC-driven auto-populate),
+      // rendered separately in vendor-master.html/customer-master.html
+      // rather than through this generic field list.
+      ...(isVendor ? [] : [{ key: 'priceList', label: 'Price List', type: 'select' as const, options: ['Retail Price List', 'Dealer Price List', 'Corporate Price List'] }]),
       { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
     ],
     columns: ['Code', 'Name', 'Type', 'Segment', 'GSTIN', 'Status'],

@@ -892,9 +892,7 @@
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Immediate', '7 Days', '15 Days', '30 Days', '45 Days', 'Advance']" [searchable]="true" [clearable]="true" [ngModel]="'30 Days'" placeholder="Select Payment Terms"></ng-select>
                 </div>
                 <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" [ngModel]="formFieldValue({key:'creditLimit', label:'Credit Limit', type:'number'})" (ngModelChange)="collectFormField('creditLimit', $event)" /></div>
-                @if (config.key === 'vendorMaster') {
-                  <div class="erp-form-group span-2"><label class="erp-label">Bank Details</label><textarea class="erp-input" rows="2" placeholder="Bank name, account no, IFSC"></textarea></div>
-                } @else {
+                @if (config.key !== 'vendorMaster') {
                   <div class="erp-form-group">
                     <label class="erp-label">Price List</label>
                     <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" [ngModel]="formFieldValue({key:'priceList', label:'Price List', type:'select'})" (ngModelChange)="collectFormField('priceList', $event)" placeholder="Select Price List"></ng-select>
@@ -912,6 +910,8 @@
                 </div>
               </div>
             </div>
+
+            <app-inventory-bank-details [host]="this"></app-inventory-bank-details>
           </div>
         } @else if (config.key === 'hsnSacMapping') {
           <div class="inventory-lookup-source">

@@ -8,7 +8,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, forkJoin, from, map, of, switchMap } from 'rxjs';
 import { ApiResponse, AttributeItem, AttributeValueItem, BranchInvItem, CategoryItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
-import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption } from '../inventory-transactions.service';
+import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption, TransportDetails } from '../inventory-transactions.service';
 import { applyInventoryTextCase, inventoryTextCaseForField, inventoryTextCaseForLineColumn, toInventoryTitleCase } from '../inventory-text-case.util';
 import {
   INVENTORY_KPIS,
@@ -164,7 +164,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // Purchase Invoices" / Sales Return's "Posted Sales Invoices") — lets the
   // user see each item's already-returned vs still-available qty before
   // picking a document, instead of picking blind.
-  readonly refPickerExpandedDocId = signal<number | null>(null);
+  readonly refPickerExpandedDocId = signal<number | string | null>(null);
   readonly transactionReferenceDocs = signal<PurchaseRefDoc[]>([]);
   readonly transactionReferenceLoading = signal(false);
   private transactionReferenceOptionsCacheKey = '';
@@ -2033,6 +2033,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || this.normalizeKey(item.product_code) === selectedKey
       || this.normalizeKey(item.sku) === selectedKey
     ) ?? null;
+  }
+
+  private findProductForReferenceItem(item: any, fallbackSelection: any): ProductItem | null {
+    const productId = this.optionalNumber(item?.product_id ?? item?.productId);
+    if (productId) {
+      const byId = this.loadedProductObjects().find(product => Number(product.id) === productId);
+      if (byId) return byId;
+    }
+    return this.findProductBySelection(fallbackSelection);
   }
 
   private transactionUomUsageForKey(key = this.config?.key || ''): 'purchase' | 'sales' | 'stock' {
@@ -6115,15 +6124,28 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.displayFields().find(field => this.isPrimaryTransactionReferenceField(field)) || null;
   }
 
+  // Also covers Sales Return's Customer field — Purchase Return already
+  // promotes Vendor into its own header column (with a "+Add Vendor"
+  // button); Sales Return's Customer was left as an ordinary grid field,
+  // the same visual weight as Return Reason, which was one of the UX gaps
+  // vs Purchase Return. Same header slot, same options-fallback helper
+  // below, just keyed to the party field each screen actually has.
   procurementVendorHeaderField(): InventoryField | null {
     if (!this.showTransactionHeader()) return null;
+    const key = this.config?.key || '';
     const procurementKeys = new Set(['purchaseOrder', 'goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'debitNote']);
-    if (!procurementKeys.has(this.config?.key || '')) return null;
-    return this.displayFields().find(field => field.key === 'vendor' || field.key === 'supplier') || null;
+    if (procurementKeys.has(key)) {
+      return this.displayFields().find(field => field.key === 'vendor' || field.key === 'supplier') || null;
+    }
+    if (key === 'salesReturn') {
+      return this.displayFields().find(field => field.key === 'customer') || null;
+    }
+    return null;
   }
 
   procurementVendorHeaderOptions(field: InventoryField): string[] {
-    return field.options?.length ? field.options : this.vendorOptions;
+    if (field.options?.length) return field.options;
+    return this.config?.key === 'salesReturn' ? this.customerOptions : this.vendorOptions;
   }
 
   transactionNumberValue(field: InventoryField): string {
@@ -6360,6 +6382,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return !!values['piId'] && reference !== '' && !reference.includes('directpurchasereturn');
   }
 
+  // Mirror of purchaseReturnLocationLocked() above -- Purchase Return greys
+  // out its warehouse once a source PI is referenced, but Sales Return had
+  // no equivalent and stayed editable indefinitely, which was one of the
+  // UX gaps vs Purchase Return.
+  salesReturnLocationLocked(): boolean {
+    if (this.config?.key !== 'salesReturn') return false;
+    const values = this.formValues();
+    const reference = this.normalizeKey(values['invoiceReference'] || '');
+    return !!values['invoiceId'] && reference !== '' && !reference.includes('directsalesreturn');
+  }
+
   private clearDocumentNoteReference(field: InventoryField): void {
     const key = this.config?.key || '';
     this.formValues.update(values => ({
@@ -6441,6 +6474,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       goodsReceipt: 'Direct Goods Receipt',
       purchaseInvoice: 'Direct Purchase Invoice',
       purchaseReturn: 'Direct Purchase Return',
+      salesReturn: 'Direct Sales Return',
       debitNote: 'Direct Debit Note',
       creditNote: 'Direct Credit Note',
       gatePass: 'Direct Movement'
@@ -8034,6 +8068,22 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     );
   }
 
+  private productCostPriceUomFactor(product: ProductItem | null | undefined): number {
+    if (!product) return 1;
+    const purchaseUom = this.productUomConversionsForTransaction(product, 'purchaseOrder')
+      .find(conversion => conversion.is_default_purchase || conversion.is_purchase_uom);
+    const factor = Number(purchaseUom?.conversion_factor);
+    return Number.isFinite(factor) && factor > 0 ? factor : 1;
+  }
+
+  private productCostPriceForLineUom(product: ProductItem | null | undefined, row: string[]): number {
+    const costPrice = this.firstPositiveCurrencyValue(product?.cost_price, product?.costPrice);
+    if (!product || costPrice <= 0) return costPrice;
+    const costUomFactor = this.productCostPriceUomFactor(product);
+    const lineUomFactor = this.productUomConversionFactorForSelection(product, this.lineValue(row, ['uom']), 'salesInvoice');
+    return (costPrice / costUomFactor) * (lineUomFactor > 0 ? lineUomFactor : 1);
+  }
+
   private setLineColumnDefault(row: string[], needles: string[], value: number, replaceZero = false): void {
     if (!Number.isFinite(value) || value <= 0) return;
     const idx = (this.config?.lineColumns || []).findIndex(column => {
@@ -8287,7 +8337,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       product?.selling_price,
       product?.sellingPrice
     );
-    const costPrice = this.firstPositiveCurrencyValue(product?.cost_price, product?.costPrice);
+    const costPrice = this.productCostPriceForLineUom(product, row);
 
     if (costPrice > 0 && preview.rate < costPrice) {
       const loss = costPrice - preview.rate;
@@ -8325,7 +8375,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (!Number.isFinite(rate) || rate <= 0) continue;
       const product = this.lineRowProduct(row);
       const mrp = this.firstPositiveCurrencyValue(String(this.lineValue(row, ['mrp'])), product?.mrp, (product as any)?.Mrp);
-      const costPrice = this.firstPositiveCurrencyValue(product?.cost_price, product?.costPrice);
+      const costPrice = this.productCostPriceForLineUom(product, row);
       const productName = this.lineValue(row, ['product', 'item', 'sku']) || 'Line item';
       if (mrp > 0 && rate > mrp) {
         return `${productName}: Rate ₹${fmt(rate)} cannot exceed MRP ₹${fmt(mrp)}.`;
@@ -9252,6 +9302,57 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return docs.filter(doc => this.purchaseReturnDocHasRemainingQty(doc));
   }
 
+  // Mirror of purchaseReturnPiRefKeys/purchaseReturnReservedQtyForPiLine/
+  // purchaseReturnDocHasRemainingQty above, scoped to Sales Return against
+  // Sales Invoice docs -- Purchase Return already hides a source PI once
+  // every line has been fully returned; Sales Return had no equivalent, so
+  // a fully-returned invoice stayed listed in the reference picker and the
+  // user only discovered it was exhausted after expanding it.
+  private salesReturnInvoiceRefKeys(invoiceId: number | null, invoiceNumber: string): string[] {
+    const keys: string[] = [];
+    if (invoiceId) keys.push(`id:${invoiceId}`);
+    const number = String(invoiceNumber || '').trim().toLowerCase();
+    if (number) keys.push(`no:${number}`);
+    return keys;
+  }
+
+  private salesReturnReservedQtyForInvoiceLine(doc: PurchaseRefDoc, item: any): number {
+    const refKeys = new Set(this.salesReturnInvoiceRefKeys(doc.id, doc.doc_number));
+    if (!refKeys.size) return 0;
+    // purchaseReturnLineKey is a generic product/variant/attribute matcher
+    // despite its name -- reused as-is rather than duplicated.
+    const lineKey = this.purchaseReturnLineKey(item);
+    return this.segmentFilteredRecords(this.savedRecordObjects())
+      .filter(record => this.normalizeKey(record?.status || 'draft') !== 'cancelled')
+      .filter(record => this.salesReturnInvoiceRefKeys(
+        this.optionalNumber(record?.invoice_id ?? record?.invoiceId),
+        record?.invoice_number || record?.invoiceNumber || ''
+      ).some(key => refKeys.has(key)))
+      .flatMap(record => record?.items || [])
+      .filter(returnItem => this.purchaseReturnLineKey(returnItem) === lineKey)
+      .reduce((sum, returnItem) => sum + (Number(returnItem?.return_qty ?? returnItem?.returnQty) || 0), 0);
+  }
+
+  private salesReturnDocHasRemainingQty(doc: PurchaseRefDoc): boolean {
+    const items = Array.isArray(doc.items) ? doc.items : [];
+    if (!items.length) return true;
+    return items.some(item => {
+      const explicitRemaining = item?.remaining_qty ?? item?.remainingQty;
+      if (explicitRemaining !== undefined && explicitRemaining !== null && String(explicitRemaining).trim() !== '') {
+        return (Number(explicitRemaining) || 0) > 0;
+      }
+      const invoiceQty = Number(item?.qty ?? item?.invoice_qty ?? item?.invoiceQty ?? 0) || 0;
+      if (invoiceQty <= 0) return true;
+      const reservedQty = this.salesReturnReservedQtyForInvoiceLine(doc, item);
+      return reservedQty < invoiceQty;
+    });
+  }
+
+  private filterSalesReturnAvailableInvoiceDocs(docs: PurchaseRefDoc[]): PurchaseRefDoc[] {
+    if (this.config?.key !== 'salesReturn') return docs;
+    return docs.filter(doc => this.salesReturnDocHasRemainingQty(doc));
+  }
+
   private documentNoteReturnRefKeys(returnId: number | null, returnNumber: string): string[] {
     const keys: string[] = [];
     if (returnId) keys.push(`id:${returnId}`);
@@ -9354,7 +9455,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (type === 'GRN') return this.filterPurchaseInvoiceAvailableGrnDocs(docs.filter(doc => this.normalizeKey(doc.status) === 'posted'));
     if (type === 'PI')  return this.filterPurchaseReturnAvailablePiDocs(docs.filter(doc => this.normalizeKey(doc.status) === 'posted'));
     if (type === 'SO')  return docs.filter(doc => this.normalizeKey(doc.status) === 'posted');
-    if (type === 'SI')  return docs.filter(doc => this.normalizeKey(doc.status) === 'posted');
+    if (type === 'SI')  return this.filterSalesReturnAvailableInvoiceDocs(docs.filter(doc => this.normalizeKey(doc.status) === 'posted'));
+    if (type === 'DC')  return docs.filter(doc => this.normalizeKey(doc.status) === 'posted');
     if (type === 'PURCHASERETURN' || type === 'SALESRETURN') return this.filterDocumentNoteAvailableReturnDocs(docs);
     return docs;
   }
@@ -9723,12 +9825,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.refPickerExpandedDocId.set(null);
   }
 
-  isRefPickerExpanded(docId: number): boolean {
-    return this.refPickerExpandedDocId() === docId;
+  // Accepts either a plain numeric doc id (Purchase Return / Sales Return,
+  // where the tray only ever lists one doc type so id alone is unique) or a
+  // referenceDocTrackKey() string (Delivery Challan / Sales Invoice, whose
+  // trays mix SO+DC or SO+SI docs sharing one id namespace across types) --
+  // compared as strings either way so both call shapes share one signal.
+  isRefPickerExpanded(docKey: number | string): boolean {
+    return this.refPickerExpandedDocId() !== null && String(this.refPickerExpandedDocId()) === String(docKey);
   }
 
-  toggleRefPickerExpand(docId: number): void {
-    this.refPickerExpandedDocId.set(this.isRefPickerExpanded(docId) ? null : docId);
+  toggleRefPickerExpand(docKey: number | string): void {
+    this.refPickerExpandedDocId.set(this.isRefPickerExpanded(docKey) ? null : (docKey as any));
   }
 
   // "Available qty" for a reference-picker item — remaining_qty is what the
@@ -9747,6 +9854,43 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   refPickerItemVariantText(item: any): string {
     return [item?.variant_name, item?.attribute_value].filter(part => String(part || '').trim()).join(' / ') || '-';
+  }
+
+  // Non-return pickers (Delivery Challan's "Posted Sales Orders / Invoices",
+  // Sales Invoice's "Pick Sales Order / Delivery Challan") show a mixed list
+  // of doc types -- an SO item, a DC item and an SI item each use a
+  // different qty/rate/amount field name (so_qty vs dispatch_qty vs qty; DC
+  // items carry no rate/amount at all, since DC is deliberately a
+  // price-free stock-movement document). These tolerate whichever fields
+  // are actually present instead of assuming one shape.
+  refPickerItemQtyDisplay(item: any): string {
+    const qty = item?.qty ?? item?.dispatch_qty ?? item?.so_qty ?? item?.invoiced_qty ?? item?.return_qty;
+    return (qty === undefined || qty === null || qty === '') ? '-' : String(qty);
+  }
+
+  refPickerItemRateDisplay(item: any): string {
+    const rate = item?.rate;
+    return (rate === undefined || rate === null || rate === '') ? '-' : String(rate);
+  }
+
+  refPickerItemAmountDisplay(item: any): string {
+    const amt = item?.amount ?? item?.return_amount;
+    return (amt === undefined || amt === null || amt === '') ? '-' : String(amt);
+  }
+
+  // Reopens the reference-picker tray, pre-filtered (via the tray's own
+  // search box) to the document already referenced on this record -- the
+  // "drill into what I already picked" entry point requested for SO/DC/SI/
+  // Sales Return references. Reuses the exact same fetch + search + expand
+  // machinery the tray already has for choosing a NEW reference, so no new
+  // endpoint or view mode is needed: narrowing the list to the one matching
+  // doc leaves the user one click (its existing expand chevron) away from
+  // that document's product-level detail.
+  viewReferenceDetails(field: InventoryField): void {
+    const value = String(this.formValues()[field.key] || '').trim();
+    if (!value) return;
+    this.openPurchaseReferencePicker();
+    this.refPickerSearch.set(value);
   }
 
   private primaryReferenceValue(): string {
@@ -10539,18 +10683,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         const idx = this.lineColumnIndex(column);
         if (idx >= 0) row[idx] = value;
       };
+      const refProduct = this.findProductForReferenceItem(item, product);
       set('Item / SKU', product);
       set('Variant', variant);
       set('Attribute', attribute);
       set('UOM', uom);
       set('Qty', dispatchQty);
       set('Rate', rate);
-      set('MRP', String(item?.mrp ?? item?.Mrp ?? ''));
-      set('Selling Price', String(item?.selling_price ?? item?.sellingPrice ?? ''));
+      set('MRP', String(item?.mrp ?? item?.Mrp ?? refProduct?.mrp ?? ''));
+      set('Selling Price', String(item?.selling_price ?? item?.sellingPrice ?? refProduct?.selling_price ?? refProduct?.sellingPrice ?? ''));
       set('Disc %', discount);
       set('GST', gst);
       set('Amount', String(item?.amount ?? ''));
-      const refProduct = this.findProductBySelection(product);
       if (refProduct) this.applyProductPricingDefaults(row, refProduct);
       this.recalculateLineRow(row);
       return row;
@@ -10843,7 +10987,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           next: res => {
             this.serialPickerLoading.set(false);
             const options = (res.data || []).filter((s): s is { id: number; serial_no: string } => !!s.id && !!s.serial_no);
-            const serials = options.map(s => s.serial_no);
+            const existingSerials = this.lineSerialUnitsMap()[rowIndex] || this.serialPickerDraftValues();
+            const serials = options.length ? options.map(s => s.serial_no) : existingSerials;
             this.serialPickerAvailableOptions.set(options);
             this.serialPickerDraftValues.set(serials);
             this.lineSerialUnitsMap.update(map => ({ ...map, [rowIndex]: serials }));
@@ -10878,7 +11023,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             : { productId: product.id, sourceDocType: 'purchase_invoice', sourceDocId: purchaseReturnPiId, variantId, attributeId, attributeValue })
         : this.config?.key === 'salesReturn'
           ? this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: salesReturnInvoiceId, variantId, attributeId, attributeValue })
-          : this.txService.getAvailableSerials({ productId: product.id, variantId, warehouseId: this.resolveHeaderWarehouseId() });
+          : this.txService.getAvailableSerials({ productId: product.id, variantId, attributeId, attributeValue, warehouseId: this.resolveHeaderWarehouseId() });
       const usedElsewhere = this.serialUnitsUsedInOtherRows(rowIndex);
       const previouslySaved = [...this.serialPickerDraftValues()];
       obs.pipe(takeUntilDestroyed(this.destroyRef))
@@ -11081,6 +11226,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   clearConfigForm(): void {
     this.formValues.set({});
     this.deliveryAddressOverride.set(null);
+    this.transportDetailsForm.set({});
+    this.transportDetailsToggleOverride.set(null);
     this.isLineGridFullscreen.set(false);
     this._autoCodeFields.clear();
     this.genericNameValue.set('');
@@ -11360,6 +11507,88 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         deliveryDistrict: '', deliveryCity: '', deliveryPincode: '', deliveryAddress: ''
       }));
     }
+  }
+
+  // ── Transport Details (shared across every goods-moving transaction screen) ──
+  // Backed by inventory.inv_transport_details, a table of its own keyed by
+  // (docType, docId) rather than columns on each transaction table -- see
+  // 128_transport_details.sql. That means its state can't just live in
+  // formValues() like an ordinary field: it's fetched separately once a
+  // record's own id is known (loadTransportDetailsForRecord, called from
+  // editRecordByRow) and saved separately right after the parent document's
+  // own save succeeds (saveTransportDetailsIfNeeded, called from
+  // executeSaveConfigRecord's success handler), since a brand-new
+  // document has no id -- and so no doc_id to attach transport details to
+  // -- until that first save completes.
+  private readonly transportDetailsDocTypeMap: Record<string, string> = {
+    salesOrder: 'sales_order',
+    deliveryChallan: 'delivery_challan',
+    salesInvoice: 'sales_invoice',
+    salesReturn: 'sales_return',
+    purchaseOrder: 'purchase_order',
+    goodsReceipt: 'grn',
+    purchaseInvoice: 'purchase_invoice',
+    purchaseReturn: 'purchase_return',
+    stockTransfer: 'stock_transfer',
+    shipmentEntry: 'shipment_entry',
+    gatePass: 'gate_pass'
+  };
+
+  readonly transportDetailsForm = signal<Record<string, any>>({});
+  private readonly transportDetailsToggleOverride = signal<boolean | null>(null);
+
+  transportDetailsDocType(): string | null {
+    return this.transportDetailsDocTypeMap[this.config?.key || ''] || null;
+  }
+
+  transportDetailsSectionAvailable(): boolean {
+    return !!this.transportDetailsDocType();
+  }
+
+  private transportDetailsHasAnyValue(f: Record<string, any> = this.transportDetailsForm()): boolean {
+    return !!(f['vehicleType'] || f['vehicleName'] || f['vehicleNo'] || f['weighingEnabled'] || f['driverEnabled']);
+  }
+
+  transportDetailsSectionEnabled(): boolean {
+    const override = this.transportDetailsToggleOverride();
+    if (override !== null) return override;
+    return this.transportDetailsHasAnyValue();
+  }
+
+  toggleTransportDetailsSection(checked: boolean): void {
+    this.transportDetailsToggleOverride.set(checked);
+    if (!checked) this.transportDetailsForm.set({});
+  }
+
+  setTransportDetailsField(key: string, value: any): void {
+    this.transportDetailsForm.update(f => ({ ...f, [key]: value }));
+  }
+
+  private loadTransportDetailsForRecord(docId: number | null): void {
+    this.transportDetailsForm.set({});
+    this.transportDetailsToggleOverride.set(null);
+    const docType = this.transportDetailsDocType();
+    if (!docType || !docId) return;
+    this.txService.getTransportDetails(docType, docId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          const data = res.data;
+          if (data && (data.id || data.vehicleType || data.vehicleName || data.vehicleNo)) {
+            this.transportDetailsForm.set({ ...data });
+          }
+        },
+        error: () => {}
+      });
+  }
+
+  private saveTransportDetailsIfNeeded(docId: number | null): void {
+    const docType = this.transportDetailsDocType();
+    if (!docType || !docId || !this.transportDetailsHasAnyValue()) return;
+    const payload: TransportDetails = { ...this.transportDetailsForm(), docType, docId } as TransportDetails;
+    this.txService.saveTransportDetails(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: () => {}, error: () => {} });
   }
 
   dcDistrictOptions(): string[] {
@@ -12001,6 +12230,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       next: (res: ApiResponse<any>) => {
         this.isSaving.set(false);
         if (res.success) {
+          // Transport Details lives in its own table keyed by (docType,
+          // docId) rather than being part of this payload, since one shared
+          // table backs every transaction screen that carries it -- so it's
+          // saved as a second call once the parent document's own id is
+          // known (id ?? the just-created id from this response), same
+          // shape as the accounts-posting call that follows a Sales
+          // Invoice save on the backend. No-ops on screens that don't
+          // carry Transport Details or where nothing was entered.
+          this.saveTransportDetailsIfNeeded(Number(res.data?.id ?? id ?? 0) || null);
           const savedSalesInvoiceId = this.config?.key === 'salesInvoice'
             ? Number(res.data?.id ?? 0)
             : 0;
@@ -13229,6 +13467,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!record) return;
     this.editingId.set(record.id ?? null);
     this._autoCodeFields.clear();
+    this.loadTransportDetailsForRecord(record.id ?? null);
     switch (this.config?.key) {
       case 'purchaseRequisition':
       case 'requestForQuotation':
@@ -13408,7 +13647,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         });
         break;
       case 'vendorMaster':
-        this.formValues.set({ name: record.vendor_name || '', code: record.vendor_code || '', segment: record.segment_name || '', vendorCategory: record.vendor_category || '', contactId: record.contact_id ?? null, contactSource: record.contact_source ?? null, gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', city: record.city || '', state: record.state || '', district: record.district || '', pincode: record.pincode || '', paymentTerms: record.payment_term_name || '', creditLimit: record.credit_limit ?? 0, status: cap(record.status || 'active') });
+        this.formValues.set({ name: record.vendor_name || '', code: record.vendor_code || '', segment: record.segment_name || '', vendorCategory: record.vendor_category || '', contactId: record.contact_id ?? null, contactSource: record.contact_source ?? null, gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', city: record.city || '', state: record.state || '', district: record.district || '', pincode: record.pincode || '', paymentTerms: record.payment_term_name || '', creditLimit: record.credit_limit ?? 0, bankPayeeName: record.bank_payee_name || '', bankAccountNo: record.bank_account_no || '', bankIfscCode: record.bank_ifsc_code || '', bankName: record.bank_name || '', bankBranchName: record.bank_branch_name || '', status: cap(record.status || 'active') });
         // The GSTIN/PAN/Mobile/Email/Address fields display selectedPartyContact()'s
         // `type` in the ng-option template, not formValues() directly — reconstruct
         // it from the vendor's own saved fields so editing shows the real saved
@@ -13426,7 +13665,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         });
         break;
       case 'customerMaster':
-        this.formValues.set({ name: record.customer_name || '', code: record.customer_code || '', segment: record.segment_name || '', customerCategory: record.customer_category || '', contactId: record.contact_id ?? null, contactSource: record.contact_source ?? null, gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', city: record.city || '', state: record.state || '', district: record.district || '', pincode: record.pincode || '', creditLimit: record.credit_limit ?? 0, status: cap(record.status || 'active') });
+        this.formValues.set({ name: record.customer_name || '', code: record.customer_code || '', segment: record.segment_name || '', customerCategory: record.customer_category || '', contactId: record.contact_id ?? null, contactSource: record.contact_source ?? null, gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', city: record.city || '', state: record.state || '', district: record.district || '', pincode: record.pincode || '', creditLimit: record.credit_limit ?? 0, bankPayeeName: record.bank_payee_name || '', bankAccountNo: record.bank_account_no || '', bankIfscCode: record.bank_ifsc_code || '', bankName: record.bank_name || '', bankBranchName: record.bank_branch_name || '', status: cap(record.status || 'active') });
         this.selectedPartyContact.set({
           id: record.contact_id ?? undefined,
           name: record.customer_name || '',
@@ -13538,6 +13777,38 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // a previously-edited record's serials into the new one.
   private hydrateLineSerialUnitsFromRecord(record: any): void {
     this.lineSerialUnitsMap.set(this.lineSerialMapFromItems(record?.items || []));
+  }
+
+  // A Sales Invoice line billed against a Delivery Challan item never
+  // persists its own serial_numbers (salesLineItems() deliberately sends
+  // null for dcItemId-linked lines — the DB linkage lives on
+  // inv_serial_units.reserved_item_id/consumed_item_id instead), so
+  // hydrateLineSerialUnitsFromRecord() above always finds an empty entry
+  // for these rows. Pre-post, openSerialPicker() already re-fetches the
+  // reserved units on click. Post-post those units have moved from
+  // status='reserved' to status='sold' (fn_post_sales_invoice_stock), so
+  // that same reserved-item lookup would come back empty even if the
+  // picker button weren't inert on a posted record — there was previously
+  // no query at all for "sold serials belonging to this SI item". This
+  // fetches that once on load for every DC-linked line of a posted
+  // invoice, so the Serial No column shows the actual bound units instead
+  // of getting stuck on the static 'Loading…' fallback.
+  private hydrateSoldSerialsForDcLinkedSalesInvoiceLines(record: any): void {
+    if (!this.isCurrentRecordPosted()) return;
+    (record?.items || []).forEach((item: any, index: number) => {
+      const dcItemId = item?.dc_item_id;
+      const siItemId = item?.id;
+      if (!dcItemId || !siItemId) return;
+      this.txService.getSoldSerialsForSiItem(siItemId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: res => {
+            const serials = (res.data || []).map(s => s.serial_no).filter((s): s is string => !!s);
+            if (serials.length) this.lineSerialUnitsMap.update(map => ({ ...map, [index]: serials }));
+          },
+          error: () => { /* leave the row's summary on its existing fallback text */ }
+        });
+    });
   }
 
   private applyPurchaseRecordToForm(record: any): void {
@@ -13868,6 +14139,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           i, { soItemId: item.so_item_id ?? null, dcItemId: item.dc_item_id ?? null }
         ]))
       );
+      this.hydrateSoldSerialsForDcLinkedSalesInvoiceLines(record);
       return;
     }
 
@@ -14315,9 +14587,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           status: lc(v['status'])
         };
       case 'vendorMaster':
-        return { segment_id: selectedSegmentId, vendor_code: v['code'] || v['vendorCode'] || null, vendor_name: v['name'] || v['vendorName'] || '', segment_name: selectedSegmentName, vendor_category: v['vendorCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, payment_term_id: this.paymentTermBySelection(v['paymentTerms'])?.id ?? null, credit_limit: Number(v['creditLimit']) || 0, status: lc(v['status']) };
+        return { segment_id: selectedSegmentId, vendor_code: v['code'] || v['vendorCode'] || null, vendor_name: v['name'] || v['vendorName'] || '', segment_name: selectedSegmentName, vendor_category: v['vendorCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, payment_term_id: this.paymentTermBySelection(v['paymentTerms'])?.id ?? null, credit_limit: Number(v['creditLimit']) || 0, bank_payee_name: v['bankPayeeName'] || null, bank_account_no: v['bankAccountNo'] || null, bank_ifsc_code: v['bankIfscCode'] || null, bank_name: v['bankName'] || null, bank_branch_name: v['bankBranchName'] || null, status: lc(v['status']) };
       case 'customerMaster':
-        return { segment_id: selectedSegmentId, customer_code: v['code'] || v['customerCode'] || null, customer_name: v['name'] || v['customerName'] || '', segment_name: selectedSegmentName, customer_category: v['customerCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, credit_limit: Number(v['creditLimit']) || 0, status: lc(v['status']) };
+        return { segment_id: selectedSegmentId, customer_code: v['code'] || v['customerCode'] || null, customer_name: v['name'] || v['customerName'] || '', segment_name: selectedSegmentName, customer_category: v['customerCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, credit_limit: Number(v['creditLimit']) || 0, bank_payee_name: v['bankPayeeName'] || null, bank_account_no: v['bankAccountNo'] || null, bank_ifsc_code: v['bankIfscCode'] || null, bank_name: v['bankName'] || null, bank_branch_name: v['bankBranchName'] || null, status: lc(v['status']) };
       case 'productServiceMaster': {
         const baseUomSelection = v['baseUom'] || null;
         const baseUom = this.findUomBySelection(baseUomSelection);
@@ -15185,7 +15457,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const rate = this.lineNumber(row, ['rate']);
       const discountPct = this.lineNumber(row, ['disc', 'discount']);
       const gstRate = this.transactionLineGstPercent(row);
-      const taxPayload = this.transactionLineTaxPayload(row, index, receivedQty, rate, discountPct, gstRate);
+      // GRN bills on what was actually kept, not what arrived (same rule
+      // recalculateLineRow() applies to the visible Amount column) — GST
+      // must follow Accepted Qty too, or a rejected unit still gets taxed.
+      const taxPayload = this.transactionLineTaxPayload(row, index, acceptedQty, rate, discountPct, gstRate);
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
       // Prefer the referenced PO item's own attribute_id/attribute_value

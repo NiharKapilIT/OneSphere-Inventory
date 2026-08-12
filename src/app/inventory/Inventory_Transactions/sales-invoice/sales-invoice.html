@@ -40,6 +40,12 @@
                     <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
                   </button>
                 }
+                @if (formFieldValue(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                    title="View referenced document's items" (click)="viewReferenceDetails(refField)">
+                    <i class="pi pi-eye"></i>
+                  </button>
+                }
               </div>
             </div>
           }
@@ -177,42 +183,7 @@
 
         <app-inventory-delivery-address [host]="this"></app-inventory-delivery-address>
 
-        <section class="inventory-fieldset delivery-challan-fieldset">
-          <div class="inventory-fieldset-title inventory-fieldset-title-row">
-            <span><i class="pi pi-truck"></i> Transport Details</span>
-            <label class="inventory-labeled-switch yes-no">
-              <input type="checkbox" [checked]="transportDetailsEnabled()" (change)="toggleTransportDetails($any($event.target).checked)" />
-              <span class="inventory-switch-track">
-                <span class="switch-text switch-on">Yes</span>
-                <span class="switch-text switch-off">No</span>
-              </span>
-            </label>
-          </div>
-          @if (transportDetailsEnabled()) {
-            <div class="inventory-form-grid delivery-challan-form-grid">
-              @if (bodyFieldByKey('transportMode'); as field) {
-                <div class="erp-form-group">
-                  <label class="erp-label">{{ field.label }}</label>
-                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                    [items]="field.options || []" [searchable]="true" [clearable]="true"
-                    [ngModel]="formFieldValue(field)"
-                    (ngModelChange)="collectFormField(field.key, $event)"
-                    [placeholder]="fieldTypingHint(field)">
-                  </ng-select>
-                </div>
-              }
-              @if (bodyFieldByKey('vehicleNo'); as field) {
-                <div class="erp-form-group">
-                  <label class="erp-label">{{ field.label }}</label>
-                  <input class="erp-input" type="text"
-                    [ngModel]="formFieldValue(field)"
-                    (ngModelChange)="collectFormField(field.key, $event)"
-                    [placeholder]="fieldTypingHint(field)" />
-                </div>
-              }
-            </div>
-          }
-        </section>
+        <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
 
         <div class="inventory-form-grid sales-invoice-notes-grid">
           @if (bodyFieldByKey('customerNotes'); as field) {
@@ -365,9 +336,13 @@
                             <span class="inventory-grid-empty-hint">�</span>
                           }
                         } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
-                          <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
-                            {{ serialPickerSummaryForRow(rowIndex, row) }}
-                          </button>
+                          @if (isCurrentRecordPosted()) {
+                            <span class="inventory-grid-static-value">{{ serialPickerSummaryForRow(rowIndex, row) }}</span>
+                          } @else {
+                            <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
+                              {{ serialPickerSummaryForRow(rowIndex, row) }}
+                            </button>
+                          }
                         } @else if (lineGridColumnIsSerialPicker(column)) {
                           <input class="erp-input inventory-grid-input"
                             type="text"
@@ -796,6 +771,7 @@
               <table class="erp-table compact">
                 <thead>
                   <tr>
+                    <th class="text-center">Items</th>
                     @if (refPickerDocsHaveType()) { <th>Type</th> }
                     <th>Doc No</th><th>Date</th><th>Customer</th><th>Status</th><th></th>
                   </tr>
@@ -803,6 +779,11 @@
                 <tbody>
                   @for (doc of refPickerDisplayDocs(); track referenceDocTrackKey(doc)) {
                     <tr>
+                      <td class="text-center">
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Show items" (click)="toggleRefPickerExpand(referenceDocTrackKey(doc))">
+                          <i class="pi" [class.pi-chevron-down]="isRefPickerExpanded(referenceDocTrackKey(doc))" [class.pi-chevron-right]="!isRefPickerExpanded(referenceDocTrackKey(doc))"></i>
+                        </button>
+                      </td>
                       @if (refPickerDocsHaveType()) { <td>{{ doc.doc_type || '�' }}</td> }
                       <td>{{ doc.doc_number }}</td>
                       <td>{{ gridDateDisplay(doc.doc_date) }}</td>
@@ -814,6 +795,42 @@
                         </button>
                       </td>
                     </tr>
+                    @if (isRefPickerExpanded(referenceDocTrackKey(doc))) {
+                      <tr class="pr-expand-tr">
+                        <td [attr.colspan]="refPickerDocsHaveType() ? 7 : 6">
+                          <div class="pr-expand-content">
+                            @if ((doc.items || []).length) {
+                              <table class="pr-expand-items-table">
+                                <thead>
+                                  <tr>
+                                    <th>Product</th>
+                                    <th>Variant / Attribute</th>
+                                    <th>UOM</th>
+                                    <th>Qty</th>
+                                    <th>Rate</th>
+                                    <th>Amount</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  @for (item of doc.items; track $index) {
+                                    <tr>
+                                      <td>{{ item.product_name }}</td>
+                                      <td>{{ refPickerItemVariantText(item) }}</td>
+                                      <td>{{ item.uom_name || '-' }}</td>
+                                      <td>{{ refPickerItemQtyDisplay(item) }}</td>
+                                      <td>{{ refPickerItemRateDisplay(item) }}</td>
+                                      <td>{{ refPickerItemAmountDisplay(item) }}</td>
+                                    </tr>
+                                  }
+                                </tbody>
+                              </table>
+                            } @else {
+                              <span class="inventory-field-hint">No items found on this document.</span>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                    }
                   }
                 </tbody>
               </table>

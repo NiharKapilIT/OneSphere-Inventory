@@ -8,10 +8,12 @@ import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-sh
 import { purchaseOrderConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
 
+import { InventoryTransportDetailsComponent } from '../../Inventory_Shared/inventory-transport-details/inventory-transport-details.component';
+
 @Component({
   selector: 'app-inventory-purchase-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryTransportDetailsComponent],
   templateUrl: './purchase-order.html'
 })
 export class InventoryPurchaseOrderComponent extends InventoryScreenShell {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -9,47 +9,22 @@ import { salesInvoiceConfig } from '../../Inventory_Shared/inventory-screen.mode
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
 import { InventorySerialPickerModalComponent } from '../../Inventory_Shared/inventory-serial-picker-modal/inventory-serial-picker-modal.component';
 import { InventoryDeliveryAddressComponent } from '../../Inventory_Shared/inventory-delivery-address/inventory-delivery-address.component';
+import { InventoryTransportDetailsComponent } from '../../Inventory_Shared/inventory-transport-details/inventory-transport-details.component';
 
+// Transport Details used to be a Sales-Invoice-only toggle
+// (transportDetailsEnabled()/toggleTransportDetails(), backed by plain
+// transportMode/vehicleNo formValues() keys) defined here. It's now the
+// shared app-inventory-transport-details component (see sales-invoice.html)
+// backed by inventory.inv_transport_details and InventoryScreenShell's own
+// transportDetailsForm()/transportDetailsSectionEnabled(), the same
+// component used across every other goods-moving transaction screen —
+// so this subclass no longer needs an override of its own.
 @Component({
   selector: 'app-inventory-sales-invoice',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventorySerialPickerModalComponent, InventoryDeliveryAddressComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventorySerialPickerModalComponent, InventoryDeliveryAddressComponent, InventoryTransportDetailsComponent],
   templateUrl: './sales-invoice.html'
 })
 export class InventorySalesInvoiceComponent extends InventoryScreenShell {
   override readonly config = salesInvoiceConfig;
-
-  // Transport Details is optional on a Sales Invoice — toggled with a
-  // Yes/No switch instead of always being shown. `null` means "not
-  // explicitly touched yet": in that state the switch auto-reflects whether
-  // the loaded record already has data there, so editing an older invoice
-  // with transport details filled in doesn't hide them. (The equivalent
-  // Delivery Address toggle now lives on the base InventoryScreenShell —
-  // see deliveryAddressEnabled()/toggleDeliveryAddress() — since Sales
-  // Order and Delivery Challan share the exact same behavior.)
-  private readonly transportDetailsOverride = signal<boolean | null>(null);
-
-  transportDetailsEnabled(): boolean {
-    const override = this.transportDetailsOverride();
-    if (override !== null) return override;
-    const v = this.formValues();
-    return !!(v['transportMode'] || v['vehicleNo']);
-  }
-
-  toggleTransportDetails(checked: boolean): void {
-    this.transportDetailsOverride.set(checked);
-    if (!checked) {
-      this.formValues.update(v => ({ ...v, transportMode: '', vehicleNo: '' }));
-    }
-  }
-
-  override clearConfigForm(): void {
-    super.clearConfigForm();
-    this.transportDetailsOverride.set(null);
-  }
-
-  override editRecordByRow(row: string[]): void {
-    this.transportDetailsOverride.set(null);
-    super.editRecordByRow(row);
-  }
 }

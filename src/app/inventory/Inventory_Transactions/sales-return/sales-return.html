@@ -19,7 +19,11 @@
             <div class="product-segment-reference">
               <label class="erp-label">{{ refField.label }}</label>
               <div [class.inventory-reference-picker-field]="transactionReferencePickerButtonVisible(refField)">
-                @if (transactionReferenceUsesSelect(refField)) {
+                @if (config.key === 'salesReturn') {
+                  <div class="erp-input inventory-readonly-label" [class.inventory-readonly-label--empty]="!formFieldValue(refField)">
+                    {{ formFieldValue(refField) || 'Not selected — use Pick Reference' }}
+                  </div>
+                } @else if (transactionReferenceUsesSelect(refField)) {
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                     [items]="transactionReferenceOptions(refField)"
                     [searchable]="true" [clearable]="true" [virtualScroll]="true"
@@ -38,6 +42,12 @@
                     [title]="transactionReferencePickerTitle(refField)" [disabled]="transactionReferenceLoading()"
                     (click)="openPurchaseReferencePicker()">
                     <i [class]="transactionReferenceLoading() ? 'pi pi-spin pi-spinner' : 'pi pi-list'"></i>
+                  </button>
+                }
+                @if (formFieldValue(refField)) {
+                  <button type="button" class="erp-btn btn-white btn-icon inventory-reference-picker-btn"
+                    title="View referenced document's items" (click)="viewReferenceDetails(refField)">
+                    <i class="pi pi-eye"></i>
                   </button>
                 }
               </div>
@@ -72,6 +82,27 @@
                   styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100">
                 </p-datepicker>
                 <i class="pi pi-calendar inventory-date-icon"></i>
+              </div>
+            </div>
+          }
+          @if (procurementVendorHeaderField(); as customerField) {
+            <div class="erp-form-group procurement-vendor-col">
+              <label class="erp-label">{{ customerField.label }}</label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="procurementVendorHeaderOptions(customerField)"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(customerField)"
+                  (ngModelChange)="collectFormField(customerField.key, $event); maybeAutoCode(customerField.key, $event)"
+                  [placeholder]="fieldTypingHint(customerField)">
+                </ng-select>
+                @if (customerField.addMaster) {
+                  <button type="button" class="erp-btn btn-white btn-icon"
+                    [title]="'Add ' + customerField.addMaster"
+                    (click)="openAddMaster(customerField.addMaster, customerField.key)">
+                    <i class="pi pi-plus"></i>
+                  </button>
+                }
               </div>
             </div>
           }
@@ -110,6 +141,15 @@
                     <span class="switch-text switch-off">{{ fieldSwitchOffLabel(field) }}</span>
                   </span>
                 </label>
+              } @else if (field.key === 'returnToWarehouse') {
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [class.inventory-control-readonly]="salesReturnLocationLocked()"
+                  [items]="field.options || []" [searchable]="!salesReturnLocationLocked()" [clearable]="!salesReturnLocationLocked()"
+                  [readonly]="salesReturnLocationLocked()"
+                  [ngModel]="formFieldValue(field)"
+                  (ngModelChange)="collectFormField(field.key, $event)"
+                  [placeholder]="fieldTypingHint(field)">
+                </ng-select>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="field.options || []" [searchable]="true" [clearable]="true"
@@ -159,6 +199,8 @@
           </div>
         }
       </div>
+
+      <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
 
       @if (config.lineColumns?.length) {
         <div class="inventory-line-items grn-grid-compact">
@@ -461,11 +503,9 @@
         <div class="inventory-modal-header">
           <h3>Posted Sales Invoices</h3>
           <span style="display:flex; align-items:center; gap:8px;">
-            @if (directReferenceActionLabel()) {
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="useDirectReferenceEntry()">
-                <i class="pi pi-file-plus"></i> {{ directReferenceActionLabel() }}
-              </button>
-            }
+            <button type="button" class="erp-btn btn-white btn-sm" (click)="useDirectReferenceEntry()">
+              <i class="pi pi-file-plus"></i> {{ directReferenceActionLabel() || 'Direct Return' }}
+            </button>
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePurchaseReferencePicker()">
               <i class="pi pi-times"></i>
             </button>

@@ -1,0 +1,49 @@
+<section class="inventory-fieldset delivery-challan-fieldset">
+  <div class="inventory-fieldset-title inventory-fieldset-title-row">
+    <span><i class="pi pi-building"></i> Bank Details</span>
+  </div>
+  <div class="inventory-form-grid delivery-address-grid">
+    <div class="erp-form-group">
+      <label class="erp-label">Payee Name</label>
+      <input class="erp-input" type="text"
+        [ngModel]="host.formValues()['bankPayeeName'] || ''"
+        (ngModelChange)="host.collectFormField('bankPayeeName', $event)"
+        placeholder="Name as per bank account" />
+    </div>
+    <div class="erp-form-group">
+      <label class="erp-label">Account No.</label>
+      <input class="erp-input" type="text"
+        [ngModel]="host.formValues()['bankAccountNo'] || ''"
+        (ngModelChange)="host.collectFormField('bankAccountNo', $event)"
+        placeholder="Bank account number" />
+    </div>
+    <div class="erp-form-group">
+      <label class="erp-label">IFSC Code</label>
+      <input class="erp-input" type="text" maxlength="11"
+        [ngModel]="host.formValues()['bankIfscCode'] || ''"
+        (ngModelChange)="onIfscCodeChange($event)"
+        placeholder="11-character IFSC code" />
+      @if (ifscLookupState() === 'loading') {
+        <span class="inventory-field-hint"><i class="pi pi-spin pi-spinner"></i> Looking up bank...</span>
+      } @else if (ifscLookupState() === 'not-found') {
+        <span class="inventory-field-hint">IFSC not found - enter bank and branch manually.</span>
+      } @else if (ifscLookupState() === 'error') {
+        <span class="inventory-field-hint">Lookup unavailable - enter bank and branch manually.</span>
+      }
+    </div>
+    <div class="erp-form-group">
+      <label class="erp-label">Bank</label>
+      <input class="erp-input" type="text"
+        [ngModel]="host.formValues()['bankName'] || ''"
+        (ngModelChange)="host.collectFormField('bankName', $event)"
+        placeholder="Auto-fills from IFSC" />
+    </div>
+    <div class="erp-form-group">
+      <label class="erp-label">Branch</label>
+      <input class="erp-input" type="text"
+        [ngModel]="host.formValues()['bankBranchName'] || ''"
+        (ngModelChange)="host.collectFormField('bankBranchName', $event)"
+        placeholder="Auto-fills from IFSC" />
+    </div>
+  </div>
+</section>

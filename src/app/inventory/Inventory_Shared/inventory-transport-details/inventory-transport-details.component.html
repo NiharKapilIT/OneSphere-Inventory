@@ -1,0 +1,131 @@
+@if (host.transportDetailsSectionAvailable()) {
+<section class="inventory-fieldset delivery-challan-fieldset">
+  <div class="inventory-fieldset-title inventory-fieldset-title-row">
+    <span><i class="pi pi-truck"></i> Transport / Vehicle Details</span>
+    <label class="inventory-labeled-switch yes-no" title="Record transport/vehicle details for this document?">
+      <input type="checkbox" [checked]="host.transportDetailsSectionEnabled()" (change)="host.toggleTransportDetailsSection($any($event.target).checked)" />
+      <span class="inventory-switch-track">
+        <span class="switch-text switch-on">Yes</span>
+        <span class="switch-text switch-off">No</span>
+      </span>
+    </label>
+  </div>
+
+  @if (host.transportDetailsSectionEnabled()) {
+    <div class="inventory-form-grid delivery-address-grid">
+      <div class="erp-form-group">
+        <label class="erp-label">Vehicle Type</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+          [items]="vehicleTypeOptions" [searchable]="true" [clearable]="true"
+          [ngModel]="host.transportDetailsForm()['vehicleType'] || ''"
+          (ngModelChange)="host.setTransportDetailsField('vehicleType', $event)"
+          placeholder="Select vehicle type">
+        </ng-select>
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">Vehicle Name</label>
+        <input class="erp-input" type="text"
+          [ngModel]="host.transportDetailsForm()['vehicleName'] || ''"
+          (ngModelChange)="host.setTransportDetailsField('vehicleName', $event)"
+          placeholder="Example: Truck, Van" />
+      </div>
+      <div class="erp-form-group">
+        <label class="erp-label">Vehicle No.</label>
+        <input class="erp-input" type="text"
+          [ngModel]="host.transportDetailsForm()['vehicleNo'] || ''"
+          (ngModelChange)="host.setTransportDetailsField('vehicleNo', $event)"
+          placeholder="Example: TS09AB1234" />
+      </div>
+    </div>
+
+    <!-- Weighing -->
+    <div class="inventory-fieldset-title inventory-fieldset-title-row" style="margin-top:14px;">
+      <span>Weighing Detail</span>
+      <label class="inventory-labeled-switch yes-no" title="Record before/after weighing?">
+        <input type="checkbox" [checked]="!!host.transportDetailsForm()['weighingEnabled']" (change)="host.setTransportDetailsField('weighingEnabled', $any($event.target).checked)" />
+        <span class="inventory-switch-track">
+          <span class="switch-text switch-on">Yes</span>
+          <span class="switch-text switch-off">No</span>
+        </span>
+      </label>
+    </div>
+    @if (host.transportDetailsForm()['weighingEnabled']) {
+      <div class="inventory-form-grid delivery-address-grid">
+        <div class="erp-form-group">
+          <label class="erp-label">Before Weight</label>
+          <input class="erp-input" type="number"
+            [ngModel]="host.transportDetailsForm()['beforeWeight'] || ''"
+            (ngModelChange)="host.setTransportDetailsField('beforeWeight', $event)"
+            placeholder="Weight before loading/unloading" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">Before Weight - Photo Proof</label>
+          <input class="erp-input" type="file" accept="image/jpeg,image/png" (change)="onWeighingPhotoChange($event, 'before')" />
+          @if (beforeWeightUploadPending()) {
+            <span class="inventory-field-hint"><i class="pi pi-spin pi-spinner"></i> Uploading...</span>
+          } @else if (beforeWeightUploadError()) {
+            <span class="inventory-field-hint">{{ beforeWeightUploadError() }}</span>
+          } @else if (host.transportDetailsForm()['beforeWeightPhoto']) {
+            <span class="inventory-field-hint">Uploaded: {{ host.transportDetailsForm()['beforeWeightPhoto'] }}</span>
+          }
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">After Weight</label>
+          <input class="erp-input" type="number"
+            [ngModel]="host.transportDetailsForm()['afterWeight'] || ''"
+            (ngModelChange)="host.setTransportDetailsField('afterWeight', $event)"
+            placeholder="Weight after loading/unloading" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">After Weight - Photo Proof</label>
+          <input class="erp-input" type="file" accept="image/jpeg,image/png" (change)="onWeighingPhotoChange($event, 'after')" />
+          @if (afterWeightUploadPending()) {
+            <span class="inventory-field-hint"><i class="pi pi-spin pi-spinner"></i> Uploading...</span>
+          } @else if (afterWeightUploadError()) {
+            <span class="inventory-field-hint">{{ afterWeightUploadError() }}</span>
+          } @else if (host.transportDetailsForm()['afterWeightPhoto']) {
+            <span class="inventory-field-hint">Uploaded: {{ host.transportDetailsForm()['afterWeightPhoto'] }}</span>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Driver -->
+    <div class="inventory-fieldset-title inventory-fieldset-title-row" style="margin-top:14px;">
+      <span>Driver Details</span>
+      <label class="inventory-labeled-switch yes-no" title="Record driver details?">
+        <input type="checkbox" [checked]="!!host.transportDetailsForm()['driverEnabled']" (change)="host.setTransportDetailsField('driverEnabled', $any($event.target).checked)" />
+        <span class="inventory-switch-track">
+          <span class="switch-text switch-on">Yes</span>
+          <span class="switch-text switch-off">No</span>
+        </span>
+      </label>
+    </div>
+    @if (host.transportDetailsForm()['driverEnabled']) {
+      <div class="inventory-form-grid delivery-address-grid">
+        <div class="erp-form-group">
+          <label class="erp-label">Driver Name</label>
+          <input class="erp-input" type="text"
+            [ngModel]="host.transportDetailsForm()['driverName'] || ''"
+            (ngModelChange)="host.setTransportDetailsField('driverName', $event)"
+            placeholder="Driver's name" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">Contact No.</label>
+          <input class="erp-input" type="text"
+            [ngModel]="host.transportDetailsForm()['driverContactNo'] || ''"
+            (ngModelChange)="host.setTransportDetailsField('driverContactNo', $event)"
+            placeholder="Driver's mobile number" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">License No.</label>
+          <input class="erp-input" type="text"
+            [ngModel]="host.transportDetailsForm()['driverLicenseNo'] || ''"
+            (ngModelChange)="host.setTransportDetailsField('driverLicenseNo', $event)"
+            placeholder="Driving license number" />
+        </div>
+      </div>
+    }
+  }
+</section>
+}

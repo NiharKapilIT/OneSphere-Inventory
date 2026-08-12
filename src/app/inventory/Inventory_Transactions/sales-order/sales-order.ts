@@ -9,10 +9,12 @@ import { salesOrderConfig } from '../../Inventory_Shared/inventory-screen.model'
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
 import { InventoryDeliveryAddressComponent } from '../../Inventory_Shared/inventory-delivery-address/inventory-delivery-address.component';
 
+import { InventoryTransportDetailsComponent } from '../../Inventory_Shared/inventory-transport-details/inventory-transport-details.component';
+
 @Component({
   selector: 'app-inventory-sales-order',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryDeliveryAddressComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryDeliveryAddressComponent, InventoryTransportDetailsComponent],
   templateUrl: './sales-order.html'
 })
 export class InventorySalesOrderComponent extends InventoryScreenShell {
