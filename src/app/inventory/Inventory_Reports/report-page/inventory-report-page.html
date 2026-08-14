@@ -1,65 +1,60 @@
 <div class="module-page inventory-page inventory-report-page inventory-generic-report-page">
   <div class="inventory-shell">
     <div class="inventory-header inventory-report-header">
-      <div>
+      <div class="inventory-report-header-title">
         <span class="inventory-kicker"><i [class]="groupIcon()"></i> {{ groupTitle() }}</span>
         <h2><i [class]="report().icon"></i> {{ report().title }}</h2>
         <p>{{ report().purpose }}</p>
+        <div class="inventory-report-header-meta-text">
+          @if (currentCompanyName()) {
+            <span title="Reports are always scoped to the company you're signed into"><i class="pi pi-building"></i> {{ currentCompanyName() }}</span>
+          }
+          <span>Phase {{ report().phase }}</span>
+          <span [class.is-live]="loadedFromApi()">{{ loadedFromApi() ? 'API data' : 'Preview data' }}</span>
+        </div>
       </div>
-      <div class="inventory-report-header-actions">
-        @for (filter of headerFilterDefinitions(); track filterTrack($index, filter)) {
-          <div class="inventory-report-filter inventory-report-filter--header">
-            <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
-            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+
+      <div class="inventory-report-header-filters">
+        @if (showBranchWarehouseField()) {
+          <div class="inventory-report-filter">
+            <label title="Branch / Warehouse"><i class="pi pi-building"></i> Branch / Warehouse</label>
+            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="branchWarehouseOptions()" groupBy="group" bindLabel="label" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" placeholder="Select branch / warehouse" [ngModel]="branchWarehouseSelected()" (ngModelChange)="updateBranchWarehouse($event)"></ng-select>
           </div>
         }
-        @if (currentCompanyName()) {
-          <span class="erp-badge badge-info" title="Reports are always scoped to the company you're signed into"><i class="pi pi-building"></i> {{ currentCompanyName() }}</span>
+        @if (showDateRangeField()) {
+          <div class="inventory-report-filter">
+            <label title="Date Range"><i class="pi pi-calendar"></i> Date Range</label>
+            <div class="inventory-date-wrap">
+              <p-datepicker selectionMode="range" [ngModel]="dateRangeValue()" (ngModelChange)="updateDateRange($event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="From - To" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
+              <i class="pi pi-calendar inventory-date-icon"></i>
+            </div>
+          </div>
         }
-        <span class="erp-badge badge-info">Phase {{ report().phase }}</span>
-        <span class="erp-badge" [class.badge-success]="loadedFromApi()" [class.badge-warning]="!loadedFromApi()">
-          {{ loadedFromApi() ? 'API data' : 'Preview data' }}
-        </span>
-        <button type="button" class="erp-btn btn-primary btn-icon btn-sm" title="Generate" (click)="generateReport()"><i class="pi pi-search"></i></button>
-        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Reset" (click)="resetFilters()"><i class="pi pi-refresh"></i></button>
+        @for (filter of inlineFilterDefinitions(); track filterTrack($index, filter)) {
+          <div class="inventory-report-filter">
+            <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
+            @if (filter.type === 'multiselect') {
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+            } @else if (filter.type === 'select') {
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
+            } @else if (filter.type === 'date') {
+              <div class="inventory-date-wrap">
+                <p-datepicker [ngModel]="filterDateValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
+                <i class="pi pi-calendar inventory-date-icon"></i>
+              </div>
+            } @else {
+              <input class="erp-input" type="text" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" />
+            }
+          </div>
+        }
       </div>
     </div>
 
-    <section class="inventory-report-filter-band inventory-report-filter-band--wide inventory-report-toolbar-band">
-      @if (showBranchWarehouseField()) {
-        <div class="inventory-report-filter">
-          <label title="Branch / Warehouse"><i class="pi pi-building"></i> Branch / Warehouse</label>
-          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="branchWarehouseOptions()" groupBy="group" bindLabel="label" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" placeholder="Select branch / warehouse" [ngModel]="branchWarehouseSelected()" (ngModelChange)="updateBranchWarehouse($event)"></ng-select>
-        </div>
-      }
-      @if (showDateRangeField()) {
-        <div class="inventory-report-filter">
-          <label title="Date Range"><i class="pi pi-calendar"></i> Date Range</label>
-          <div class="inventory-date-wrap">
-            <p-datepicker selectionMode="range" [ngModel]="dateRangeValue()" (ngModelChange)="updateDateRange($event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="From - To" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
-            <i class="pi pi-calendar inventory-date-icon"></i>
-          </div>
-        </div>
-      }
-      @for (filter of bandFilterDefinitions(); track filterTrack($index, filter)) {
-        <div class="inventory-report-filter">
-          <label [title]="filter.label"><i [class]="filterIcon(filter.key)"></i> {{ filter.label }}</label>
-          @if (filter.type === 'multiselect') {
-            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterMultiValues()[filter.key]" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
-          } @else if (filter.type === 'select') {
-            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="filter.options ?? []" [searchable]="true" [clearable]="true" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)"></ng-select>
-          } @else if (filter.type === 'date') {
-            <div class="inventory-date-wrap">
-              <p-datepicker [ngModel]="filterDateValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
-              <i class="pi pi-calendar inventory-date-icon"></i>
-            </div>
-          } @else {
-            <input class="erp-input" type="text" [placeholder]="filterPlaceholder(filter)" [ngModel]="filterTextValue(filter.key)" (ngModelChange)="updateFilter(filter.key, $event)" />
-          }
-        </div>
-      }
-
+    <section class="inventory-report-toolbar-band">
       <div class="inventory-report-toolbar-cluster">
+        <button type="button" class="erp-btn btn-primary btn-sm" title="Generate" (click)="generateReport()"><i class="pi pi-search"></i> Generate</button>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Reset filters" (click)="resetFilters()"><i class="pi pi-refresh"></i></button>
+
         <ng-select class="erp-ng-select inventory-ng-select inventory-report-group-select" appendTo="body" [items]="groupByOptions()" bindLabel="label" bindValue="value" [clearable]="false" [searchable]="false" [ngModel]="groupBy()" (ngModelChange)="groupBy.set($event ?? '')"></ng-select>
 
         @if (searchExpanded()) {

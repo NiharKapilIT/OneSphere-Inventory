@@ -8983,16 +8983,80 @@ body .p-connected-overlay {
 }
 
 .inventory-report-page {
+  // Title (col-6) / filters (col-6) side by side. Company/phase/data-source
+  // are plain text under the title (not pill badges competing for header
+  // space); Generate/Reset live in the toolbar band below instead of their
+  // own strip up here — one action row instead of two, since a separate
+  // badge/button strip is what was overlapping the Segment/Financial Year
+  // filters in the first place.
   .inventory-report-header {
-    align-items: center;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "title filters";
+    align-items: start;
   }
 
-  .inventory-report-header-actions {
+  .inventory-report-header-title {
+    grid-area: title;
+    min-width: 0;
+  }
+
+  .inventory-report-header-meta-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-top: 8px;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .inventory-report-header-meta-text span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .inventory-report-header-meta-text .is-live {
+    color: #047857;
+  }
+
+  // Every primary filter this report declares lives here now (segment,
+  // financial year, branch/warehouse, date range, status, etc.) — packed
+  // column-first into exactly two rows via grid-auto-flow, so it reads as
+  // two clean lines instead of one row that wraps unpredictably. A report
+  // with enough filters to overflow two rows' worth of columns scrolls
+  // horizontally within its own col-6 box rather than pushing into the
+  // title column or wrapping into a third line.
+  .inventory-report-header-filters {
+    grid-area: filters;
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-columns: minmax(132px, 1fr);
+    gap: 8px 10px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .inventory-report-toolbar-band {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    border: 1px solid #dbe8f9;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  }
+
+  .inventory-report-toolbar-cluster {
+    display: flex;
+    align-items: center;
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .inventory-report-filter-band {
@@ -9499,6 +9563,10 @@ body .p-connected-overlay {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .inventory-report-header-filters {
+      grid-template-rows: repeat(3, auto);
+    }
+
     .inventory-report-summary-grid,
     .inventory-report-drill-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -9517,7 +9585,24 @@ body .p-connected-overlay {
 
 @media (max-width: 767.98px) {
   .inventory-report-page {
-    .inventory-report-header-actions,
+    .inventory-report-header {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "title"
+        "filters";
+    }
+
+    .inventory-report-header-filters {
+      grid-auto-flow: row;
+      grid-template-rows: none;
+      grid-template-columns: 1fr;
+      overflow-x: visible;
+    }
+
+    .inventory-report-toolbar-band {
+      justify-content: flex-start;
+    }
+
     .inventory-report-filter-band,
     .inventory-report-summary-grid,
     .inventory-report-drill-grid,
@@ -9528,7 +9613,6 @@ body .p-connected-overlay {
       grid-template-columns: 1fr;
     }
 
-    .inventory-report-header-actions,
     .inventory-report-action,
     .inventory-report-grid-actions,
     .inventory-report-footer {

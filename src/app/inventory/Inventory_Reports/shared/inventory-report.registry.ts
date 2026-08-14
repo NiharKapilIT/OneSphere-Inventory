@@ -187,15 +187,17 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['outwardQty', 'Outward Qty', 'number', true],
       ['balanceQty', 'Balance Qty', 'number'],
       ['rate', 'Rate', 'currency'],
-      ['value', 'Value', 'currency', true],
+      ['debitValue', 'Debit', 'currency', true],
+      ['creditValue', 'Credit', 'currency', true],
+      ['totalValue', 'Total', 'currency'],
       ['remarks', 'Remarks']
     ]),
     defaultGroupBy: 'productName',
     drillDown: true,
     sampleRows: [
-      { transactionDate: '2026-05-12', documentType: 'GRN', documentNo: 'GRN-1104', referenceNo: 'PO-2241', productCode: 'ELE-1001', productName: 'LED Display 32 inch', warehouse: 'HYD Main WH', inwardQty: 40, outwardQty: 0, balanceQty: 112, rate: 24500, value: 980000, remarks: 'Vendor receipt posted' },
-      { transactionDate: '2026-05-12', documentType: 'Sales Invoice', documentNo: 'INV-4481', referenceNo: 'SO-2218', productCode: 'ELE-1001', productName: 'LED Display 32 inch', warehouse: 'HYD Main WH', inwardQty: 0, outwardQty: 12, balanceQty: 100, rate: 31500, value: 378000, remarks: 'Customer dispatch invoiced' },
-      { transactionDate: '2026-05-11', documentType: 'Stock Transfer', documentNo: 'ST-0442', referenceNo: 'REQ-144', productCode: 'DRN-4007', productName: 'Drone Motor 2KW', warehouse: 'Manufacturing Store', inwardQty: 0, outwardQty: 80, balanceQty: 350, rate: 3950, value: 316000, remarks: 'Production issue' }
+      { transactionDate: '2026-05-12', documentType: 'GRN', documentNo: 'GRN-1104', referenceNo: 'PO-2241', productCode: 'ELE-1001', productName: 'LED Display 32 inch', warehouse: 'HYD Main WH', inwardQty: 40, outwardQty: 0, balanceQty: 112, rate: 24500, debitValue: 980000, creditValue: 0, totalValue: 2744000, remarks: 'Vendor receipt posted' },
+      { transactionDate: '2026-05-12', documentType: 'Sales Invoice', documentNo: 'INV-4481', referenceNo: 'SO-2218', productCode: 'ELE-1001', productName: 'LED Display 32 inch', warehouse: 'HYD Main WH', inwardQty: 0, outwardQty: 12, balanceQty: 100, rate: 31500, debitValue: 0, creditValue: 378000, totalValue: 2366000, remarks: 'Customer dispatch invoiced' },
+      { transactionDate: '2026-05-11', documentType: 'Stock Transfer', documentNo: 'ST-0442', referenceNo: 'REQ-144', productCode: 'DRN-4007', productName: 'Drone Motor 2KW', warehouse: 'Manufacturing Store', inwardQty: 0, outwardQty: 80, balanceQty: 350, rate: 3950, debitValue: 0, creditValue: 316000, totalValue: 1382500, remarks: 'Production issue' }
     ]
   }),
   phaseOneReport({
@@ -286,7 +288,7 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     icon: 'pi pi-download',
     purpose: 'Goods receipt register with accepted, rejected and pending quantity status.',
     audience: ['Warehouse', 'Purchase', 'Accountant'],
-    filters: [...baseFilters, 'supplierId', 'productId', 'status', 'createdBy', 'approvedBy'],
+    filters: [...baseFilters, 'supplierId', 'productId', 'uom', 'status', 'createdBy', 'approvedBy'],
     columns: cols([
       ['grnDate', 'GRN Date', 'date'],
       ['grnNo', 'GRN No'],

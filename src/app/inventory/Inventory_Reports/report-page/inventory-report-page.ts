@@ -180,6 +180,17 @@ export class InventoryReportPageComponent implements OnInit {
     this.primaryFilterDefinitions().filter(filter => !InventoryReportPageComponent.EMBEDDED_FILTER_KEYS.has(filter.key))
   );
 
+  // All primary filters live in the header now (title col-6 / filters col-6,
+  // wrapped into two rows) — segment + financial year plus every other
+  // primary filter this report declares, so nothing spills into a second
+  // filter row below the header. Branch/Warehouse and the date range are
+  // still rendered as their own combined fields (see showBranchWarehouseField/
+  // showDateRangeField below), so they're not duplicated here.
+  readonly inlineFilterDefinitions = computed(() => [
+    ...this.headerFilterDefinitions(),
+    ...this.bandFilterDefinitions()
+  ]);
+
   readonly showBranchWarehouseField = computed(() => {
     const allowed = new Set(this.report().filters);
     return allowed.has('branchId') || allowed.has('warehouseId');

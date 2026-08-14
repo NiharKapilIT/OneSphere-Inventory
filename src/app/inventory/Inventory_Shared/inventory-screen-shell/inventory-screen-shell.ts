@@ -8912,7 +8912,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return this.uomOptions;
     }
     const rowProduct = row ? this.findProductBySelection(this.lineValue(row, ['product', 'item', 'sku', 'material'])) : null;
-    if (key.includes('variant') && rowProduct) return this.productVariantOptionsForTransaction(rowProduct);
+    if (key.includes('variant') && rowProduct) return this.variantOptionsForTransactionRow(rowProduct, row);
     if (key.includes('variant') && this.config?.kind === 'transaction') return [];
     if (key.includes('variant')) return this.variantOptions;
     if (key === 'attribute' && row) return this.lineAttributeOptionsForVariantRow(rowProduct, this.lineValue(row, ['variant']));
@@ -9481,10 +9481,64 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       .filter(doc => this.referenceDocType(doc) !== 'DC' || (doc.items || []).length > 0);
   }
 
+  // Mirrors salesInvoiceUsedSoRefKeys()/salesInvoiceUsedDcItemIds() above,
+  // one direction over: a Delivery Challan can reference either a Sales
+  // Order (flow A/B) or, via the secondary picker, an already-posted Sales
+  // Invoice directly (flow E — "Invoice to DC"). Whichever SO/SI a DC has
+  // already picked — even while that DC is still a draft — shouldn't be
+  // offered again when creating another DC, same as the SI side already does.
+  private deliveryChallanUsedSoRefKeys(): Set<string> {
+    const keys = new Set<string>();
+    if (this.config?.key !== 'deliveryChallan') return keys;
+    this.savedRecordObjects().forEach(record => {
+      if (this.normalizeKey(record?.status || 'draft') === 'cancelled') return;
+      const id = this.optionalNumber(record?.so_id ?? record?.soId);
+      const number = String(record?.so_number ?? record?.soNumber ?? '').trim();
+      if (id) keys.add(`id:${id}`);
+      if (number) keys.add(`no:${this.normalizeKey(number)}`);
+    });
+    return keys;
+  }
+
+  private deliveryChallanUsedSiItemIds(): Set<number> {
+    const ids = new Set<number>();
+    if (this.config?.key !== 'deliveryChallan') return ids;
+    this.savedRecordObjects().forEach(record => {
+      if (this.normalizeKey(record?.status || 'draft') === 'cancelled') return;
+      (record?.items || []).forEach((item: any) => {
+        const siItemId = this.optionalNumber(item?.si_item_id ?? item?.siItemId);
+        if (siItemId) ids.add(siItemId);
+      });
+    });
+    return ids;
+  }
+
+  private filterDeliveryChallanAvailableReferenceDocs(docs: PurchaseRefDoc[]): PurchaseRefDoc[] {
+    if (this.config?.key !== 'deliveryChallan') return docs;
+    const usedSoKeys = this.deliveryChallanUsedSoRefKeys();
+    const usedSiItemIds = this.deliveryChallanUsedSiItemIds();
+    if (!usedSoKeys.size && !usedSiItemIds.size) return docs;
+    return docs
+      .filter(doc => {
+        if (this.referenceDocType(doc) !== 'SO' || !usedSoKeys.size) return true;
+        const id = this.optionalNumber(doc.id);
+        const number = String(doc.doc_number || '').trim();
+        const keys = [id ? `id:${id}` : '', number ? `no:${this.normalizeKey(number)}` : ''].filter(Boolean);
+        return !keys.some(key => usedSoKeys.has(key));
+      })
+      .map(doc => {
+        if (this.referenceDocType(doc) !== 'SI' || !usedSiItemIds.size) return doc;
+        return { ...doc, items: (doc.items || []).filter((item: any) => !usedSiItemIds.has(Number(item?.id))) };
+      })
+      .filter(doc => this.referenceDocType(doc) !== 'SI' || (doc.items || []).length > 0);
+  }
+
   private availableReferenceDocsForCurrentTransaction(docs: PurchaseRefDoc[]): PurchaseRefDoc[] {
     return this.filterDocumentNoteAvailableReturnDocs(
       this.filterSalesInvoiceAvailableReferenceDocs(
-        this.filterPurchaseReturnAvailablePiDocs(this.filterPurchaseInvoiceAvailableGrnDocs(docs))
+        this.filterDeliveryChallanAvailableReferenceDocs(
+          this.filterPurchaseReturnAvailablePiDocs(this.filterPurchaseInvoiceAvailableGrnDocs(docs))
+        )
       )
     );
   }
@@ -12379,6 +12433,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               this.transactionReferenceDocs.update(docs => this.filterDocumentNoteAvailableReturnDocs(docs));
               this.refPickerDocs.update(docs => this.filterDocumentNoteAvailableReturnDocs(docs));
               this.invalidateTransactionReferenceDocs();
+            }
+            if (['goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'deliveryChallan', 'salesInvoice', 'salesReturn'].includes(this.config?.key || '')) {
+              // fetchAvailableStockForLine() only ever fetches a given
+              // product/variant/attribute key once and caches it for the
+              // life of this component instance (see its own early-return
+              // guard) — a save on any screen that actually moves
+              // inv_stock_balance (GRN/PI/PR/DC/SI/Sales Return posting)
+              // must drop that cache, or the on-screen "available stock"
+              // hint and negative-stock check keep showing the pre-save
+              // figure until the user navigates away and back.
+              this.availableStockCache.set({});
+              this.availableStockFetching.clear();
             }
             this.clearConfigForm();
             this.loadApiRecords();
@@ -15373,14 +15439,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     });
   }
 
-  // Always null: a Sales Order is customer demand, not a stock commitment,
-  // so attribute-value choices are never narrowed by current stock — the
-  // goods can still be procured after the order is placed. This was
-  // Sales-Order-only to begin with (every other screen already got null
-  // here), so returning null unconditionally disables the filter below for
-  // good; buildLineAttrSelections() then shows every mapped value unfiltered.
+  // Only Delivery Challan and Sales Invoice actually move stock out of a
+  // warehouse (same gate as salesOutwardStockControlState() above) — a Sales
+  // Order is customer demand, not a stock commitment, so its attribute-value
+  // choices are never narrowed by current stock; every other screen has no
+  // stock-committing warehouse field at all. Returns the header warehouse id
+  // for DC/SI so buildLineAttrSelections() below can hide out-of-stock values.
   private salesOrderAttributeStockWarehouseId(): number | null {
-    return null;
+    const key = this.config?.key || '';
+    if (key !== 'deliveryChallan' && key !== 'salesInvoice') return null;
+    const headerField = key === 'deliveryChallan'
+      ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
+      : (this.formValues()['warehouse'] || this.formValues()['warehouseId']);
+    const warehouse = this.findWarehouseBySelection(headerField);
+    return warehouse?.id ?? this.optionalNumber(headerField) ?? null;
   }
 
   // Narrows an attribute's selectable values down to those with stock > 0 in
@@ -15400,6 +15472,35 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const here = this.stockRowForWarehouse(rows, warehouseId);
       return Number(here?.available || 0) > 0;
     });
+  }
+
+  // Same idea as filterAttributeOptionsByWarehouseStock() above, one level
+  // up: on DC/SI (the only screens salesOrderAttributeStockWarehouseId()
+  // resolves a warehouse for), hide variants with no available stock in that
+  // warehouse instead of listing every variant the product has regardless of
+  // stock. A row's already-committed variant stays selectable even if it's
+  // since gone out of stock, same as the attribute-value filter does.
+  private variantOptionsForTransactionRow(product: ProductItem | null | undefined, row?: string[]): string[] {
+    const options = this.productVariantOptionObjects(product);
+    const warehouseId = this.salesOrderAttributeStockWarehouseId();
+    if (!warehouseId || !product?.id) return options.map(option => option.label);
+
+    const cache = this.availableStockCache();
+    const inStock = options.filter(option => {
+      const key = this.availableStockKey(product.id, option.id);
+      const rows = cache[key];
+      if (rows === undefined) {
+        this.fetchAvailableStockForLine(product.id ?? null, option.id);
+        return true;
+      }
+      return Number(this.stockRowForWarehouse(rows, warehouseId)?.available || 0) > 0;
+    });
+
+    const existingValue = row ? this.lineValue(row, ['variant']) : '';
+    if (existingValue && !inStock.some(option => this.productVariantOptionMatches(option, existingValue))) {
+      return [...inStock.map(option => option.label), existingValue];
+    }
+    return inStock.map(option => option.label);
   }
 
   lineRowAttrSelections(rowIndex: number, row: string[]): VariantAttrSelection[] {
