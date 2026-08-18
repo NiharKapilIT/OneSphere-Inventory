@@ -7,12 +7,12 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import { vendorMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
-import { InventoryBankDetailsComponent } from '../../Inventory_Shared/inventory-bank-details/inventory-bank-details.component';
+import { InventoryPartyFormComponent } from '../../Inventory_Shared/inventory-party-form/inventory-party-form.component';
 
 @Component({
   selector: 'app-inventory-vendor-master',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryBankDetailsComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryPartyFormComponent],
   templateUrl: './vendor-master.html'
 })
 export class InventoryVendorMasterComponent extends InventoryScreenShell {

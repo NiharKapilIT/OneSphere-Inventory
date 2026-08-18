@@ -290,16 +290,14 @@
             <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" placeholder="Fetched or manual address"></textarea></div>
           </div>
         } @else if (host.activeAddMaster() === 'Contact Person') {
+          <!-- Item 25: saves into the real global.tbl_mst_contact pool via
+               host.saveQuickContact() -> InventoryConfigService.saveGlobalContact(),
+               not the company-scoped inv_contacts. Contact Type dropped --
+               no matching column on that table (see saveQuickContact()'s
+               own comment). State dropped too -- the table only has a
+               district_id FK, not a plain state column; a real District
+               picker is out of scope for this popup. -->
           <div class="inventory-form-grid inventory-config-grid">
-            <div class="erp-form-group">
-              <label class="erp-label">Contact Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                [items]="['Individual', 'Company']" [searchable]="false" [clearable]="false"
-                [ngModel]="host.formValues()['quickContactType'] || 'Individual'"
-                (ngModelChange)="host.collectFormField('quickContactType', $event)"
-                placeholder="Select Type">
-              </ng-select>
-            </div>
             <div class="erp-form-group span-2">
               <label class="erp-label">Contact Name <span class="text-danger">*</span></label>
               <input class="erp-input" type="text"
@@ -336,6 +334,18 @@
                 [ngModel]="host.formValues()['quickContactAddress']"
                 (ngModelChange)="host.collectFormField('quickContactAddress', $event)"
                 placeholder="Enter address"></textarea>
+            </div>
+            <div class="erp-form-group"><label class="erp-label">City / Town <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.formValues()['quickContactCity']"
+                (ngModelChange)="host.collectFormField('quickContactCity', $event)"
+                placeholder="City or town" />
+            </div>
+            <div class="erp-form-group"><label class="erp-label">Pincode <span class="erp-label-hint">optional</span></label>
+              <input class="erp-input" type="text" maxlength="6"
+                [ngModel]="host.formValues()['quickContactPincode']"
+                (ngModelChange)="host.collectFormField('quickContactPincode', $event)"
+                placeholder="6-digit pincode" />
             </div>
           </div>
           @if (host.quickAddError()) {
@@ -689,55 +699,12 @@
           </div>
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Vendor') {
-          <div class="inventory-form-grid">
-            <div class="erp-form-group span-2">
-              <label class="erp-label">Search Global Contact</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="host.partyContactOptions()" bindLabel="name"
-                  [searchable]="true" [clearable]="true"
-                  [ngModel]="host.quickVendorLinkedContact()"
-                  (ngModelChange)="host.selectQuickVendorContact($event)"
-                  placeholder="Type search vendor from Global Contact">
-                  <ng-template ng-option-tmp let-item="item">
-                    <div class="inventory-contact-option">
-                      <strong>{{ item.name }}</strong>
-                      <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
-                    </div>
-                  </ng-template>
-                </ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Vendor Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Vendor Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Vendor Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickVendorType'] || 'Company'" (ngModelChange)="host.collectFormField('quickVendorType', $event)" placeholder="Select type"></ng-select>
-            </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickVendorMobile']" (ngModelChange)="host.collectFormField('quickVendorMobile', $event)" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickVendorEmail']" (ngModelChange)="host.collectFormField('quickVendorEmail', $event)" placeholder="Vendor email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorGstin']" (ngModelChange)="host.collectFormField('quickVendorGstin', $event)" placeholder="22AAAAA0000A1Z5" /></div>
-            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickVendorPan']" (ngModelChange)="host.collectFormField('quickVendorPan', $event)" placeholder="AAAAA0000A" /></div>
-            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickVendorCreditLimit']" (ngModelChange)="host.collectFormField('quickVendorCreditLimit', $event)" placeholder="0" /></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Payment Terms</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Net 30', 'Net 45', 'Net 60', 'Advance', 'COD']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()['quickVendorPaymentTerms']" (ngModelChange)="host.collectFormField('quickVendorPaymentTerms', $event)" placeholder="Select payment terms"></ng-select>
-            </div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorAddress']" (ngModelChange)="host.collectFormField('quickVendorAddress', $event)" placeholder="Registered business address"></textarea></div>
-            <div class="erp-form-group span-2"><label class="erp-label">Bank Details</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickVendorBankDetails']" (ngModelChange)="host.collectFormField('quickVendorBankDetails', $event)" placeholder="Bank name, account no., IFSC"></textarea></div>
-            <div class="erp-form-group">
-              <label class="erp-label">Status</label>
-              <label class="inventory-labeled-switch status">
-                <input type="checkbox" [checked]="host.formValues()['quickVendorStatus'] !== 'Inactive'" (change)="host.collectFormField('quickVendorStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
-                <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
-              </label>
-            </div>
-          </div>
+          <app-inventory-party-form [host]="host" partyKind="vendor" partyLabel="Vendor" keyPrefix="quickVendor" nameCodeMode="quickAddSignals"></app-inventory-party-form>
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else if (host.activeAddMaster() === 'Customer') {
+          <app-inventory-party-form [host]="host" partyKind="customer" partyLabel="Customer" keyPrefix="quickCustomer" nameCodeMode="quickAddSignals"></app-inventory-party-form>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+        } @else if (host.activeAddMaster() === 'Channel Partner') {
           <div class="inventory-form-grid">
             <div class="erp-form-group span-2">
               <label class="erp-label">Search Global Contact</label>
@@ -745,9 +712,9 @@
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="host.partyContactOptions()" bindLabel="name"
                   [searchable]="true" [clearable]="true"
-                  [ngModel]="host.quickCustomerLinkedContact()"
-                  (ngModelChange)="host.selectQuickCustomerContact($event)"
-                  placeholder="Type search customer from Global Contact">
+                  [ngModel]="host.quickChannelPartnerLinkedContact()"
+                  (ngModelChange)="host.selectQuickChannelPartnerContact($event)"
+                  placeholder="Type search channel partner from Global Contact">
                   <ng-template ng-option-tmp let-item="item">
                     <div class="inventory-contact-option">
                       <strong>{{ item.name }}</strong>
@@ -760,22 +727,22 @@
                 </button>
               </div>
             </div>
-            <div class="erp-form-group"><label class="erp-label">Customer Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
-            <div class="erp-form-group"><label class="erp-label">Customer Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
+            <div class="erp-form-group"><label class="erp-label">Partner Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
+            <div class="erp-form-group"><label class="erp-label">Partner Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
             <div class="erp-form-group">
-              <label class="erp-label">Customer Type</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickCustomerType'] || 'Company'" (ngModelChange)="host.collectFormField('quickCustomerType', $event)" placeholder="Select type"></ng-select>
+              <label class="erp-label">Partner Type</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()['quickChannelPartnerType'] || 'Company'" (ngModelChange)="host.collectFormField('quickChannelPartnerType', $event)" placeholder="Select type"></ng-select>
             </div>
-            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickCustomerMobile']" (ngModelChange)="host.collectFormField('quickCustomerMobile', $event)" placeholder="Primary contact number" /></div>
-            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickCustomerEmail']" (ngModelChange)="host.collectFormField('quickCustomerEmail', $event)" placeholder="Customer email" /></div>
-            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickCustomerGstin']" (ngModelChange)="host.collectFormField('quickCustomerGstin', $event)" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
-            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickCustomerPan']" (ngModelChange)="host.collectFormField('quickCustomerPan', $event)" placeholder="AAAAA0000A" /></div>
-            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickCustomerCreditLimit']" (ngModelChange)="host.collectFormField('quickCustomerCreditLimit', $event)" placeholder="0" /></div>
-            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickCustomerAddress']" (ngModelChange)="host.collectFormField('quickCustomerAddress', $event)" placeholder="Billing / delivery address"></textarea></div>
+            <div class="erp-form-group"><label class="erp-label">Mobile</label><input class="erp-input" type="tel" [ngModel]="host.formValues()['quickChannelPartnerMobile']" (ngModelChange)="host.collectFormField('quickChannelPartnerMobile', $event)" placeholder="Primary contact number" /></div>
+            <div class="erp-form-group"><label class="erp-label">Email</label><input class="erp-input" type="email" [ngModel]="host.formValues()['quickChannelPartnerEmail']" (ngModelChange)="host.collectFormField('quickChannelPartnerEmail', $event)" placeholder="Channel partner email" /></div>
+            <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickChannelPartnerGstin']" (ngModelChange)="host.collectFormField('quickChannelPartnerGstin', $event)" placeholder="22AAAAA0000A1Z5 (if registered)" /></div>
+            <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()['quickChannelPartnerPan']" (ngModelChange)="host.collectFormField('quickChannelPartnerPan', $event)" placeholder="AAAAA0000A" /></div>
+            <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" [ngModel]="host.formValues()['quickChannelPartnerCreditLimit']" (ngModelChange)="host.collectFormField('quickChannelPartnerCreditLimit', $event)" placeholder="0" /></div>
+            <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()['quickChannelPartnerAddress']" (ngModelChange)="host.collectFormField('quickChannelPartnerAddress', $event)" placeholder="Registered business address"></textarea></div>
             <div class="erp-form-group">
               <label class="erp-label">Status</label>
               <label class="inventory-labeled-switch status">
-                <input type="checkbox" [checked]="host.formValues()['quickCustomerStatus'] !== 'Inactive'" (change)="host.collectFormField('quickCustomerStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
+                <input type="checkbox" [checked]="host.formValues()['quickChannelPartnerStatus'] !== 'Inactive'" (change)="host.collectFormField('quickChannelPartnerStatus', $any($event.target).checked ? 'Active' : 'Inactive')" />
                 <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
               </label>
             </div>
@@ -811,6 +778,7 @@
                        host.activeAddMaster() === 'Contact Person' ? host.saveQuickContact() :
                        host.activeAddMaster() === 'Vendor' ? host.saveQuickVendor() :
                        host.activeAddMaster() === 'Customer' ? host.saveQuickCustomer() :
+                       host.activeAddMaster() === 'Channel Partner' ? host.saveQuickChannelPartner() :
                        host.activeAddMaster() === 'Serial Number Policy' ? host.saveQuickSerialPolicy() :
                        host.activeAddMaster() === 'Batch / Lot Policy' ? host.saveQuickBatchPolicy() :
                        host.activeAddMaster() === 'UOM Conversion' ? host.addUomConversionRow() :

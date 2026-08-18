@@ -14,6 +14,10 @@ import {
   InventoryDashboardService,
   SalesPiPendingFlagRow
 } from '../Inventory_Shared/inventory-dashboard.service';
+import { StatCardComponent, StatCardTone } from '../Inventory_Shared/stat-card/stat-card.component';
+import { BarChartComponent, ChartSeries } from '../Inventory_Shared/charts/bar-chart.component';
+import { LineChartComponent } from '../Inventory_Shared/charts/line-chart.component';
+import { DonutChartComponent, DonutSlice } from '../Inventory_Shared/charts/donut-chart.component';
 
 const SECTION_LAYOUT_KEY = 'inv-dashboard-section-layout-v3';
 const WIDTH_OPTIONS = [4, 6, 8, 12] as const;
@@ -83,7 +87,7 @@ interface KpiTile {
   value: string;
   note: string;
   icon: string;
-  tone: string;
+  tone: StatCardTone;
   key: string;
 }
 
@@ -96,8 +100,9 @@ interface GridPayload {
 @Component({
   selector: 'app-inventory-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, InventoryScreenShell],
-  templateUrl: './inventory-dashboard.html'
+  imports: [CommonModule, RouterModule, InventoryScreenShell, StatCardComponent, BarChartComponent, LineChartComponent, DonutChartComponent],
+  templateUrl: './inventory-dashboard.html',
+  styleUrl: './inventory-dashboard.scss'
 })
 export class InventoryDashboard {
   private readonly dashboardService = inject(InventoryDashboardService);
@@ -163,24 +168,38 @@ export class InventoryDashboard {
 
   readonly payablesAgeing = computed(() => this.summary()?.payables?.ageing ?? []);
   readonly receivablesAgeing = computed(() => this.summary()?.receivables?.ageing ?? []);
-  readonly maxAgeingAmount = computed(() => Math.max(1, ...this.payablesAgeing().map(a => a.amount), ...this.receivablesAgeing().map(a => a.amount)));
 
-  readonly maxMovementQty = computed(() => {
+  readonly payablesAgeingChart = computed<ChartSeries[]>(() => [{ label: 'Payables', data: this.payablesAgeing().map(a => a.amount) }]);
+  readonly payablesAgeingLabels = computed(() => this.payablesAgeing().map(a => `${a.bucket}d`));
+  readonly receivablesAgeingChart = computed<ChartSeries[]>(() => [{ label: 'Receivables', data: this.receivablesAgeing().map(a => a.amount) }]);
+  readonly receivablesAgeingLabels = computed(() => this.receivablesAgeing().map(a => `${a.bucket}d`));
+
+  readonly movementChartLabels = computed(() => (this.summary()?.daily_movement ?? []).map(p => this.fmtDate(p.date)));
+  readonly movementChartSeries = computed<ChartSeries[]>(() => {
     const rows = this.summary()?.daily_movement ?? [];
-    return Math.max(1, ...rows.map(r => Math.max(r.inward, r.outward)));
+    return [
+      { label: 'Inward (GRN)', data: rows.map(r => r.inward) },
+      { label: 'Outward (Sales)', data: rows.map(r => r.outward) }
+    ];
   });
 
   readonly salesReturnsTrend = computed(() => this.summary()?.sales_returns_trend ?? []);
-  readonly maxSalesTrendAmount = computed(() => {
+  readonly salesTrendChartLabels = computed(() => this.salesReturnsTrend().map(p => this.fmtDate(p.date)));
+  readonly salesTrendChartSeries = computed<ChartSeries[]>(() => {
     const rows = this.salesReturnsTrend();
-    return Math.max(1, ...rows.map(r => Math.max(r.sales_amount, r.sales_return_amount)));
+    return [
+      { label: 'Sales', data: rows.map(r => r.sales_amount) },
+      { label: 'Sales Returns', data: rows.map(r => r.sales_return_amount) }
+    ];
   });
 
   readonly topSellingProducts = computed(() => this.summary()?.top_selling_products ?? []);
-  readonly maxTopProductAmount = computed(() => Math.max(1, ...this.topSellingProducts().map(p => p.amount)));
+  readonly topSellingChartLabels = computed(() => this.topSellingProducts().map(p => p.product_name));
+  readonly topSellingChartSeries = computed<ChartSeries[]>(() => [{ label: 'Sales Value', data: this.topSellingProducts().map(p => p.amount) }]);
 
   readonly returnedProducts = computed(() => this.summary()?.returned_products ?? []);
-  readonly maxReturnedAmount = computed(() => Math.max(1, ...this.returnedProducts().map(p => p.return_amount)));
+  readonly returnedChartLabels = computed(() => this.returnedProducts().map(p => p.product_name));
+  readonly returnedChartSeries = computed<ChartSeries[]>(() => [{ label: 'Return Value', data: this.returnedProducts().map(p => p.return_amount) }]);
 
   readonly productSalesFunnel = computed<ProductFunnelStage[]>(() => {
     const rows = this.topSellingProducts().slice(0, 6);
@@ -222,14 +241,10 @@ export class InventoryDashboard {
   });
 
   readonly payablesReceivablesTotal = computed(() => (this.summary()?.payables?.total ?? 0) + (this.summary()?.receivables?.total ?? 0));
-  readonly payablesShare = computed(() => {
-    const total = this.payablesReceivablesTotal();
-    return total > 0 ? Math.round(((this.summary()?.payables?.total ?? 0) / total) * 100) : 0;
-  });
-  readonly receivablesShare = computed(() => {
-    const total = this.payablesReceivablesTotal();
-    return total > 0 ? 100 - this.payablesShare() : 0;
-  });
+  readonly payablesReceivablesSlices = computed<DonutSlice[]>(() => [
+    { label: 'Payables', value: this.summary()?.payables?.total ?? 0 },
+    { label: 'Receivables', value: this.summary()?.receivables?.total ?? 0 }
+  ]);
   readonly filteredStockRows = computed<DashboardStockRow[]>(() => this.summary()?.stock_by_product ?? []);
 
   readonly filteredTransactions = computed<DashboardTransactionRow[]>(() => this.summary()?.recent_transactions ?? []);
@@ -395,26 +410,6 @@ export class InventoryDashboard {
 
   fmtDate(d?: string): string {
     return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
-  }
-
-  movementBarHeight(value: number): string {
-    return `${Math.max(2, (value / this.maxMovementQty()) * 100)}%`;
-  }
-
-  ageingBarWidth(value: number): string {
-    return `${Math.max(2, (value / this.maxAgeingAmount()) * 100)}%`;
-  }
-
-  salesTrendBarHeight(value: number): string {
-    return `${Math.max(2, (value / this.maxSalesTrendAmount()) * 100)}%`;
-  }
-
-  topProductBarWidth(value: number): string {
-    return `${Math.max(2, (value / this.maxTopProductAmount()) * 100)}%`;
-  }
-
-  returnedProductBarWidth(value: number): string {
-    return `${Math.max(2, (value / this.maxReturnedAmount()) * 100)}%`;
   }
 
   private buildPayload(card: KpiTile): GridPayload {

@@ -1,4 +1,4 @@
-<div class="module-page inventory-page">
+<div class="module-page inventory-page purchase-invoice-page">
   <div class="inventory-shell">
     <app-inventory-screen-shell [config]="config"></app-inventory-screen-shell>
 
@@ -201,13 +201,16 @@
               }
             </div>
           </div>
+          @if (field.key === 'remarks') {
+            <app-purchase-invoice-attachments [purchaseInvoiceId]="editingId() || 0"></app-purchase-invoice-attachments>
+          }
         }
       </div>
 
       <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items grn-grid-compact" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
+        <div class="inventory-line-items grn-grid-compact purchase-invoice-line-grid" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
@@ -217,6 +220,13 @@
               <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
                 <i class="pi pi-plus"></i> Add Row
               </button>
+              <button type="button" class="erp-btn btn-white btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress PI intact" (click)="addProductFromProcurementGrid()">
+                <i class="pi pi-external-link"></i> Add Product
+              </button>
+              <label class="purchase-invoice-compact-check" title="MRP and Selling Price columns">
+                <input type="checkbox" [checked]="hideMrpSellingPrice()" (change)="hideMrpSellingPrice.set($any($event.target).checked)" />
+                <span>MRP/Selling</span>
+              </label>
               <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
                 <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
                 {{ isLineGridFullscreen() ? 'Exit Full Screen' : 'Full Screen' }}
@@ -226,12 +236,12 @@
           <div class="tbl-wrap">
             @let renderedColumns = lineGridRenderColumns();
             @let rowViews = entryLineRowViews();
-            <table class="erp-table compact inventory-resizable-table">
+            <table class="erp-table compact inventory-resizable-table purchase-invoice-editable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of renderedColumns; track column) {
-                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                    <th [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-variant]="purchaseInvoiceColumnIsVariant(column)" [class.purchase-invoice-line-col-attribute]="purchaseInvoiceColumnIsAttribute(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [style.width]="lineGridColumnWidthPx(column)">
                       {{ lineGridColumnHeader(column) }}
                       <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
                     </th>
@@ -252,7 +262,7 @@
                       @let columnIndex = lineGridSourceColumnIndex(column);
                       @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
-                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
+                      <td [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-variant]="purchaseInvoiceColumnIsVariant(column)" [class.purchase-invoice-line-col-attribute]="purchaseInvoiceColumnIsAttribute(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
                           <span class="inventory-grid-na">� N/A �</span>
                         } @else if (lineGridCellReadonly(rowIndex, row, column)) {
@@ -262,7 +272,7 @@
                             @if (attr.isAuto) {
                               <span class="inventory-grid-static-value">{{ attr.value || '�' }}</span>
                             } @else {
-                              <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
+                              <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select purchase-invoice-grid-select inventory-attr-select" appendTo="body"
                                 [items]="attr.options" [searchable]="false" [clearable]="false"
                                 [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
                                 placeholder="Select">
@@ -290,7 +300,7 @@
                             </div>
                           </div>
                         } @else if (cellView?.options?.length) {
-                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
+                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select purchase-invoice-grid-select" appendTo="body"
                             [items]="cellView?.options || []"
                             [searchable]="true" [clearable]="false"
                             [multiple]="cellView?.usesMultiSelect"
@@ -461,11 +471,13 @@
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="runGridToolbarAction('records', 'print')"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          @if (showGridToolbarExportIcons()) {
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="runGridToolbarAction('records', 'print')"><i class="pi pi-print"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
@@ -499,7 +511,7 @@
               <tr>
                 <td class="text-center">
                   <div class="inventory-row-actions">
-                    <button type="button" class="erp-btn btn-white btn-icon btn-sm pr-expand-btn" title="Toggle Items" (click)="toggleExpandGrn(row)">
+                    <button type="button" class="erp-btn btn-white btn-icon btn-sm pr-expand-btn" title="Toggle Items" (click)="togglePurchaseInvoiceExpandedRow(row)">
                       <i class="pi" [class.pi-chevron-down]="isExpandedGrn(row)" [class.pi-chevron-right]="!isExpandedGrn(row)"></i>
                     </button>
                     @if (canEditOrDeleteRow(row)) {
@@ -519,6 +531,26 @@
                       <div class="pr-expand-hdr">
                         <i class="pi pi-list"></i>
                         <span>Items in {{ row[0] }}</span>
+                        <div class="purchase-invoice-expanded-ref-strip">
+                          @if (expandedPiAttachmentLoadingForRow(row)) {
+                            <span class="purchase-invoice-expanded-ref-state">
+                              <i class="pi pi-spin pi-spinner"></i>
+                              Loading ref
+                            </span>
+                          } @else if (expandedPiAttachmentErrorForRow(row)) {
+                            <span class="purchase-invoice-expanded-ref-state">{{ expandedPiAttachmentErrorForRow(row) }}</span>
+                          } @else {
+                            @for (attachment of expandedPiAttachmentRefs(row); track attachment.id; let refIndex = $index) {
+                              <button type="button" class="purchase-invoice-expanded-ref-link"
+                                [title]="attachment.fileName"
+                                [attr.aria-label]="'Preview attached invoice ' + attachment.fileName"
+                                (click)="previewExpandedPiAttachment(attachment)">
+                                <i class="pi pi-paperclip"></i>
+                                <span>Ref {{ refIndex + 1 }}</span>
+                              </button>
+                            }
+                          }
+                        </div>
                       </div>
                       @let piItems = grnExpandedItems(row);
                       @let piColumns = grnExpandedColumns(row);
@@ -535,7 +567,16 @@
                             @for (item of piItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of piColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
+                                  <td>
+                                    @if (column.key === 'product') {
+                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      @if (grnExpandedProductSubtitle(item); as subtitle) {
+                                        <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
+                                      }
+                                    } @else {
+                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                    }
+                                  </td>
                                 }
                               </tr>
                             }
@@ -621,6 +662,32 @@
                 <p class="inventory-field-hint">Showing first 100. Use search to narrow {{ refPickerHiddenCount() }} more GRN(s).</p>
               }
             </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (expandedAttachmentPreviewOpen()) {
+    <div class="inventory-modal-backdrop" (click)="closeExpandedPiAttachmentPreview()">
+      <div class="inventory-modal purchase-invoice-expanded-attachment-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>{{ expandedAttachmentPreviewName() }}</h3>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" (click)="closeExpandedPiAttachmentPreview()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="inventory-modal-body">
+          @if (expandedAttachmentPreviewLoading()) {
+            <p class="inventory-field-hint">Loading attachment preview...</p>
+          } @else if (expandedAttachmentPreviewError()) {
+            <p class="inventory-error-msg">{{ expandedAttachmentPreviewError() }}</p>
+          } @else if (expandedAttachmentPreviewKind() === 'image' && expandedAttachmentPreviewImgUrl()) {
+            <img class="purchase-invoice-expanded-attachment-img" [src]="expandedAttachmentPreviewImgUrl()" [alt]="expandedAttachmentPreviewName()" />
+          } @else if (expandedAttachmentPreviewKind() === 'pdf' && expandedAttachmentPreviewFrameUrl()) {
+            <iframe class="purchase-invoice-expanded-attachment-frame" [src]="expandedAttachmentPreviewFrameUrl()" [title]="expandedAttachmentPreviewName()"></iframe>
+          } @else {
+            <p class="inventory-field-hint">Preview is not available for this file type.</p>
           }
         </div>
       </div>

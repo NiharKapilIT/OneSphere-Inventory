@@ -195,38 +195,33 @@
         <div class="inventory-line-title">
           <div>
             <strong>{{ mode() === 'pay' ? 'Payment' : 'Receipt' }} Mode(s)</strong>
-            <span>Split across multiple modes if needed.</span>
+            <span>Split across multiple modes if needed — same Cash / Bank (Cheque, Online, Debit Card, Credit Card) flow as Accounts' General Receipt.</span>
           </div>
         </div>
-        <div class="pay-mode-chips">
-          @for (def of modeDefs; track def.key) {
-            <button type="button" class="pay-mode-chip" (click)="addMode(def.key)"><i [class]="def.icon"></i> {{ def.label }}</button>
-          }
-        </div>
+        <button type="button" class="erp-btn btn-primary btn-sm mb-2" (click)="addMode()">
+          <i class="pi pi-plus"></i> Add {{ mode() === 'pay' ? 'Payment' : 'Receipt' }} Mode
+        </button>
         @if (!modeRows().length) {
-          <div class="inventory-grid-empty-hint">No mode added yet — click a mode above to add it.</div>
+          <div class="inventory-grid-empty-hint">No mode added yet — click "Add {{ mode() === 'pay' ? 'Payment' : 'Receipt' }} Mode" above.</div>
         }
         <div class="pay-mode-rows">
           @for (row of modeRows(); track $index; let idx = $index) {
-            <div class="pay-mode-row">
-              <div class="erp-form-group">
-                <label class="erp-label">Mode</label>
-                <select class="erp-input" [ngModel]="row.modeKey" (ngModelChange)="setModeType(idx, $event)">
-                  @for (def of modeDefs; track def.key) { <option [value]="def.key">{{ def.label }}</option> }
-                </select>
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">Amount (₹)</label>
-                <input class="erp-input" type="text" inputmode="decimal" style="text-align:right;font-weight:600" placeholder="0.00"
-                  [ngModel]="row.amount ? row.amount.toFixed(2) : ''" (ngModelChange)="setModeAmount(idx, $event)" />
-              </div>
-              @for (f of modeDef(row.modeKey).fields; track f.key) {
-                <div class="erp-form-group">
-                  <label class="erp-label">{{ f.key }}</label>
-                  <input class="erp-input" type="text" [placeholder]="f.placeholder" [ngModel]="row.refJson[f.key] || ''" (ngModelChange)="setModeRef(idx, f.key, $event)" />
+            <div class="pay-mode-row-card">
+              <div class="pay-mode-row-head">
+                <div class="erp-form-group pay-mode-amount">
+                  <label class="erp-label">Amount (₹)</label>
+                  <input class="erp-input" type="text" inputmode="decimal" style="text-align:right;font-weight:600" placeholder="0.00"
+                    [ngModel]="row.amount ? row.amount.toFixed(2) : ''" (ngModelChange)="setModeAmount(idx, $event)" />
                 </div>
-              }
-              <button type="button" class="erp-btn btn-white btn-icon btn-sm pay-mode-rm" title="Remove" (click)="removeMode(idx)"><i class="pi pi-trash"></i></button>
+                <span class="pay-mode-summary">{{ row.details.summary }}</span>
+                <button type="button" class="erp-btn btn-white btn-icon btn-sm pay-mode-rm" title="Remove" (click)="removeMode(idx)"><i class="pi pi-trash"></i></button>
+              </div>
+              <app-payment-mode-selector
+                [label]="mode() === 'pay' ? 'Payment' : 'Receipt'"
+                [value]="row.details"
+                [amount]="row.amount"
+                (valueChange)="setModeDetails(idx, $event)">
+              </app-payment-mode-selector>
             </div>
           }
         </div>
@@ -253,31 +248,53 @@
             <input class="erp-input" type="text" placeholder="e.g. Part settlement against March supplies"
               [ngModel]="narration()" (ngModelChange)="narration.set($event)" />
           </div>
-          @if (mode() === 'pay') {
-            <div class="erp-form-group">
-              <label class="erp-label">TDS Applicable?</label>
-              <label class="inventory-labeled-switch yes-no">
-                <input type="checkbox" [checked]="tdsApplicable()" (change)="toggleTds($any($event.target).checked)" />
-                <span class="inventory-switch-track">
-                  <span class="switch-text switch-on">Yes</span>
-                  <span class="switch-text switch-off">No</span>
-                </span>
-              </label>
+          @if (mode() === 'pay' && tdsApplicable()) {
+            <!-- Item 21: TDS is Service-triggered, not a manual toggle — this
+                 block only ever appears because at least one selected invoice
+                 carries a Service line (hasServiceAllocation()). -->
+            <div class="erp-form-group span-2">
+              <span class="erp-badge badge-info">
+                <i class="pi pi-info-circle"></i>
+                TDS applicable — a selected invoice includes a Service line item.
+              </span>
             </div>
-            @if (tdsApplicable()) {
-              <div class="erp-form-group">
-                <label class="erp-label">TDS Deducted (₹)</label>
-                <input class="erp-input" type="text" inputmode="decimal" style="text-align:right" placeholder="0.00"
-                  [ngModel]="tdsAmount() ? tdsAmount().toFixed(2) : ''" (ngModelChange)="tdsAmount.set(parseAmt($event))" />
-              </div>
-              <div class="erp-form-group">
-                <label class="erp-label">TDS Section <span class="req">*</span></label>
-                <select class="erp-input" [ngModel]="tdsSection()" (ngModelChange)="tdsSection.set($event)">
-                  <option value="">Select section…</option>
-                  @for (s of tdsSections; track s.value) { <option [value]="s.value">{{ s.label }}</option> }
-                </select>
-              </div>
-            }
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Section <span class="req">*</span></label>
+              <select class="erp-input" [ngModel]="tdsSection()" (ngModelChange)="setTdsSection($event)">
+                <option value="">Select section…</option>
+                @for (s of tdsSectionOptions(); track s.value) { <option [value]="s.value">{{ s.label }}</option> }
+              </select>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Rate</label>
+              <input class="erp-input" type="text" [value]="tdsSection() ? (tdsRate() + '%') : '—'" readonly style="text-align:right" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">TDS Deducted (₹)</label>
+              <input class="erp-input" type="text" [value]="tdsSection() ? fmt(tdsAmount()) : '—'" readonly style="text-align:right" />
+            </div>
+          }
+          @if (mode() === 'pay' && tcsThresholdCrossed()) {
+            <!-- Item 22: TCS — enabled once this vendor's FY-cumulative
+                 posted Purchase Invoice total crosses ₹50L, independent of
+                 what's allocated on THIS voucher. Percentage is manually
+                 typed (no rate master for TCS, unlike TDS). -->
+            <div class="erp-form-group span-2">
+              <span class="erp-badge badge-warning">
+                <i class="pi pi-exclamation-triangle"></i>
+                TCS applicable — this vendor has crossed ₹{{ fmt(vendorFySummary()!.threshold_amount) }} in purchases for FY {{ vendorFySummary()!.financial_year }}
+                (₹{{ fmt(vendorFySummary()!.cumulative_purchase_amount) }} so far).
+              </span>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">TCS %</label>
+              <input class="erp-input" type="text" inputmode="decimal" placeholder="0.00" style="text-align:right"
+                [ngModel]="tcsPercentageInput()" (ngModelChange)="setTcsPercentage($event)" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">TCS Deducted (₹)</label>
+              <input class="erp-input" type="text" [value]="tcsPercentage() > 0 ? fmt(tcsAmount()) : '—'" readonly style="text-align:right" />
+            </div>
           }
         </div>
       </section>
@@ -302,6 +319,7 @@
                 <th>{{ partyLabel() }}</th>
                 <th class="text-right">Allocated</th>
                 <th class="text-right">TDS</th>
+                <th class="text-right">TCS</th>
                 <th class="text-right">Net</th>
                 <th>Status</th>
               </tr>
@@ -314,11 +332,12 @@
                   <td>{{ v.party_name }}</td>
                   <td class="text-right">{{ fmt(v.total_allocated) }}</td>
                   <td class="text-right">{{ v.tds_amount ? fmt(v.tds_amount) : '—' }}</td>
+                  <td class="text-right">{{ v.tcs_amount ? fmt(v.tcs_amount) : '—' }}</td>
                   <td class="text-right">{{ fmt(v.net_amount) }}</td>
                   <td><span class="erp-badge" [class.badge-success]="v.status === 'posted'" [class.badge-danger]="v.status === 'cancelled'">{{ v.status }}</span></td>
                 </tr>
               } @empty {
-                <tr><td colspan="7"><div class="inventory-grid-empty-hint">No {{ mode() === 'pay' ? 'payments' : 'receipts' }} saved yet.</div></td></tr>
+                <tr><td colspan="8"><div class="inventory-grid-empty-hint">No {{ mode() === 'pay' ? 'payments' : 'receipts' }} saved yet.</div></td></tr>
               }
             </tbody>
           </table>
@@ -346,6 +365,9 @@
       <div class="pay-f-item"><div class="pay-f-k">On Account</div><div class="pay-f-v a">{{ fmt(onAccountAmount()) }}</div></div>
       @if (mode() === 'pay' && tdsApplicable() && tdsAmount() > 0) {
         <div class="pay-f-item"><div class="pay-f-k">TDS</div><div class="pay-f-v">{{ fmt(tdsAmount()) }}</div></div>
+      }
+      @if (mode() === 'pay' && tcsThresholdCrossed() && tcsAmount() > 0) {
+        <div class="pay-f-item"><div class="pay-f-k">TCS</div><div class="pay-f-v">{{ fmt(tcsAmount()) }}</div></div>
       }
       <div class="pay-f-item"><div class="pay-f-k">{{ mode() === 'pay' ? 'Net Payment' : 'Net Receipt' }}</div><div class="pay-f-v g">{{ fmt(netAmount()) }}</div></div>
       <div class="pay-footer-actions">

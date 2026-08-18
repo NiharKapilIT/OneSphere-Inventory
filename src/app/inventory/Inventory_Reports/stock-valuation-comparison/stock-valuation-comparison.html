@@ -1,0 +1,139 @@
+<div class="module-page inventory-page inventory-report-page svc-page">
+  <div class="inventory-shell">
+    <div class="inventory-report-header-card">
+      <div class="inventory-header inventory-report-header">
+        <div class="inventory-report-header-title">
+          <div class="inventory-report-header-title-row">
+            <span class="inventory-kicker"><i class="pi pi-percentage"></i> Costing &amp; Profitability Reports</span>
+          </div>
+          <h2><i class="pi pi-calculator"></i> Stock Valuation Comparison Report</h2>
+          <p>FIFO vs LIFO vs Weighted Average -- what each valuation method would charge right now for a chosen product and quantity, computed from its real open cost layers.</p>
+        </div>
+
+        <div class="inventory-report-header-filters">
+          <div class="inventory-report-filter svc-product-filter">
+            <label title="Product"><i class="pi pi-box"></i> Product</label>
+            <ng-select
+              class="erp-ng-select inventory-ng-select"
+              appendTo="body"
+              [items]="products()"
+              bindLabel="product_name"
+              bindValue="id"
+              [loading]="productsLoading()"
+              [searchable]="true"
+              [clearable]="true"
+              placeholder="Select a product"
+              [ngModel]="selectedProductId()"
+              (ngModelChange)="onProductChange($event)"
+            ></ng-select>
+          </div>
+          <div class="inventory-report-filter svc-qty-filter">
+            <label title="Hypothetical Quantity"><i class="pi pi-hashtag"></i> Hypothetical Qty</label>
+            <input
+              class="erp-input"
+              type="number"
+              min="0"
+              step="0.001"
+              [ngModel]="hypotheticalQty()"
+              (ngModelChange)="onQtyChange($event)"
+            />
+          </div>
+        </div>
+      </div>
+
+      <section class="inventory-report-toolbar-band">
+        <div class="inventory-report-toolbar-cluster">
+          <button type="button" class="erp-btn btn-primary btn-sm" title="Compare" (click)="generate()">
+            <i class="pi pi-search"></i> Compare
+          </button>
+          @if (selectedProduct(); as product) {
+            <span class="svc-current-method" title="This product's own configured valuation method">
+              Currently set to: <strong>{{ product.valuation_method || 'FIFO' }}</strong>
+            </span>
+          }
+        </div>
+      </section>
+    </div>
+
+    @if (errorMessage()) {
+      <div class="inventory-report-message error"><i class="pi pi-exclamation-triangle"></i> {{ errorMessage() }}</div>
+    }
+
+    @if (loading()) {
+      <section class="inventory-section inventory-report-section svc-loading">
+        <i class="pi pi-spin pi-spinner"></i> Comparing valuation methods...
+      </section>
+    } @else if (!hasResult()) {
+      <section class="inventory-section inventory-report-section svc-empty-state">
+        <i class="pi pi-calculator"></i>
+        <p>Select a product and a hypothetical quantity, then click Compare to see what FIFO, LIFO and Weighted Average would each charge.</p>
+      </section>
+    } @else if (comparison(); as result) {
+      <section class="inventory-report-summary-grid inventory-report-summary-grid--owner">
+        <app-stat-card
+          label="FIFO"
+          [value]="formatCurrency(result.fifo.costConsumed)"
+          [note]="'Avg rate ' + formatCurrency(result.fifo.avgRate) + ' / unit' + (result.fifo.shortfallQty > 0 ? ' (' + formatQty(result.fifo.shortfallQty) + ' short, priced at current cost)' : '')"
+          icon="pi pi-sort-numeric-down"
+          tone="blue"
+        ></app-stat-card>
+        <app-stat-card
+          label="LIFO"
+          [value]="formatCurrency(result.lifo.costConsumed)"
+          [note]="'Avg rate ' + formatCurrency(result.lifo.avgRate) + ' / unit' + (result.lifo.shortfallQty > 0 ? ' (' + formatQty(result.lifo.shortfallQty) + ' short, priced at current cost)' : '')"
+          icon="pi pi-sort-numeric-up-alt"
+          tone="amber"
+        ></app-stat-card>
+        <app-stat-card
+          label="Weighted Average"
+          [value]="formatCurrency(result.weightedAverage.costConsumed)"
+          [note]="'Avg rate ' + formatCurrency(result.weightedAverage.avgRate) + ' / unit' + (result.weightedAverage.shortfallQty > 0 ? ' (' + formatQty(result.weightedAverage.shortfallQty) + ' short, priced at current cost)' : '')"
+          icon="pi pi-chart-bar"
+          tone="green"
+        ></app-stat-card>
+      </section>
+
+      <section class="inventory-section inventory-report-section svc-chart-section">
+        <h3>Cost to consume {{ formatQty(result.hypotheticalQty) }} {{ result.uom || 'units' }}, by method</h3>
+        <app-bar-chart [labels]="chartLabels()" [series]="chartSeries()" valuePrefix="Rs. " height="220px"></app-bar-chart>
+      </section>
+
+      <section class="inventory-section inventory-report-section">
+        <h3>Open Cost Layers -- {{ result.productName }} ({{ result.productCode }})</h3>
+        <p class="svc-layers-subtitle">
+          {{ formatQty(result.totalRemainingQty) }} {{ result.uom || 'units' }} on hand across {{ layers().length }} layer(s), worth {{ formatCurrency(result.totalRemainingValue) }} today. Oldest first.
+        </p>
+        <div class="tbl-wrap">
+          <table class="erp-table compact inventory-report-table">
+            <thead>
+              <tr>
+                <th>Received</th>
+                <th>Source</th>
+                <th>Received Qty</th>
+                <th>Remaining Qty</th>
+                <th>Unit Cost</th>
+                <th>Remaining Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (layer of layers(); track layer.id) {
+                <tr>
+                  <td>{{ formatDate(layer.receivedAt) }}</td>
+                  <td>{{ layer.sourceDocType || '-' }}</td>
+                  <td>{{ formatQty(layer.receivedQty) }}</td>
+                  <td>{{ formatQty(layer.remainingQty) }}</td>
+                  <td>{{ formatCurrency(layer.unitCost) }}</td>
+                  <td>{{ formatCurrency(layer.remainingQty * layer.unitCost) }}</td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="text-center p-4">No open cost layers for this product -- nothing has been received into stock through a costed transaction yet.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  </div>
+</div>

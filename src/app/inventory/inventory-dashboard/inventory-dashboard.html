@@ -73,16 +73,9 @@
         <div class="inv-widget-body">
         @switch (item.id) {
           @case ('kpis') {
-            <div class="inv-owner-kpi-grid">
+            <div class="inv-stat-grid">
               @for (kpi of kpiTiles(); track kpi.label) {
-                <button type="button" class="inv-owner-kpi tone-{{ kpi.tone }}" (click)="openCard(kpi)">
-                  <span class="inv-owner-kpi-icon"><i [class]="kpi.icon"></i></span>
-                  <span class="inv-owner-kpi-copy">
-                    <small>{{ kpi.label }}</small>
-                    <strong>{{ kpi.value }}</strong>
-                    <em>{{ kpi.note }}</em>
-                  </span>
-                </button>
+                <app-stat-card [label]="kpi.label" [value]="kpi.value" [note]="kpi.note" [icon]="kpi.icon" [tone]="kpi.tone" [clickable]="true" (cardClick)="openCard(kpi)"></app-stat-card>
               } @empty {
                 <div class="inventory-grid-empty-hint">Loading dashboard…</div>
               }
@@ -90,78 +83,36 @@
           }
 
           @case ('financials') {
-            <div class="inv-fin-grid">
+            <div class="inv-stat-grid inv-stat-grid--4">
               @for (card of financialCards(); track card.label) {
-                <button type="button" class="inv-fin-card tone-{{ card.tone }}" (click)="openCard(card)">
-                  <span class="inv-fin-icon"><i [class]="card.icon"></i></span>
-                  <span class="inv-fin-copy">
-                    <small>{{ card.label }}</small>
-                    <strong>{{ card.value }}</strong>
-                    <em>{{ card.note }}</em>
-                  </span>
-                </button>
+                <app-stat-card [label]="card.label" [value]="card.value" [note]="card.note" [icon]="card.icon" [tone]="card.tone" [clickable]="true" (cardClick)="openCard(card)"></app-stat-card>
               }
             </div>
           }
 
           @case ('documents') {
-            <div class="inv-fin-grid">
+            <div class="inv-stat-grid inv-stat-grid--4">
               @for (card of documentCards(); track card.label) {
-                <button type="button" class="inv-fin-card tone-{{ card.tone }}" (click)="openCard(card)">
-                  <span class="inv-fin-icon"><i [class]="card.icon"></i></span>
-                  <span class="inv-fin-copy">
-                    <small>{{ card.label }}</small>
-                    <strong>{{ card.value }}</strong>
-                    <em>{{ card.note }}</em>
-                  </span>
-                </button>
+                <app-stat-card [label]="card.label" [value]="card.value" [note]="card.note" [icon]="card.icon" [tone]="card.tone" [clickable]="true" (cardClick)="openCard(card)"></app-stat-card>
               }
             </div>
           }
 
           @case ('ageing') {
-            <div class="inv-ageing-grid">
-              <div class="inv-ageing-col">
+            <div class="inv-chart-pair">
+              <div class="inv-chart-col">
                 <div class="inv-ageing-head"><strong>Payables</strong><span>{{ fmt(summary()?.payables?.total) }}</span></div>
-                @for (b of payablesAgeing(); track b.bucket) {
-                  <div class="inv-ageing-row">
-                    <span class="inv-ageing-label">{{ b.bucket }}d</span>
-                    <span class="inv-ageing-track"><span class="inv-ageing-fill rose" [style.width]="ageingBarWidth(b.amount)"></span></span>
-                    <span class="inv-ageing-value">{{ fmt(b.amount) }}</span>
-                  </div>
-                }
+                <app-bar-chart [labels]="payablesAgeingLabels()" [series]="payablesAgeingChart()" [horizontal]="true" valuePrefix="₹ " height="180px"></app-bar-chart>
               </div>
-              <div class="inv-ageing-col">
+              <div class="inv-chart-col">
                 <div class="inv-ageing-head"><strong>Receivables</strong><span>{{ fmt(summary()?.receivables?.total) }}</span></div>
-                @for (b of receivablesAgeing(); track b.bucket) {
-                  <div class="inv-ageing-row">
-                    <span class="inv-ageing-label">{{ b.bucket }}d</span>
-                    <span class="inv-ageing-track"><span class="inv-ageing-fill blue" [style.width]="ageingBarWidth(b.amount)"></span></span>
-                    <span class="inv-ageing-value">{{ fmt(b.amount) }}</span>
-                  </div>
-                }
+                <app-bar-chart [labels]="receivablesAgeingLabels()" [series]="receivablesAgeingChart()" [horizontal]="true" valuePrefix="₹ " height="180px"></app-bar-chart>
               </div>
             </div>
           }
 
           @case ('movement') {
-            <div class="inv-movement-chart">
-              @for (point of summary()?.daily_movement ?? []; track point.date) {
-                <div class="inv-movement-col">
-                  <div class="inv-movement-bars">
-                    <span class="inv-movement-bar in" [style.height]="movementBarHeight(point.inward)" [title]="'Inward: ' + point.inward"></span>
-                    <span class="inv-movement-bar out" [style.height]="movementBarHeight(point.outward)" [title]="'Outward: ' + point.outward"></span>
-                  </div>
-                  <small>{{ fmtDate(point.date) }}</small>
-                </div>
-              } @empty {
-                <div class="inventory-grid-empty-hint">No movement in this period.</div>
-              }
-            </div>
-            <div class="inv-movement-legend">
-              <span><i class="in"></i> Inward (GRN)</span>
-              <span><i class="out"></i> Outward (Sales)</span>
-            </div>
+            <app-bar-chart [labels]="movementChartLabels()" [series]="movementChartSeries()" height="240px"></app-bar-chart>
           }
 
           @case ('warehouseStock') {
@@ -187,87 +138,22 @@
           }
 
           @case ('salesReturnsTrend') {
-            <div class="inv-movement-chart">
-              @for (point of salesReturnsTrend(); track point.date) {
-                <div class="inv-movement-col">
-                  <div class="inv-movement-bars">
-                    <span class="inv-movement-bar sales" [style.height]="salesTrendBarHeight(point.sales_amount)" [title]="'Sales: ' + fmt(point.sales_amount)"></span>
-                    <span class="inv-movement-bar returns" [style.height]="salesTrendBarHeight(point.sales_return_amount)" [title]="'Sales Returns: ' + fmt(point.sales_return_amount)"></span>
-                  </div>
-                  <small>{{ fmtDate(point.date) }}</small>
-                </div>
-              } @empty {
-                <div class="inventory-grid-empty-hint">No sales activity in this period.</div>
-              }
-            </div>
-            <div class="inv-movement-legend">
-              <span><i class="sales"></i> Sales</span>
-              <span><i class="returns"></i> Sales Returns</span>
-            </div>
+            <app-line-chart [labels]="salesTrendChartLabels()" [series]="salesTrendChartSeries()" valuePrefix="₹ " height="240px"></app-line-chart>
           }
 
           @case ('payablesReceivablesDonut') {
-            <div class="inv-stock-mix-wrap">
-              <div class="inv-stock-mix-chart">
-                <div class="inv-stock-mix-total">
-                  <strong>{{ fmt(payablesReceivablesTotal()) }}</strong>
-                  <span>Total Outstanding</span>
-                </div>
-                <div class="inv-stock-mix-bar-row">
-                  <span>Payables</span>
-                  <div class="inv-stock-mix-track"><i class="payables" [style.width.%]="payablesShare()"></i></div>
-                  <strong>{{ payablesShare() }}%</strong>
-                </div>
-                <div class="inv-stock-mix-bar-row">
-                  <span>Receivables</span>
-                  <div class="inv-stock-mix-track"><i class="receivables" [style.width.%]="receivablesShare()"></i></div>
-                  <strong>{{ receivablesShare() }}%</strong>
-                </div>
-              </div>
-              <div class="inv-stock-mix-list">
-                <div class="inv-stock-mix-item">
-                  <i style="background:#e11d48"></i>
-                  <span><strong>Payables</strong><small>{{ payablesShare() }}% of total</small></span>
-                  <em>{{ fmt(summary()?.payables?.total) }}</em>
-                </div>
-                <div class="inv-stock-mix-item">
-                  <i style="background:#2563eb"></i>
-                  <span><strong>Receivables</strong><small>{{ receivablesShare() }}% of total</small></span>
-                  <em>{{ fmt(summary()?.receivables?.total) }}</em>
-                </div>
-              </div>
-            </div>
+            <app-donut-chart [slices]="payablesReceivablesSlices()" centerLabel="Total Outstanding" [centerValue]="fmt(payablesReceivablesTotal())" valuePrefix="₹ " height="240px"></app-donut-chart>
           }
 
           @case ('topReturnedProducts') {
-            <div class="inv-ageing-grid">
-              <div class="inv-ageing-col">
+            <div class="inv-chart-pair">
+              <div class="inv-chart-col">
                 <div class="inv-ageing-head"><strong>Top Selling Products</strong><span>By sales amount</span></div>
-                <div class="inv-comparison-chart">
-                  @for (p of topSellingProducts(); track p.product_name) {
-                    <div class="inv-comparison-row">
-                      <span class="inv-comparison-label"><i class="pi pi-star"></i><strong>{{ p.product_name }}</strong></span>
-                      <div class="inv-comparison-bars"><i class="stock" [style.width]="topProductBarWidth(p.amount)"></i></div>
-                      <span class="inv-comparison-values"><strong>{{ fmt(p.amount) }}</strong><small>{{ p.qty }} sold</small></span>
-                    </div>
-                  } @empty {
-                    <div class="inventory-grid-empty-hint">No sales in this period.</div>
-                  }
-                </div>
+                <app-bar-chart [labels]="topSellingChartLabels()" [series]="topSellingChartSeries()" [horizontal]="true" valuePrefix="₹ " height="220px"></app-bar-chart>
               </div>
-              <div class="inv-ageing-col">
+              <div class="inv-chart-col">
                 <div class="inv-ageing-head"><strong>Returned Products</strong><span>By return amount</span></div>
-                <div class="inv-comparison-chart">
-                  @for (p of returnedProducts(); track p.product_name) {
-                    <div class="inv-comparison-row">
-                      <span class="inv-comparison-label"><i class="pi pi-replay"></i><strong>{{ p.product_name }}</strong></span>
-                      <div class="inv-comparison-bars"><i class="hold" [style.width]="returnedProductBarWidth(p.return_amount)"></i></div>
-                      <span class="inv-comparison-values"><strong>{{ fmt(p.return_amount) }}</strong><small>{{ p.return_qty }} returned{{ p.top_reason ? ' · ' + p.top_reason : '' }}</small></span>
-                    </div>
-                  } @empty {
-                    <div class="inventory-grid-empty-hint">No returns in this period.</div>
-                  }
-                </div>
+                <app-bar-chart [labels]="returnedChartLabels()" [series]="returnedChartSeries()" [horizontal]="true" valuePrefix="₹ " height="220px"></app-bar-chart>
               </div>
             </div>
           }

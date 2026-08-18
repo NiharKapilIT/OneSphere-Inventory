@@ -1,0 +1,17 @@
+// Item 19 -- shared Cash/Bank mode-of-payment selector.
+// Deliberately minimal: the component reuses the global erp-form-group /
+// erp-radio-button-group / erp-input / erp-field-error / section-title /
+// bootstrap grid classes that already exist in both apps' global
+// styles.scss, rather than introducing new global classes that would need
+// the dual-copy treatment (see erp_inventory_accounts_shared_css_duplication
+// in project memory). This file only holds the tiny bit of local layout
+// this component's own markup needs.
+
+.pms-root {
+  display: block;
+}
+
+.pms-bank-details {
+  border-top: 1px dashed #e2e6ee;
+  padding-top: 10px;
+}

@@ -23,15 +23,24 @@ import { InventoryTransactionsService } from '../inventory-transactions.service'
 })
 export class InventoryBankDetailsComponent {
   @Input({ required: true }) host!: any;
+  // '' on Vendor/Customer Master (unprefixed keys, unchanged from before);
+  // 'quickVendor'/'quickCustomer' when embedded inside the quick-add modal,
+  // so this shares the host transaction screen's own formValues() bag
+  // without colliding with its top-level fields.
+  @Input() keyPrefix = '';
 
   private readonly txService = inject(InventoryTransactionsService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly ifscLookupState = signal<'idle' | 'loading' | 'found' | 'not-found' | 'error'>('idle');
 
+  pfx(field: string): string {
+    return this.keyPrefix ? this.keyPrefix + field[0].toUpperCase() + field.slice(1) : field;
+  }
+
   onIfscCodeChange(value: string): void {
     const normalized = (value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
-    this.host.collectFormField('bankIfscCode', normalized);
+    this.host.collectFormField(this.pfx('bankIfscCode'), normalized);
     if (normalized.length !== 11) {
       this.ifscLookupState.set('idle');
       return;
@@ -42,8 +51,8 @@ export class InventoryBankDetailsComponent {
       .subscribe({
         next: res => {
           if (res.bankName || res.branchName) {
-            this.host.collectFormField('bankName', res.bankName || '');
-            this.host.collectFormField('bankBranchName', res.branchName || '');
+            this.host.collectFormField(this.pfx('bankName'), res.bankName || '');
+            this.host.collectFormField(this.pfx('bankBranchName'), res.branchName || '');
             this.ifscLookupState.set('found');
           } else {
             this.ifscLookupState.set('not-found');

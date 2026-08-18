@@ -127,6 +127,28 @@
           }
         </div>
 
+        <!-- Warehouses linked to this branch (item 13 follow-up) -->
+        @if (selectedSettingsBranchId()) {
+          <div class="erp-form-group span-2">
+            <label class="erp-label">
+              Warehouses Linked to This Branch
+              <span class="erp-label-hint">tag more from Warehouse Setup — a branch can have several</span>
+            </label>
+            @if (linkedWarehouses().length) {
+              <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                @for (wh of linkedWarehouses(); track wh.id) {
+                  <span class="erp-badge badge-info">
+                    <i class="pi pi-building"></i> {{ wh.warehouse_name }}
+                    @if (wh.is_default) { <span class="erp-badge badge-success ms-1">default</span> }
+                  </span>
+                }
+              </div>
+            } @else {
+              <small class="erp-field-hint">No warehouses tagged to this branch yet — set a warehouse's Branch field in Warehouse Setup.</small>
+            }
+          </div>
+        }
+
         <!-- Status -->
         <div class="erp-form-group">
           <label class="erp-label">Status</label>

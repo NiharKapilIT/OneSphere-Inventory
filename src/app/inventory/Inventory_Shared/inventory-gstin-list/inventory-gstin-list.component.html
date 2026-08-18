@@ -1,0 +1,49 @@
+<section class="inventory-fieldset delivery-challan-fieldset">
+  <div class="inventory-fieldset-title inventory-fieldset-title-row">
+    <span><i class="pi pi-id-card"></i> GSTIN / State</span>
+    <button type="button" class="erp-btn btn-white btn-sm" (click)="addRow()">
+      <i class="pi pi-plus"></i> Add GSTIN
+    </button>
+  </div>
+  @if (!rows().length) {
+    <div class="inventory-field-hint" style="padding: 4px 2px 8px;">No GSTIN added yet — click "Add GSTIN" for each state this party is registered in.</div>
+  } @else {
+    <table class="erp-table" style="width:100%">
+      <thead>
+        <tr>
+          <th>State</th>
+          <th>GSTIN</th>
+          <th class="text-center">Primary</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track $index; let i = $index) {
+          <tr>
+            <td>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="host.dcAddressStates" [searchable]="true" [clearable]="false"
+                [ngModel]="row.stateName" (ngModelChange)="setState(i, $event)"
+                placeholder="Select state">
+              </ng-select>
+            </td>
+            <td>
+              <input class="erp-input" type="text" maxlength="15"
+                [ngModel]="row.gstin"
+                (ngModelChange)="setGstin(i, $event)"
+                placeholder="15-character GSTIN" />
+            </td>
+            <td class="text-center">
+              <input type="radio" name="gstinPrimary" [checked]="row.isPrimary" (change)="setPrimary(i)" />
+            </td>
+            <td class="text-center">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" (click)="removeRow(i)">
+                <i class="pi pi-trash"></i>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

@@ -470,6 +470,40 @@ export interface VendorItem {
   pincode?: string;
   credit_limit: number;
   bank_details?: string;
+  bank_payee_name?: string;
+  bank_account_no?: string;
+  bank_ifsc_code?: string;
+  bank_name?: string;
+  bank_branch_name?: string;
+  contact_name?: string;
+  contact_mobile?: string;
+  contact_email?: string;
+  contact_id?: number;
+  contact_source?: string;
+  status: string;
+}
+
+export interface ChannelPartnerItem {
+  id: number;
+  segment_id?: number;
+  segment_name?: string;
+  payment_term_id?: number;
+  payment_term_name?: string;
+  partner_code: string;
+  partner_name: string;
+  partner_type: string;
+  partner_category?: string;
+  gstin?: string;
+  pan?: string;
+  mobile?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  district?: string;
+  pincode?: string;
+  credit_limit: number;
+  bank_details?: string;
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
@@ -513,7 +547,13 @@ export interface CustomerItem {
   state?: string;
   district?: string;
   pincode?: string;
+  shipping_address?: string;
   credit_limit: number;
+  bank_payee_name?: string;
+  bank_account_no?: string;
+  bank_ifsc_code?: string;
+  bank_name?: string;
+  bank_branch_name?: string;
   contact_name?: string;
   contact_mobile?: string;
   contact_email?: string;
@@ -1462,6 +1502,42 @@ export class InventoryConfigService {
       pincode: this.value(item, 'pincode', 'pincode'),
       credit_limit: this.value(item, 'credit_limit', 'creditLimit', 0),
       bank_details: this.value(item, 'bank_details', 'bankDetails'),
+      bank_payee_name: this.value(item, 'bank_payee_name', 'bankPayeeName'),
+      bank_account_no: this.value(item, 'bank_account_no', 'bankAccountNo'),
+      bank_ifsc_code: this.value(item, 'bank_ifsc_code', 'bankIfscCode'),
+      bank_name: this.value(item, 'bank_name', 'bankName'),
+      bank_branch_name: this.value(item, 'bank_branch_name', 'bankBranchName'),
+      contact_name: this.value(item, 'contact_name', 'contactName'),
+      contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
+      contact_email: this.value(item, 'contact_email', 'contactEmail'),
+      contact_id: this.value(item, 'contact_id', 'contactId'),
+      contact_source: this.value(item, 'contact_source', 'contactSource'),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  private normalizeChannelPartner(item: any): ChannelPartnerItem {
+    return {
+      id: item?.id,
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      segment_name: this.value(item, 'segment_name', 'segmentName'),
+      payment_term_id: this.value(item, 'payment_term_id', 'paymentTermId'),
+      payment_term_name: this.value(item, 'payment_term_name', 'paymentTermName'),
+      partner_code: this.value(item, 'partner_code', 'partnerCode', ''),
+      partner_name: this.value(item, 'partner_name', 'partnerName', ''),
+      partner_type: this.value(item, 'partner_type', 'partnerType', 'Company'),
+      partner_category: this.value(item, 'partner_category', 'partnerCategory'),
+      gstin: this.value(item, 'gstin', 'gstin'),
+      pan: this.value(item, 'pan', 'pan'),
+      mobile: this.value(item, 'mobile', 'mobile'),
+      email: this.value(item, 'email', 'email'),
+      address: this.value(item, 'address', 'address'),
+      city: this.value(item, 'city', 'city'),
+      state: this.value(item, 'state', 'state'),
+      district: this.value(item, 'district', 'district'),
+      pincode: this.value(item, 'pincode', 'pincode'),
+      credit_limit: this.value(item, 'credit_limit', 'creditLimit', 0),
+      bank_details: this.value(item, 'bank_details', 'bankDetails'),
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
@@ -1509,7 +1585,13 @@ export class InventoryConfigService {
       state: this.value(item, 'state', 'state'),
       district: this.value(item, 'district', 'district'),
       pincode: this.value(item, 'pincode', 'pincode'),
+      shipping_address: this.value(item, 'shipping_address', 'shippingAddress'),
       credit_limit: this.value(item, 'credit_limit', 'creditLimit', 0),
+      bank_payee_name: this.value(item, 'bank_payee_name', 'bankPayeeName'),
+      bank_account_no: this.value(item, 'bank_account_no', 'bankAccountNo'),
+      bank_ifsc_code: this.value(item, 'bank_ifsc_code', 'bankIfscCode'),
+      bank_name: this.value(item, 'bank_name', 'bankName'),
+      bank_branch_name: this.value(item, 'bank_branch_name', 'bankBranchName'),
       contact_name: this.value(item, 'contact_name', 'contactName'),
       contact_mobile: this.value(item, 'contact_mobile', 'contactMobile'),
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
@@ -1865,6 +1947,27 @@ export class InventoryConfigService {
     );
   }
 
+  // ── Channel Partners ─────────────────────────────────────────────────────
+
+  getChannelPartners(segmentId?: number | null, includeInactive = false): Observable<ApiResponse<ChannelPartnerItem[]>> {
+    let params = new HttpParams().set('includeInactive', includeInactive);
+    if (segmentId) params = params.set('segmentId', segmentId);
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('channel-partners'), { headers: this.headers(), params }
+    ), item => this.normalizeChannelPartner(item));
+  }
+
+  saveChannelPartner(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ChannelPartnerItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`channel-partners/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('channel-partners'), body, { headers: h }),
+      item => this.normalizeChannelPartner(item)
+    );
+  }
+
   // ── Global Contacts ──────────────────────────────────────────────────────
 
   getContacts(includeInactive = false): Observable<ApiResponse<ContactItem[]>> {
@@ -1900,6 +2003,20 @@ export class InventoryConfigService {
     const body = this.toApiValue(payload);
     return this.mapItem(
       this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/global/${id}`), body, { headers: this.headers() }),
+      item => this.normalizeContact(item)
+    );
+  }
+
+  // Item 25: "+Add Global Contact" creates/updates directly in the real
+  // global.tbl_mst_contact pool (via getGlobalContacts() above), not the
+  // company-scoped inv_contacts saveContact() writes to — no id => create.
+  saveGlobalContact(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ContactItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`contacts/global/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('contacts/global'), body, { headers: h }),
       item => this.normalizeContact(item)
     );
   }

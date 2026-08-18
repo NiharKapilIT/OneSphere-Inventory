@@ -1,0 +1,7 @@
+<div class="chart-wrap" [style.height]="height()">
+  @if (hasData()) {
+    <canvas baseChart [data]="chartData()" [options]="chartOptions()" type="bar"></canvas>
+  } @else {
+    <div class="chart-empty">No data for this period.</div>
+  }
+</div>

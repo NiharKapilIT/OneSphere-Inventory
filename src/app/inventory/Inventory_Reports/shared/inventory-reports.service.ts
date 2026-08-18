@@ -10,11 +10,123 @@ import {
   InventoryReportRow
 } from './inventory-report.models';
 
+// Backs GET /api/reports/stock-valuation-comparison
+// (inventory.sp_get_stock_valuation_comparison, 151_stock_valuation_
+// comparison_report.sql) -- a read-only, per-product "what would each
+// valuation method say" comparison. Doesn't fit InventoryReportRow's flat
+// table shape, so it's a dedicated response type rather than reusing the
+// generic report models.
+export interface StockValuationCostLayer {
+  id: number;
+  receivedAt: string;
+  receivedQty: number;
+  remainingQty: number;
+  unitCost: number;
+  sourceDocType: string | null;
+  sourceDocId: number | null;
+}
+
+export interface StockValuationMethodResult {
+  costConsumed: number;
+  avgRate: number;
+  remainingQty: number;
+  remainingValue: number;
+  shortfallQty: number;
+}
+
+export interface StockValuationComparison {
+  productId: number;
+  productCode: string;
+  productName: string;
+  valuationMethod: string;
+  uom: string | null;
+  currentCostPrice: number;
+  hypotheticalQty: number;
+  totalRemainingQty: number;
+  totalRemainingValue: number;
+  layers: StockValuationCostLayer[];
+  fifo: StockValuationMethodResult;
+  lifo: StockValuationMethodResult;
+  weightedAverage: StockValuationMethodResult;
+}
+
+// Backs GET /api/reports/mis-report (inventory.sp_get_mis_report,
+// 153_mis_report.sql) -- Admin-only (screen code INV_R_MIS). Combined
+// company-wide snapshot + per-segment breakdown, doesn't fit InventoryReportRow's
+// flat table shape either, so it gets its own response type same as
+// StockValuationComparison above.
+export interface MisReportAgeingBucket {
+  bucket: string;
+  amount: number;
+}
+
+export interface MisReportTopProduct {
+  productName: string;
+  amount: number;
+  qty: number;
+}
+
+export interface MisReportCompanyWide {
+  sales: number;
+  purchases: number;
+  stockValue: number;
+  payables: number;
+  receivables: number;
+  payablesAgeing: MisReportAgeingBucket[];
+  receivablesAgeing: MisReportAgeingBucket[];
+  topSellingProducts: MisReportTopProduct[];
+}
+
+export interface MisReportSegment {
+  segmentId: number | null;
+  segmentName: string | null;
+  sales: number;
+  purchases: number;
+  payables: number;
+  receivables: number;
+}
+
+export interface MisReport {
+  financialYear: string;
+  dateFrom: string;
+  dateTo: string;
+  companyWide: MisReportCompanyWide;
+  segments: MisReportSegment[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class InventoryReportsService {
   constructor(private readonly commonService: CommonService) {}
+
+  getStockValuationComparison(productId: number, hypotheticalQty: number): Observable<StockValuationComparison> {
+    const params = new HttpParams()
+      .set('productId', String(productId))
+      .set('hypotheticalQty', String(hypotheticalQty));
+
+    return this.commonService.getAPI('/reports/stock-valuation-comparison', params, 'YES').pipe(
+      map((response: { data?: StockValuationComparison }) => {
+        if (!response?.data) throw new Error('No data returned for stock valuation comparison.');
+        return response.data;
+      }),
+      catchError(error => throwError(() => error))
+    );
+  }
+
+  getMisReport(dateFrom?: string, dateTo?: string): Observable<MisReport> {
+    let params = new HttpParams();
+    if (dateFrom) params = params.set('dateFrom', dateFrom);
+    if (dateTo) params = params.set('dateTo', dateTo);
+
+    return this.commonService.getAPI('/reports/mis-report', params, 'YES').pipe(
+      map((response: { data?: MisReport }) => {
+        if (!response?.data) throw new Error('No data returned for MIS report.');
+        return response.data;
+      }),
+      catchError(error => throwError(() => error))
+    );
+  }
 
   contextDefaults(): InventoryReportFilters {
     return {

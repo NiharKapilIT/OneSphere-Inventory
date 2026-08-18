@@ -1,0 +1,22 @@
+<article
+  class="stat-card"
+  [class]="'tone-' + tone()"
+  [class.is-clickable]="clickable()"
+  (click)="onClick()"
+>
+  <span class="stat-card-icon"><i [class]="icon()"></i></span>
+  <span class="stat-card-body">
+    <small class="stat-card-label">{{ label() }}</small>
+    <span class="stat-card-value-row">
+      <strong class="stat-card-value">{{ value() }}</strong>
+      @if (trend()) {
+        <span class="stat-card-trend" [class.is-up]="trendUp()" [class.is-down]="!trendUp()">
+          <i [class]="trendUp() ? 'pi pi-arrow-up' : 'pi pi-arrow-down'"></i>{{ trend() }}
+        </span>
+      }
+    </span>
+    @if (note()) {
+      <em class="stat-card-note">{{ note() }}</em>
+    }
+  </span>
+</article>

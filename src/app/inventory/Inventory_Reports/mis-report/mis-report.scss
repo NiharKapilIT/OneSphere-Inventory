@@ -1,0 +1,96 @@
+// Scoped to this component only -- shared/global classes reused in the
+// template (module-page, inventory-shell, inventory-report-header-card,
+// inventory-report-summary-grid, erp-table, erp-btn, erp-input, etc.) are
+// already defined in src/styles.scss (both Inventory's and Accounts' copies,
+// kept identical -- see [[erp_inventory_accounts_shared_css_duplication]]).
+// Only the handful of classes specific to this bespoke view live here.
+
+.mis-date-filter {
+  min-width: 160px;
+}
+
+.mis-fy-badge {
+  color: #64748b;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.mis-blocked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 64px 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.mis-blocked i {
+  font-size: 32px;
+  color: #94a3b8;
+}
+
+.mis-blocked h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.mis-blocked p {
+  margin: 0;
+  max-width: 420px;
+}
+
+.mis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.inventory-report-section h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+
+.mis-chart-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.mis-chart-col h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.mis-ageing-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.mis-segment-subtitle {
+  color: #64748b;
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
+.mis-segment-table-wrap {
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .mis-chart-row,
+  .mis-ageing-pair {
+    grid-template-columns: 1fr;
+  }
+}

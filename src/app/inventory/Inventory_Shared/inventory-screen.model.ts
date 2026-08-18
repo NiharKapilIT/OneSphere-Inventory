@@ -1375,7 +1375,11 @@ export const purchaseInvoiceConfig = transaction(
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Invoice Items',
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    // Qty is for a direct entry (no GRN reference) -- a plain purchased
+    // quantity, nothing more. Received Qty/Accepted Qty only apply once
+    // this invoice actually references a posted GRN, where they display
+    // (read-only) what that GRN already recorded -- see item 5.
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Received Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
     lineRows: [],
     columns: ['PI No', 'PI Date', 'Vendor', 'Branch / Warehouse', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
     rows: []
@@ -1405,8 +1409,16 @@ export const salesInvoiceConfig = transaction(
       { key: 'soReference', label: 'Reference', type: 'select', options: [] },
       { key: 'referenceNo', label: 'Reference' },
       { key: 'customer', label: 'Party / Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
+      { key: 'channelPartner', label: 'Channel Partner', type: 'select', options: [], addMaster: 'Channel Partner' },
       { key: 'placeOfSupply', label: 'Place of Supply', type: 'select', options: ['Telangana', 'Karnataka', 'Andhra Pradesh', 'Maharashtra'] },
       { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      // Item 13: multi-branch sales. Off by default (defaultFieldValue()
+      // defaults every Yes/No field to 'No') so every existing invoice and
+      // every new one that never touches this switch behaves byte-for-byte
+      // as before. Branch only matters, and only renders, once the switch
+      // is on -- see applySalesInvoiceBranchFieldDefaults().
+      { key: 'interbranchSale', label: 'Interbranch Sale', type: 'select', options: ['Yes', 'No'] },
+      { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
       { key: 'transportMode', label: 'Transport Mode', type: 'select', options: ['Road', 'Rail', 'Air', 'Hand Delivery', 'Not Applicable'] },
       { key: 'vehicleNo', label: 'Vehicle No' },
       { key: 'deliveryAddress', label: 'Delivery Address', type: 'textarea' },
@@ -1460,20 +1472,28 @@ export const stockTransferConfig = transaction(
     { name: 'Location Master', status: 'Ready' },
     { name: 'Product Master', status: 'Ready' },
     { name: 'UOM conversion', status: 'Ready' },
-    { name: 'Stock availability in from-location', status: 'Pending Setup' }
+    { name: 'Stock availability in from-location', status: 'Ready' }
   ],
-  'Stock decreases from source and increases at destination with stock ledger movement entry.',
+  'Stock decreases from source and increases at destination with stock ledger movement entry. Cost moves with the stock -- the source lot\'s own cost carries over to the destination unchanged.',
   {
     fields: [
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
+      { key: 'transferNo', label: 'Transfer No' },
       { key: 'transferDate', label: 'Transfer Date', type: 'date' },
-      { key: 'fromLocation', label: 'From Location', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'toLocation', label: 'To Location', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'item', label: 'Item / Unit', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
-      { key: 'uom', label: 'UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
-      { key: 'qty', label: 'Quantity', type: 'number' },
-      { key: 'trackingRef', label: 'Serial / Batch / Unit' },
+      { key: 'fromWarehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'toWarehouse', label: 'To Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
+    ],
+    lineTitle: 'Transfer Items',
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Batch No', 'Serial No'],
+    lineRows: [
+      ['LED Display 32 inch', '', '', 'Nos', '2', 'NA', ''],
+      ['Basmati Rice 25KG', '', '', 'Bag', '5', 'LOT-RICE-0526-K', '']
+    ],
+    columns: ['Transfer No', 'Transfer Date', 'From Warehouse', 'To Warehouse', 'Items', 'Status'],
+    rows: [
+      ['ST-EL-26-00001', '10-May-2026', 'HYD Main WH', 'BLR Store', '2', 'Posted'],
+      ['ST-EL-26-00002', '09-May-2026', 'BLR Store', 'Main Kitchen Store', '1', 'Draft']
     ]
   }
 );
@@ -1487,22 +1507,31 @@ export const stockAdjustmentConfig = transaction(
     { name: 'Location Master', status: 'Ready' },
     { name: 'Product Master', status: 'Ready' },
     { name: 'UOM conversion', status: 'Ready' },
-    { name: 'Cycle Count reference', status: 'Pending Setup' },
-    { name: 'Reason master', status: 'Required' },
-    { name: 'Approval workflow', status: 'Pending Setup' }
+    { name: 'Reason master', status: 'Ready' },
+    { name: 'Approval workflow', status: 'Ready' }
   ],
-  'Pending or approved adjustment. Stock/capacity impact happens after approval.',
+  'Pending or approved adjustment. Stock impact happens only after approval -- rejecting a pending adjustment never touches stock.',
   {
     fields: [
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
-      { key: 'location', label: 'Location', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'adjustmentType', label: 'Adjustment Type', type: 'select', options: INVENTORY_OPTIONS.adjustmentTypes },
+      { key: 'adjustmentNo', label: 'Adjustment No' },
+      { key: 'adjustmentDate', label: 'Adjustment Date', type: 'date' },
+      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'adjustmentType', label: 'Adjustment Type', type: 'select', options: ['Increase', 'Decrease'] },
       { key: 'reason', label: 'Reason' },
-      { key: 'item', label: 'Item / Service / Unit', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
-      { key: 'uom', label: 'UOM', type: 'select', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
-      { key: 'qty', label: 'Quantity', type: 'number' },
       { key: 'status', label: 'Status', type: 'select', options: ['Pending Approval', 'Approved', 'Rejected'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
+    ],
+    lineTitle: 'Adjustment Items',
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Batch No', 'Serial No'],
+    lineRows: [
+      ['LED Display 32 inch', '', '', 'Nos', '1', 'NA', ''],
+      ['Basmati Rice 25KG', '', '', 'Bag', '3', 'LOT-RICE-0526-K', '']
+    ],
+    columns: ['Adjustment No', 'Adjustment Date', 'Warehouse', 'Type', 'Reason', 'Items', 'Status'],
+    rows: [
+      ['SA-EL-26-00001', '10-May-2026', 'HYD Main WH', 'Increase', 'Found stock during cycle count', '1', 'Approved'],
+      ['SA-EL-26-00002', '09-May-2026', 'BLR Store', 'Decrease', 'Damaged in storage', '1', 'Pending Approval']
     ]
   }
 );

@@ -137,6 +137,167 @@ export interface GrnItem {
   remarks?: string;
 }
 
+export interface StockTransferItem {
+  id?: number;
+  sno: number;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
+  uom_name?: string;
+  qty: number;
+  batch_no?: string;
+  serial_no?: string;
+  serial_numbers?: string[] | null;
+  remarks?: string;
+}
+
+export interface StockTransfer {
+  id: number;
+  transfer_number: string;
+  transfer_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  from_branch_id?: number;
+  from_branch_name?: string;
+  from_warehouse_id?: number;
+  from_warehouse_name?: string;
+  to_branch_id?: number;
+  to_branch_name?: string;
+  to_warehouse_id?: number;
+  to_warehouse_name?: string;
+  remarks?: string;
+  total_qty: number;
+  status: string;
+  created_at?: string;
+  items: StockTransferItem[];
+}
+
+export interface StockAdjustmentItem {
+  id?: number;
+  sno: number;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
+  uom_name?: string;
+  qty: number;
+  batch_no?: string;
+  serial_no?: string;
+  serial_numbers?: string[] | null;
+  remarks?: string;
+}
+
+export interface StockAdjustment {
+  id: number;
+  adjustment_number: string;
+  adjustment_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  branch_id?: number;
+  branch_name?: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  adjustment_type: string;
+  reason?: string;
+  remarks?: string;
+  total_qty: number;
+  status: string;
+  approved_by?: number;
+  approved_at?: string;
+  created_at?: string;
+  items: StockAdjustmentItem[];
+}
+
+export interface OpeningStockEntryItem {
+  id?: number;
+  sno: number;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
+  uom_name?: string;
+  qty: number;
+  rate: number;
+  amount: number;
+  batch_no?: string;
+  serial_no?: string;
+  serial_numbers?: string[] | null;
+  remarks?: string;
+}
+
+export interface OpeningStockEntry {
+  id: number;
+  entry_number: string;
+  entry_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  branch_id?: number;
+  branch_name?: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  remarks?: string;
+  total_value: number;
+  status: string;
+  created_at?: string;
+  items: OpeningStockEntryItem[];
+}
+
+export interface CycleCountItem {
+  id?: number;
+  sno: number;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
+  uom_name?: string;
+  system_qty: number;
+  physical_qty: number;
+  variance_qty: number;
+  reason?: string;
+  remarks?: string;
+}
+
+export interface CycleCount {
+  id: number;
+  verification_number: string;
+  verification_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  verified_by_name?: string;
+  product_category_id?: number;
+  remarks?: string;
+  total_items: number;
+  variance_items: number;
+  status: string;
+  approved_by?: number;
+  approved_at?: string;
+  created_at?: string;
+  items: CycleCountItem[];
+}
+
 export interface Grn {
   id: number;
   grn_number: string;
@@ -285,6 +446,8 @@ export interface PurchaseRefDoc {
   warehouse_name?: string;
   vendor_id?: number;
   party_name?: string;
+  channel_partner_id?: number;
+  channel_partner_name?: string;
   vendor_invoice_no?: string;
   vendor_invoice_dt?: string;
   payment_terms?: string;
@@ -438,6 +601,8 @@ export interface DeliveryChallan {
   reference_no?: string;
   customer_id?: number;
   customer_name?: string;
+  channel_partner_id?: number;
+  channel_partner_name?: string;
   branch_id?: number;
   branch_name?: string;
   from_warehouse_id?: number;
@@ -507,6 +672,8 @@ export interface SalesReturn {
   segment_name?: string;
   customer_id?: number;
   customer_name?: string;
+  channel_partner_id?: number;
+  channel_partner_name?: string;
   invoice_id?: number;
   invoice_number?: string;
   credit_note_ref?: string;
@@ -686,6 +853,155 @@ export class InventoryTransactionsService {
     };
   }
 
+  private normStockTransfer(r: any): StockTransfer {
+    return {
+      id: r?.id, transfer_number: r?.transferNumber || r?.transfer_number || '',
+      transfer_date: r?.transferDate || r?.transfer_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      from_branch_id: r?.fromBranchId ?? r?.from_branch_id,
+      from_branch_name: r?.fromBranchName || r?.from_branch_name,
+      from_warehouse_id: r?.fromWarehouseId ?? r?.from_warehouse_id,
+      from_warehouse_name: r?.fromWarehouseName || r?.from_warehouse_name,
+      to_branch_id: r?.toBranchId ?? r?.to_branch_id,
+      to_branch_name: r?.toBranchName || r?.to_branch_name,
+      to_warehouse_id: r?.toWarehouseId ?? r?.to_warehouse_id,
+      to_warehouse_name: r?.toWarehouseName || r?.to_warehouse_name,
+      remarks: r?.remarks,
+      total_qty: Number(r?.totalQty ?? r?.total_qty ?? 0),
+      status: r?.status || 'draft', created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i.id, sno: i.sno || 1,
+        product_id: i.productId ?? i.product_id,
+        product_name: i.productName || i.product_name || '',
+        product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
+        uom_name: i.uomName || i.uom_name,
+        qty: Number(i.qty || 0),
+        batch_no: i.batchNo || i.batch_no,
+        serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
+        remarks: i.remarks
+      }))
+    };
+  }
+
+  private normStockAdjustment(r: any): StockAdjustment {
+    return {
+      id: r?.id, adjustment_number: r?.adjustmentNumber || r?.adjustment_number || '',
+      adjustment_date: r?.adjustmentDate || r?.adjustment_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
+      adjustment_type: r?.adjustmentType || r?.adjustment_type || 'Increase',
+      reason: r?.reason,
+      remarks: r?.remarks,
+      total_qty: Number(r?.totalQty ?? r?.total_qty ?? 0),
+      status: r?.status || 'pending_approval',
+      approved_by: r?.approvedBy ?? r?.approved_by,
+      approved_at: r?.approvedAt || r?.approved_at,
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i.id, sno: i.sno || 1,
+        product_id: i.productId ?? i.product_id,
+        product_name: i.productName || i.product_name || '',
+        product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
+        uom_name: i.uomName || i.uom_name,
+        qty: Number(i.qty || 0),
+        batch_no: i.batchNo || i.batch_no,
+        serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
+        remarks: i.remarks
+      }))
+    };
+  }
+
+  private normOpeningStockEntry(r: any): OpeningStockEntry {
+    return {
+      id: r?.id, entry_number: r?.entryNumber || r?.entry_number || '',
+      entry_date: r?.entryDate || r?.entry_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
+      remarks: r?.remarks,
+      total_value: Number(r?.totalValue ?? r?.total_value ?? 0),
+      status: r?.status || 'draft', created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i.id, sno: i.sno || 1,
+        product_id: i.productId ?? i.product_id,
+        product_name: i.productName || i.product_name || '',
+        product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
+        uom_name: i.uomName || i.uom_name,
+        qty: Number(i.qty || 0), rate: Number(i.rate || 0), amount: Number(i.amount || 0),
+        batch_no: i.batchNo || i.batch_no,
+        serial_no: i.serialNo || i.serial_no,
+        serial_numbers: i.serialNumbers ?? i.serial_numbers ?? null,
+        remarks: i.remarks
+      }))
+    };
+  }
+
+  private normCycleCount(r: any): CycleCount {
+    return {
+      id: r?.id, verification_number: r?.verificationNumber || r?.verification_number || '',
+      verification_date: r?.verificationDate || r?.verification_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
+      verified_by_name: r?.verifiedByName || r?.verified_by_name,
+      product_category_id: r?.productCategoryId ?? r?.product_category_id,
+      remarks: r?.remarks,
+      total_items: Number(r?.totalItems ?? r?.total_items ?? 0),
+      variance_items: Number(r?.varianceItems ?? r?.variance_items ?? 0),
+      status: r?.status || 'pending_approval',
+      approved_by: r?.approvedBy ?? r?.approved_by,
+      approved_at: r?.approvedAt || r?.approved_at,
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        id: i.id, sno: i.sno || 1,
+        product_id: i.productId ?? i.product_id,
+        product_name: i.productName || i.product_name || '',
+        product_code: i.productCode || i.product_code,
+        variant_id: i.variantId ?? i.variant_id,
+        variant_name: i.variantName || i.variant_name,
+        attribute_id: i.attributeId ?? i.attribute_id,
+        attribute_name: i.attributeName || i.attribute_name,
+        attribute_value: i.attributeValue || i.attribute_value,
+        uom_id: i.uomId ?? i.uom_id,
+        uom_name: i.uomName || i.uom_name,
+        system_qty: Number(i.systemQty ?? i.system_qty ?? 0),
+        physical_qty: Number(i.physicalQty ?? i.physical_qty ?? 0),
+        variance_qty: Number(i.varianceQty ?? i.variance_qty ?? 0),
+        reason: i.reason,
+        remarks: i.remarks
+      }))
+    };
+  }
+
   private normGrn(r: any): Grn {
     return {
       id: r?.id, grn_number: r?.grnNumber || r?.grn_number || '',
@@ -849,6 +1165,90 @@ export class InventoryTransactionsService {
         ? this.http.put<ApiResponse<any>>(this.url(`grn/${id}`), body, { headers: h })
         : this.http.post<ApiResponse<any>>(this.url('grn'), body, { headers: h }),
       r => this.normGrn(r)
+    );
+  }
+
+  getStockTransfers(status?: string, segmentId?: number | null): Observable<ApiResponse<StockTransfer[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('stock-transfers'), { headers: this.headers(), params }),
+      r => this.normStockTransfer(r)
+    );
+  }
+
+  saveStockTransfer(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<StockTransfer>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`stock-transfers/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('stock-transfers'), body, { headers: h }),
+      r => this.normStockTransfer(r)
+    );
+  }
+
+  getStockAdjustments(status?: string, segmentId?: number | null): Observable<ApiResponse<StockAdjustment[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('stock-adjustments'), { headers: this.headers(), params }),
+      r => this.normStockAdjustment(r)
+    );
+  }
+
+  saveStockAdjustment(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<StockAdjustment>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`stock-adjustments/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('stock-adjustments'), body, { headers: h }),
+      r => this.normStockAdjustment(r)
+    );
+  }
+
+  getOpeningStockEntries(status?: string, segmentId?: number | null): Observable<ApiResponse<OpeningStockEntry[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('opening-stock-entries'), { headers: this.headers(), params }),
+      r => this.normOpeningStockEntry(r)
+    );
+  }
+
+  saveOpeningStockEntry(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<OpeningStockEntry>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`opening-stock-entries/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('opening-stock-entries'), body, { headers: h }),
+      r => this.normOpeningStockEntry(r)
+    );
+  }
+
+  getCycleCounts(status?: string, segmentId?: number | null): Observable<ApiResponse<CycleCount[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('cycle-counts'), { headers: this.headers(), params }),
+      r => this.normCycleCount(r)
+    );
+  }
+
+  saveCycleCount(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<CycleCount>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`cycle-counts/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('cycle-counts'), body, { headers: h }),
+      r => this.normCycleCount(r)
     );
   }
 
@@ -1047,7 +1447,10 @@ export class InventoryTransactionsService {
       so_id: r?.soId ?? r?.so_id, so_number: r?.soNumber || r?.so_number,
       reference_no: r?.referenceNo || r?.reference_no,
       customer_id: r?.customerId ?? r?.customer_id, customer_name: r?.customerName || r?.customer_name,
-      customer_gstin: r?.customerGstin || r?.customer_gstin, place_of_supply: r?.placeOfSupply || r?.place_of_supply,
+      customer_gstin: r?.customerGstin || r?.customer_gstin,
+      channel_partner_id: r?.channelPartnerId ?? r?.channel_partner_id,
+      channel_partner_name: r?.channelPartnerName || r?.channel_partner_name,
+      place_of_supply: r?.placeOfSupply || r?.place_of_supply,
       warehouse_id: r?.warehouseId ?? r?.warehouse_id,
       warehouse_name: r?.warehouseName || r?.warehouse_name, payment_terms: r?.paymentTerms || r?.payment_terms,
       remarks: r?.remarks, status: r?.status || 'draft', created_at: r?.createdAt || r?.created_at,
@@ -1126,6 +1529,8 @@ export class InventoryTransactionsService {
       doc_date: r?.docDate || r?.doc_date, due_date: r?.dueDate || r?.due_date, delivery_date: r?.deliveryDate || r?.delivery_date,
       segment_id: r?.segmentId ?? r?.segment_id, segment_name: r?.segmentName || r?.segment_name,
       customer_id: r?.customerId ?? r?.customer_id, customer_name: r?.customerName || r?.customer_name,
+      channel_partner_id: r?.channelPartnerId ?? r?.channel_partner_id,
+      channel_partner_name: r?.channelPartnerName || r?.channel_partner_name,
       payment_terms: r?.paymentTerms || r?.payment_terms,
       remarks: r?.remarks, status, created_at: r?.createdAt || r?.created_at,
       items: (r?.items || []).map((i: any) => this.normSalesItem(i))
@@ -1312,6 +1717,8 @@ export class InventoryTransactionsService {
       reference_no: r?.referenceNo || r?.reference_no,
       customer_id: r?.customerId ?? r?.customer_id,
       customer_name: r?.customerName || r?.customer_name,
+      channel_partner_id: r?.channelPartnerId ?? r?.channel_partner_id,
+      channel_partner_name: r?.channelPartnerName || r?.channel_partner_name,
       branch_id: r?.branchId ?? r?.branch_id,
       branch_name: r?.branchName || r?.branch_name,
       from_warehouse_id: r?.fromWarehouseId ?? r?.from_warehouse_id,
@@ -1459,6 +1866,14 @@ export class InventoryTransactionsService {
       : this.http.post<ApiResponse<any>>(this.salesUrl('delivery-challans'), body, { headers: h });
   }
 
+  // Item 31: reverses a partially-invoiced DC's unbilled remainder back into
+  // stock and marks it closed — see sp_close_delivery_challan's own header
+  // comment for why this has to be an explicit user action rather than
+  // something automatic.
+  closeDeliveryChallan(id: number): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(this.salesUrl(`delivery-challans/${id}/close`), {}, { headers: this.headers() });
+  }
+
   // ── Sales Return ─────────────────────────────────────────────────────────────
 
   private normSalesReturn(r: any): SalesReturn {
@@ -1469,6 +1884,8 @@ export class InventoryTransactionsService {
       segment_name: r?.segmentName || r?.segment_name,
       customer_id: r?.customerId ?? r?.customer_id,
       customer_name: r?.customerName || r?.customer_name,
+      channel_partner_id: r?.channelPartnerId ?? r?.channel_partner_id,
+      channel_partner_name: r?.channelPartnerName || r?.channel_partner_name,
       invoice_id: r?.invoiceId ?? r?.invoice_id,
       invoice_number: r?.invoiceNumber || r?.invoice_number,
       credit_note_ref: r?.creditNoteRef || r?.credit_note_ref,
@@ -1592,6 +2009,8 @@ export class InventoryTransactionsService {
           warehouse_name: (r as any).warehouseName || (r as any).warehouse_name,
           vendor_id: (r as any).vendorId ?? (r as any).vendor_id,
           party_name: (r as any).partyName || (r as any).party_name,
+          channel_partner_id: (r as any).channelPartnerId ?? (r as any).channel_partner_id,
+          channel_partner_name: (r as any).channelPartnerName || (r as any).channel_partner_name,
           vendor_invoice_no: (r as any).vendorInvoiceNo || (r as any).vendor_invoice_no,
           vendor_invoice_dt: (r as any).vendorInvoiceDt || (r as any).vendor_invoice_dt,
           payment_terms: (r as any).paymentTerms || (r as any).payment_terms,
@@ -1627,6 +2046,51 @@ export class InventoryTransactionsService {
       `${this.base()}/Common/GetIfscDetails`, { headers: this.headers(), params: new HttpParams().set('code', code) }
     );
   }
+
+  // ── Purchase Invoice Attachments (item 11 — Purchase Invoice screen only) ──
+
+  getPurchaseInvoiceAttachments(purchaseInvoiceId: number): Observable<ApiResponse<PurchaseInvoiceAttachment[]>> {
+    return this.http.get<ApiResponse<PurchaseInvoiceAttachment[]>>(
+      this.url(`purchase-invoices/${purchaseInvoiceId}/attachments`), { headers: this.headers() }
+    );
+  }
+
+  savePurchaseInvoiceAttachment(purchaseInvoiceId: number, attachment: {
+    fileKey: string; fileName: string; contentType?: string | null; fileSizeBytes?: number | null;
+  }): Observable<ApiResponse<PurchaseInvoiceAttachment>> {
+    return this.http.post<ApiResponse<PurchaseInvoiceAttachment>>(
+      this.url(`purchase-invoices/${purchaseInvoiceId}/attachments`), attachment, { headers: this.headers() }
+    );
+  }
+
+  deletePurchaseInvoiceAttachment(purchaseInvoiceId: number, attachmentId: number): Observable<ApiResponse<{ id: number; fileKey: string; deleted: boolean }>> {
+    return this.http.delete<ApiResponse<{ id: number; fileKey: string; deleted: boolean }>>(
+      this.url(`purchase-invoices/${purchaseInvoiceId}/attachments/${attachmentId}`), { headers: this.headers() }
+    );
+  }
+
+  // Generic download-for-preview, shared plumbing behind Accounts/DownloadImage
+  // (S3UploadService.DownloadFileAsync) -- fileName must be the bare,
+  // GUID-prefixed name with no folder prefix (see 147_purchase_invoice_
+  // attachments.sql for why a full "folder/name" key can't be used here).
+  downloadS3File(formName: string, fileName: string): Observable<Blob> {
+    return this.http.get(`${this.base()}/Accounts/DownloadImage/${formName}/${encodeURIComponent(fileName)}`, {
+      headers: this.headers(),
+      responseType: 'blob'
+    });
+  }
+}
+
+export interface PurchaseInvoiceAttachment {
+  id: number;
+  purchaseInvoiceId: number;
+  fileKey: string;
+  fileName: string;
+  contentType?: string | null;
+  fileSizeBytes?: number | null;
+  uploadedBy?: number | null;
+  uploadedByName?: string | null;
+  createdAt?: string | null;
 }
 
 export interface TransportDetails {

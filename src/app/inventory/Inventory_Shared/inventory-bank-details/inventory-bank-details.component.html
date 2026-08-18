@@ -6,21 +6,21 @@
     <div class="erp-form-group">
       <label class="erp-label">Payee Name</label>
       <input class="erp-input" type="text"
-        [ngModel]="host.formValues()['bankPayeeName'] || ''"
-        (ngModelChange)="host.collectFormField('bankPayeeName', $event)"
+        [ngModel]="host.formValues()[pfx('bankPayeeName')] || ''"
+        (ngModelChange)="host.collectFormField(pfx('bankPayeeName'), $event)"
         placeholder="Name as per bank account" />
     </div>
     <div class="erp-form-group">
       <label class="erp-label">Account No.</label>
       <input class="erp-input" type="text"
-        [ngModel]="host.formValues()['bankAccountNo'] || ''"
-        (ngModelChange)="host.collectFormField('bankAccountNo', $event)"
+        [ngModel]="host.formValues()[pfx('bankAccountNo')] || ''"
+        (ngModelChange)="host.collectFormField(pfx('bankAccountNo'), $event)"
         placeholder="Bank account number" />
     </div>
     <div class="erp-form-group">
       <label class="erp-label">IFSC Code</label>
       <input class="erp-input" type="text" maxlength="11"
-        [ngModel]="host.formValues()['bankIfscCode'] || ''"
+        [ngModel]="host.formValues()[pfx('bankIfscCode')] || ''"
         (ngModelChange)="onIfscCodeChange($event)"
         placeholder="11-character IFSC code" />
       @if (ifscLookupState() === 'loading') {
@@ -34,15 +34,15 @@
     <div class="erp-form-group">
       <label class="erp-label">Bank</label>
       <input class="erp-input" type="text"
-        [ngModel]="host.formValues()['bankName'] || ''"
-        (ngModelChange)="host.collectFormField('bankName', $event)"
+        [ngModel]="host.formValues()[pfx('bankName')] || ''"
+        (ngModelChange)="host.collectFormField(pfx('bankName'), $event)"
         placeholder="Auto-fills from IFSC" />
     </div>
     <div class="erp-form-group">
       <label class="erp-label">Branch</label>
       <input class="erp-input" type="text"
-        [ngModel]="host.formValues()['bankBranchName'] || ''"
-        (ngModelChange)="host.collectFormField('bankBranchName', $event)"
+        [ngModel]="host.formValues()[pfx('bankBranchName')] || ''"
+        (ngModelChange)="host.collectFormField(pfx('bankBranchName'), $event)"
         placeholder="Auto-fills from IFSC" />
     </div>
   </div>

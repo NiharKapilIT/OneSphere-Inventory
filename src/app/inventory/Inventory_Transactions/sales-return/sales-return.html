@@ -218,7 +218,7 @@
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
-                  @for (column of config.lineColumns || []; track column) {
+                  @for (column of transactionLineDisplayColumns(config.lineColumns || []); track column) {
                     @if (isLineColumnVisible(column)) {
                       <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
                         {{ column }}
@@ -237,11 +237,14 @@
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                       </div>
                     </td>
-                    @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
+                    @let rowView = entryLineRowViews()[rowIndex];
+                    @for (column of transactionLineDisplayColumns(config.lineColumns || []); track column; let columnIndex = $index) {
                       @if (isLineColumnVisible(column)) {
-                        @let cellView = entryLineRowViews()[rowIndex]?.columns?.[columnIndex];
+                        @let cellView = rowView?.columns?.[columnIndex];
                         <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
-                          @if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
+                          @if (lineGridCellReadonly(rowIndex, row, column)) {
+                            <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '—' }}</span>
+                          } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                             <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
                               {{ serialPickerSummaryForRow(rowIndex, row) }}
                             </button>
@@ -284,6 +287,37 @@
                                   <i class="pi pi-times"></i>
                                 </button>
                               </small>
+                            }
+                          }
+                          @if (lineGridColumnIsProduct(column)) {
+                            @if (lineColumnAppliesToRow(row, 'Variant')) {
+                              <div class="inventory-line-subcell">
+                                @let variantColumnIndex = lineGridSourceColumnIndex('Variant');
+                                @let variantCellView = variantColumnIndex >= 0 ? rowView?.columns?.[variantColumnIndex] : null;
+                                @if (lineGridCellReadonly(rowIndex, row, 'Variant')) {
+                                  <small class="inventory-grid-subtitle">{{ lineGridReadonlyCellText(rowIndex, row, 'Variant', variantCellView, rowView) }}</small>
+                                } @else if (variantCellView?.options?.length) {
+                                  <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm" appendTo="body"
+                                    [items]="variantCellView?.options || []" [searchable]="true" [clearable]="false"
+                                    [ngModel]="variantCellView?.controlValue"
+                                    (ngModelChange)="setEntryLineCell(rowIndex, variantColumnIndex, $event)"
+                                    placeholder="Variant">
+                                  </ng-select>
+                                }
+                              </div>
+                            }
+                            @for (attr of rowView?.attrSelections || []; track attr.name) {
+                              <div class="inventory-line-subcell">
+                                @if (attr.isAuto || lineGridCellReadonly(rowIndex, row, attr.name)) {
+                                  <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || '—' }}</small>
+                                } @else {
+                                  <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
+                                    [items]="attr.options" [searchable]="false" [clearable]="false"
+                                    [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
+                                    [placeholder]="attr.name">
+                                  </ng-select>
+                                }
+                              </div>
                             }
                           }
                         </td>
@@ -386,11 +420,13 @@
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          @if (showGridToolbarExportIcons()) {
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
@@ -460,7 +496,16 @@
                             @for (item of returnItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of returnColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
+                                  <td>
+                                    @if (column.key === 'product') {
+                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      @if (grnExpandedProductSubtitle(item); as subtitle) {
+                                        <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
+                                      }
+                                    } @else {
+                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                    }
+                                  </td>
                                 }
                               </tr>
                             }

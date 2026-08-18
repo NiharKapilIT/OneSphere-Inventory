@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, ViewChildren, QueryList } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -9,44 +9,37 @@ import { MessageService } from 'primeng/api';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { InventoryConfigService, VendorItem, CustomerItem } from '../../Inventory_Shared/inventory-config.service';
-import { AvailableNote, OutstandingInvoice, PaymentVoucher, PaymentsService } from '../../Inventory_Shared/payments.service';
+import { AvailableNote, OutstandingInvoice, PaymentVoucher, PaymentsService, TdsCode, VendorFyPurchaseSummary } from '../../Inventory_Shared/payments.service';
 import { StickyFooterOffsetService } from '../../../core/services/Common/sticky-footer-offset.service';
 import { customerReceiptConfig, vendorPaymentConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
+import { PaymentModeSelectorComponent, PaymentModeSelectorValue, defaultPaymentModeValue } from '../../../shared/payment-mode-selector/payment-mode-selector.component';
 
 type VoucherMode = 'pay' | 'receipt';
-type ModeRow = { modeKey: string; amount: number; refJson: Record<string, string> };
+// Item 19: mode-of-payment capture now lives in the shared
+// <app-payment-mode-selector> (same Cash/Bank -> Cheque/Online/Debit
+// Card/Credit Card UX as Accounts' General Receipt) -- this row just pairs
+// its output with the amount split across this mode, same as before.
+type ModeRow = { details: PaymentModeSelectorValue; amount: number };
 
-interface ModeDef {
-  key: string;
-  label: string;
-  icon: string;
-  fields: { key: string; placeholder: string }[];
-}
-
-const MODE_DEFS: ModeDef[] = [
-  { key: 'cash',   label: 'Cash',              icon: 'pi pi-wallet',          fields: [] },
-  { key: 'upi',     label: 'UPI',               icon: 'pi pi-mobile',          fields: [{ key: 'UPI ID / Ref', placeholder: 'name@bank / txn ref' }] },
-  { key: 'card',    label: 'Card',              icon: 'pi pi-credit-card',     fields: [{ key: 'Card (last 4) / Auth', placeholder: '**** 4321 · auth code' }] },
-  { key: 'cheque',  label: 'Cheque',            icon: 'pi pi-file-edit',       fields: [{ key: 'Cheque No.', placeholder: '000000' }, { key: 'Cheque Date / Bank', placeholder: 'dd-mm-yyyy · Bank' }] },
-  { key: 'neft',    label: 'NEFT / RTGS',       icon: 'pi pi-building',        fields: [{ key: 'UTR No.', placeholder: 'UTR reference' }, { key: 'Bank Account', placeholder: 'Company bank a/c' }] },
-  { key: 'imps',    label: 'IMPS',              icon: 'pi pi-bolt',            fields: [{ key: 'Ref No.', placeholder: 'IMPS reference' }] },
-];
-
-const TDS_SECTIONS: { value: string; label: string }[] = [
-  { value: '194C',  label: '194C — Contractors/Sub-contractors' },
-  { value: '194H',  label: '194H — Commission/Brokerage' },
-  { value: '194I',  label: '194I — Rent' },
-  { value: '194J',  label: '194J — Professional/Technical Fees' },
-  { value: '194JA', label: '194JA — Professional Fees (Individual/HUF)' },
-  { value: '194R',  label: '194R — Benefits/Perquisites' },
-  { value: 'OTHER', label: 'Other' },
+// Item 21: fallback only, used if the live taxation.tds_codes fetch (see
+// tdsCodes signal) comes back empty — mirrors migration 149's seed values
+// exactly so the fallback path still computes a correct amount, not just a
+// section label. The real rates should always come from the server; this
+// only covers the gap before that seed has ever run.
+const TDS_SECTIONS_FALLBACK: { value: string; label: string; rate: number }[] = [
+  { value: '194C',  label: '194C — Contractors/Sub-contractors (Individual/HUF)', rate: 1 },
+  { value: '194H',  label: '194H — Commission/Brokerage', rate: 2 },
+  { value: '194I',  label: '194I — Rent (Land/Building/Furniture)', rate: 10 },
+  { value: '194J',  label: '194J — Professional/Technical Fees', rate: 10 },
+  { value: '194JA', label: '194JA — Professional Fees (Individual/HUF)', rate: 2 },
+  { value: '194R',  label: '194R — Benefits/Perquisites', rate: 10 },
 ];
 
 @Component({
   selector: 'app-payment-receipt-voucher',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, ToastModule, InventoryScreenShell],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, ToastModule, InventoryScreenShell, PaymentModeSelectorComponent],
   providers: [MessageService],
   templateUrl: './payment-receipt-voucher.html',
   styleUrl: './payment-receipt-voucher.scss'
@@ -59,14 +52,43 @@ export class PaymentReceiptVoucherComponent {
   private readonly footerOffset = inject(StickyFooterOffsetService);
   private readonly messageService = inject(MessageService);
 
-  readonly modeDefs = MODE_DEFS;
-  readonly tdsSections = TDS_SECTIONS;
+  @ViewChildren(PaymentModeSelectorComponent) modeSelectors!: QueryList<PaymentModeSelectorComponent>;
+
   readonly Math = Math;
+
+  // Item 21: live section/rate master, fetched once (mode-independent — TDS
+  // codes aren't per-vendor/customer). Falls back to the hardcoded list only
+  // if the server ever returns nothing (e.g. before 149's seed has run).
+  //
+  // Option `value` is a composite "sectionCode|deducteeType" key, not just
+  // the section code — 194C alone has two different live rates (1% for
+  // Individual/HUF, 2% for Company/Firm/Others), so section code alone
+  // can't uniquely resolve a rate. `tdsSectionCode()` below strips the
+  // composite back down to the plain code for the save payload/backend,
+  // which only ever stored a bare section string.
+  readonly tdsCodes = signal<TdsCode[]>([]);
+  readonly tdsSectionOptions = computed(() => {
+    const live = this.tdsCodes();
+    if (live.length) {
+      return live.map(c => ({
+        value: `${c.section_code}|${c.deductee_type || ''}`,
+        label: `${c.section_code} — ${c.description || ''}${c.deductee_type ? ` (${c.deductee_type})` : ''}`.trim()
+      }));
+    }
+    return TDS_SECTIONS_FALLBACK.map(s => ({ value: s.value, label: s.label }));
+  });
 
   readonly mode = signal<VoucherMode>('pay');
   readonly parties = signal<(VendorItem | CustomerItem)[]>([]);
   readonly loadingParties = signal(false);
   readonly selectedPartyId = signal<number | null>(null);
+
+  // Item 22: TCS — vendor-level FY-cumulative-purchases threshold, Vendor
+  // Payment only. Unlike TDS's per-invoice Service gate, this is fetched
+  // once per selected vendor (not per invoice) since it depends on the
+  // vendor's whole-year purchase history, not what's on this voucher.
+  readonly vendorFySummary = signal<VendorFyPurchaseSummary | null>(null);
+  readonly tcsPercentageInput = signal<string>('');
 
   readonly outstandingInvoices = signal<OutstandingInvoice[]>([]);
   readonly loadingInvoices = signal(false);
@@ -80,8 +102,6 @@ export class PaymentReceiptVoucherComponent {
 
   readonly modeRows = signal<ModeRow[]>([]);
   readonly narration = signal('');
-  readonly tdsApplicable = signal(false);
-  readonly tdsAmount = signal<number>(0);
   readonly tdsSection = signal<string>('');
   readonly voucherDate = signal<string>(new Date().toISOString().slice(0, 10));
 
@@ -143,6 +163,72 @@ export class PaymentReceiptVoucherComponent {
   });
   readonly taxableInAllocated = computed(() => Math.max(0, this.totalAllocated() - this.gstInAllocated()));
 
+  // Item 21: TDS only applies to a Vendor Payment (mode 'pay'), and only
+  // when at least one selected invoice carries a Service line item —
+  // sp_get_outstanding_invoices now returns has_service_item per invoice
+  // for exactly this gate.
+  readonly hasServiceAllocation = computed(() => {
+    if (this.mode() !== 'pay') return false;
+    const ids = this.selectedInvoiceIds();
+    return this.outstandingInvoices().some(inv => ids.has(inv.invoice_id) && inv.has_service_item);
+  });
+
+  // Kept as its own name (rather than inlining hasServiceAllocation()
+  // everywhere) since the template and save() already read it as
+  // "is TDS applicable" — it's just no longer independently settable.
+  readonly tdsApplicable = computed(() => this.hasServiceAllocation());
+
+  // Real TDS base excludes GST (CBDT circular) — taxableInAllocated() is
+  // exactly that once invoices are selected; before any invoice is picked
+  // there's no GST split available yet, so quickAmount() is used as-is.
+  readonly tdsBaseAmount = computed(() =>
+    this.selectedInvoiceIds().size > 0 ? this.taxableInAllocated() : this.quickAmount()
+  );
+
+  readonly tdsSectionCode = computed(() => this.tdsSection().split('|')[0] || '');
+  readonly tdsDeducteeType = computed(() => this.tdsSection().split('|')[1] || '');
+
+  readonly tdsRate = computed(() => {
+    const [code, deductee] = this.tdsSection().split('|');
+    if (!code) return 0;
+    const live = this.tdsCodes();
+    if (live.length) {
+      const match = live.find(c => c.section_code === code && (c.deductee_type || '') === (deductee || ''));
+      return match?.rate ?? 0;
+    }
+    return TDS_SECTIONS_FALLBACK.find(s => s.value === code)?.rate ?? 0;
+  });
+
+  // Auto-computed, not manually typed — item 21's "shown automatically with
+  // the percentage and amount" requirement. Zero unless TDS is applicable
+  // AND a section has actually been picked (rate otherwise unknown).
+  readonly tdsAmount = computed(() =>
+    this.tdsApplicable() && this.tdsSection() && this.tdsRate() > 0
+      ? Math.round(this.tdsBaseAmount() * this.tdsRate() / 100 * 100) / 100
+      : 0
+  );
+
+  // Item 22: TCS applicability is a Vendor Payment / Purchase-only, vendor-
+  // level gate — "enabled" once this vendor's FY-cumulative posted Purchase
+  // Invoice total has crossed ₹50L, independent of what's on THIS voucher
+  // (unlike TDS's per-invoice Service check).
+  readonly tcsThresholdCrossed = computed(() =>
+    this.mode() === 'pay' && !!this.vendorFySummary()?.threshold_crossed
+  );
+
+  readonly tcsPercentage = computed(() => this.parseAmt(this.tcsPercentageInput()));
+
+  // No rate master for TCS (per the user's own spec: "provide a small text
+  // box to enter the percentage") — a manually-typed rate applied to the
+  // same "amount of this payment" base referenceTotal() already represents
+  // (GST-inclusive, unlike TDS's taxableInAllocated() base — no CBDT
+  // GST-exclusion circular applies to TCS the way it does to TDS).
+  readonly tcsAmount = computed(() =>
+    this.tcsThresholdCrossed() && this.tcsPercentage() > 0
+      ? Math.round(this.referenceTotal() * this.tcsPercentage() / 100 * 100) / 100
+      : 0
+  );
+
   // Debit/Credit Note value applied against this voucher — nets off the
   // invoice total, so cash/bank modes only need to cover what's left.
   readonly totalNotesApplied = computed(() => {
@@ -154,7 +240,7 @@ export class PaymentReceiptVoucherComponent {
 
   readonly modeTotal = computed(() => this.modeRows().reduce((s, r) => s + (r.amount || 0), 0));
 
-  readonly onAccountAmount = computed(() => Math.max(0, this.modeTotal() + this.totalNotesApplied() + this.tdsAmount() - this.totalAllocated()));
+  readonly onAccountAmount = computed(() => Math.max(0, this.modeTotal() + this.totalNotesApplied() + this.tdsAmount() + this.tcsAmount() - this.totalAllocated()));
   readonly netAmount = computed(() => Math.max(0, this.modeTotal()));
 
   // What the mode-total should match: the selected invoices' allocated total
@@ -164,7 +250,7 @@ export class PaymentReceiptVoucherComponent {
   readonly referenceTotal = computed(() => Math.max(0,
     (this.selectedInvoiceIds().size > 0 ? this.totalAllocated() : this.quickAmount()) - this.totalNotesApplied()
   ));
-  readonly modeDiff = computed(() => this.modeTotal() - (this.referenceTotal() - this.tdsAmount()));
+  readonly modeDiff = computed(() => this.modeTotal() - (this.referenceTotal() - this.tdsAmount() - this.tcsAmount()));
   readonly modeShort = computed(() => this.modeDiff() < -0.005);
 
   readonly canSave = computed(() =>
@@ -180,6 +266,18 @@ export class PaymentReceiptVoucherComponent {
     // Push the global SOS button up above this page's own sticky footer while it's visible.
     effect(() => this.footerOffset.set(this.selectedParty() ? 100 : 0));
     this.destroyRef.onDestroy(() => this.footerOffset.clear());
+
+    // Item 21: clear a stale section pick the moment the Service condition
+    // that justified it stops holding (e.g. the user un-ticks the one
+    // Service invoice) — tdsApplicable itself is now just an alias for
+    // hasServiceAllocation() (see its getter below), no separate manual
+    // toggle to keep in sync.
+    effect(() => { if (!this.hasServiceAllocation()) this.tdsSection.set(''); });
+
+    this.paymentsService.getTdsCodes().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => this.tdsCodes.set(res.data ?? []),
+      error: () => this.tdsCodes.set([])
+    });
   }
 
   today(): string { return new Date().toISOString().slice(0, 10); }
@@ -209,9 +307,9 @@ export class PaymentReceiptVoucherComponent {
     this.quickAmount.set(0);
     this.modeRows.set([]);
     this.narration.set('');
-    this.tdsApplicable.set(false);
-    this.tdsAmount.set(0);
     this.tdsSection.set('');
+    this.vendorFySummary.set(null);
+    this.tcsPercentageInput.set('');
     this.saveMsg.set('');
     this.saveError.set('');
     this.loadParties();
@@ -249,6 +347,8 @@ export class PaymentReceiptVoucherComponent {
     this.noteApplyAmounts.set({});
     this.quickAmount.set(0);
     this.modeRows.set([]);
+    this.vendorFySummary.set(null);
+    this.tcsPercentageInput.set('');
     if (!partyId) return;
     this.loadingInvoices.set(true);
     this.paymentsService.getOutstandingInvoices(this.partyType(), partyId)
@@ -263,7 +363,18 @@ export class PaymentReceiptVoucherComponent {
         next: res => this.availableNotes.set(res.data ?? []),
         error: () => this.availableNotes.set([])
       });
+    // Item 22: vendor-level FY threshold check, Vendor Payment only.
+    if (this.mode() === 'pay') {
+      this.paymentsService.getVendorFyPurchaseSummary(partyId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: res => this.vendorFySummary.set(res.data ?? null),
+          error: () => this.vendorFySummary.set(null)
+        });
+    }
   }
+
+  setTcsPercentage(value: string): void { this.tcsPercentageInput.set(value); }
 
   toggleInvoice(inv: OutstandingInvoice, checked: boolean): void {
     const ids = new Set(this.selectedInvoiceIds());
@@ -345,14 +456,10 @@ export class PaymentReceiptVoucherComponent {
     this.noteApplyAmounts.set({});
     this.quickAmount.set(0);
     this.modeRows.set([]);
-    this.tdsAmount.set(0);
     this.tdsSection.set('');
   }
 
-  toggleTds(on: boolean): void {
-    this.tdsApplicable.set(on);
-    if (!on) { this.tdsAmount.set(0); this.tdsSection.set(''); }
-  }
+  setTdsSection(value: string): void { this.tdsSection.set(value); }
 
   parseAmt(v: string): number {
     const n = parseFloat(String(v).replace(/[^0-9.]/g, ''));
@@ -379,22 +486,43 @@ export class PaymentReceiptVoucherComponent {
     if (amt > 0.005) this.saveMsg.set(`${this.fmt(amt)} left unallocated after auto-allocating.`);
   }
 
-  addMode(defKey: string): void {
+  addMode(): void {
     const remain = Math.max(0, this.referenceTotal() - this.modeTotal());
-    this.modeRows.update(rows => [...rows, { modeKey: defKey, amount: remain, refJson: {} }]);
+    this.modeRows.update(rows => [...rows, { details: defaultPaymentModeValue(), amount: remain }]);
   }
   removeMode(idx: number): void { this.modeRows.update(rows => rows.filter((_, i) => i !== idx)); }
   setModeAmount(idx: number, value: string): void {
     const v = this.parseAmt(value);
     this.modeRows.update(rows => rows.map((r, i) => i === idx ? { ...r, amount: v } : r));
   }
-  setModeType(idx: number, key: string): void {
-    this.modeRows.update(rows => rows.map((r, i) => i === idx ? { ...r, modeKey: key, refJson: {} } : r));
+  setModeDetails(idx: number, details: PaymentModeSelectorValue): void {
+    this.modeRows.update(rows => rows.map((r, i) => i === idx ? { ...r, details } : r));
   }
-  setModeRef(idx: number, fieldKey: string, value: string): void {
-    this.modeRows.update(rows => rows.map((r, i) => i === idx ? { ...r, refJson: { ...r.refJson, [fieldKey]: value } } : r));
+
+  // Flattens the shared component's rich output into the flat string map
+  // `inv_payment_voucher_modes.ref_json` (JSONB) already expects -- no
+  // backend/schema changes needed, this just slots the same shape in.
+  private buildRefJson(d: PaymentModeSelectorValue): Record<string, string> {
+    const json: Record<string, string> = {};
+    const put = (k: string, v: string | number | null | undefined) => { if (v !== null && v !== undefined && v !== '') json[k] = String(v); };
+    if (d.mode === 'BANK') {
+      put('bankSubType', d.bankSubType);
+      put('bankId', d.bankId);
+      put('bankName', d.bankName);
+      put('branchName', d.branchName);
+      put('accountNumber', d.accountNumber);
+      put(d.bankSubType === 'CHEQUE' ? 'chequeNumber' : 'referenceNumber', d.refNumber);
+      put(d.bankSubType === 'CHEQUE' ? 'chequeDate' : 'transactionDate', d.refDate);
+      put('cardNumber', d.cardNumber);
+      put('bankFinancialServices', d.bankFinancialServices);
+      put('typeOfPayment', d.typeOfPayment);
+      put('upiId', d.upiId);
+      put('depositBankId', d.depositBankId);
+      put('depositBankName', d.depositBankName);
+    }
+    put('summary', d.summary);
+    return json;
   }
-  modeDef(key: string): ModeDef { return this.modeDefs.find(m => m.key === key) ?? this.modeDefs[0]; }
 
   openDrawer(inv: OutstandingInvoice): void {
     this.drawerInvoice.set(inv);
@@ -428,12 +556,19 @@ export class PaymentReceiptVoucherComponent {
         invoiceNumber: n.note_number,
         allocatedAmount: this.noteApplyFor(n)
       }));
-    const modes = this.modeRows().filter(r => r.amount > 0).map(r => ({ modeKey: r.modeKey, amount: r.amount, refJson: r.refJson }));
+    const activeModeRows = this.modeRows().filter(r => r.amount > 0);
+    const invalidRow = activeModeRows.find(r => !r.details.isValid);
+    if (invalidRow) {
+      this.saveError.set('Complete the required fields for each ' + (this.mode() === 'pay' ? 'payment' : 'receipt') + ' mode before saving.');
+      this.modeSelectors?.forEach(c => c.markAllTouched());
+      return;
+    }
+    const modes = activeModeRows.map(r => ({ modeKey: r.details.modeKey, amount: r.amount, refJson: this.buildRefJson(r.details) }));
 
     if (allocations.length === 0 && noteAllocations.length === 0 && modes.length === 0) { this.saveError.set('Nothing to save — allocate an amount.'); return; }
     if (modes.length === 0 && this.referenceTotal() > 0.005) { this.saveError.set('Add at least one ' + (this.mode() === 'pay' ? 'payment' : 'receipt') + ' mode.'); return; }
-    if (this.mode() === 'pay' && this.tdsApplicable() && this.tdsAmount() > 0 && !this.tdsSection()) {
-      this.saveError.set('Select a TDS section.');
+    if (this.mode() === 'pay' && this.tdsApplicable() && !this.tdsSection()) {
+      this.saveError.set('This payment includes a Service invoice — select the applicable TDS section.');
       return;
     }
 
@@ -449,7 +584,9 @@ export class PaymentReceiptVoucherComponent {
       partyGstin: (party as VendorItem).gstin,
       narration: this.narration(),
       tdsAmount: this.mode() === 'pay' ? this.tdsAmount() : 0,
-      tdsSection: this.mode() === 'pay' ? this.tdsSection() : undefined,
+      tdsSection: this.mode() === 'pay' ? this.tdsSectionCode() : undefined,
+      tcsAmount: this.mode() === 'pay' ? this.tcsAmount() : 0,
+      tcsPercentage: this.mode() === 'pay' && this.tcsPercentage() > 0 ? this.tcsPercentage() : null,
       allocations: [...allocations, ...noteAllocations],
       modes
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

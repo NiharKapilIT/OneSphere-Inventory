@@ -1,0 +1,11 @@
+<div class="chart-wrap donut-wrap" [style.height]="height()">
+  @if (hasData()) {
+    <canvas baseChart [data]="chartData()" [options]="chartOptions()" type="doughnut"></canvas>
+    <div class="donut-center">
+      <strong>{{ centerValue() }}</strong>
+      <span>{{ centerLabel() }}</span>
+    </div>
+  } @else {
+    <div class="chart-empty">No data for this period.</div>
+  }
+</div>

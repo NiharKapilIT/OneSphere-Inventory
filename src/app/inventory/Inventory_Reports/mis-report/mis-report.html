@@ -1,0 +1,141 @@
+<div class="module-page inventory-page inventory-report-page mis-page">
+  <div class="inventory-shell">
+
+    @if (!canView()) {
+      <section class="inventory-section inventory-report-section mis-blocked">
+        <i class="pi pi-lock"></i>
+        <h3>Admin access required</h3>
+        <p>The MIS Report is restricted to Company Admins. Contact your administrator to request access.</p>
+      </section>
+    } @else {
+      <div class="inventory-report-header-card">
+        <div class="inventory-header inventory-report-header">
+          <div class="inventory-report-header-title">
+            <div class="inventory-report-header-title-row">
+              <span class="inventory-kicker"><i class="pi pi-shield"></i> Admin Reports</span>
+            </div>
+            <h2><i class="pi pi-th-large"></i> MIS Report</h2>
+            <p>Company-wide Sales, Purchases, Stock Value, Payables/Receivables with ageing and top products, plus the same KPIs broken down by Business Segment.</p>
+          </div>
+
+          <div class="inventory-report-header-filters">
+            <div class="inventory-report-filter mis-date-filter">
+              <label title="Date From"><i class="pi pi-calendar"></i> Date From</label>
+              <input
+                class="erp-input"
+                type="date"
+                [ngModel]="dateFrom()"
+                (ngModelChange)="onDateFromChange($event)"
+              />
+            </div>
+            <div class="inventory-report-filter mis-date-filter">
+              <label title="Date To"><i class="pi pi-calendar"></i> Date To</label>
+              <input
+                class="erp-input"
+                type="date"
+                [ngModel]="dateTo()"
+                (ngModelChange)="onDateToChange($event)"
+              />
+            </div>
+          </div>
+        </div>
+
+        <section class="inventory-report-toolbar-band">
+          <div class="inventory-report-toolbar-cluster">
+            <button type="button" class="erp-btn btn-primary btn-sm" title="Generate" (click)="generate()">
+              <i class="pi pi-refresh"></i> Generate
+            </button>
+            @if (report(); as result) {
+              <span class="mis-fy-badge" title="Financial year this snapshot is scoped to">
+                {{ result.financialYear }} &middot; {{ formatDate(result.dateFrom) }} - {{ formatDate(result.dateTo) }}
+              </span>
+            }
+          </div>
+        </section>
+      </div>
+
+      @if (errorMessage()) {
+        <div class="inventory-report-message error"><i class="pi pi-exclamation-triangle"></i> {{ errorMessage() }}</div>
+      }
+
+      @if (loading()) {
+        <section class="inventory-section inventory-report-section mis-loading">
+          <i class="pi pi-spin pi-spinner"></i> Building the MIS report...
+        </section>
+      } @else if (hasResult()) {
+        @if (companyWide(); as cw) {
+          <section class="inventory-report-summary-grid inventory-report-summary-grid--owner">
+            <app-stat-card label="Sales" [value]="formatCurrency(cw.sales)" note="Posted Sales Invoices, in period" icon="pi pi-arrow-circle-up" tone="green"></app-stat-card>
+            <app-stat-card label="Purchases" [value]="formatCurrency(cw.purchases)" note="Posted Purchase Invoices, in period" icon="pi pi-arrow-circle-down" tone="blue"></app-stat-card>
+            <app-stat-card label="Stock Value" [value]="formatCurrency(cw.stockValue)" note="Qty on hand x cost price, today" icon="pi pi-chart-bar" tone="green"></app-stat-card>
+            <app-stat-card label="Payables" [value]="formatCurrency(cw.payables)" note="Outstanding to vendors, today" icon="pi pi-wallet" tone="rose"></app-stat-card>
+            <app-stat-card label="Receivables" [value]="formatCurrency(cw.receivables)" note="Outstanding from customers, today" icon="pi pi-inbox" tone="blue"></app-stat-card>
+          </section>
+
+          <section class="inventory-section inventory-report-section">
+            <h3>Payables &amp; Receivables</h3>
+            <div class="mis-chart-row">
+              <div class="mis-chart-col mis-chart-col--wide">
+                <h4>Ageing</h4>
+                <div class="mis-ageing-pair">
+                  <app-bar-chart [labels]="payablesAgeingLabels()" [series]="payablesAgeingChart()" valuePrefix="Rs. " height="200px"></app-bar-chart>
+                  <app-bar-chart [labels]="receivablesAgeingLabels()" [series]="receivablesAgeingChart()" valuePrefix="Rs. " height="200px"></app-bar-chart>
+                </div>
+              </div>
+              <div class="mis-chart-col">
+                <h4>Share of Outstanding</h4>
+                <app-donut-chart
+                  [slices]="payablesReceivablesSlices()"
+                  centerLabel="Outstanding"
+                  [centerValue]="formatCurrency(cw.payables + cw.receivables)"
+                  valuePrefix="Rs. "
+                  height="200px"
+                ></app-donut-chart>
+              </div>
+            </div>
+          </section>
+
+          <section class="inventory-section inventory-report-section">
+            <h3>Top Selling Products</h3>
+            <app-bar-chart [labels]="topProductsLabels()" [series]="topProductsChart()" [horizontal]="true" valuePrefix="Rs. " height="240px"></app-bar-chart>
+          </section>
+        }
+
+        <section class="inventory-section inventory-report-section">
+          <h3>Segment-wise Breakdown</h3>
+          <p class="mis-segment-subtitle">Sales, Purchases, Payables and Receivables by Business Segment, for the same period.</p>
+          <app-bar-chart [labels]="segmentChartLabels()" [series]="segmentChartSeries()" valuePrefix="Rs. " height="240px"></app-bar-chart>
+
+          <div class="tbl-wrap mis-segment-table-wrap">
+            <table class="erp-table compact inventory-report-table">
+              <thead>
+                <tr>
+                  <th>Segment</th>
+                  <th>Sales</th>
+                  <th>Purchases</th>
+                  <th>Payables</th>
+                  <th>Receivables</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (segment of segments(); track segment.segmentId) {
+                  <tr>
+                    <td>{{ segment.segmentName || 'Unassigned' }}</td>
+                    <td>{{ formatCurrency(segment.sales) }}</td>
+                    <td>{{ formatCurrency(segment.purchases) }}</td>
+                    <td>{{ formatCurrency(segment.payables) }}</td>
+                    <td>{{ formatCurrency(segment.receivables) }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="5" class="text-center p-4">No segment-tagged Purchase or Sales Invoices found for this period.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    }
+  </div>
+</div>

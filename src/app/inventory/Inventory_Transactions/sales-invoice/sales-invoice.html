@@ -95,6 +95,26 @@
               </div>
             </div>
           }
+          @if (bodyFieldByKey('channelPartner'); as field) {
+            <div class="erp-form-group inventory-header-col-6">
+              <label class="erp-label">{{ field.label }} <span class="text-danger">*</span></label>
+              <div class="inventory-field-with-add">
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="field.options || []" [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(field)"
+                  (ngModelChange)="collectFormField(field.key, $event)"
+                  placeholder="Search name or phone">
+                </ng-select>
+                @if (field.addMaster) {
+                  <button type="button" class="erp-btn btn-white btn-icon"
+                    [title]="'Add ' + field.addMaster"
+                    (click)="openAddMaster(field.addMaster, field.key)">
+                    <i class="pi pi-plus"></i>
+                  </button>
+                }
+              </div>
+            </div>
+          }
           @if (transactionReferenceField(); as refField) {
             <div class="erp-form-group">
               <label class="erp-label">{{ refField.label }}</label>
@@ -171,6 +191,30 @@
                   </button>
                 }
               </div>
+            </div>
+          }
+          @if (bodyFieldByKey('interbranchSale'); as swField) {
+            <div class="erp-form-group">
+              <label class="erp-label">{{ swField.label }}</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="fieldSwitchChecked(swField)"
+                  (change)="setFieldSwitchChecked(swField, $any($event.target).checked)" />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">{{ fieldSwitchOnLabel(swField) }}</span>
+                  <span class="switch-text switch-off">{{ fieldSwitchOffLabel(swField) }}</span>
+                </span>
+              </label>
+            </div>
+          }
+          @if (interbranchSaleEnabled() && bodyFieldByKey('branch'); as brField) {
+            <div class="erp-form-group">
+              <label class="erp-label">{{ brField.label }}</label>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="brField.options || []" [searchable]="true" [clearable]="true"
+                [ngModel]="formFieldValue(brField)"
+                (ngModelChange)="collectFormField(brField.key, $event)"
+                [placeholder]="fieldTypingHint(brField)">
+              </ng-select>
             </div>
           }
         </div>
@@ -274,6 +318,10 @@
             <div class="inventory-line-title-actions">
               <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
                 <i class="pi pi-plus"></i> Add Row
+              </button>
+              <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleMrpSellingPriceColumns()">
+                <i [class]="hideMrpSellingPrice() ? 'pi pi-eye' : 'pi pi-eye-slash'"></i>
+                {{ hideMrpSellingPrice() ? 'Show MRP/Selling Price' : 'Hide MRP/Selling Price' }}
               </button>
               <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
                 <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
@@ -382,6 +430,37 @@
                                 <i class="pi pi-times"></i>
                               </button>
                             </small>
+                          }
+                        }
+                        @if (lineGridColumnIsProduct(column)) {
+                          @if (lineColumnAppliesToRow(row, 'Variant')) {
+                            <div class="inventory-line-subcell">
+                              @let variantColumnIndex = lineGridSourceColumnIndex('Variant');
+                              @let variantCellView = variantColumnIndex >= 0 ? rowView?.columns?.[variantColumnIndex] : null;
+                              @if (lineGridCellReadonly(rowIndex, row, 'Variant')) {
+                                <small class="inventory-grid-subtitle">{{ lineGridReadonlyCellText(rowIndex, row, 'Variant', variantCellView, rowView) }}</small>
+                              } @else if (variantCellView?.options?.length) {
+                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm" appendTo="body"
+                                  [items]="variantCellView?.options || []" [searchable]="true" [clearable]="false"
+                                  [ngModel]="variantCellView?.controlValue"
+                                  (ngModelChange)="setEntryLineCell(rowIndex, variantColumnIndex, $event)"
+                                  placeholder="Variant">
+                                </ng-select>
+                              }
+                            </div>
+                          }
+                          @for (attr of rowView?.attrSelections || []; track attr.name) {
+                            <div class="inventory-line-subcell">
+                              @if (attr.isAuto) {
+                                <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || '—' }}</small>
+                              } @else {
+                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
+                                  [items]="attr.options" [searchable]="false" [clearable]="false"
+                                  [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
+                                  [placeholder]="attr.name">
+                                </ng-select>
+                              }
+                            </div>
                           }
                         }
                       </td>
@@ -619,11 +698,13 @@
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="runGridToolbarAction('records', 'print')"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          @if (showGridToolbarExportIcons()) {
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print" (click)="runGridToolbarAction('records', 'print')"><i class="pi pi-print"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
+          }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
@@ -698,7 +779,16 @@
                             @for (item of siItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of siColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
+                                  <td>
+                                    @if (column.key === 'product') {
+                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      @if (grnExpandedProductSubtitle(item); as subtitle) {
+                                        <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
+                                      }
+                                    } @else {
+                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                    }
+                                  </td>
                                 }
                               </tr>
                             }
@@ -860,6 +950,39 @@
         <div class="inventory-confirm-actions">
           <button type="button" class="erp-btn btn-white" (click)="resolveConfirmDialog(false)">{{ dialog.cancelLabel }}</button>
           <button type="button" class="erp-btn" [class.btn-warning]="dialog.tone === 'warning'" [class.btn-danger]="dialog.tone === 'danger'" (click)="resolveConfirmDialog(true)">{{ dialog.confirmLabel }}</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (directSiDcDialog(); as siDcDialog) {
+    <div class="inventory-modal-backdrop" (click)="resolveDirectSiDcDialog(null)">
+      <div class="inventory-modal inventory-confirm-modal inventory-direct-si-dc-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-confirm-icon tone-warning">
+          <i class="pi pi-truck"></i>
+        </div>
+        <div class="inventory-modal-header">
+          <h3>{{ siDcDialog.title }}</h3>
+        </div>
+        <div class="inventory-modal-body">
+          <p>{{ siDcDialog.message }}</p>
+        </div>
+        <div class="inventory-direct-si-dc-options">
+          <button type="button" class="inventory-direct-si-dc-option" (click)="resolveDirectSiDcDialog('onlyInvoice')">
+            <strong>Only Invoice</strong>
+            <span>Post this Sales Invoice alone. No Delivery Challan is created.</span>
+          </button>
+          <button type="button" class="inventory-direct-si-dc-option" (click)="resolveDirectSiDcDialog('invoiceWithDc')">
+            <strong>Invoice with DC</strong>
+            <span>Post this Sales Invoice AND generate + post a matching Delivery Challan in one step. Both documents print.</span>
+          </button>
+          <button type="button" class="inventory-direct-si-dc-option" (click)="resolveDirectSiDcDialog('separateDc')">
+            <strong>Separate DC</strong>
+            <span>Post this Sales Invoice and also create a matching Delivery Challan, left as Draft for you to review before posting it.</span>
+          </button>
+        </div>
+        <div class="inventory-confirm-actions">
+          <button type="button" class="erp-btn btn-white" (click)="resolveDirectSiDcDialog(null)">Cancel</button>
         </div>
       </div>
     </div>

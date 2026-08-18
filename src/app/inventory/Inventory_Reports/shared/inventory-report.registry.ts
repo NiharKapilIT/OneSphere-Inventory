@@ -535,6 +535,50 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     ]
   }),
   phaseOneReport({
+    key: 'stockValuationComparison',
+    slug: 'stock-valuation-comparison',
+    title: 'Stock Valuation Comparison Report',
+    groupId: 'costingProfitability',
+    endpoint: 'stock-valuation-comparison',
+    icon: 'pi pi-calculator',
+    purpose: 'FIFO vs LIFO vs Weighted Average -- what each valuation method would charge for a chosen product and quantity, computed from its real open cost layers.',
+    audience: ['Business Owner', 'Accountant'],
+    filters: ['productId'],
+    columns: cols([
+      ['receivedAt', 'Received Date', 'date'],
+      ['sourceDocType', 'Source Document'],
+      ['quantity', 'Remaining Qty', 'number', true],
+      ['rate', 'Unit Cost', 'currency'],
+      ['value', 'Value', 'currency', true]
+    ]),
+    sampleRows: [
+      { product: 'Dell Computer-I7', receivedAt: '2026-08-10', sourceDocType: 'Purchase Invoice', quantity: 10, rate: 150000, value: 1500000 },
+      { product: 'Dell Computer-I7', receivedAt: '2026-08-15', sourceDocType: 'Purchase Invoice', quantity: 5, rate: 160000, value: 800000 }
+    ]
+  }),
+  phaseOneReport({
+    key: 'misReport',
+    slug: 'mis-report',
+    title: 'MIS Report',
+    groupId: 'dashboard',
+    endpoint: 'mis-report',
+    icon: 'pi pi-th-large',
+    purpose: 'Admin-only executive snapshot -- company-wide Sales, Purchases, Stock Value, Payables/Receivables with ageing and top products, plus the same KPIs broken down by Business Segment.',
+    audience: ['Admin'],
+    filters: ['fromDate', 'toDate'],
+    columns: cols([
+      ['segment', 'Segment'],
+      ['sales', 'Sales', 'currency', true],
+      ['purchases', 'Purchases', 'currency', true],
+      ['payables', 'Payables', 'currency', true],
+      ['receivables', 'Receivables', 'currency', true]
+    ]),
+    sampleRows: [
+      { segment: 'Electronics', sales: 2450000, purchases: 1820000, payables: 640000, receivables: 512000 },
+      { segment: 'Agro Product', sales: 980000, purchases: 710000, payables: 210000, receivables: 165000 }
+    ]
+  }),
+  phaseOneReport({
     key: 'auditTrail',
     slug: 'inventory-audit-trail',
     title: 'Inventory Audit Trail Report',

@@ -284,11 +284,13 @@
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          @if (showGridToolbarExportIcons()) {
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>

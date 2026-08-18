@@ -386,6 +386,29 @@ export const inventoryRoutes: Routes = [
         pathMatch: 'full'
       },
       {
+        // Bespoke comparison view (product + hypothetical qty picker, three
+        // app-stat-card panels, a bar chart, a cost-layer table) -- doesn't
+        // fit the generic flat-table report-page shell every other report
+        // below uses, so it gets its own static route. Must stay ABOVE the
+        // ':reportKey' catch-all so it matches before falling through to it.
+        path: 'stock-valuation-comparison',
+        canActivate: [screenPermissionGuard('INV_R_STOCK_VALUATION_COMPARISON')],
+        loadComponent: () => import('./Inventory_Reports/stock-valuation-comparison/stock-valuation-comparison')
+          .then(m => m.StockValuationComparisonComponent)
+      },
+      {
+        // Admin-only (screen code INV_R_MIS, 154_mis_report_screen.sql, granted
+        // only to COMPANY_ADMIN). Same bespoke-static-route precedent as
+        // stock-valuation-comparison above -- must also stay ABOVE the
+        // ':reportKey' catch-all. screenPermissionGuard itself is non-blocking
+        // (warns, still loads), so the real gate is this component's own
+        // explicit authService.can('INV_R_MIS','view') check.
+        path: 'mis-report',
+        canActivate: [screenPermissionGuard('INV_R_MIS')],
+        loadComponent: () => import('./Inventory_Reports/mis-report/mis-report')
+          .then(m => m.MisReportComponent)
+      },
+      {
         path: ':reportKey',
         canActivate: [reportPermissionGuard],
         loadComponent: () => import('./Inventory_Reports/report-page/inventory-report-page')

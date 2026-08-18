@@ -62,6 +62,19 @@
             placeholder="Auto-fills from name" />
         </div>
 
+        <!-- Branch -->
+        <div class="erp-form-group">
+          <label class="erp-label">Branch</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="branchOptions()"
+            [searchable]="true"
+            [clearable]="true"
+            [ngModel]="branch()"
+            (ngModelChange)="onBranchChange($event)"
+            placeholder="Select branch">
+          </ng-select>
+        </div>
+
         <!-- State -->
         <div class="erp-form-group">
           <label class="erp-label">State</label>
@@ -196,6 +209,7 @@
                 <th>Warehouse Name</th>
                 <th>Code</th>
                 <th>Segment</th>
+                <th>Branch</th>
                 <th>State / District</th>
                 <th>Capacity</th>
                 <th>Default</th>
@@ -211,6 +225,7 @@
                   </td>
                   <td><span class="erp-badge badge-info">{{ row.warehouse_code || '—' }}</span></td>
                   <td>{{ row._segment_name || '—' }}</td>
+                  <td>{{ row._branch_name || '—' }}</td>
                   <td>{{ row.state || '—' }} {{ row.district ? '/ ' + row.district : '' }}</td>
                   <td>{{ row.capacity ? row.capacity + ' ' + row.capacity_unit : '—' }}</td>
                   <td>{{ row.is_default ? 'Yes' : 'No' }}</td>
@@ -264,6 +279,7 @@
                 <th>Code</th>
                 <th>Warehouse Name</th>
                 <th>Segment</th>
+                <th>Branch</th>
                 <th>State</th>
                 <th>District</th>
                 <th>City</th>
@@ -279,6 +295,7 @@
                   <td><span class="erp-badge badge-info">{{ wh.warehouse_code }}</span></td>
                   <td><strong>{{ wh.warehouse_name }}</strong></td>
                   <td>{{ segmentName(wh.segment_id) }}</td>
+                  <td>{{ branchNameForId(wh.branch_id) || '—' }}</td>
                   <td>{{ wh.state    || '—' }}</td>
                   <td>{{ wh.district || '—' }}</td>
                   <td>{{ wh.city    || '—' }}</td>

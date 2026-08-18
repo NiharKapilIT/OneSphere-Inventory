@@ -122,10 +122,10 @@ export class NavigationService {
                 { id: 'sales-invoice', name: 'Sales Invoice', route: '/dashboard/inventory/transactions/sales-invoice', group: 'Sales' },
                 { id: 'sales-return', name: 'Sales Return', route: '/dashboard/inventory/transactions/sales-return', group: 'Sales' },
                 // Inventory
-                { id: 'stock-transfer', name: 'Stock Transfer', route: '/dashboard/inventory/transactions/stock-transfer', group: 'Inventory', disabled: true },
-                { id: 'stock-adjustment', name: 'Stock Adjustment', route: '/dashboard/inventory/transactions/stock-adjustment', group: 'Inventory', disabled: true },
-                { id: 'opening-stock-entry', name: 'Opening Stock Entry', route: '/dashboard/inventory/transactions/opening-stock-entry', group: 'Inventory', disabled: true },
-                { id: 'cycle-count', name: 'Cycle Count', route: '/dashboard/inventory/transactions/cycle-count', group: 'Inventory', disabled: true },
+                { id: 'stock-transfer', name: 'Stock Transfer', route: '/dashboard/inventory/transactions/stock-transfer', group: 'Inventory' },
+                { id: 'stock-adjustment', name: 'Stock Adjustment', route: '/dashboard/inventory/transactions/stock-adjustment', group: 'Inventory' },
+                { id: 'opening-stock-entry', name: 'Opening Stock Entry', route: '/dashboard/inventory/transactions/opening-stock-entry', group: 'Inventory' },
+                { id: 'cycle-count', name: 'Cycle Count', route: '/dashboard/inventory/transactions/cycle-count', group: 'Inventory' },
                 // Manufacturing
                 { id: 'production-planning', name: 'Production Planning', route: '/dashboard/inventory/transactions/production-planning', group: 'Manufacturing', disabled: true },
                 { id: 'material-issue-production', name: 'Material Issue for Production', route: '/dashboard/inventory/transactions/material-issue-production', group: 'Manufacturing', disabled: true },

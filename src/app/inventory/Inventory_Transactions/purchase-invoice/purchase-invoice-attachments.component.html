@@ -1,0 +1,96 @@
+<div class="erp-form-group purchase-invoice-attachment-field">
+  <label class="erp-label">Attachment Ref</label>
+
+  <div class="purchase-invoice-attachment-box" [class.is-busy]="uploadPending()">
+    <div class="purchase-invoice-attachment-toolbar">
+      <label class="purchase-invoice-file-picker" [class.is-disabled]="uploadPending()" title="Attach file">
+        <input type="file" [attr.accept]="acceptAttr" [disabled]="uploadPending()" (change)="onFileSelected($event)" />
+        <i [class]="uploadPending() ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'"></i>
+        <span>{{ uploadPending() ? 'Uploading' : 'Attach' }}</span>
+      </label>
+
+      @if (loading()) {
+        <span class="purchase-invoice-attachment-state"><i class="pi pi-spin pi-spinner"></i> Loading</span>
+      } @else if (pendingFileName()) {
+        <span class="purchase-invoice-attachment-state">Pending</span>
+      } @else {
+        <span class="purchase-invoice-attachment-state">
+          {{ attachments().length ? attachments().length + ' ref' + (attachments().length > 1 ? 's' : '') : 'No ref' }}
+        </span>
+      }
+    </div>
+
+    @if (uploadError()) {
+      <div class="inventory-error-msg purchase-invoice-attachment-error">{{ uploadError() }}</div>
+    }
+    @if (listError()) {
+      <div class="inventory-error-msg purchase-invoice-attachment-error">{{ listError() }}</div>
+    }
+
+    <div class="purchase-invoice-attachment-refs">
+      @if (pendingFileName()) {
+        <div class="purchase-invoice-attachment-ref-row purchase-invoice-attachment-ref-row--pending">
+          <span class="purchase-invoice-attachment-pending" [title]="pendingFileName()">{{ pendingFileName() }}</span>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm purchase-invoice-attachment-icon"
+            title="Clear selected file"
+            aria-label="Clear selected file"
+            (click)="clearPendingAttachment()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      } @else if (!loading() && !attachments().length) {
+        <span class="purchase-invoice-attachment-empty">Attach file here, then Save Draft.</span>
+      }
+
+      @for (attachment of attachments(); track attachment.id; let refIndex = $index) {
+        <div class="purchase-invoice-attachment-ref-row">
+          <button type="button" class="purchase-invoice-attachment-ref-link"
+            [title]="attachment.fileName"
+            [attr.aria-label]="'Preview ' + attachment.fileName"
+            (click)="preview(attachment)">
+            Ref {{ refIndex + 1 }}
+          </button>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm purchase-invoice-attachment-icon"
+            title="Download"
+            [attr.aria-label]="'Download ' + attachment.fileName"
+            (click)="download(attachment)">
+            <i class="pi pi-download"></i>
+          </button>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm purchase-invoice-attachment-icon"
+            title="Remove"
+            [disabled]="deletingId() === attachment.id"
+            [attr.aria-label]="'Remove ' + attachment.fileName"
+            (click)="remove(attachment)">
+            <i [class]="deletingId() === attachment.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"></i>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+@if (previewOpen()) {
+  <div class="inventory-modal-backdrop" (click)="closePreview()">
+    <div class="inventory-modal purchase-invoice-attachment-modal" (click)="$event.stopPropagation()">
+      <div class="inventory-modal-header">
+        <h3>{{ previewName() }}</h3>
+        <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePreview()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      <div class="inventory-modal-body">
+        @if (previewLoading()) {
+          <p class="inventory-field-hint"><i class="pi pi-spin pi-spinner"></i> Loading preview...</p>
+        } @else if (previewError()) {
+          <div class="inventory-error-msg">{{ previewError() }}</div>
+        } @else if (previewKind() === 'image' && previewImgUrl()) {
+          <img class="purchase-invoice-attachment-preview-img" [src]="previewImgUrl()" [attr.alt]="previewName()" />
+        } @else if (previewKind() === 'pdf' && previewFrameUrl()) {
+          <iframe class="purchase-invoice-attachment-preview-frame" [src]="previewFrameUrl()" title="Attachment preview"></iframe>
+        } @else {
+          <p class="inventory-field-hint">Preview is not available for this file type. Use Download instead.</p>
+        }
+      </div>
+    </div>
+  </div>
+}

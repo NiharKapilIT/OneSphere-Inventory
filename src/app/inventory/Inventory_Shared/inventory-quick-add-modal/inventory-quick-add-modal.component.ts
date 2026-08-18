@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { QuickAddCategoryComponent } from '../quick-add-category/quick-add-category.component';
 import { HsnSacPickerComponent } from '../hsn-sac-picker/hsn-sac-picker.component';
+import { InventoryPartyFormComponent } from '../inventory-party-form/inventory-party-form.component';
 
 @Component({
   selector: 'app-inventory-quick-add-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule, QuickAddCategoryComponent, HsnSacPickerComponent],
+  imports: [CommonModule, FormsModule, NgSelectModule, QuickAddCategoryComponent, HsnSacPickerComponent, InventoryPartyFormComponent],
   templateUrl: './inventory-quick-add-modal.component.html'
 })
 export class InventoryQuickAddModalComponent {

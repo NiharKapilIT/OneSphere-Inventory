@@ -1,0 +1,209 @@
+<div class="inventory-branch-form">
+
+  <div class="inventory-duplicate-advice">
+    <strong>Global Contact source</strong>
+    <span>{{ partyLabel }} can be a company or an individual. Search and select from Global Contact so mobile, email, GSTIN, PAN and address can bind automatically. Use Contact Person only when a separate person must be mapped for a company.</span>
+  </div>
+
+  <div class="inventory-fieldset">
+    <div class="inventory-fieldset-title">{{ partyLabel }} Identity</div>
+    <div class="inventory-form-grid inventory-config-grid">
+      <div class="erp-form-group span-2">
+        <label class="erp-label">{{ partyLabel }} Name / Company Name</label>
+        <div class="inventory-field-with-add">
+          <ng-select
+            class="erp-ng-select inventory-ng-select"
+            appendTo="body"
+            [items]="host.partyContactOptions()"
+            bindLabel="name"
+            [searchable]="true"
+            [clearable]="true"
+            [ngModel]="selectedContact()"
+            (ngModelChange)="onContactChange($event)"
+            [placeholder]="'Type search ' + partyLabel + ' from Global Contact'">
+            <ng-template ng-option-tmp let-item="item">
+              <div class="inventory-contact-option">
+                <strong>{{ item.name }}</strong>
+                <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+              </div>
+            </ng-template>
+          </ng-select>
+          <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person')">
+            <i class="pi pi-plus"></i>
+          </button>
+        </div>
+      </div>
+
+      @if (nameCodeMode === 'quickAddSignals') {
+        <div class="erp-form-group"><label class="erp-label">{{ partyLabel }} Code</label><input class="erp-input" type="text" [ngModel]="host.quickAddCode()" (ngModelChange)="host.onQuickAddCodeChange($event)" placeholder="Auto-generated" /></div>
+        <div class="erp-form-group"><label class="erp-label">{{ partyLabel }} Name <span class="text-danger">*</span></label><input class="erp-input" type="text" [ngModel]="host.quickAddName()" (ngModelChange)="host.onQuickAddNameChange($event)" placeholder="Legal registered name" /></div>
+        <div class="erp-form-group">
+          <label class="erp-label">{{ partyLabel }} Type</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Company', 'Individual']" [searchable]="false" [clearable]="false" [ngModel]="host.formValues()[pfx('type')] || 'Company'" (ngModelChange)="host.collectFormField(pfx('type'), $event)" placeholder="Select type"></ng-select>
+        </div>
+      } @else {
+        <div class="erp-form-group"><label class="erp-label">{{ partyLabel }} Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" [ngModel]="host.formFieldValue({key:'code', label:'Code', type:'text'})" (ngModelChange)="host.collectFormField('code', $event)" /></div>
+      }
+
+      <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('pan')] || ''" (ngModelChange)="host.collectFormField(pfx('pan'), $event)" placeholder="Auto bind from Global Contact, editable" /></div>
+      <div class="erp-form-group"><label class="erp-label">Mobile No.</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('mobile')] || ''" (ngModelChange)="host.collectFormField(pfx('mobile'), $event)" placeholder="Auto bind after selection, editable" /></div>
+      <div class="erp-form-group"><label class="erp-label">Mail ID</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('email')] || ''" (ngModelChange)="host.collectFormField(pfx('email'), $event)" placeholder="Auto bind after selection, editable" /></div>
+      <div class="erp-form-group">
+        <label class="erp-label">{{ partyLabel }} Category</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="categoryOptions" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()[categoryKey()] || ''" (ngModelChange)="host.collectFormField(categoryKey(), $event)" [placeholder]="'Select ' + partyLabel + ' Category'"></ng-select>
+      </div>
+      <div class="erp-form-group span-2"><label class="erp-label">Address</label><textarea class="erp-input" rows="2" [ngModel]="host.formValues()[pfx('address')] || ''" (ngModelChange)="host.collectFormField(pfx('address'), $event)" placeholder="Auto bind from Global Contact or update address"></textarea></div>
+
+      @if (!keyPrefix) {
+        <div class="erp-form-group">
+          <label class="erp-label">State</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="host.dcAddressStates" [searchable]="true" [clearable]="true"
+            [ngModel]="host.formValues()['state'] || ''"
+            (ngModelChange)="host.onPartyStateChange($event)"
+            placeholder="Select state">
+          </ng-select>
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">District</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="host.partyDistrictOptions()" [searchable]="true" [clearable]="true"
+            [ngModel]="host.formValues()['district'] || ''"
+            (ngModelChange)="host.collectFormField('district', $event)"
+            placeholder="Select district">
+          </ng-select>
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">City / Town</label>
+          <input class="erp-input" type="text"
+            [ngModel]="host.formValues()['city'] || ''"
+            (ngModelChange)="host.collectFormField('city', $event)"
+            placeholder="City or town" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">Pincode</label>
+          <input class="erp-input" type="text" maxlength="6"
+            [ngModel]="host.formValues()['pincode'] || ''"
+            (ngModelChange)="host.onPartyPincodeChange($event)"
+            placeholder="6-digit pincode" />
+        </div>
+        @if (partyKind === 'customer') {
+          <div class="erp-form-group span-2">
+            <label class="erp-label">Shipping Address</label>
+            <textarea class="erp-input" rows="2"
+              [ngModel]="host.formValues()['shippingAddress'] || ''"
+              (ngModelChange)="host.collectFormField('shippingAddress', $event)"
+              placeholder="Leave blank if same as Address"></textarea>
+          </div>
+        }
+      } @else {
+        <div class="erp-form-group">
+          <label class="erp-label">State</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+            [items]="host.dcAddressStates" [searchable]="true" [clearable]="true"
+            [ngModel]="host.formValues()[pfx('state')] || ''"
+            (ngModelChange)="host.collectFormField(pfx('state'), $event)"
+            placeholder="Select state">
+          </ng-select>
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">City / Town</label>
+          <input class="erp-input" type="text"
+            [ngModel]="host.formValues()[pfx('city')] || ''"
+            (ngModelChange)="host.collectFormField(pfx('city'), $event)"
+            placeholder="City or town" />
+        </div>
+        <div class="erp-form-group">
+          <label class="erp-label">Pincode</label>
+          <input class="erp-input" type="text" maxlength="6"
+            [ngModel]="host.formValues()[pfx('pincode')] || ''"
+            (ngModelChange)="host.collectFormField(pfx('pincode'), $event)"
+            placeholder="6-digit pincode" />
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="inventory-fieldset">
+    <div class="inventory-fieldset-title inventory-fieldset-title-row">
+      <span>Contact Person Mapping</span>
+      <label class="inventory-labeled-switch yes-no">
+        <input type="checkbox" [checked]="host.partyContactRequired()" (change)="host.setPartyContactRequired($any($event.target).checked)" />
+        <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+      </label>
+    </div>
+    <div class="inventory-optional-hint">
+      Enable only when the {{ partyLabel.toLowerCase() }} is a company and a separate person must be mapped. If the {{ partyLabel.toLowerCase() }} itself is an individual, keep this off.
+    </div>
+
+    @if (host.partyContactRequired()) {
+      <div class="inventory-form-grid inventory-config-grid">
+        <div class="erp-form-group span-2">
+          <label class="erp-label">Contact Person From Global Contact</label>
+          <div class="inventory-field-with-add">
+            <ng-select
+              class="erp-ng-select inventory-ng-select"
+              appendTo="body"
+              [items]="host.partyContactOptions()"
+              bindLabel="name"
+              [searchable]="true"
+              [clearable]="true"
+              [ngModel]="host.selectedPartyContactPerson()"
+              (ngModelChange)="host.selectPartyContactPerson($event)"
+              placeholder="Type search contact person">
+              <ng-template ng-option-tmp let-item="item">
+                <div class="inventory-contact-option">
+                  <strong>{{ item.name }}</strong>
+                  <span>{{ item.type }} · {{ item.mobile }} · {{ item.email }}</span>
+                </div>
+              </ng-template>
+            </ng-select>
+            <button type="button" class="erp-btn btn-white btn-icon" title="Add Global Contact" (click)="host.openAddMaster('Contact Person', 'contactPerson')">
+              <i class="pi pi-plus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="erp-form-group"><label class="erp-label">Contact Mobile No.</label><input class="erp-input" type="text" [value]="host.selectedPartyContactPerson()?.mobile || ''" placeholder="Auto bind after selection" readonly /></div>
+        <div class="erp-form-group"><label class="erp-label">Contact Mail ID</label><input class="erp-input" type="text" [value]="host.selectedPartyContactPerson()?.email || ''" placeholder="Auto bind after selection" readonly /></div>
+      </div>
+    }
+  </div>
+
+  <div class="inventory-fieldset">
+    <div class="inventory-fieldset-title">Commercial Setup</div>
+    <div class="inventory-form-grid inventory-config-grid">
+      <div class="erp-form-group">
+        <label class="erp-label">Payment Terms</label>
+        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.paymentTermOptions" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()[pfx('paymentTerms')] || ''" (ngModelChange)="host.collectFormField(pfx('paymentTerms'), $event)" placeholder="Select Payment Terms"></ng-select>
+      </div>
+      <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" [ngModel]="host.formValues()[pfx('creditLimit')] || 0" (ngModelChange)="host.collectFormField(pfx('creditLimit'), $event)" /></div>
+      @if (showPriceList) {
+        <div class="erp-form-group">
+          <label class="erp-label">Price List</label>
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="['Retail Price List', 'Dealer Price List', 'Corporate Price List']" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()[pfx('priceList')] || ''" (ngModelChange)="host.collectFormField(pfx('priceList'), $event)" placeholder="Select Price List"></ng-select>
+        </div>
+      }
+      <div class="erp-form-group">
+        <label class="erp-label">Status</label>
+        @if (nameCodeMode === 'quickAddSignals') {
+          <label class="inventory-labeled-switch status">
+            <input type="checkbox" [checked]="host.formValues()[pfx('status')] !== 'Inactive'" (change)="host.collectFormField(pfx('status'), $any($event.target).checked ? 'Active' : 'Inactive')" />
+            <span class="inventory-switch-track"><span class="switch-text switch-on">Active</span><span class="switch-text switch-off">Inactive</span></span>
+          </label>
+        } @else {
+          <label class="inventory-labeled-switch status">
+            <input type="checkbox" [checked]="host.fieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']})" (change)="host.setFieldSwitchChecked({key:'status', label:'Status', type:'select', options:['Active','Inactive']}, $any($event.target).checked)" />
+            <span class="inventory-switch-track">
+              <span class="switch-text switch-on">Active</span>
+              <span class="switch-text switch-off">Inactive</span>
+            </span>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+
+  <app-inventory-gstin-list [host]="host" [keyPrefix]="keyPrefix"></app-inventory-gstin-list>
+
+  <app-inventory-bank-details [host]="host" [keyPrefix]="keyPrefix"></app-inventory-bank-details>
+</div>

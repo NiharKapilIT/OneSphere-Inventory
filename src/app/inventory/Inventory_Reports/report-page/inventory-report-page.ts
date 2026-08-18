@@ -25,6 +25,7 @@ import {
 } from '../shared/inventory-report.registry';
 import { InventoryReportsService } from '../shared/inventory-reports.service';
 import { InventoryConfigService } from '../../Inventory_Shared/inventory-config.service';
+import { StatCardComponent } from '../../Inventory_Shared/stat-card/stat-card.component';
 
 interface BranchWarehouseOption {
   label: string;
@@ -35,7 +36,7 @@ interface BranchWarehouseOption {
 @Component({
   selector: 'app-inventory-report-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, StatCardComponent],
   templateUrl: './inventory-report-page.html'
 })
 export class InventoryReportPageComponent implements OnInit {
@@ -101,6 +102,7 @@ export class InventoryReportPageComponent implements OnInit {
     const set = (key: InventoryReportFilterKey, names: (string | undefined)[]): void => {
       const unique = Array.from(new Set(names.filter((name): name is string => !!name))).sort((a, b) => a.localeCompare(b));
       this.masterOptions.update(current => ({ ...current, [key]: unique }));
+      if (key === 'segmentId') this.applySingleSegmentDefault(unique);
     };
 
     const load = <T>(key: InventoryReportFilterKey, source: Observable<{ data?: T[] }>, pick: (item: T) => string | undefined): void => {
@@ -169,6 +171,17 @@ export class InventoryReportPageComponent implements OnInit {
     this.filterDefinitions().filter(filter => filter.key === 'segmentId' || filter.key === 'financialYear')
   );
 
+  readonly segmentFilterDefinition = computed(() =>
+    this.filterDefinitions().find(filter => filter.key === 'segmentId') ?? null
+  );
+
+  readonly segmentOptions = computed(() => this.segmentFilterDefinition()?.options ?? []);
+
+  readonly singleSegmentName = computed(() => {
+    const options = this.segmentOptions();
+    return options.length === 1 ? options[0] : '';
+  });
+
   // Branch/Warehouse collapse into one combined field and From/To collapse
   // into one date-range field (both rendered separately below), so they're
   // excluded from the generic primary-filter loop.
@@ -190,6 +203,10 @@ export class InventoryReportPageComponent implements OnInit {
     ...this.headerFilterDefinitions(),
     ...this.bandFilterDefinitions()
   ]);
+
+  readonly inlineFilterDefinitionsAfterSegment = computed(() =>
+    this.inlineFilterDefinitions().filter(filter => filter.key !== 'segmentId')
+  );
 
   readonly showBranchWarehouseField = computed(() => {
     const allowed = new Set(this.report().filters);
@@ -601,14 +618,26 @@ export class InventoryReportPageComponent implements OnInit {
     const today = new Date();
     const start = new Date(today.getFullYear(), today.getMonth(), 1);
     const context = this.reportsService.contextDefaults();
+    const segmentOptions = this.masterOptions().segmentId ?? [];
+    const singleSegment = segmentOptions.length === 1 ? segmentOptions[0] : '';
     return {
       branchId: [],
-      segmentId: [],
+      segmentId: singleSegment ? [singleSegment] : [],
       financialYear: [String(context.financialYear || this.currentFinancialYear())],
       fromDate: start,
       toDate: today,
       status: []
     };
+  }
+
+  private applySingleSegmentDefault(segmentOptions: string[]): void {
+    if (segmentOptions.length !== 1) return;
+    const [segment] = segmentOptions;
+    this.filters.update(filters => {
+      const currentSegments = this.filterValues(filters.segmentId ?? []);
+      if (currentSegments.length) return filters;
+      return { ...filters, segmentId: [segment] };
+    });
   }
 
   private loadPreview(message: string): void {

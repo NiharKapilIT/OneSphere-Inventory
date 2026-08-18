@@ -1,0 +1,268 @@
+<div class="pms-root">
+  <div class="erp-form-group">
+    <label class="erp-label">Mode Of {{ label }}</label>
+    <div class="erp-radio-button-group">
+      <label class="erp-radio-button">
+        <input type="radio" [name]="instanceId + '-top'" [checked]="mode() === 'CASH'" [disabled]="disabled"
+          (change)="setTopMode('CASH')">
+        <span class="button-label">Cash{{ cashBalanceLabel ? ' - ' + cashBalanceLabel : '' }}</span>
+      </label>
+      <label class="erp-radio-button">
+        <input type="radio" [name]="instanceId + '-top'" [checked]="mode() === 'BANK'" [disabled]="disabled"
+          (change)="setTopMode('BANK')">
+        <span class="button-label">Bank{{ bankBalanceLabel ? ' - ' + bankBalanceLabel : '' }}</span>
+      </label>
+    </div>
+    @if (cashLimitError) { <div class="erp-field-error">{{ cashLimitError }}</div> }
+  </div>
+
+  @if (mode() === 'BANK') {
+  <div class="pms-bank-details mt-2">
+    <h3 class="section-title mb-2">Bank Details</h3>
+
+    <div class="erp-radio-button-group mb-2">
+      @for (t of bankSubTypes; track t.key) {
+      <label class="erp-radio-button">
+        <input type="radio" [name]="instanceId + '-sub'" [checked]="bankSubType() === t.key" [disabled]="disabled"
+          (change)="setBankSubType(t.key)">
+        <span class="button-label">{{ t.label }}</span>
+      </label>
+      }
+    </div>
+
+    <!-- ── Cheque ── -->
+    @if (bankSubType() === 'CHEQUE') {
+    <div class="row g-2">
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Bank Name <span class="required">*</span></label>
+          @if (banks.length) {
+          <ng-select appendTo="body" [items]="banks" bindLabel="label" bindValue="id" [ngModel]="bankId()"
+            [ngModelOptions]="{ standalone: true }" [disabled]="disabled" placeholder="Select"
+            (change)="setBankId($event)" (close)="touch('bankName')"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="Bank Name" maxlength="40" [disabled]="disabled"
+            [ngModel]="bankName()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="setBankNameFree($event)"
+            (keypress)="blockNonLetterKey($event)" (blur)="touch('bankName')">
+          }
+          @if (bankNameError) { <div class="erp-field-error">{{ bankNameError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Branch Name <span class="required">*</span></label>
+          <input class="erp-input" type="text" placeholder="Branch Name" maxlength="30" [disabled]="disabled"
+            [ngModel]="branchName()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="setBranchName($event)"
+            (keypress)="blockNonLetterKey($event)" (blur)="touch('branchName')">
+          @if (branchNameError) { <div class="erp-field-error">{{ branchNameError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Account Number</label>
+          <input class="erp-input" type="text" inputmode="numeric" placeholder="Account Number" maxlength="20"
+            [disabled]="disabled" [ngModel]="accountNumber()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setAccountNumber($event)" (keypress)="blockNonDigitKey($event)"
+            (blur)="touch('accountNumber')">
+          @if (accountNumberError) { <div class="erp-field-error">{{ accountNumberError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Cheque No. <span class="required">*</span></label>
+          <input class="erp-input" type="text" inputmode="numeric" placeholder="Cheque No" maxlength="6"
+            [disabled]="disabled" [ngModel]="refNumber()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setRefNumber($event)" (keypress)="blockNonDigitKey($event)" (blur)="touch('refNumber')">
+          @if (refNumberError) { <div class="erp-field-error">{{ refNumberError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Cheque Date <span class="required">*</span></label>
+          <div class="erp-input-wrap erp-date-wrap">
+            <i class="pi pi-calendar erp-input-icon"></i>
+            <p-datepicker [ngModel]="refDateObj()" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy"
+              placeholder="DD-MMM-YYYY" [readonlyInput]="true" [disabled]="disabled" appendTo="body" styleClass="w-100"
+              inputStyleClass="erp-input icon-pad w-100" (ngModelChange)="setRefDate($event); touch('refDate')">
+            </p-datepicker>
+          </div>
+          @if (refDateError) { <div class="erp-field-error">{{ refDateError }}</div> }
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- ── Online ── -->
+    @if (bankSubType() === 'ONLINE') {
+    <div class="row g-2">
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Bank Name <span class="required">*</span></label>
+          @if (banks.length) {
+          <ng-select appendTo="body" [items]="banks" bindLabel="label" bindValue="id" [ngModel]="bankId()"
+            [ngModelOptions]="{ standalone: true }" [disabled]="disabled" placeholder="Select"
+            (change)="setBankId($event)" (close)="touch('bankName')"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="Bank Name" maxlength="40" [disabled]="disabled"
+            [ngModel]="bankName()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="setBankNameFree($event)"
+            (keypress)="blockNonLetterKey($event)" (blur)="touch('bankName')">
+          }
+          @if (bankNameError) { <div class="erp-field-error">{{ bankNameError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Type Of Payment <span class="required">*</span></label>
+          <ng-select appendTo="body" [items]="onlinePaymentTypes" bindLabel="label" bindValue="id"
+            [ngModel]="typeOfPayment()" [ngModelOptions]="{ standalone: true }" [disabled]="disabled"
+            placeholder="Select" (change)="setTypeOfPayment($event)" (close)="touch('typeOfPayment')"></ng-select>
+          @if (typeOfPaymentError) { <div class="erp-field-error">{{ typeOfPaymentError }}</div> }
+        </div>
+      </div>
+
+      @if (showUpi()) {
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">UPI <span class="required">*</span></label>
+          @if (upiOptions.length) {
+          <ng-select appendTo="body" [items]="upiOptions" bindLabel="label" bindValue="id" [ngModel]="upiId()"
+            [ngModelOptions]="{ standalone: true }" [disabled]="disabled" placeholder="Select"
+            (change)="setUpiId($event)" (close)="touch('upiId')"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="UPI ID" maxlength="60" [disabled]="disabled"
+            [ngModel]="upiId()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="setUpiId($event)"
+            (blur)="touch('upiId')">
+          }
+          @if (upiIdError) { <div class="erp-field-error">{{ upiIdError }}</div> }
+        </div>
+      </div>
+      }
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Reference No. <span class="required">*</span></label>
+          <input class="erp-input" type="text" inputmode="numeric" placeholder="Reference No" maxlength="25"
+            [disabled]="disabled" [ngModel]="refNumber()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setRefNumber($event)" (keypress)="blockNonDigitKey($event)" (blur)="touch('refNumber')">
+          @if (refNumberError) { <div class="erp-field-error">{{ refNumberError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Transaction Date <span class="required">*</span></label>
+          <div class="erp-input-wrap erp-date-wrap">
+            <i class="pi pi-calendar erp-input-icon"></i>
+            <p-datepicker [ngModel]="refDateObj()" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy"
+              placeholder="DD-MMM-YYYY" [readonlyInput]="true" [disabled]="disabled" appendTo="body" styleClass="w-100"
+              inputStyleClass="erp-input icon-pad w-100" (ngModelChange)="setRefDate($event); touch('refDate')">
+            </p-datepicker>
+          </div>
+          @if (refDateError) { <div class="erp-field-error">{{ refDateError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
+          @if (depositBanks.length) {
+          <ng-select appendTo="body" [items]="depositBanks" bindLabel="label" bindValue="id"
+            [ngModel]="depositBankId()" [ngModelOptions]="{ standalone: true }" [disabled]="disabled"
+            placeholder="Select" (change)="setDepositBankId($event)" (close)="touch('depositBankName')"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="Deposited Bank Name" maxlength="40" [disabled]="disabled"
+            [ngModel]="depositBankName()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setDepositBankNameFree($event)" (keypress)="blockNonLetterKey($event)"
+            (blur)="touch('depositBankName')">
+          }
+          @if (depositBankError) { <div class="erp-field-error">{{ depositBankError }}</div> }
+        </div>
+      </div>
+    </div>
+
+    @if (selectedDepositBank(); as db) {
+    @if (db.bankBookBalance !== undefined || db.passbookBalance !== undefined) {
+    <div class="d-flex gap-2 flex-wrap mb-2 mt-2">
+      @if (db.bankBookBalance !== undefined) { <span class="erp-value-pill">Bank Book - {{ db.bankBookBalance |
+        number:'1.0-0' }}</span> }
+      @if (db.passbookBalance !== undefined) { <span class="erp-badge badge-info">Pass Book - {{ db.passbookBalance |
+        number:'1.0-0' }}</span> }
+    </div>
+    }
+    }
+    }
+
+    <!-- ── Debit Card / Credit Card ── -->
+    @if (bankSubType() === 'DEBIT_CARD' || bankSubType() === 'CREDIT_CARD') {
+    <div class="row g-2">
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">{{ bankSubType() === 'DEBIT_CARD' ? 'Debit Card' : 'Credit Card' }} <span
+              class="required">*</span></label>
+          <input class="erp-input" type="text" inputmode="numeric" placeholder="XXXX XXXX XXXX XXXX" maxlength="16"
+            [disabled]="disabled" [ngModel]="cardNumber()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setCardNumber($event)" (keypress)="blockNonDigitKey($event)" (blur)="touch('cardNumber')">
+          @if (cardNumberError) { <div class="erp-field-error">{{ cardNumberError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Bank / Financial Services @if (bankSubType() === 'CREDIT_CARD') { <span
+              class="required">*</span> }</label>
+          <input class="erp-input" type="text" placeholder="SBI-Master Card"
+            [attr.maxlength]="bankSubType() === 'CREDIT_CARD' ? 40 : 25" [disabled]="disabled"
+            [ngModel]="bankFinancialServices()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setBankFinancialServices($event)" (keypress)="blockNonLetterKey($event)"
+            (blur)="touch('bankFinancialServices')">
+          @if (bankFinancialServicesError) { <div class="erp-field-error">{{ bankFinancialServicesError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Reference No. <span class="required">*</span></label>
+          <input class="erp-input" type="text" inputmode="numeric" placeholder="Reference No" maxlength="25"
+            [disabled]="disabled" [ngModel]="refNumber()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setRefNumber($event)" (keypress)="blockNonDigitKey($event)" (blur)="touch('refNumber')">
+          @if (refNumberError) { <div class="erp-field-error">{{ refNumberError }}</div> }
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Deposited Bank Name <span class="required">*</span></label>
+          @if (depositBanks.length) {
+          <ng-select appendTo="body" [items]="depositBanks" bindLabel="label" bindValue="id"
+            [ngModel]="depositBankId()" [ngModelOptions]="{ standalone: true }" [disabled]="disabled"
+            placeholder="Select" (change)="setDepositBankId($event)" (close)="touch('depositBankName')"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="Deposited Bank Name" maxlength="40" [disabled]="disabled"
+            [ngModel]="depositBankName()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setDepositBankNameFree($event)" (keypress)="blockNonLetterKey($event)"
+            (blur)="touch('depositBankName')">
+          }
+          @if (depositBankError) { <div class="erp-field-error">{{ depositBankError }}</div> }
+        </div>
+      </div>
+    </div>
+
+    @if (selectedDepositBank(); as db) {
+    @if (db.bankBookBalance !== undefined || db.passbookBalance !== undefined) {
+    <div class="d-flex gap-2 flex-wrap mb-2 mt-2">
+      @if (db.bankBookBalance !== undefined) { <span class="erp-value-pill">Bank Book - {{ db.bankBookBalance |
+        number:'1.0-0' }}</span> }
+      @if (db.passbookBalance !== undefined) { <span class="erp-badge badge-info">Pass Book - {{ db.passbookBalance |
+        number:'1.0-0' }}</span> }
+    </div>
+    }
+    }
+    }
+  </div>
+  }
+</div>

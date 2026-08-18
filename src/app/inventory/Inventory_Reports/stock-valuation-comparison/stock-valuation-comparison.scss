@@ -1,0 +1,67 @@
+// Scoped to this component only -- the shared/global classes reused in the
+// template (module-page, inventory-shell, inventory-report-header-card,
+// inventory-report-summary-grid, erp-table, erp-btn, erp-input, etc.) are
+// already defined in src/styles.scss (both Inventory's and Accounts'
+// copies, kept identical -- see [[erp_inventory_accounts_shared_css_duplication]]).
+// Only the handful of classes specific to this bespoke view live here.
+
+.svc-product-filter {
+  min-width: 260px;
+}
+
+.svc-qty-filter {
+  min-width: 140px;
+}
+
+.svc-qty-filter input {
+  text-align: right;
+}
+
+.svc-current-method {
+  color: #64748b;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.svc-current-method strong {
+  color: #0f172a;
+}
+
+.svc-loading,
+.svc-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 24px;
+  color: #64748b;
+  text-align: center;
+}
+
+.svc-empty-state i {
+  font-size: 28px;
+  color: #94a3b8;
+}
+
+.svc-loading i {
+  font-size: 18px;
+}
+
+.svc-chart-section h3,
+.svc-layers-subtitle {
+  margin: 0 0 4px;
+}
+
+.inventory-report-section h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+
+.svc-layers-subtitle {
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 12px;
+}

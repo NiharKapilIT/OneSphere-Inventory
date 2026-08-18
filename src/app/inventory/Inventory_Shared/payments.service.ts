@@ -15,6 +15,32 @@ export interface OutstandingInvoice {
   total_amount: number;
   paid_amount: number;
   outstanding: number;
+  // Item 21: true when any line item on this invoice resolves to a
+  // Service-natured product (inv_product_types.is_service) — the frontend
+  // gates TDS visibility on this instead of guessing from the invoice as a whole.
+  has_service_item: boolean;
+}
+
+// Item 21: taxation.tds_codes, read-only — replaces the previously
+// hardcoded TDS_SECTIONS list in payment-receipt-voucher.ts as the source
+// of truth for section/rate.
+export interface TdsCode {
+  id: number;
+  section_code: string;
+  description?: string;
+  rate: number;
+  deductee_type?: string;
+  threshold_amount?: number;
+}
+
+// Item 22: vendor-level (not per-invoice) FY-cumulative-purchases check —
+// TCS only ever becomes relevant once this crosses the ₹50L threshold.
+export interface VendorFyPurchaseSummary {
+  vendor_id: number;
+  financial_year: string;
+  cumulative_purchase_amount: number;
+  threshold_amount: number;
+  threshold_crossed: boolean;
 }
 
 export interface PaymentVoucherAllocation {
@@ -55,6 +81,8 @@ export interface PaymentVoucher {
   party_gstin?: string;
   total_allocated: number;
   tds_amount: number;
+  tcs_amount: number;
+  tcs_percentage?: number;
   net_amount: number;
   narration?: string;
   status: string;
@@ -85,7 +113,19 @@ export class PaymentsService {
       tax_amount: r?.taxAmount ?? r?.tax_amount ?? 0,
       total_amount: r?.totalAmount ?? r?.total_amount ?? 0,
       paid_amount: r?.paidAmount ?? r?.paid_amount ?? 0,
-      outstanding: r?.outstanding ?? 0
+      outstanding: r?.outstanding ?? 0,
+      has_service_item: !!(r?.hasServiceItem ?? r?.has_service_item)
+    };
+  }
+
+  private normTdsCode(r: any): TdsCode {
+    return {
+      id: r?.id,
+      section_code: r?.sectionCode ?? r?.section_code ?? '',
+      description: r?.description,
+      rate: Number(r?.rate ?? 0),
+      deductee_type: r?.deducteeType ?? r?.deductee_type,
+      threshold_amount: r?.thresholdAmount ?? r?.threshold_amount
     };
   }
 
@@ -117,6 +157,8 @@ export class PaymentsService {
       party_gstin: r?.partyGstin ?? r?.party_gstin,
       total_allocated: r?.totalAllocated ?? r?.total_allocated ?? 0,
       tds_amount: r?.tdsAmount ?? r?.tds_amount ?? 0,
+      tcs_amount: r?.tcsAmount ?? r?.tcs_amount ?? 0,
+      tcs_percentage: r?.tcsPercentage ?? r?.tcs_percentage,
       net_amount: r?.netAmount ?? r?.net_amount ?? 0,
       narration: r?.narration,
       status: r?.status || 'posted',
@@ -139,6 +181,28 @@ export class PaymentsService {
     const params = new HttpParams().set('partyType', partyType).set('partyId', String(partyId));
     return this.http.get<ApiResponse<any[]>>(this.url('outstanding-invoices'), { headers: this.headers(), params }).pipe(
       map(res => ({ ...res, data: (res.data ?? []).map(r => this.normOutstanding(r)) }))
+    );
+  }
+
+  getTdsCodes(): Observable<ApiResponse<TdsCode[]>> {
+    return this.http.get<ApiResponse<any[]>>(this.url('tds-codes'), { headers: this.headers() }).pipe(
+      map(res => ({ ...res, data: (res.data ?? []).map(r => this.normTdsCode(r)) }))
+    );
+  }
+
+  getVendorFyPurchaseSummary(vendorId: number): Observable<ApiResponse<VendorFyPurchaseSummary>> {
+    const params = new HttpParams().set('vendorId', String(vendorId));
+    return this.http.get<ApiResponse<any>>(this.url('vendor-fy-summary'), { headers: this.headers(), params }).pipe(
+      map(res => ({
+        ...res,
+        data: res.data ? {
+          vendor_id: res.data.vendorId ?? res.data.vendor_id,
+          financial_year: res.data.financialYear ?? res.data.financial_year ?? '',
+          cumulative_purchase_amount: res.data.cumulativePurchaseAmount ?? res.data.cumulative_purchase_amount ?? 0,
+          threshold_amount: res.data.thresholdAmount ?? res.data.threshold_amount ?? 5000000,
+          threshold_crossed: !!(res.data.thresholdCrossed ?? res.data.threshold_crossed)
+        } : undefined
+      }))
     );
   }
 
@@ -170,6 +234,8 @@ export class PaymentsService {
     narration?: string;
     tdsAmount?: number;
     tdsSection?: string;
+    tcsAmount?: number;
+    tcsPercentage?: number | null;
     allocations: { invoiceType: string; invoiceId: number; invoiceNumber?: string; allocatedAmount: number }[];
     modes: { modeKey: string; amount: number; refJson?: Record<string, string> }[];
   }): Observable<ApiResponse<any>> {

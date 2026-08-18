@@ -211,6 +211,9 @@
               <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
                 <i class="pi pi-plus"></i> Add Row
               </button>
+              <button type="button" class="erp-btn btn-white btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress GRN intact" (click)="addProductFromProcurementGrid()">
+                <i class="pi pi-external-link"></i> Add Product
+              </button>
               <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
                 <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
                 {{ isLineGridFullscreen() ? 'Exit Full Screen' : 'Full Screen' }}
@@ -312,6 +315,37 @@
                                 <i class="pi pi-times"></i>
                               </button>
                             </small>
+                          }
+                        }
+                        @if (lineGridColumnIsProduct(column)) {
+                          @if (lineColumnAppliesToRow(row, 'Variant')) {
+                            <div class="inventory-line-subcell">
+                              @let variantColumnIndex = lineGridSourceColumnIndex('Variant');
+                              @let variantCellView = variantColumnIndex >= 0 ? rowView?.columns?.[variantColumnIndex] : null;
+                              @if (lineGridCellReadonly(rowIndex, row, 'Variant')) {
+                                <small class="inventory-grid-subtitle">{{ lineGridReadonlyCellText(rowIndex, row, 'Variant', variantCellView, rowView) }}</small>
+                              } @else if (variantCellView?.options?.length) {
+                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm" appendTo="body"
+                                  [items]="variantCellView?.options || []" [searchable]="true" [clearable]="false"
+                                  [ngModel]="variantCellView?.controlValue"
+                                  (ngModelChange)="setEntryLineCell(rowIndex, variantColumnIndex, $event)"
+                                  placeholder="Variant">
+                                </ng-select>
+                              }
+                            </div>
+                          }
+                          @for (attr of rowView?.attrSelections || []; track attr.name) {
+                            <div class="inventory-line-subcell">
+                              @if (attr.isAuto) {
+                                <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || '—' }}</small>
+                              } @else {
+                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
+                                  [items]="attr.options" [searchable]="false" [clearable]="false"
+                                  [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
+                                  [placeholder]="attr.name">
+                                </ng-select>
+                              }
+                            </div>
                           }
                         }
                       </td>
@@ -453,11 +487,13 @@
             <input class="erp-input inventory-grid-search" type="text" placeholder="Search grid"
               [ngModel]="gridSearchText()" (ngModelChange)="setGridSearchText($event)" />
           }
-          <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
-          <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          @if (showGridToolbarExportIcons()) {
+            <button type="button" class="erp-btn btn-white btn-sm" title="Print"><i class="pi pi-print"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF"><i class="pi pi-file-pdf"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel"><i class="pi pi-file-excel"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="Mail"><i class="pi pi-envelope"></i></button>
+            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp"><i class="pi pi-whatsapp"></i></button>
+          }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Previous page" [disabled]="!canGoPrevGridPage('records')" (click)="goPrevGridPage('records')"><i class="pi pi-chevron-left"></i></button>
@@ -527,7 +563,16 @@
                             @for (item of grnItems; track $index; let i = $index) {
                               <tr>
                                 @for (column of grnColumns; track column.key) {
-                                  <td>{{ grnExpandedCell(item, column, i) || '�' }}</td>
+                                  <td>
+                                    @if (column.key === 'product') {
+                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      @if (grnExpandedProductSubtitle(item); as subtitle) {
+                                        <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
+                                      }
+                                    } @else {
+                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                    }
+                                  </td>
                                 }
                               </tr>
                             }

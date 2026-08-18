@@ -8983,17 +8983,35 @@ body .p-connected-overlay {
 }
 
 .inventory-report-page {
-  // Title (col-6) / filters (col-6) side by side. Company/phase/data-source
-  // are plain text under the title (not pill badges competing for header
-  // space); Generate/Reset live in the toolbar band below instead of their
-  // own strip up here — one action row instead of two, since a separate
-  // badge/button strip is what was overlapping the Segment/Financial Year
-  // filters in the first place.
+  // The whole header — title/filters row plus the Generate/Reset/toolbar
+  // row beneath it — is ONE visual card now (.inventory-report-header-card
+  // carries the single border/shadow), not two separately-boxed pieces
+  // stacked with a gap between them. That gap-plus-second-box was the
+  // "clumsy, not packed" complaint: fixing it is a matter of where the
+  // border/shadow/margin live, not the grid logic below, which is unchanged.
+  .inventory-report-header-card {
+    border: 1px solid #dbe8f9;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  // Title (col-6) / filters (col-6) side by side, both starting at the top.
   .inventory-report-header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "title filters";
+    grid-template-columns: minmax(0, 1fr) minmax(470px, 470px);
+    grid-template-areas:
+      "title top-filters"
+      "controls controls";
     align-items: start;
+    gap: 8px 16px;
+    padding: 14px 18px 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
   .inventory-report-header-title {
@@ -9001,12 +9019,31 @@ body .p-connected-overlay {
     min-width: 0;
   }
 
+  .inventory-report-header-title h2 {
+    margin: 2px 0;
+    line-height: 1.2;
+  }
+
+  .inventory-report-header-title p {
+    line-height: 1.25;
+  }
+
+  // Kicker + the company/phase/data-source badges now share one compact
+  // line above the title, instead of the badges floating on their own row
+  // below the description — reads as a single header line, not three.
+  .inventory-report-header-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px 10px;
+    margin-bottom: 2px;
+  }
+
   .inventory-report-header-meta-text {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 4px 10px;
-    margin-top: 8px;
     color: #94a3b8;
     font-size: 11px;
     font-weight: 600;
@@ -9022,6 +9059,99 @@ body .p-connected-overlay {
     color: #047857;
   }
 
+  .inventory-report-header-top-filters {
+    grid-area: top-filters;
+    display: grid;
+    grid-template-columns: minmax(178px, 0.9fr) minmax(258px, 1.1fr);
+    align-items: start;
+    justify-content: flex-end;
+    gap: 14px;
+    min-width: 0;
+    width: 100%;
+    overflow-x: visible;
+    padding-bottom: 2px;
+    white-space: nowrap;
+  }
+
+  .inventory-report-header-controls {
+    grid-area: controls;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-top: 4px;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+  }
+
+  .inventory-report-header-top-filters .inventory-report-filter,
+  .inventory-report-header-controls .inventory-report-filter {
+    flex: 0 0 154px;
+  }
+
+  .inventory-report-header-top-filters .inventory-report-filter {
+    width: 100%;
+  }
+
+  .inventory-report-header-top-filters .inventory-report-filter--segment {
+    flex: initial;
+  }
+
+  .inventory-report-header-top-filters .inventory-report-filter--branch {
+    flex: initial;
+  }
+
+  .inventory-report-header-controls .inventory-report-filter--date {
+    flex-basis: 172px;
+  }
+
+  .inventory-report-header-controls .inventory-report-filter--group {
+    flex-basis: 260px;
+  }
+
+  .inventory-report-header-top-filters .inventory-ng-select .ng-select-container,
+  .inventory-report-header-top-filters .inventory-date-input,
+  .inventory-report-header-top-filters .p-datepicker-input,
+  .inventory-report-header-controls .inventory-ng-select .ng-select-container,
+  .inventory-report-header-controls .inventory-date-input,
+  .inventory-report-header-controls .p-datepicker-input {
+    min-height: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .inventory-report-header-top-filters .inventory-ng-select.ng-select-multiple .ng-select-container,
+  .inventory-report-header-controls .inventory-ng-select.ng-select-multiple .ng-select-container {
+    min-height: 34px;
+    height: 34px;
+    align-items: center;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .inventory-report-header-top-filters .inventory-ng-select .ng-arrow-wrapper,
+  .inventory-report-header-top-filters .inventory-ng-select .ng-clear-wrapper,
+  .inventory-report-header-top-filters .inventory-ng-select .ng-clear-zone,
+  .inventory-report-header-controls .inventory-ng-select .ng-arrow-wrapper,
+  .inventory-report-header-controls .inventory-ng-select .ng-clear-wrapper,
+  .inventory-report-header-controls .inventory-ng-select .ng-clear-zone {
+    min-height: 34px;
+  }
+
+  .inventory-report-header-top-filters .inventory-ng-select .ng-placeholder,
+  .inventory-report-header-top-filters .inventory-ng-select .ng-value-label,
+  .inventory-report-header-top-filters .inventory-ng-select .ng-input input,
+  .inventory-report-header-controls .inventory-ng-select .ng-placeholder,
+  .inventory-report-header-controls .inventory-ng-select .ng-value-label,
+  .inventory-report-header-controls .inventory-ng-select .ng-input input {
+    font-size: 12px;
+  }
+
   // Every primary filter this report declares lives here now (segment,
   // financial year, branch/warehouse, date range, status, etc.) — packed
   // column-first into exactly two rows via grid-auto-flow, so it reads as
@@ -9031,32 +9161,117 @@ body .p-connected-overlay {
   // title column or wrapping into a third line.
   .inventory-report-header-filters {
     grid-area: filters;
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(2, auto);
-    grid-auto-columns: minmax(132px, 1fr);
-    gap: 8px 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
     overflow-x: auto;
     padding-bottom: 2px;
+    white-space: nowrap;
   }
 
+  .inventory-report-header-filters .inventory-report-filter {
+    flex: 0 0 154px;
+  }
+
+  .inventory-report-header-filters .inventory-report-filter--segment {
+    flex-basis: 156px;
+  }
+
+  .inventory-report-header-filters .inventory-report-filter--branch {
+    flex-basis: 206px;
+  }
+
+  .inventory-report-header-filters .inventory-report-filter--date {
+    flex-basis: 172px;
+  }
+
+  .inventory-report-header-filters .inventory-ng-select .ng-select-container,
+  .inventory-report-header-filters .inventory-date-input,
+  .inventory-report-header-filters .p-datepicker-input {
+    min-height: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .inventory-report-header-filters .inventory-ng-select.ng-select-multiple .ng-select-container {
+    min-height: 34px;
+    height: 34px;
+    align-items: center;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .inventory-report-header-filters .inventory-ng-select .ng-arrow-wrapper,
+  .inventory-report-header-filters .inventory-ng-select .ng-clear-wrapper,
+  .inventory-report-header-filters .inventory-ng-select .ng-clear-zone {
+    min-height: 34px;
+  }
+
+  .inventory-report-header-filters .inventory-ng-select .ng-placeholder,
+  .inventory-report-header-filters .inventory-ng-select .ng-value-label,
+  .inventory-report-header-filters .inventory-ng-select .ng-input input {
+    font-size: 12px;
+  }
+
+  .inventory-report-single-segment {
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 11px;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    background: #eef6ff;
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .inventory-report-filter--no-label {
+    padding-top: 18px;
+  }
+
+  .inventory-report-generate-btn {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    min-width: 118px;
+    height: 34px;
+  }
+
+  .inventory-report-header-controls > .erp-btn {
+    flex: 0 0 auto;
+    align-self: flex-end;
+    height: 34px;
+  }
+
+  // Second row of the SAME card (a hairline divider stands in for the old
+  // second border) — no independent border/shadow/margin of its own, so it
+  // reads as a continuation of the header, not a separate floating box.
   .inventory-report-toolbar-band {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    padding: 10px 16px;
-    margin-bottom: 12px;
-    border: 1px solid #dbe8f9;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+    padding: 8px 14px;
+    border-top: 1px solid #eef2f7;
+    background: #fafcff;
   }
 
   .inventory-report-toolbar-cluster {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 8px;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
   }
 
   .inventory-report-filter-band {
@@ -9101,10 +9316,26 @@ body .p-connected-overlay {
 
   .inventory-report-filter label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
     color: #64748b;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 600;
+  }
+
+  .inventory-report-header-controls .inventory-report-group-select {
+    flex: initial;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .inventory-report-header-top-filters .inventory-report-filter .inventory-ng-select.ng-select-multiple .ng-select-container,
+  .inventory-report-header-controls .inventory-report-filter .inventory-ng-select.ng-select-multiple .ng-select-container {
+    min-height: 34px;
+    height: 34px;
+    align-items: center;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
   }
 
   .inventory-report-search {
@@ -9153,6 +9384,7 @@ body .p-connected-overlay {
 
   .inventory-report-section {
     margin-top: 12px;
+    padding: 10px 16px 14px;
   }
 
   .inventory-report-summary-grid {
@@ -9253,16 +9485,45 @@ body .p-connected-overlay {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-left: auto;
   }
 
   .inventory-report-grid-actions .inventory-report-search {
-    width: min(260px, 100%);
+    width: min(220px, 100%);
   }
 
   .inventory-report-group-select {
+    flex: 0 0 190px;
     width: 190px;
+    max-width: 190px;
+  }
+
+  .inventory-report-grid-actions .inventory-report-search--expanded {
+    flex: 0 0 220px;
+    width: 220px;
+    max-width: 220px;
+  }
+
+  .inventory-report-grid-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .inventory-report-grid-messages {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .inventory-report-grid-actions .erp-btn.btn-icon {
+    min-width: 28px;
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    border-radius: 8px;
   }
 
   .inventory-report-page-size {
@@ -9293,7 +9554,7 @@ body .p-connected-overlay {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
     padding: 9px 11px;
     border-radius: 8px;
     font-size: 12px;
@@ -9564,7 +9825,12 @@ body .p-connected-overlay {
     }
 
     .inventory-report-header-filters {
-      grid-template-rows: repeat(3, auto);
+      justify-content: flex-start;
+    }
+
+    .inventory-report-header-top-filters,
+    .inventory-report-header-controls {
+      justify-content: flex-start;
     }
 
     .inventory-report-summary-grid,
@@ -9589,14 +9855,35 @@ body .p-connected-overlay {
       grid-template-columns: 1fr;
       grid-template-areas:
         "title"
-        "filters";
+        "top-filters"
+        "controls";
     }
 
     .inventory-report-header-filters {
+      display: grid;
       grid-auto-flow: row;
       grid-template-rows: none;
       grid-template-columns: 1fr;
       overflow-x: visible;
+      white-space: normal;
+    }
+
+    .inventory-report-header-filters .inventory-report-filter {
+      flex: initial;
+    }
+
+    .inventory-report-header-top-filters,
+    .inventory-report-header-controls {
+      display: grid;
+      grid-auto-flow: row;
+      grid-template-columns: 1fr;
+      overflow-x: visible;
+      white-space: normal;
+    }
+
+    .inventory-report-header-top-filters .inventory-report-filter,
+    .inventory-report-header-controls .inventory-report-filter {
+      flex: initial;
     }
 
     .inventory-report-toolbar-band {
@@ -11359,6 +11646,29 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
   color: #94a3b8;
 }
 
+/* Item 8: Variant + Attribute, merged into the Product cell as a compact
+   sub-row of controls (entry grid) — see lineGridColumnIsProduct(column)
+   in each transaction screen's own template — and as a muted second line
+   under the product name (read-only saved-records drilldown) — see
+   grnExpandedProductSubtitle(). */
+.inventory-line-subcell {
+  margin-top: 4px;
+}
+
+.inventory-grid-select-sm .ng-select-container {
+  min-height: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.inventory-grid-subtitle {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 /* Drag-to-resize columns — GRN's Received Items grid only (see
    goods-receipt.html, the only template with the inventory-resizable-table
    class on its line-items <table>). table-layout: fixed makes a resized
@@ -12065,6 +12375,53 @@ body .ng-dropdown-panel.inventory-grid-select .ng-option-label {
 
 .inventory-confirm-actions .erp-btn {
   min-width: 120px;
+}
+
+// Item 30: Direct Sales Invoice posting popup (Only Invoice / Invoice with
+// DC / Separate DC). A 3-way choice reads badly crammed into the plain
+// yes/no .inventory-confirm-actions button row above, so this is a small,
+// self-contained addition rather than a reuse of that layout -- stacked,
+// full-width option cards instead.
+.inventory-direct-si-dc-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.inventory-direct-si-dc-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0 6px;
+  text-align: left;
+}
+
+.inventory-direct-si-dc-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--fp-border, #dbe8f9);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.inventory-direct-si-dc-option strong {
+  font-size: 13.5px;
+  color: #001b33;
+}
+
+.inventory-direct-si-dc-option span {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.inventory-direct-si-dc-option:hover {
+  border-color: #00584f;
+  background: #f0fbf7;
 }
 
 .inventory-lookup-source {

@@ -60,6 +60,21 @@ export class InventoryBranchMasterComponent implements OnInit {
     return this.warehouses().find(w => Number(w.branch_id) === Number(id)) ?? null;
   });
 
+  // Item 13 follow-up: "Default Warehouse" above is a single, opt-in pick --
+  // it's not the whole picture once Warehouse Setup's own Branch field lets
+  // any number of warehouses point at the same branch (the real multi-
+  // warehouse-per-branch pool the interbranch sale feature relies on). This
+  // is the read-only, business-owner-facing view of that full pool: every
+  // warehouse currently tagged with this branch, however it got tagged
+  // (here or from Warehouse Setup directly), not just the one "default."
+  readonly linkedWarehouses = computed(() => {
+    const id = this.selectedSettingsBranchId();
+    if (!id) return [];
+    return this.warehouses()
+      .filter(w => Number(w.branch_id) === Number(id))
+      .sort((a, b) => (a.warehouse_name || '').localeCompare(b.warehouse_name || ''));
+  });
+
   readonly alreadyConfigured = computed(() => {
     const id = this.selectedSettingsBranchId();
     if (!id || this.editingId()) return null;

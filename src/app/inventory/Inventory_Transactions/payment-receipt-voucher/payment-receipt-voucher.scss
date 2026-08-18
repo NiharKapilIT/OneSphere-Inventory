@@ -105,45 +105,38 @@
 
 .cb { width: 16px; height: 16px; cursor: pointer; }
 
-.pay-mode-chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  margin-bottom: 12px;
-}
-
-.pay-mode-chip {
-  border: 1px solid #e2e6ee;
-  background: #fbfcfe;
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-weight: 600;
-  font-size: 12.5px;
-  color: #475569;
-  display: inline-flex;
-  gap: 7px;
-  align-items: center;
-  cursor: pointer;
-
-  &:hover { border-color: #2456d6; color: #2456d6; }
-}
-
 .pay-mode-rows {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
-.pay-mode-row {
-  display: grid;
-  grid-template-columns: 170px 160px 1fr 1fr 34px;
-  gap: 10px;
-  align-items: end;
+.pay-mode-row-card {
   background: #fbfcfe;
   border: 1px solid #eef1f6;
   border-radius: 9px;
-  padding: 10px 12px;
+  padding: 12px 14px;
+}
+
+.pay-mode-row-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+.pay-mode-amount {
+  width: 200px;
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+
+.pay-mode-summary {
+  flex: 1 1 auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  padding-bottom: 10px;
 }
 
 .pay-notes-section {
@@ -332,6 +325,7 @@
 }
 
 @media (max-width: 900px) {
-  .pay-mode-row { grid-template-columns: 1fr 1fr; }
+  .pay-mode-row-head { flex-wrap: wrap; }
+  .pay-mode-amount { width: 100%; }
   .pay-footer-in { gap: 14px; }
 }
