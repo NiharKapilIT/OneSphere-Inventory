@@ -7,6 +7,7 @@ export interface InventoryField {
   options?: string[];
   addMaster?: string;
   allowCustomValue?: boolean;
+  hidden?: boolean;
 }
 
 export interface InventoryDependency {
@@ -877,7 +878,7 @@ export const brandMasterConfig: InventoryScreenConfig = {
   fields: [
     { key: 'brandName', label: 'Brand Name' },
     { key: 'brandCode', label: 'Brand Code' },
-    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
+    { key: 'categoryName', label: 'Product Category', type: 'select', options: INVENTORY_OPTIONS.categories, addMaster: 'Category', hidden: true },
     { key: 'manufacturer', label: 'Manufacturer', type: 'select', options: [], allowCustomValue: true, addMaster: 'Manufacturer' },
     { key: 'brandLogo', label: 'Brand Logo (Optional)', type: 'file' },
     { key: 'description', label: 'Description', type: 'textarea' },

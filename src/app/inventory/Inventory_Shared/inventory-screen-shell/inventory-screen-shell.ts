@@ -6228,7 +6228,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   displayFields() {
     const fields = this.isPosView() ? (this.config.posFields || this.config.fields || []) : (this.config.fields || []);
-    return fields.map(field => this.runtimeField(field));
+    return fields.filter(field => !field.hidden).map(field => this.runtimeField(field));
   }
 
   showTransactionHeader(): boolean {
