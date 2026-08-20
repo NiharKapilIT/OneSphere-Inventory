@@ -7306,15 +7306,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return field.type === 'select' && this.hasOptionPair(field, 'Yes', 'No');
   }
 
-  private readonly grnTransportSubFieldKeys = new Set(['transportvehicleno', 'transportdrivername', 'transportcontactno']);
-
-  // Vehicle No / Driver Name / Contact No only render once "Transport Details" is toggled to Yes.
-  isGrnFieldHidden(field: InventoryField): boolean {
-    if (this.config?.key !== 'goodsReceipt') return false;
-    if (!this.grnTransportSubFieldKeys.has(field.key.toLowerCase())) return false;
-    return this.formValues()['hasTransportDetails'] !== 'Yes';
-  }
-
   fieldSwitchChecked(field: InventoryField): boolean {
     const live = this.formValues()[field.key];
     const value = live !== undefined ? live : this.defaultFieldValue(field);
@@ -8761,35 +8752,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private rejectedQtyFromNote(note: string): number {
     const match = /^Rejected:\s*([0-9.]+)/i.exec(note || '');
     return Number(match?.[1] || 0);
-  }
-
-  // Transport Details is a single free-text column on the backend (GrnUpsertRequest.TransportDetails),
-  // so the Yes/No + Vehicle No / Driver Name / Contact No fields compose into one delimited string.
-  private grnComposeTransportDetails(v: Record<string, any>): string | null {
-    if (v['hasTransportDetails'] !== 'Yes') return null;
-    const parts = [
-      v['transportVehicleNo'] ? `Vehicle: ${v['transportVehicleNo']}` : '',
-      v['transportDriverName'] ? `Driver: ${v['transportDriverName']}` : '',
-      v['transportContactNo'] ? `Contact: ${v['transportContactNo']}` : ''
-    ].filter(Boolean);
-    return parts.length ? parts.join(' | ') : null;
-  }
-
-  private grnParseTransportDetails(text: string | null | undefined): {
-    hasTransportDetails: string; transportVehicleNo: string; transportDriverName: string; transportContactNo: string;
-  } {
-    const raw = String(text || '').trim();
-    if (!raw) return { hasTransportDetails: 'No', transportVehicleNo: '', transportDriverName: '', transportContactNo: '' };
-    const extract = (label: string) => {
-      const match = raw.match(new RegExp(`${label}:\\s*([^|]+)`));
-      return match ? match[1].trim() : '';
-    };
-    return {
-      hasTransportDetails: 'Yes',
-      transportVehicleNo: extract('Vehicle'),
-      transportDriverName: extract('Driver'),
-      transportContactNo: extract('Contact')
-    };
   }
 
   // Name-based (not positional) mapping from a saved GRN item back into a grid row,
@@ -15612,7 +15574,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     if (this.config?.key === 'goodsReceipt') {
       this.txDocNumber.set(record.grn_number || '');
-      const transport = this.grnParseTransportDetails(record.transport_details);
       this.formValues.set({
         segment: record.segment_name || this.selectedSegment(),
         segmentId: record.segment_id ?? null,
@@ -15627,10 +15588,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         warehouseId: record.warehouse_id ?? null,
         warehouse: record.warehouse_name || '',
         receivingLocation: record.warehouse_name || this.branchNameFromRecord(record) || '',
-        hasTransportDetails: transport.hasTransportDetails,
-        transportVehicleNo: transport.transportVehicleNo,
-        transportDriverName: transport.transportDriverName,
-        transportContactNo: transport.transportContactNo,
         vendorInvoiceNo: record.vendor_invoice_no || '',
         vendorInvoiceDate: record.vendor_invoice_dt || null,
         status: cap(record.status || 'draft'),
@@ -16735,7 +16692,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         grn_date: docDate('grnDate'),
         vendor_invoice_no: v['vendorInvoiceNo'] || null,
         vendor_invoice_dt: v['vendorInvoiceDate'] || null,
-        transport_details: this.grnComposeTransportDetails(v),
         remarks: v['remarks'] || null,
         status: grnStatus,
         post: grnStatus === 'posted',
