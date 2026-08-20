@@ -1324,10 +1324,6 @@ export const goodsReceiptConfig = transaction(
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
       { key: 'receivingLocation', label: 'Receiving Branch / Warehouse', type: 'select', options: [] },
-      { key: 'hasTransportDetails', label: 'Transport Details', type: 'select', options: ['Yes', 'No'] },
-      { key: 'transportVehicleNo', label: 'Vehicle No' },
-      { key: 'transportDriverName', label: 'Driver Name' },
-      { key: 'transportContactNo', label: 'Driver Contact No' },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
