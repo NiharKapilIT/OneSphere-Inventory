@@ -216,6 +216,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly bundleConsumptionError = signal('');
 
   readonly activeAddMaster = signal('');
+  // Set true if loading Accounts' remote "Add New Contact" form fails (e.g.
+  // Accounts host unreachable) — the Party/Vendor "+" falls back to the
+  // simple inline Contact Person modal. Reset on every openAddMaster() call.
+  readonly remoteContactFormFailed = signal(false);
   get quickAddHost(): this { return this; }
   readonly advicePanelOpen = signal(false);
   readonly partySummaryOpen = signal(false);
@@ -1394,6 +1398,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           event.preventDefault();
           this.editRecordByRow(cells);
         }
+      }
+      return;
+    }
+
+    // Delete — live grid only (pending grid rows use Remove instead)
+    if (title === 'Delete' && !button.closest('.inventory-current-entries')) {
+      const row = button.closest('tr');
+      if (!row) return;
+      const cells = Array.from(row.querySelectorAll('td'))
+        .slice(1)
+        .map(cell => (cell.textContent || '').trim());
+      if (cells.length) {
+        event.preventDefault();
+        this.deleteRecordByRow(cells);
       }
       return;
     }
@@ -3995,6 +4013,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
     this.activeAddMaster.set(master);
     this.addMasterSourceFieldKey.set(sourceFieldKey ?? null);
+    this.remoteContactFormFailed.set(false);
     this.quickAddName.set('');
     this.quickAddCode.set('');
     this.quickAddError.set('');
@@ -4605,6 +4624,57 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.quickAddError.set(this.apiErrorMessage(err, 'Failed to save contact.'));
       }
     });
+  }
+
+  // Called after Accounts' remote "Add New Contact" form (loaded via
+  // RemoteContactAddHostComponent) saves a contact. That form's own onSave
+  // payload doesn't reliably carry the new contact's id (Accounts' own
+  // contacts-list.component.ts ignores it too, for the same reason) — so
+  // re-fetch the authoritative Global Contacts list and match the new
+  // contact by name, then route it through the same destinations
+  // saveQuickContact() already uses.
+  onRemoteContactSaved(saved: any): void {
+    this.inventoryConfigService.getGlobalContacts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: ApiResponse<any>) => {
+          const list = res.data ?? [];
+          this.loadedGlobalMstContacts.set(list);
+          const matched = list.find((c: ContactItem) => c.name === saved?.name);
+          const contactOption: GlobalContactOption | null = matched ? {
+            id: matched.id,
+            name: matched.name,
+            type: matched.contact_type === 'Company' ? 'Company' : 'Individual',
+            mobile: matched.mobile || '',
+            email: matched.email || '',
+            gstin: matched.gstin || '',
+            pan: matched.pan || '',
+            address: matched.address || '',
+            source: 'global_contact'
+          } : null;
+
+          if (this.addMasterSourceFieldKey() === 'contactPerson') {
+            this.selectedPartyContactPerson.set(contactOption);
+            this.restoreParentModal();
+            return;
+          }
+          if (this.isPartyMaster()) {
+            this.selectPartyContact(contactOption);
+          }
+          const feedIntoQuickVendor = this.quickAddParentMaster() === 'Vendor';
+          const feedIntoQuickCustomer = this.quickAddParentMaster() === 'Customer';
+          const feedIntoQuickChannelPartner = this.quickAddParentMaster() === 'Channel Partner';
+          this.restoreParentModal();
+          if (feedIntoQuickVendor) {
+            this.selectQuickVendorContact(contactOption);
+          } else if (feedIntoQuickCustomer) {
+            this.selectQuickCustomerContact(contactOption);
+          } else if (feedIntoQuickChannelPartner) {
+            this.selectQuickChannelPartnerContact(contactOption);
+          }
+        },
+        error: () => this.restoreParentModal()
+      });
   }
 
   saveQuickVendor(): void {
@@ -7250,15 +7320,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return field.type === 'select' && this.hasOptionPair(field, 'Yes', 'No');
   }
 
-  private readonly grnTransportSubFieldKeys = new Set(['transportvehicleno', 'transportdrivername', 'transportcontactno']);
-
-  // Vehicle No / Driver Name / Contact No only render once "Transport Details" is toggled to Yes.
-  isGrnFieldHidden(field: InventoryField): boolean {
-    if (this.config?.key !== 'goodsReceipt') return false;
-    if (!this.grnTransportSubFieldKeys.has(field.key.toLowerCase())) return false;
-    return this.formValues()['hasTransportDetails'] !== 'Yes';
-  }
-
   fieldSwitchChecked(field: InventoryField): boolean {
     const live = this.formValues()[field.key];
     const value = live !== undefined ? live : this.defaultFieldValue(field);
@@ -8705,35 +8766,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private rejectedQtyFromNote(note: string): number {
     const match = /^Rejected:\s*([0-9.]+)/i.exec(note || '');
     return Number(match?.[1] || 0);
-  }
-
-  // Transport Details is a single free-text column on the backend (GrnUpsertRequest.TransportDetails),
-  // so the Yes/No + Vehicle No / Driver Name / Contact No fields compose into one delimited string.
-  private grnComposeTransportDetails(v: Record<string, any>): string | null {
-    if (v['hasTransportDetails'] !== 'Yes') return null;
-    const parts = [
-      v['transportVehicleNo'] ? `Vehicle: ${v['transportVehicleNo']}` : '',
-      v['transportDriverName'] ? `Driver: ${v['transportDriverName']}` : '',
-      v['transportContactNo'] ? `Contact: ${v['transportContactNo']}` : ''
-    ].filter(Boolean);
-    return parts.length ? parts.join(' | ') : null;
-  }
-
-  private grnParseTransportDetails(text: string | null | undefined): {
-    hasTransportDetails: string; transportVehicleNo: string; transportDriverName: string; transportContactNo: string;
-  } {
-    const raw = String(text || '').trim();
-    if (!raw) return { hasTransportDetails: 'No', transportVehicleNo: '', transportDriverName: '', transportContactNo: '' };
-    const extract = (label: string) => {
-      const match = raw.match(new RegExp(`${label}:\\s*([^|]+)`));
-      return match ? match[1].trim() : '';
-    };
-    return {
-      hasTransportDetails: 'Yes',
-      transportVehicleNo: extract('Vehicle'),
-      transportDriverName: extract('Driver'),
-      transportContactNo: extract('Contact')
-    };
   }
 
   // Name-based (not positional) mapping from a saved GRN item back into a grid row,
@@ -14184,7 +14216,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.saveError.set('');
     const failedRows: typeof rows = [];
     let savedCount = 0;
-    const keepFailedRowsOnError = this.config?.key === 'categoryMaster';
 
     const saveOne = (payload: Record<string, any>): Observable<ApiResponse<any>> => {
       switch (this.config?.key) {
@@ -14207,6 +14238,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         case 'vendorMaster':         return this.saveVendorWithContactWriteback(payload, null);
         case 'customerMaster':       return this.saveCustomerWithContactWriteback(payload, null);
         case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
+        case 'productTypeMaster':    return this.inventoryConfigService.saveProductType(payload, null);
         default: return of({ success: false, message: 'Unknown screen', data: null });
       }
     };
@@ -14248,15 +14280,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       },
       complete: () => {
         this.isBatchSaving.set(false);
-        this.pendingRows.set(keepFailedRowsOnError ? failedRows : []);
+        // Keep failed rows staged in "Current Entries To Save" instead of
+        // discarding them — previously only categoryMaster did this, so
+        // every other screen would report "N records saved" (using the
+        // attempted count, not savedCount) and wipe the pending grid even
+        // when the API call had actually failed, making a rejected record
+        // silently vanish instead of showing up in the saved-records grid.
+        this.pendingRows.set(failedRows);
         this.editingPendingIndex.set(null);
-        if (keepFailedRowsOnError && failedRows.length) {
+        if (failedRows.length) {
           const failCount = failedRows.length;
           this.saveMsg.set(savedCount ? `${savedCount} record${savedCount !== 1 ? 's' : ''} saved.` : '');
           this.saveError.set(this.saveError() || `${failCount} record${failCount !== 1 ? 's' : ''} failed to save.`);
         } else {
-          const count = rows.length;
-          this.saveMsg.set(`${count} record${count !== 1 ? 's' : ''} saved.`);
+          this.saveMsg.set(`${savedCount} record${savedCount !== 1 ? 's' : ''} saved.`);
         }
         this.loadApiRecords();
         this.loadLookupOptions();
@@ -14951,6 +14988,53 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
   }
 
+  // System (seeded) rows are read-only everywhere — the backend upsert/delete
+  // procedures already reject changes to them, this just keeps Edit/Delete
+  // out of the Actions column so the rejection is never hit from the UI.
+  isSystemMasterRow(row: string[]): boolean {
+    if (this.config?.key !== 'productTypeMaster') return false;
+    return !!this.findRecordByRow(row)?.is_system;
+  }
+
+  private deleteApiCall(record: any): Observable<ApiResponse<any>> | null {
+    switch (this.config?.key) {
+      case 'productTypeMaster': return this.inventoryConfigService.deleteProductType(record.id);
+      default: return null;
+    }
+  }
+
+  deleteRecordByRow(row: string[]): void {
+    if (!this.isApiWired()) return;
+    const record = this.findRecordByRow(row);
+    if (!record?.id) return;
+    const obs$ = this.deleteApiCall(record);
+    if (!obs$) return;
+    this.confirmAction({
+      title: 'Delete Record',
+      message: `Are you sure you want to delete "${row[0] || row[1] || 'this record'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger'
+    }).then(proceed => {
+      if (!proceed) return;
+      this.saveMsg.set('');
+      this.saveError.set('');
+      obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: res => {
+          if (res.success) {
+            this.clearConfigForm();
+            this.loadApiRecords();
+            this.saveMsg.set('Record deleted.');
+            setTimeout(() => this.saveMsg.set(''), 3000);
+          } else {
+            this.saveError.set(res.message || 'Delete failed.');
+          }
+        },
+        error: err => this.saveError.set(this.apiErrorMessage(err, 'Delete failed.'))
+      });
+    });
+  }
+
   private readonly draftLockTransactionKeys = new Set([
     'goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'debitNote', 'creditNote',
     'salesOrder', 'salesInvoice', 'salesReturn', 'deliveryChallan', 'estimation', 'proformaInvoice', 'salesQuotation'
@@ -15556,7 +15640,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     if (this.config?.key === 'goodsReceipt') {
       this.txDocNumber.set(record.grn_number || '');
-      const transport = this.grnParseTransportDetails(record.transport_details);
       this.formValues.set({
         segment: record.segment_name || this.selectedSegment(),
         segmentId: record.segment_id ?? null,
@@ -15571,10 +15654,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         warehouseId: record.warehouse_id ?? null,
         warehouse: record.warehouse_name || '',
         receivingLocation: record.warehouse_name || this.branchNameFromRecord(record) || '',
-        hasTransportDetails: transport.hasTransportDetails,
-        transportVehicleNo: transport.transportVehicleNo,
-        transportDriverName: transport.transportDriverName,
-        transportContactNo: transport.transportContactNo,
         vendorInvoiceNo: record.vendor_invoice_no || '',
         vendorInvoiceDate: record.vendor_invoice_dt || null,
         status: cap(record.status || 'draft'),
@@ -16679,7 +16758,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         grn_date: docDate('grnDate'),
         vendor_invoice_no: v['vendorInvoiceNo'] || null,
         vendor_invoice_dt: v['vendorInvoiceDate'] || null,
-        transport_details: this.grnComposeTransportDetails(v),
         remarks: v['remarks'] || null,
         status: grnStatus,
         post: grnStatus === 'posted',
@@ -18114,7 +18192,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           r.tracks_inventory ? 'Yes' : 'No',
           r.is_service ? 'Yes' : 'No',
           r.is_asset ? 'Yes' : 'No',
-          r.is_system ? 'System' : 'Custom',
+          r.is_system ? 'System' : 'User',
           cap(r.status || 'active')
         ]);
       case 'vendorMaster':

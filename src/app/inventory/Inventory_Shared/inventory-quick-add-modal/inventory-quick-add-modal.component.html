@@ -1,4 +1,11 @@
-@if (host.activeAddMaster()) {
+@if (host.activeAddMaster() === 'Contact Person' && host.addMasterSourceFieldKey() === 'partyIdentity' && !host.remoteContactFormFailed()) {
+  <app-remote-contact-add-host
+    (saved)="host.onRemoteContactSaved($event)"
+    (cancelled)="host.restoreParentModal()"
+    (loadFailed)="host.remoteContactFormFailed.set(true)">
+  </app-remote-contact-add-host>
+}
+@if (host.activeAddMaster() && !(host.activeAddMaster() === 'Contact Person' && host.addMasterSourceFieldKey() === 'partyIdentity' && !host.remoteContactFormFailed())) {
     <div class="inventory-modal-backdrop">
       <div class="inventory-modal" [class.inventory-modal--wide]="host.activeAddMaster() === 'Variant'">
         <div class="inventory-modal-header">

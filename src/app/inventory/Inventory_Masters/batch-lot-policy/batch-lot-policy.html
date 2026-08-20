@@ -1058,7 +1058,7 @@
                     <input class="erp-input" type="text" [ngModel]="formFieldValue(field)" (ngModelChange)="collectFormField(field.key, $event); maybeAutoCode(field.key, $event)" [placeholder]="fieldTypingHint(field)" />
                   }
                 }
-                @if (field.addMaster) {
+                @if (field.addMaster && field.key !== 'applicableCategory') {
                   <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
                     <i class="pi pi-plus"></i>
                   </button>

@@ -1103,7 +1103,6 @@ export const productTypeMasterConfig: InventoryScreenConfig = {
     { key: 'typeName', label: 'Type Name' },
     { key: 'typeCode', label: 'Type Code' },
     { key: 'description', label: 'Description', type: 'textarea' },
-    { key: 'sortOrder', label: 'Sort Order', type: 'number' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
   columns: ['Type Code', 'Type Name', 'Purchase', 'Sale', 'Tracks Inventory', 'Service', 'Asset', 'Kind', 'Status'],
@@ -1325,10 +1324,6 @@ export const goodsReceiptConfig = transaction(
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
       { key: 'receivingLocation', label: 'Receiving Branch / Warehouse', type: 'select', options: [] },
-      { key: 'hasTransportDetails', label: 'Transport Details', type: 'select', options: ['Yes', 'No'] },
-      { key: 'transportVehicleNo', label: 'Vehicle No' },
-      { key: 'transportDriverName', label: 'Driver Name' },
-      { key: 'transportContactNo', label: 'Driver Contact No' },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
