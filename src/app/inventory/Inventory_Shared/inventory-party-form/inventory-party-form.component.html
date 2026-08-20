@@ -174,7 +174,14 @@
     <div class="inventory-form-grid inventory-config-grid">
       <div class="erp-form-group">
         <label class="erp-label">Payment Terms</label>
-        <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.paymentTermOptions" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()[pfx('paymentTerms')] || ''" (ngModelChange)="host.collectFormField(pfx('paymentTerms'), $event)" placeholder="Select Payment Terms"></ng-select>
+        <div class="inventory-field-with-add">
+          <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="host.paymentTermOptions" [searchable]="true" [clearable]="true" [ngModel]="host.formValues()[pfx('paymentTerms')] || ''" (ngModelChange)="host.collectFormField(pfx('paymentTerms'), $event)" placeholder="Select Payment Terms"></ng-select>
+          @if (!keyPrefix) {
+            <button type="button" class="erp-btn btn-white btn-icon" title="Open Payment Terms Master" (click)="host.openPaymentTermsMaster()">
+              <i class="pi pi-plus"></i>
+            </button>
+          }
+        </div>
       </div>
       <div class="erp-form-group"><label class="erp-label">Credit Limit</label><input class="erp-input" type="number" placeholder="0" [ngModel]="host.formValues()[pfx('creditLimit')] || 0" (ngModelChange)="host.collectFormField(pfx('creditLimit'), $event)" /></div>
       @if (showPriceList) {

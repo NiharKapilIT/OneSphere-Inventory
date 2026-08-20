@@ -13838,7 +13838,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice'
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
+  private static readonly PAYMENT_TERMS_MASTER_ROUTE = '/dashboard/inventory/masters/payment-terms-master';
   private static readonly PROCUREMENT_RESUME_TTL_MS = 30 * 60 * 1000;
+
+  // Vendor/Customer Master's Commercial Setup "+" next to Payment Terms —
+  // plain navigation to the real Payment Terms Master, no snapshot/resume
+  // (unlike addProductFromProcurementGrid() above): this button only shows
+  // on the Master screens themselves (app-inventory-party-form hides it in
+  // the quick-add modal via keyPrefix), so there's no in-progress
+  // transaction document to preserve across the trip.
+  openPaymentTermsMaster(): void {
+    this.router?.navigate([InventoryScreenShell.PAYMENT_TERMS_MASTER_ROUTE]);
+  }
 
   private procurementResumeStorageKey(screenKey: string): string {
     return `inv_procurement_resume::${screenKey}`;
