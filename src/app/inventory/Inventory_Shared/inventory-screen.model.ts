@@ -1102,7 +1102,6 @@ export const productTypeMasterConfig: InventoryScreenConfig = {
     { key: 'typeName', label: 'Type Name' },
     { key: 'typeCode', label: 'Type Code' },
     { key: 'description', label: 'Description', type: 'textarea' },
-    { key: 'sortOrder', label: 'Sort Order', type: 'number' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
   columns: ['Type Code', 'Type Name', 'Purchase', 'Sale', 'Tracks Inventory', 'Service', 'Asset', 'Kind', 'Status'],
