@@ -1273,11 +1273,11 @@
                 <thead>
                   <tr>
                     <th class="text-center">Actions</th>
-                    @for (column of config.columns || []; track column; let columnIndex = $index) {
+                    @for (col of visibleCurrentEntryColumns(); track col.index) {
                       <th class="inventory-sortable-th">
-                        <button type="button" class="inventory-sort-btn" (click)="sortBy('currentEntries', columnIndex)">
-                          <span>{{ column }}</span>
-                          <i [class]="sortIcon('currentEntries', columnIndex)"></i>
+                        <button type="button" class="inventory-sort-btn" (click)="sortBy('currentEntries', col.index)">
+                          <span>{{ col.label }}</span>
+                          <i [class]="sortIcon('currentEntries', col.index)"></i>
                         </button>
                       </th>
                     }
@@ -1292,8 +1292,8 @@
                           <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove" [attr.data-index]="$index"><i class="pi pi-trash"></i></button>
                         </div>
                       </td>
-                      @for (cell of row.slice(0, (config.columns || []).length); track $index) {
-                        <td>{{ cell }}</td>
+                      @for (col of visibleCurrentEntryColumns(); track col.index) {
+                        <td>{{ row[col.index] }}</td>
                       }
                     </tr>
                   }
@@ -1345,11 +1345,11 @@
             <thead>
               <tr>
                 <th class="text-center">Actions</th>
-                @for (column of config.columns || []; track column; let columnIndex = $index) {
+                @for (col of visibleRecordColumns(); track col.index) {
                   <th class="inventory-sortable-th">
-                    <button type="button" class="inventory-sort-btn" (click)="sortBy('records', columnIndex)">
-                      <span>{{ column }}</span>
-                      <i [class]="sortIcon('records', columnIndex)"></i>
+                    <button type="button" class="inventory-sort-btn" (click)="sortBy('records', col.index)">
+                      <span>{{ col.label }}</span>
+                      <i [class]="sortIcon('records', col.index)"></i>
                     </button>
                   </th>
                 }
@@ -1366,8 +1366,8 @@
                       }
                     </div>
                   </td>
-                  @for (cell of row.slice(0, (config.columns || []).length); track $index) {
-                    <td>{{ cell }}</td>
+                  @for (col of visibleRecordColumns(); track col.index) {
+                    <td>{{ row[col.index] }}</td>
                   }
                 </tr>
               }

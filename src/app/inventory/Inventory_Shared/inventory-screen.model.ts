@@ -851,15 +851,15 @@ export const categoryMasterConfig: InventoryScreenConfig = {
     { key: 'description', label: 'Description', type: 'textarea' },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Category Code', 'Category Name', 'Parent Category', 'Serial Policy', 'Batch / Lot Policy', 'Description', 'Status'],
+  columns: ['Category Code', 'Category Name', 'Parent Category', 'Serial Policy', 'Batch / Lot Policy', 'Description', 'Applicable UOMs', 'Status'],
   rows: [
-    ['CAT-ELEC', 'Electronics', 'None / Main Category', 'Warranty Serial Tracking', 'No', 'Main group for devices, accessories and warranty items', 'Active'],
-    ['CAT-MOB', 'Mobiles', 'Electronics', 'IMEI Required', 'No', 'Child category under Electronics for mobile phones', 'Active'],
-    ['CAT-SEED', 'Seeds', 'Agro Products', 'No', 'Agro Lot Tracking', 'Child category for agro seed stock', 'Active'],
-    ['CAT-FLAT', 'Flats', 'Real Estate Units', 'No', 'No', 'Child category for saleable apartment units', 'Active'],
-    ['CAT-FNB', 'Food & Beverage', 'Hotel / Restaurant', 'No', 'Food Batch With Expiry', 'Main restaurant category for kitchen and counter items', 'Active'],
-    ['CAT-MENU', 'Menu Items', 'Food & Beverage', 'No', 'Recipe Batch Optional', 'Child category for sellable dishes like Paneer Tikka', 'Active'],
-    ['CAT-ROOM', 'Rooms', 'Hotel / Restaurant', 'No', 'No', 'Hotel room inventory for room-night billing', 'Active']
+    ['CAT-ELEC', 'Electronics', 'None / Main Category', 'Warranty Serial Tracking', 'No', 'Main group for devices, accessories and warranty items', 'Nos, Box', 'Active'],
+    ['CAT-MOB', 'Mobiles', 'Electronics', 'IMEI Required', 'No', 'Child category under Electronics for mobile phones', 'Nos', 'Active'],
+    ['CAT-SEED', 'Seeds', 'Agro Products', 'No', 'Agro Lot Tracking', 'Child category for agro seed stock', 'KG, Bag', 'Active'],
+    ['CAT-FLAT', 'Flats', 'Real Estate Units', 'No', 'No', 'Child category for saleable apartment units', 'Nos', 'Active'],
+    ['CAT-FNB', 'Food & Beverage', 'Hotel / Restaurant', 'No', 'Food Batch With Expiry', 'Main restaurant category for kitchen and counter items', 'KG, Plate', 'Active'],
+    ['CAT-MENU', 'Menu Items', 'Food & Beverage', 'No', 'Recipe Batch Optional', 'Child category for sellable dishes like Paneer Tikka', 'Plate', 'Active'],
+    ['CAT-ROOM', 'Rooms', 'Hotel / Restaurant', 'No', 'No', 'Hotel room inventory for room-night billing', 'Nos', 'Active']
   ]
 };
 

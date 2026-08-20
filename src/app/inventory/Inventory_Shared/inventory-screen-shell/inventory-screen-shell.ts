@@ -12959,6 +12959,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.config?.kind === 'transaction' ? [] : (this.config?.rows || []);
   }
 
+  // Columns explicitly hidden from the grid for a given screen, keyed by
+  // config.key. Data still flows through mapToGridRows()/config.rows at its
+  // original index — only the display column is filtered out, so re-showing
+  // a column is just removing its label below.
+  // Parent Category is hidden on Product Category grid at the user's request.
+  private explicitlyHiddenColumns(): string[] {
+    return this.config?.key === 'categoryMaster' ? ['Parent Category'] : [];
+  }
+
   // Existing Saved Records grid: hides any column that's blank across every
   // currently loaded row (e.g. "PO: Reference" on GRNs that were never linked
   // to a PO) rather than always reserving space for it. Each entry keeps its
@@ -12968,9 +12977,22 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   visibleRecordColumns(): { label: string; index: number }[] {
     const columns = this.config?.columns || [];
     const rows = this.liveRows();
+    const hidden = this.explicitlyHiddenColumns();
     return columns
       .map((label, index) => ({ label, index }))
+      .filter(col => !hidden.includes(col.label))
       .filter(col => !rows.length || rows.some(row => String(row?.[col.index] ?? '').trim() !== ''));
+  }
+
+  // Current Entries To Save grid: same explicit-hide behavior as
+  // visibleRecordColumns(), applied to the temporary staged rows instead of
+  // the saved records.
+  visibleCurrentEntryColumns(): { label: string; index: number }[] {
+    const columns = this.config?.columns || [];
+    const hidden = this.explicitlyHiddenColumns();
+    return columns
+      .map((label, index) => ({ label, index }))
+      .filter(col => !hidden.includes(col.label));
   }
 
   loadApiRecords(): void {
@@ -14075,7 +14097,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const msg = this.validatePayload(payload);
     if (msg) { this.saveError.set(msg); return; }
 
-    const display = this.mapToGridRows([payload])[0] || [];
+    const displaySource = this.config?.key === 'categoryMaster'
+      ? { ...payload, applicable_uom_names: Array.isArray(this.formValues()['applicableUoms']) ? this.formValues()['applicableUoms'] : [] }
+      : payload;
+    const display = this.mapToGridRows([displaySource])[0] || [];
     const formSnapshot: Record<string, any> = { ...this.formValues() };
     if (this.config?.key === 'productServiceMaster') {
       formSnapshot['__productName']             = this.productName();
@@ -18028,6 +18053,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           r.serial_applicable ? (r.serial_policy_name || 'Yes') : 'No',
           r.batch_applicable ? (r.batch_policy_name || 'Yes') : 'No',
           r.description || '',
+          (r.uoms || []).map((u: any) => u.uom_symbol || u.uom_name || u.uom_code).filter(Boolean).join(', ')
+            || (Array.isArray(r.applicable_uom_names) ? r.applicable_uom_names.join(', ') : ''),
           cap(r.status || 'active')
         ]);
       case 'hsnSacMapping':
