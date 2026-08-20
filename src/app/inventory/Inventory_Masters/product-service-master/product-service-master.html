@@ -449,8 +449,35 @@
               <span class="product-segment-bar-hint">Products added here belong to this segment only.</span>
             </div>
 
+            <!-- -- Section quick-nav (horizontal tabs) ----------------------- -->
+            <!-- pm-tabs-spacer keeps the layout gap when JS pins the bar with position:fixed -->
+            <div id="pm-tabs-spacer" style="height:0;"></div>
+            <div class="product-master-tabs" id="pm-tabs-bar">
+              <ul class="tabs-nav">
+                @for (section of productMasterSections; track section.id) {
+                  @if (section.id !== 'pm-section-bundle' || bundleCompositionVisible()) {
+                    @if (section.id !== 'pm-section-stock' || (selectedProductNature() === null || selectedProductNature()?.tracks_inventory !== false)) {
+                      <li class="tab-item" [class.active]="productMasterActiveSection() === section.id" (click)="scrollToProductSection(section.id)">
+                        <i class="pi" [ngClass]="{
+                            'pi-box':         section.id === 'pm-section-basic',
+                            'pi-percentage':  section.id === 'pm-section-tax',
+                            'pi-tags':        section.id === 'pm-section-brand',
+                            'pi-clone':       section.id === 'pm-section-bundle',
+                            'pi-warehouse':   section.id === 'pm-section-stock',
+                            'pi-shield':      section.id === 'pm-section-tracking',
+                            'pi-info-circle': section.id === 'pm-section-additional',
+                            'pi-sync':        section.id === 'pm-section-uom'
+                          }"></i>
+                        <span class="tab-label">{{ section.label }}</span>
+                      </li>
+                    }
+                  }
+                }
+              </ul>
+            </div>
+
             <!-- -- Fieldset 1: Basic Product Details ------------------------ -->
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-basic">
               <div class="inventory-fieldset-title">Basic Product Details</div>
               <div class="inventory-form-grid inventory-config-grid">
 
@@ -617,7 +644,7 @@
             </div>
 
             <!-- -- Fieldset 2: Tax Details ----------------------------------- -->
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-tax">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Tax Details</span>
                 <div style="display:flex;align-items:center;gap:8px;">
@@ -694,7 +721,7 @@
             <!-- ------------------------------------------------------------- -->
 
             <!-- -- Fieldset 3: Brand, Variant & Valuation ------------------- -->
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-brand">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Brand, Variant &amp; Valuation</span>
                 <label class="inventory-labeled-switch yes-no">
@@ -865,7 +892,7 @@
 
             <!-- -- Bundle Composition (Service Bundle nature only) ------------ -->
             @if (bundleCompositionVisible()) {
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-bundle">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Bundle Composition</span>
                 <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Expand / Collapse" (click)="bundleSectionExpanded.set(!bundleSectionExpanded())">
@@ -941,7 +968,7 @@
             }
 
             @if (selectedProductNature() === null || selectedProductNature()?.tracks_inventory !== false) {
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-stock">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Stock Controls</span>
                 <label class="inventory-labeled-switch yes-no">
@@ -1089,7 +1116,7 @@
               }
             </div>
 
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-tracking">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Tracking Policies</span>
                 <label class="inventory-labeled-switch yes-no">
@@ -1162,7 +1189,7 @@
             </div>
             }
 
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-additional">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Additional Information</span>
                 <label class="inventory-labeled-switch yes-no">
@@ -1187,7 +1214,7 @@
               }
             </div>
 
-            <div class="inventory-fieldset">
+            <div class="inventory-fieldset" id="pm-section-uom">
               <div class="inventory-fieldset-title inventory-fieldset-title-row">
                 <span>Product Alternate UOM Mapping</span>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
