@@ -2094,6 +2094,10 @@ export class InventoryConfigService {
     );
   }
 
+  deleteProductType(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(this.url(`product-types/${id}`), { headers: this.headers() });
+  }
+
   private normalizeProductType(item: any): ProductTypeItem {
     return {
       id: item?.id,

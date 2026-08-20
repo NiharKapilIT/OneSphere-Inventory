@@ -1295,6 +1295,12 @@
 
         @if (config.key !== 'warehouseMaster' || warehouseRequired()) {
         <div class="inventory-form-actions">
+          @if (saveMsg()) {
+            <span class="inventory-save-tooltip save-ok"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
+          }
+          @if (saveError()) {
+            <span class="inventory-save-tooltip save-err"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
+          }
           <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Clear</button>
           @if (isPosView()) {
             <button type="button" class="erp-btn btn-white"><i class="pi pi-pause-circle"></i> Hold Bill</button>
@@ -1349,6 +1355,12 @@
               </table>
             </div>
             <div class="inventory-form-actions inventory-final-actions">
+              @if (saveMsg()) {
+                <span class="inventory-save-tooltip save-ok"><i class="pi pi-check-circle"></i> {{ saveMsg() }}</span>
+              }
+              @if (saveError()) {
+                <span class="inventory-save-tooltip save-err"><i class="pi pi-times-circle"></i> {{ saveError() }}</span>
+              }
               <button type="button" class="erp-btn btn-white"><i class="pi pi-times"></i> Cancel</button>
               <button type="button" class="erp-btn btn-primary"><i class="pi pi-check"></i> Save</button>
             </div>
@@ -1408,7 +1420,7 @@
                 <tr>
                   <td class="text-center">
                     <div class="inventory-row-actions">
-                      @if (isAdmin()) {
+                      @if (isAdmin() && !isSystemMasterRow(row)) {
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit"><i class="pi pi-pencil"></i></button>
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
                       }
@@ -1489,6 +1501,29 @@
 
   
   <app-inventory-quick-add-modal [host]="quickAddHost"></app-inventory-quick-add-modal>
+
+  @if (confirmDialog(); as dialog) {
+    <div class="inventory-modal-backdrop" (click)="resolveConfirmDialog(false)">
+      <div class="inventory-modal inventory-confirm-modal" [class.tone-warning]="dialog.tone === 'warning'" [class.tone-danger]="dialog.tone === 'danger'" (click)="$event.stopPropagation()">
+        <div class="inventory-confirm-icon" [class.tone-warning]="dialog.tone === 'warning'" [class.tone-danger]="dialog.tone === 'danger'">
+          <i class="pi" [class.pi-exclamation-triangle]="dialog.tone === 'warning'" [class.pi-times-circle]="dialog.tone === 'danger'"></i>
+        </div>
+        <div class="inventory-modal-header"><h3>{{ dialog.title }}</h3></div>
+        <div class="inventory-modal-body">
+          <p>{{ dialog.message }}</p>
+          @if (dialog.lines.length) {
+            <ul class="inventory-confirm-lines">
+              @for (line of dialog.lines; track line) { <li>{{ line }}</li> }
+            </ul>
+          }
+        </div>
+        <div class="inventory-confirm-actions">
+          <button type="button" class="erp-btn btn-white" (click)="resolveConfirmDialog(false)">{{ dialog.cancelLabel }}</button>
+          <button type="button" class="erp-btn" [class.btn-warning]="dialog.tone === 'warning'" [class.btn-danger]="dialog.tone === 'danger'" (click)="resolveConfirmDialog(true)">{{ dialog.confirmLabel }}</button>
+        </div>
+      </div>
+    </div>
+  }
 
 </div>
 

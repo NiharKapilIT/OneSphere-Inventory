@@ -1398,6 +1398,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return;
     }
 
+    // Delete — live grid only (pending grid rows use Remove instead)
+    if (title === 'Delete' && !button.closest('.inventory-current-entries')) {
+      const row = button.closest('tr');
+      if (!row) return;
+      const cells = Array.from(row.querySelectorAll('td'))
+        .slice(1)
+        .map(cell => (cell.textContent || '').trim());
+      if (cells.length) {
+        event.preventDefault();
+        this.deleteRecordByRow(cells);
+      }
+      return;
+    }
+
     if (text === 'Clear' || text === 'Cancel') {
       event.preventDefault();
       this.editingPendingIndex.set(null);
@@ -14184,7 +14198,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.saveError.set('');
     const failedRows: typeof rows = [];
     let savedCount = 0;
-    const keepFailedRowsOnError = this.config?.key === 'categoryMaster';
 
     const saveOne = (payload: Record<string, any>): Observable<ApiResponse<any>> => {
       switch (this.config?.key) {
@@ -14207,6 +14220,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         case 'vendorMaster':         return this.saveVendorWithContactWriteback(payload, null);
         case 'customerMaster':       return this.saveCustomerWithContactWriteback(payload, null);
         case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
+        case 'productTypeMaster':    return this.inventoryConfigService.saveProductType(payload, null);
         default: return of({ success: false, message: 'Unknown screen', data: null });
       }
     };
@@ -14248,15 +14262,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       },
       complete: () => {
         this.isBatchSaving.set(false);
-        this.pendingRows.set(keepFailedRowsOnError ? failedRows : []);
+        // Keep failed rows staged in "Current Entries To Save" instead of
+        // discarding them — previously only categoryMaster did this, so
+        // every other screen would report "N records saved" (using the
+        // attempted count, not savedCount) and wipe the pending grid even
+        // when the API call had actually failed, making a rejected record
+        // silently vanish instead of showing up in the saved-records grid.
+        this.pendingRows.set(failedRows);
         this.editingPendingIndex.set(null);
-        if (keepFailedRowsOnError && failedRows.length) {
+        if (failedRows.length) {
           const failCount = failedRows.length;
           this.saveMsg.set(savedCount ? `${savedCount} record${savedCount !== 1 ? 's' : ''} saved.` : '');
           this.saveError.set(this.saveError() || `${failCount} record${failCount !== 1 ? 's' : ''} failed to save.`);
         } else {
-          const count = rows.length;
-          this.saveMsg.set(`${count} record${count !== 1 ? 's' : ''} saved.`);
+          this.saveMsg.set(`${savedCount} record${savedCount !== 1 ? 's' : ''} saved.`);
         }
         this.loadApiRecords();
         this.loadLookupOptions();
@@ -14949,6 +14968,53 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'creditNote': return records.find(r => r.credit_note_number === row[0] || r.creditNoteNumber === row[0]);
       default: return undefined;
     }
+  }
+
+  // System (seeded) rows are read-only everywhere — the backend upsert/delete
+  // procedures already reject changes to them, this just keeps Edit/Delete
+  // out of the Actions column so the rejection is never hit from the UI.
+  isSystemMasterRow(row: string[]): boolean {
+    if (this.config?.key !== 'productTypeMaster') return false;
+    return !!this.findRecordByRow(row)?.is_system;
+  }
+
+  private deleteApiCall(record: any): Observable<ApiResponse<any>> | null {
+    switch (this.config?.key) {
+      case 'productTypeMaster': return this.inventoryConfigService.deleteProductType(record.id);
+      default: return null;
+    }
+  }
+
+  deleteRecordByRow(row: string[]): void {
+    if (!this.isApiWired()) return;
+    const record = this.findRecordByRow(row);
+    if (!record?.id) return;
+    const obs$ = this.deleteApiCall(record);
+    if (!obs$) return;
+    this.confirmAction({
+      title: 'Delete Record',
+      message: `Are you sure you want to delete "${row[0] || row[1] || 'this record'}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger'
+    }).then(proceed => {
+      if (!proceed) return;
+      this.saveMsg.set('');
+      this.saveError.set('');
+      obs$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: res => {
+          if (res.success) {
+            this.clearConfigForm();
+            this.loadApiRecords();
+            this.saveMsg.set('Record deleted.');
+            setTimeout(() => this.saveMsg.set(''), 3000);
+          } else {
+            this.saveError.set(res.message || 'Delete failed.');
+          }
+        },
+        error: err => this.saveError.set(this.apiErrorMessage(err, 'Delete failed.'))
+      });
+    });
   }
 
   private readonly draftLockTransactionKeys = new Set([
@@ -18114,7 +18180,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           r.tracks_inventory ? 'Yes' : 'No',
           r.is_service ? 'Yes' : 'No',
           r.is_asset ? 'Yes' : 'No',
-          r.is_system ? 'System' : 'Custom',
+          r.is_system ? 'System' : 'User',
           cap(r.status || 'active')
         ]);
       case 'vendorMaster':
