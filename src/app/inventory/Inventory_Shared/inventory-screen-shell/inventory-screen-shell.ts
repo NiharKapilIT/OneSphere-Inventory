@@ -216,6 +216,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly bundleConsumptionError = signal('');
 
   readonly activeAddMaster = signal('');
+  // Set true if loading Accounts' remote "Add New Contact" form fails (e.g.
+  // Accounts host unreachable) — the Party/Vendor "+" falls back to the
+  // simple inline Contact Person modal. Reset on every openAddMaster() call.
+  readonly remoteContactFormFailed = signal(false);
   get quickAddHost(): this { return this; }
   readonly advicePanelOpen = signal(false);
   readonly partySummaryOpen = signal(false);
@@ -3995,6 +3999,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
     this.activeAddMaster.set(master);
     this.addMasterSourceFieldKey.set(sourceFieldKey ?? null);
+    this.remoteContactFormFailed.set(false);
     this.quickAddName.set('');
     this.quickAddCode.set('');
     this.quickAddError.set('');
@@ -4605,6 +4610,57 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.quickAddError.set(this.apiErrorMessage(err, 'Failed to save contact.'));
       }
     });
+  }
+
+  // Called after Accounts' remote "Add New Contact" form (loaded via
+  // RemoteContactAddHostComponent) saves a contact. That form's own onSave
+  // payload doesn't reliably carry the new contact's id (Accounts' own
+  // contacts-list.component.ts ignores it too, for the same reason) — so
+  // re-fetch the authoritative Global Contacts list and match the new
+  // contact by name, then route it through the same destinations
+  // saveQuickContact() already uses.
+  onRemoteContactSaved(saved: any): void {
+    this.inventoryConfigService.getGlobalContacts()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: ApiResponse<any>) => {
+          const list = res.data ?? [];
+          this.loadedGlobalMstContacts.set(list);
+          const matched = list.find((c: ContactItem) => c.name === saved?.name);
+          const contactOption: GlobalContactOption | null = matched ? {
+            id: matched.id,
+            name: matched.name,
+            type: matched.contact_type === 'Company' ? 'Company' : 'Individual',
+            mobile: matched.mobile || '',
+            email: matched.email || '',
+            gstin: matched.gstin || '',
+            pan: matched.pan || '',
+            address: matched.address || '',
+            source: 'global_contact'
+          } : null;
+
+          if (this.addMasterSourceFieldKey() === 'contactPerson') {
+            this.selectedPartyContactPerson.set(contactOption);
+            this.restoreParentModal();
+            return;
+          }
+          if (this.isPartyMaster()) {
+            this.selectPartyContact(contactOption);
+          }
+          const feedIntoQuickVendor = this.quickAddParentMaster() === 'Vendor';
+          const feedIntoQuickCustomer = this.quickAddParentMaster() === 'Customer';
+          const feedIntoQuickChannelPartner = this.quickAddParentMaster() === 'Channel Partner';
+          this.restoreParentModal();
+          if (feedIntoQuickVendor) {
+            this.selectQuickVendorContact(contactOption);
+          } else if (feedIntoQuickCustomer) {
+            this.selectQuickCustomerContact(contactOption);
+          } else if (feedIntoQuickChannelPartner) {
+            this.selectQuickChannelPartnerContact(contactOption);
+          }
+        },
+        error: () => this.restoreParentModal()
+      });
   }
 
   saveQuickVendor(): void {
