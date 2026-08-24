@@ -13838,7 +13838,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice'
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
+  private static readonly PAYMENT_TERMS_MASTER_ROUTE = '/dashboard/inventory/masters/payment-terms-master';
   private static readonly PROCUREMENT_RESUME_TTL_MS = 30 * 60 * 1000;
+
+  // Vendor/Customer Master's Commercial Setup "+" next to Payment Terms —
+  // plain navigation to the real Payment Terms Master, no snapshot/resume
+  // (unlike addProductFromProcurementGrid() above): this button only shows
+  // on the Master screens themselves (app-inventory-party-form hides it in
+  // the quick-add modal via keyPrefix), so there's no in-progress
+  // transaction document to preserve across the trip.
+  openPaymentTermsMaster(): void {
+    this.router?.navigate([InventoryScreenShell.PAYMENT_TERMS_MASTER_ROUTE]);
+  }
 
   private procurementResumeStorageKey(screenKey: string): string {
     return `inv_procurement_resume::${screenKey}`;
@@ -18091,6 +18102,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return '';
   }
 
+  // Vendor/Customer Master keep GSTINs in the plural `gstins` array (multi-state
+  // support) — the legacy flat `gstin` column is only synced server-side after
+  // save, so a pending row (not yet saved) never has it. Prefer the primary/first
+  // entry from `gstins`, falling back to the flat field for already-saved records.
+  private primaryGstinDisplay(r: any): string {
+    const list = Array.isArray(r?.gstins) ? r.gstins : [];
+    if (list.length) return (list.find((g: any) => g?.is_primary) || list[0])?.gstin || '';
+    return r?.gstin || '';
+  }
+
   protected mapToGridRows(records: any[]): string[][] {
     const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Active';
     switch (this.config?.key) {
@@ -18196,9 +18217,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           cap(r.status || 'active')
         ]);
       case 'vendorMaster':
-        return records.map(r => [r.vendor_code || '', r.vendor_name || '', r.vendor_type || '', r.segment_name || '', r.gstin || '', cap(r.status || 'active')]);
+        return records.map(r => [r.vendor_code || '', r.vendor_name || '', r.vendor_type || '', r.segment_name || '', this.primaryGstinDisplay(r), cap(r.status || 'active')]);
       case 'customerMaster':
-        return records.map(r => [r.customer_code || '', r.customer_name || '', r.customer_type || '', r.segment_name || '', r.gstin || '', cap(r.status || 'active')]);
+        return records.map(r => [r.customer_code || '', r.customer_name || '', r.customer_type || '', r.segment_name || '', this.primaryGstinDisplay(r), cap(r.status || 'active')]);
       case 'productServiceMaster':
         return records.map(r => [
           r.product_code || '',
