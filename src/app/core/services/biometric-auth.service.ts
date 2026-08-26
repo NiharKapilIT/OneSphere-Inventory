@@ -25,7 +25,7 @@ export class BiometricAuthService {
 
   /** Reads from sessionStorage so the URL is configurable via appsettings.json */
   private get rdUrl(): string {
-    return sessionStorage.getItem('morphoRdUrl') ?? 'http://localhost:11100';
+    return sessionStorage.getItem('morphoRdUrl') ?? 'https://globalerp-api.kapilit.com/api';
   }
 
   isSupported(): boolean {
@@ -39,7 +39,7 @@ export class BiometricAuthService {
    */
   async detectService(): Promise<string | null> {
     const candidates = [
-      { url: 'http://localhost:11100', path: '/rd/info' },   // Morpho RD Service (HTTP)
+      { url: ' https://globalerp-api.kapilit.com/api', path: '/rd/info' },   // Morpho RD Service (HTTP)
       { url: 'https://localhost:11200', path: '/rd/info' },  // Morpho RD Service (HTTPS)
       { url: 'http://localhost:8005',  path: '/rd/info' },   // Morpho WebAPI alt port
       { url: 'http://localhost:8079',  path: '/info' },      // SecuGen WebAPI

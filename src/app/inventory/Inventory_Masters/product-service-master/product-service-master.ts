@@ -22,6 +22,97 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
   readonly pickedVariantId = signal<number | null>(null);
   readonly productNatureGuideVisible = signal(false);
 
+  readonly productMasterSections: { id: string; label: string }[] = [
+    { id: 'pm-section-basic', label: 'Basic Product Details' },
+    { id: 'pm-section-tax', label: 'Tax Details' },
+    { id: 'pm-section-brand', label: 'Brand, Variant & Valuation' },
+    { id: 'pm-section-bundle', label: 'Bundle Composition' },
+    { id: 'pm-section-stock', label: 'Stock Controls' },
+    { id: 'pm-section-tracking', label: 'Tracking Policies' },
+    { id: 'pm-section-additional', label: 'Additional Information' },
+    { id: 'pm-section-uom', label: 'Alternate UOM Mapping' },
+  ];
+  readonly productMasterActiveSection = signal<string>('pm-section-basic');
+
+  private pmTabsPinned = false;
+  private readonly onProductMasterTabsScroll = () => this.syncProductMasterTabsPin();
+
+  override ngAfterViewInit(): void {
+    super.ngAfterViewInit();
+    document.querySelector('.content-area')?.addEventListener('scroll', this.onProductMasterTabsScroll, { passive: true } as AddEventListenerOptions);
+    window.addEventListener('resize', this.onProductMasterTabsScroll);
+    this.syncProductMasterTabsPin();
+  }
+
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
+    document.querySelector('.content-area')?.removeEventListener('scroll', this.onProductMasterTabsScroll);
+    window.removeEventListener('resize', this.onProductMasterTabsScroll);
+  }
+
+  scrollToProductSection(id: string): void {
+    this.productMasterActiveSection.set(id);
+    const target = document.getElementById(id);
+    const scrollEl = document.querySelector<HTMLElement>('.content-area');
+    if (!target) return;
+    if (!scrollEl) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
+    // Compute the scroll offset directly instead of relying on scroll-margin-top +
+    // scrollIntoView: the fixed breadcrumb + tab-bar height is only known at click
+    // time, so measuring it here keeps the target's heading from landing behind them.
+    const breadcrumbHeight = document.querySelector<HTMLElement>('.breadcrumb-bar')?.getBoundingClientRect().height || 0;
+    const tabsHeight = document.getElementById('pm-tabs-bar')?.getBoundingClientRect().height || 0;
+    const headerHeight = breadcrumbHeight + tabsHeight + 12;
+
+    const targetOffset = target.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top + scrollEl.scrollTop;
+    scrollEl.scrollTo({ top: Math.max(targetOffset - headerHeight, 0), behavior: 'smooth' });
+  }
+
+  // Belt-and-suspenders pin: keeps the tab bar visually fixed just below .breadcrumb-bar
+  // using measured viewport coordinates, independent of whatever ancestor CSS the
+  // shared shell/layout happens to apply (position:sticky alone was not reliably
+  // staying pinned across the app's nested grid/flex wrappers).
+  private syncProductMasterTabsPin(): void {
+    const bar = document.getElementById('pm-tabs-bar');
+    const spacer = document.getElementById('pm-tabs-spacer');
+    if (!bar || !spacer) return;
+
+    const breadcrumb = document.querySelector<HTMLElement>('.breadcrumb-bar');
+    const topOffset = breadcrumb ? breadcrumb.getBoundingClientRect().bottom : 0;
+
+    if (!this.pmTabsPinned) {
+      const rect = bar.getBoundingClientRect();
+      if (rect.top > topOffset) return;
+      this.pmTabsPinned = true;
+      spacer.style.height = `${rect.height}px`;
+      bar.style.position = 'fixed';
+      bar.style.left = `${rect.left}px`;
+      bar.style.width = `${rect.width}px`;
+      bar.style.top = `${topOffset}px`;
+      bar.style.margin = '0';
+      bar.style.zIndex = '150';
+    } else {
+      const spacerRect = spacer.getBoundingClientRect();
+      if (spacerRect.top > topOffset) {
+        this.pmTabsPinned = false;
+        bar.style.position = '';
+        bar.style.left = '';
+        bar.style.width = '';
+        bar.style.top = '';
+        bar.style.margin = '';
+        bar.style.zIndex = '';
+        spacer.style.height = '0';
+      } else {
+        bar.style.top = `${topOffset}px`;
+        bar.style.left = `${spacerRect.left}px`;
+        bar.style.width = `${spacerRect.width}px`;
+      }
+    }
+  }
+
   readonly pickedVariantPreview = computed(() => {
     const id = this.pickedVariantId();
     if (!id) return null;

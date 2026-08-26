@@ -13063,6 +13063,27 @@ body .ng-dropdown-panel.inventory-line-product-select .ng-dropdown-panel-items {
   margin-right: 4px;
 }
 
+/* ── Product Master section quick-nav (horizontal tabs) ─────────────────── */
+/* Reuses the same .tabs-nav / .tab-item pill styling as the Contacts screen. */
+.product-master-tabs {
+  position: sticky;
+  top: 68px; // sits flush under .breadcrumb-bar (main-layout.component.scss), which is sticky at top: 0
+  z-index: 150; // above form content, below .breadcrumb-bar (z-index 200)
+  margin: 0 0 14px;
+  padding: 10px 0;
+  background: var(--page-bg, #fff);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+
+  .tabs-nav {
+    flex-wrap: wrap;
+  }
+
+  .tab-item {
+    min-height: 40px;
+  }
+}
+
+
 .product-segment-reference {
   flex: 0 1 300px;
   width: min(300px, 100%);

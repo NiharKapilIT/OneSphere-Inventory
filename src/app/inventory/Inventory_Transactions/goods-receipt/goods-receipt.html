@@ -126,7 +126,6 @@
 
       <div class="inventory-form-grid">
         @for (field of bodyDisplayFields(); track field.key) {
-          @if (!isGrnFieldHidden(field)) {
           <div class="erp-form-group" [class.span-2]="field.type === 'textarea'">
             <label class="erp-label">{{ field.label }}</label>
             <div class="inventory-field-with-add">
@@ -194,7 +193,6 @@
               }
             </div>
           </div>
-          }
         }
       </div>
 
