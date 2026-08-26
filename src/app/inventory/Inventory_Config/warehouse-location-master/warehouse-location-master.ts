@@ -133,14 +133,23 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
     this.branch.set(value ?? '');
   }
 
+  // inv_warehouses.branch_id is a FK to global.branches(id) -- NOT to
+  // inv_branch_config.id. A BranchInvItem carries both: branch_id is the
+  // global branch id, id is the inventory-config-local row id, and they are
+  // genuinely different numbers (e.g. local id 14 = global branch 66). Writing
+  // the local id here linked a warehouse into the wrong id space; use the same
+  // `branch_id ?? id` fallback the transaction shell already uses
+  // (branchResolvedId() in inventory-screen-shell.ts).
   private branchIdForName(name: string): number | null {
     if (!name?.trim()) return null;
-    return this.branches().find(b => b.branch_name === name)?.id ?? null;
+    const branch = this.branches().find(b => b.branch_name === name);
+    if (!branch) return null;
+    return branch.branch_id ?? branch.id ?? null;
   }
 
   branchNameForId(id: number | null | undefined): string {
     if (!id) return '';
-    return this.branches().find(b => b.id === id)?.branch_name ?? '';
+    return this.branches().find(b => (b.branch_id ?? b.id) === id)?.branch_name ?? '';
   }
 
   onSegmentChangedByUser(segmentName: string): void {

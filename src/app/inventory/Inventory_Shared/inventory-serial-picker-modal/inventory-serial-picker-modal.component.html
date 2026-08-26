@@ -8,13 +8,19 @@
               Enter Serial Numbers
             } @else if (picker.mode === 'inherited') {
               Reserved Serial Numbers
+            } @else if (picker.mode === 'view') {
+              Serial Numbers
             } @else {
               Select Serial Numbers
             }
           </h3>
-          <p>{{ picker.productName }} — {{ host.serialPickerDraftValues().length }} of {{ picker.qtyNeeded }}
-            @if (picker.mode === 'capture') { entered } @else if (picker.mode === 'inherited') { reserved via Delivery Challan } @else { selected }
-          </p>
+          @if (picker.mode === 'view') {
+            <p>{{ picker.productName }} — {{ host.serialPickerDraftValues().length }} serial number{{ host.serialPickerDraftValues().length === 1 ? '' : 's' }}</p>
+          } @else {
+            <p>{{ picker.productName }} — {{ host.serialPickerDraftValues().length }} of {{ picker.qtyNeeded }}
+              @if (picker.mode === 'capture') { entered } @else if (picker.mode === 'inherited') { reserved via Delivery Challan } @else { selected }
+            </p>
+          }
         </div>
         <button type="button" class="erp-btn btn-white btn-icon" (click)="host.closeSerialPicker(false)"><i class="pi pi-times"></i></button>
       </div>
@@ -87,6 +93,16 @@
             </div>
           }
         </div>
+      } @else if (picker.mode === 'view') {
+        <div class="inventory-modal-body">
+          <div class="inventory-serial-chip-list">
+            @for (serial of host.serialPickerDraftValues(); track serial) {
+              <span class="inventory-serial-chip inventory-serial-chip--readonly">{{ serial }}</span>
+            } @empty {
+              <span class="inventory-grid-empty-hint">No serial numbers on this line.</span>
+            }
+          </div>
+        </div>
       } @else {
         <div class="inventory-modal-body">
           @if (host.serialPickerLoading()) {
@@ -110,7 +126,7 @@
 
       <div class="inventory-modal-footer">
         <button type="button" class="erp-btn btn-white" (click)="host.closeSerialPicker(false)">Cancel</button>
-        @if (picker.mode !== 'inherited') {
+        @if (picker.mode === 'capture' || picker.mode === 'select') {
           <button type="button" class="erp-btn btn-primary"
             [disabled]="host.serialPickerDraftValues().length === 0"
             (click)="host.closeSerialPicker(true)">

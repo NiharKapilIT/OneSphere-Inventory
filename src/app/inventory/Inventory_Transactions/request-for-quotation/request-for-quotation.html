@@ -155,9 +155,7 @@
             <strong>RFQ Items</strong>
             <span>{{ selectedPr() ? 'Items copied from approved PR.' : 'Direct product entry.' }}</span>
           </div>
-          <button type="button" class="erp-btn btn-white btn-sm" (click)="addRfqRow()">
-            <i class="pi pi-plus"></i> Add Row
-          </button>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addRfqRow()"><i class="pi pi-plus"></i></button>
         </div>
         <div class="tbl-wrap rfq-items-wrap">
           <table class="erp-table compact rfq-line-table inventory-resizable-table">

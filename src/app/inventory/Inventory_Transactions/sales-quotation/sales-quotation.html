@@ -154,9 +154,7 @@
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
-            <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
-              <i class="pi pi-plus"></i> Add Row
-            </button>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
           </div>
           <div class="tbl-wrap">
             <table class="erp-table compact inventory-resizable-table">
@@ -381,12 +379,12 @@
                                 @for (column of quoteColumns; track column.key) {
                                   <td>
                                     @if (column.key === 'product') {
-                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      <strong>{{ grnExpandedCell(item, column, i) || 'ï¿½' }}</strong>
                                       @if (grnExpandedProductSubtitle(item); as subtitle) {
                                         <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
                                       }
                                     } @else {
-                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                      {{ grnExpandedCell(item, column, i) || 'ï¿½' }}
                                     }
                                   </td>
                                 }

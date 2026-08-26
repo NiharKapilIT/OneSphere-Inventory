@@ -12,6 +12,7 @@ import {
   DashboardTransactionRow,
   DcPendingInvoiceLineRow,
   InventoryDashboardService,
+  LossSaleFlagRow,
   SalesPiPendingFlagRow
 } from '../Inventory_Shared/inventory-dashboard.service';
 import { StatCardComponent, StatCardTone } from '../Inventory_Shared/stat-card/stat-card.component';
@@ -114,6 +115,7 @@ export class InventoryDashboard {
   readonly summary = signal<DashboardSummary | null>(null);
   readonly salesPiPendingFlags = signal<SalesPiPendingFlagRow[]>([]);
   readonly dcPendingInvoiceLines = signal<DcPendingInvoiceLineRow[]>([]);
+  readonly lossSalesFlags = signal<LossSaleFlagRow[]>([]);
   readonly dashboardTime = signal(this.nowLabel());
   readonly activeModal = signal<GridPayload | null>(null);
   readonly inventoryDashboardConfig = inventoryDashboardConfig;
@@ -138,7 +140,8 @@ export class InventoryDashboard {
       { label: "Today's Purchases", value: this.fmt(k.today_purchase_value), note: 'GRNs dated today', icon: 'pi pi-arrow-circle-down', tone: 'green', key: 'today_purchase_value' },
       { label: "Today's Sales", value: this.fmt(k.today_sales_value), note: 'Sales invoices dated today', icon: 'pi pi-arrow-circle-up', tone: 'green', key: 'today_sales_value' },
       { label: 'Sales Without PI', value: String(this.salesPiPendingFlags().length), note: 'Sold from GRN stock not yet vendor-invoiced', icon: 'pi pi-flag', tone: 'amber', key: 'sales_without_pi' },
-      { label: 'Dispatched Without SI', value: String(this.dcPendingInvoiceLines().length), note: 'Delivery Challan stock deducted, not yet sales-invoiced', icon: 'pi pi-truck', tone: 'amber', key: 'dc_pending_invoice' }
+      { label: 'Dispatched Without SI', value: String(this.dcPendingInvoiceLines().length), note: 'Delivery Challan stock deducted, not yet sales-invoiced', icon: 'pi pi-truck', tone: 'amber', key: 'dc_pending_invoice' },
+      { label: 'Loss Sales', value: String(this.lossSalesFlags().length), note: 'Sold below current product cost, most recent lines', icon: 'pi pi-arrow-down', tone: 'rose', key: 'loss_sales' }
     ];
   });
 
@@ -253,6 +256,7 @@ export class InventoryDashboard {
     this.loadSummary();
     this.loadSalesPiPendingFlags();
     this.loadDcPendingInvoiceLines();
+    this.loadLossSalesFlags();
   }
 
   selectPeriod(period: DashboardPeriod): void {
@@ -265,6 +269,7 @@ export class InventoryDashboard {
     this.loadSummary();
     this.loadSalesPiPendingFlags();
     this.loadDcPendingInvoiceLines();
+    this.loadLossSalesFlags();
   }
 
   sectionTitle(id: string): string {
@@ -449,6 +454,18 @@ export class InventoryDashboard {
       };
     }
 
+    if (card.key === 'loss_sales') {
+      const rows = this.lossSalesFlags();
+      return {
+        title: card.label,
+        headers: ['Sales Invoice', 'Date', 'Customer', 'Product', 'Qty', 'Rate', 'Cost', 'Loss Amount', 'Loss %'],
+        rows: rows.map(r => [
+          r.doc_number || '—', this.fmtDate(r.doc_date), r.customer_name || '—', r.product_name || '—',
+          String(r.qty), this.fmt(r.rate), this.fmt(r.cost_price), this.fmt(r.loss_amount), `${r.loss_percent}%`
+        ])
+      };
+    }
+
     const isOutstanding = card.key === 'payables' || card.key === 'receivables';
     const drillRows: DashboardDrilldownRow[] = this.summary()?.drilldowns?.[card.key] ?? [];
     return {
@@ -498,6 +515,19 @@ export class InventoryDashboard {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res => { if (res.success && res.data) this.dcPendingInvoiceLines.set(res.data); },
+        error: () => {}
+      });
+  }
+
+  // Live/derived (not a snapshot -- current cost_price joined against
+  // historical rate on every call), so re-fetched on the same cadence as
+  // loadDcPendingInvoiceLines() rather than only once — see
+  // 155_loss_sales_report.sql.
+  private loadLossSalesFlags(): void {
+    this.dashboardService.getLossSalesFlags()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.lossSalesFlags.set(res.data); },
         error: () => {}
       });
   }

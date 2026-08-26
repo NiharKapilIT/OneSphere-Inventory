@@ -22,7 +22,7 @@ describe('InventoryScreenShell — Purchase/Sales Return locks Product/Variant/A
     subtitle: '',
     kind: 'transaction',
     icon: 'pi pi-reply',
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No', 'Return Reason']
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No']
   };
 
   async function setup(config: InventoryScreenConfig): Promise<void> {
@@ -37,11 +37,19 @@ describe('InventoryScreenShell — Purchase/Sales Return locks Product/Variant/A
     fixture.detectChanges();
   }
 
-  it('locks Product and Variant on a row sourced from a picked PI reference', async () => {
+  it('locks PI-sourced Purchase Return columns except Return Qty and Serial No', async () => {
     await setup(purchaseReturnConfig);
     component.lineRefItemIdMap.set({ 0: { attributeId: null, attributeName: null, attributeValue: null } });
     expect(component.lineGridCellReadonly(0, [], 'Product')).toBe(true);
     expect(component.lineGridCellReadonly(0, [], 'Variant')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'Attribute')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'UOM')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'Invoice Qty')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'Rate')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'GST')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'Return Amount')).toBe(true);
+    expect(component.lineGridCellReadonly(0, [], 'Return Qty')).toBe(false);
+    expect(component.lineGridCellReadonly(0, [], 'Serial No')).toBe(false);
   });
 
   it('leaves a manually-added row (no reference entry) fully editable', async () => {

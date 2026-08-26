@@ -435,8 +435,20 @@ export class InventoryReportPageComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.loadPreview('API endpoint is not available yet. Preview rows are shown so the report layout remains usable.');
-        this.errorMessage.set(`Backend endpoint /api/reports/${this.report().endpoint} is pending or unreachable.`);
+        // A genuine load failure gets one plain, non-technical message and
+        // an honest empty table -- not fabricated sample rows dressed up as
+        // a real result. Silently swapping in sampleRows here (as this used
+        // to) risked an end user reading fake numbers as this report's real
+        // business data, especially now that the header no longer carries
+        // an "API data / Preview data" badge to flag the difference. Raw
+        // backend detail (endpoint paths, "API"/"backend" wording) has no
+        // business being shown to an end user either way.
+        this.rows.set([]);
+        this.summary.set({});
+        this.totalRecords.set(0);
+        this.loadedFromApi.set(false);
+        this.infoMessage.set('');
+        this.errorMessage.set("We couldn't load this report right now. Please try again in a moment.");
         this.loading.set(false);
       }
     });
@@ -487,10 +499,19 @@ export class InventoryReportPageComponent implements OnInit {
   }
 
   async exportExcel(): Promise<void> {
-    const [XLSX, { saveAs }] = await Promise.all([
+    // xlsx and file-saver are both CommonJS packages -- depending on the
+    // build's CJS/ESM interop, a dynamic import() can land the real exports
+    // either at the top level or nested under .default. Unwrapping
+    // defensively (rather than destructuring one shape outright) avoids a
+    // silent "X is not a function" if the bundler picks the other one.
+    const [xlsxModule, fileSaverModule] = await Promise.all([
       import('xlsx'),
       import('file-saver')
     ]);
+    const XLSX: typeof import('xlsx') = (xlsxModule as any).default ?? xlsxModule;
+    const saveAs: typeof import('file-saver').saveAs =
+      (fileSaverModule as any).saveAs ?? (fileSaverModule as any).default?.saveAs ?? (fileSaverModule as any).default;
+
     const exportRows = this.exportRows();
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     const workbook = XLSX.utils.book_new();
@@ -500,14 +521,27 @@ export class InventoryReportPageComponent implements OnInit {
   }
 
   async exportPdf(): Promise<void> {
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-    const doc = new jsPDF({ orientation: 'landscape' });
+    const [jsPdfModule] = await Promise.all([
+      import('jspdf'),
+      // jspdf-autotable's package.json "exports" map points its default
+      // condition at the UMD "plugin" build (dist/jspdf.plugin.autotable.js,
+      // not the ESM functional-API build under its /es subpath) -- that
+      // build's whole job is a side effect: it patches an autoTable()
+      // instance method onto jsPDF's own prototype. It doesn't hand back a
+      // standalone `autoTable(doc, opts)` function to call, which is what
+      // the previous version of this code assumed (silently "not a
+      // function" at runtime for exactly that reason).
+      import('jspdf-autotable')
+    ]);
+    const jsPDF: typeof import('jspdf').default = (jsPdfModule as any).default ?? (jsPdfModule as any).jsPDF ?? jsPdfModule;
+    const doc = new jsPDF({ orientation: 'landscape' }) as InstanceType<typeof jsPDF> & {
+      autoTable: (options: Record<string, unknown>) => void;
+    };
     doc.setFontSize(13);
     doc.text(this.report().title, 14, 14);
     doc.setFontSize(9);
     doc.text(`${this.groupTitle()} / ${this.rowStart()}-${this.rowEnd()} of ${this.totalRecords()}`, 14, 20);
-    autoTable(doc, {
+    doc.autoTable({
       head: [this.visibleColumns().map(column => column.label)],
       body: this.sortedRows().map(row => this.visibleColumns().map(column => this.formatCell(row[column.key], column))),
       startY: 26,
@@ -746,7 +780,15 @@ export class InventoryReportPageComponent implements OnInit {
   private rowFieldsForFilter(key: InventoryReportFilterKey): string[] {
     const fields: Record<InventoryReportFilterKey, string[]> = {
       companyId: [],
-      branchId: [],
+      // Branch and Warehouse share one combined multiselect (see
+      // branchWarehouseOptions), but this map is what actually filters the
+      // rows — and an empty list means matchesValueFilter() short-circuits to
+      // true, so picking a Branch used to match every row instead of filtering
+      // anything. Mirrors the warehouseId entry below with the row field names
+      // branch data actually arrives under: 'branch' is what the stock reports
+      // now return (Warehouse-wise Stock, Low Stock Alert, Stock Ledger),
+      // 'fromBranch'/'toBranch' are the transfer legs.
+      branchId: ['branch', 'branchName', 'fromBranch', 'toBranch'],
       segmentId: ['segment'],
       financialYear: [],
       warehouseId: ['warehouse', 'location', 'fromWarehouse', 'toWarehouse', 'store'],

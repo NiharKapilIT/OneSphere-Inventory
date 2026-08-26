@@ -202,7 +202,12 @@
             </div>
           </div>
           @if (field.key === 'remarks') {
-            <app-purchase-invoice-attachments [purchaseInvoiceId]="editingId() || 0"></app-purchase-invoice-attachments>
+            <app-purchase-invoice-attachments
+              [purchaseInvoiceId]="editingId() || 0"
+              (attachmentListChange)="onPurchaseInvoiceAttachmentListChange($event)"
+              (attachmentSaveComplete)="onPurchaseInvoiceAttachmentSaveComplete($event)"
+              (attachmentSaveFailed)="onPurchaseInvoiceAttachmentSaveFailed($event)">
+            </app-purchase-invoice-attachments>
           }
         }
       </div>
@@ -217,20 +222,17 @@
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
             <div class="inventory-line-title-actions">
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
-                <i class="pi pi-plus"></i> Add Row
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress PI intact" (click)="addProductFromProcurementGrid()">
-                <i class="pi pi-external-link"></i> Add Product
-              </button>
-              <label class="purchase-invoice-compact-check" title="MRP and Selling Price columns">
-                <input type="checkbox" [checked]="hideMrpSellingPrice()" (change)="hideMrpSellingPrice.set($any($event.target).checked)" />
-                <span>MRP/Selling</span>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress PI intact" aria-label="Add product" (click)="addProductFromProcurementGrid()"><i class="pi pi-external-link"></i></button>
+              <label class="purchase-invoice-compact-check" title="Show MRP column">
+                <input type="checkbox" [checked]="showPurchaseInvoiceMrpColumn()" (change)="setPurchaseInvoiceMrpColumnVisible($any($event.target).checked)" />
+                <span>MRP</span>
               </label>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
-                <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
-                {{ isLineGridFullscreen() ? 'Exit Full Screen' : 'Full Screen' }}
-              </button>
+              <label class="purchase-invoice-compact-check" title="Show Selling Price column">
+                <input type="checkbox" [checked]="showPurchaseInvoiceSellingPriceColumn()" (change)="setPurchaseInvoiceSellingPriceColumnVisible($any($event.target).checked)" />
+                <span>Selling</span>
+              </label>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" [title]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" (click)="toggleLineGridFullscreen()"><i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i></button>
             </div>
           </div>
           <div class="tbl-wrap">
@@ -241,7 +243,7 @@
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of renderedColumns; track column) {
-                    <th [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-variant]="purchaseInvoiceColumnIsVariant(column)" [class.purchase-invoice-line-col-attribute]="purchaseInvoiceColumnIsAttribute(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [style.width]="lineGridColumnWidthPx(column)">
+                    <th [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [style.width]="lineGridColumnWidthPx(column)">
                       {{ lineGridColumnHeader(column) }}
                       <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
                     </th>
@@ -262,15 +264,27 @@
                       @let columnIndex = lineGridSourceColumnIndex(column);
                       @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
-                      <td [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-variant]="purchaseInvoiceColumnIsVariant(column)" [class.purchase-invoice-line-col-attribute]="purchaseInvoiceColumnIsAttribute(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
+                      @let serialViewBadge = (cellApplies && lineGridColumnIsSerialPicker(column) && lineGridCellReadonly(rowIndex, row, column)) ? serialViewBadgeTextForRow(rowIndex, row) : '';
+                      <td [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
-                          <span class="inventory-grid-na">� N/A �</span>
+                          <span class="inventory-grid-na">ï¿½ N/A ï¿½</span>
+                        } @else if (serialViewBadge) {
+                          <button type="button" class="erp-badge badge-info inventory-serial-view-badge" title="View serial numbers" (click)="openSerialPickerReadOnly(rowIndex, row)">
+                            <i class="pi pi-list"></i> {{ serialViewBadge }}
+                          </button>
                         } @else if (lineGridCellReadonly(rowIndex, row, column)) {
-                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '�' }}</span>
+                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || 'ï¿½' }}</span>
+                        } @else if (lineGridColumnIsProduct(column)) {
+                          <app-inventory-line-product-picker
+                            [host]="this" [rowIndex]="rowIndex" [column]="column"
+                            [productColumnIndex]="columnIndex"
+                            [variantColumnIndex]="lineGridSourceColumnIndex('Variant')"
+                            [attributeColumnIndex]="lineGridSourceColumnIndex('Attribute')">
+                          </app-inventory-line-product-picker>
                         } @else if (lineGridColumnIsAttributeValue(column)) {
                           @if (lineGridAttributeSelection(rowView, column); as attr) {
                             @if (attr.isAuto) {
-                              <span class="inventory-grid-static-value">{{ attr.value || '�' }}</span>
+                              <span class="inventory-grid-static-value">{{ attr.value || 'ï¿½' }}</span>
                             } @else {
                               <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select purchase-invoice-grid-select inventory-attr-select" appendTo="body"
                                 [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -279,7 +293,7 @@
                               </ng-select>
                             }
                           } @else {
-                            <span class="inventory-grid-empty-hint">�</span>
+                            <span class="inventory-grid-empty-hint">ï¿½</span>
                           }
                         } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                           <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
@@ -504,6 +518,7 @@
                   </button>
                 </th>
               }
+              <th class="text-center">Reference</th>
             </tr>
           </thead>
           <tbody>
@@ -523,34 +538,28 @@
                 @for (col of visibleRecordColumns(); track col.index) {
                   <td>{{ row[col.index] }}</td>
                 }
+                <td class="text-center">
+                  @if (purchaseInvoiceIsPostedRow(row)) {
+                    <button type="button" class="purchase-invoice-grid-ref-link"
+                      [disabled]="expandedPiAttachmentLoadingForRow(row)"
+                      [title]="purchaseInvoiceAttachmentGridTitle(row)"
+                      [attr.aria-label]="purchaseInvoiceAttachmentGridTitle(row)"
+                      (click)="openPurchaseInvoiceAttachmentRefs(row)">
+                      <i [class]="expandedPiAttachmentLoadingForRow(row) ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'"></i>
+                      <span>{{ purchaseInvoiceAttachmentGridLabel(row) }}</span>
+                    </button>
+                  } @else {
+                    <span class="inventory-grid-empty-hint">-</span>
+                  }
+                </td>
               </tr>
               @if (isExpandedGrn(row)) {
                 <tr class="pr-expand-tr">
-                  <td [attr.colspan]="(visibleRecordColumns().length || 0) + 1">
+                  <td [attr.colspan]="(visibleRecordColumns().length || 0) + 2">
                     <div class="pr-expand-content">
                       <div class="pr-expand-hdr">
                         <i class="pi pi-list"></i>
                         <span>Items in {{ row[0] }}</span>
-                        <div class="purchase-invoice-expanded-ref-strip">
-                          @if (expandedPiAttachmentLoadingForRow(row)) {
-                            <span class="purchase-invoice-expanded-ref-state">
-                              <i class="pi pi-spin pi-spinner"></i>
-                              Loading ref
-                            </span>
-                          } @else if (expandedPiAttachmentErrorForRow(row)) {
-                            <span class="purchase-invoice-expanded-ref-state">{{ expandedPiAttachmentErrorForRow(row) }}</span>
-                          } @else {
-                            @for (attachment of expandedPiAttachmentRefs(row); track attachment.id; let refIndex = $index) {
-                              <button type="button" class="purchase-invoice-expanded-ref-link"
-                                [title]="attachment.fileName"
-                                [attr.aria-label]="'Preview attached invoice ' + attachment.fileName"
-                                (click)="previewExpandedPiAttachment(attachment)">
-                                <i class="pi pi-paperclip"></i>
-                                <span>Ref {{ refIndex + 1 }}</span>
-                              </button>
-                            }
-                          }
-                        </div>
                       </div>
                       @let piItems = grnExpandedItems(row);
                       @let piColumns = grnExpandedColumns(row);
@@ -569,12 +578,12 @@
                                 @for (column of piColumns; track column.key) {
                                   <td>
                                     @if (column.key === 'product') {
-                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      <strong>{{ grnExpandedCell(item, column, i) || 'ï¿½' }}</strong>
                                       @if (grnExpandedProductSubtitle(item); as subtitle) {
                                         <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
                                       }
                                     } @else {
-                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                      {{ grnExpandedCell(item, column, i) || 'ï¿½' }}
                                     }
                                   </td>
                                 }
@@ -660,6 +669,44 @@
               </table>
               @if (refPickerHiddenCount() > 0) {
                 <p class="inventory-field-hint">Showing first 100. Use search to narrow {{ refPickerHiddenCount() }} more GRN(s).</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (purchaseInvoiceReferenceModalOpen()) {
+    <div class="inventory-modal-backdrop" (click)="closePurchaseInvoiceReferenceModal()">
+      <div class="inventory-modal purchase-invoice-reference-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>{{ purchaseInvoiceReferenceModalTitle() }}</h3>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" aria-label="Close" (click)="closePurchaseInvoiceReferenceModal()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="inventory-modal-body">
+          @if (purchaseInvoiceReferenceModalLoading()) {
+            <p class="inventory-field-hint"><i class="pi pi-spin pi-spinner"></i> Loading reference...</p>
+          } @else if (purchaseInvoiceReferenceModalError()) {
+            <p class="inventory-error-msg">{{ purchaseInvoiceReferenceModalError() }}</p>
+          } @else if (!purchaseInvoiceReferenceModalRefs().length) {
+            <p class="inventory-field-hint">No reference found.</p>
+          } @else {
+            <div class="purchase-invoice-reference-list">
+              @for (attachment of purchaseInvoiceReferenceModalRefs(); track attachment.id; let refIndex = $index) {
+                <div class="purchase-invoice-reference-row">
+                  <span class="purchase-invoice-reference-name" [title]="attachment.fileName">
+                    Ref {{ refIndex + 1 }} - {{ attachment.fileName }}
+                  </span>
+                  <button type="button" class="erp-btn btn-white btn-sm"
+                    [attr.aria-label]="'Preview ' + attachment.fileName"
+                    (click)="previewExpandedPiAttachment(attachment)">
+                    <i class="pi pi-eye"></i>
+                    View
+                  </button>
+                </div>
               }
             </div>
           }

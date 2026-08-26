@@ -208,16 +208,9 @@
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
             <div class="inventory-line-title-actions">
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
-                <i class="pi pi-plus"></i> Add Row
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress GRN intact" (click)="addProductFromProcurementGrid()">
-                <i class="pi pi-external-link"></i> Add Product
-              </button>
-              <button type="button" class="erp-btn btn-white btn-sm" (click)="toggleLineGridFullscreen()">
-                <i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i>
-                {{ isLineGridFullscreen() ? 'Exit Full Screen' : 'Full Screen' }}
-              </button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Opens Product Master in this window; saving there returns you here with your in-progress GRN intact" aria-label="Add product" (click)="addProductFromProcurementGrid()"><i class="pi pi-external-link"></i></button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" [title]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" (click)="toggleLineGridFullscreen()"><i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i></button>
             </div>
           </div>
           <div class="tbl-wrap">
@@ -251,11 +244,11 @@
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column);
                       <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
-                          <span class="inventory-grid-na">� N/A �</span>
+                          <span class="inventory-grid-na">ï¿½ N/A ï¿½</span>
                         } @else if (lineGridColumnIsAttributeValue(column)) {
                           @if (lineGridAttributeSelection(rowView, column); as attr) {
                             @if (attr.isAuto) {
-                              <span class="inventory-grid-static-value">{{ attr.value || '�' }}</span>
+                              <span class="inventory-grid-static-value">{{ attr.value || 'ï¿½' }}</span>
                             } @else {
                               <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
                                 [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -264,7 +257,7 @@
                               </ng-select>
                             }
                           } @else {
-                            <span class="inventory-grid-empty-hint">�</span>
+                            <span class="inventory-grid-empty-hint">ï¿½</span>
                           }
                         } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                           <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
@@ -337,7 +330,7 @@
                           @for (attr of rowView?.attrSelections || []; track attr.name) {
                             <div class="inventory-line-subcell">
                               @if (attr.isAuto) {
-                                <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || '—' }}</small>
+                                <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || 'â€”' }}</small>
                               } @else {
                                 <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
                                   [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -565,12 +558,12 @@
                                 @for (column of grnColumns; track column.key) {
                                   <td>
                                     @if (column.key === 'product') {
-                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      <strong>{{ grnExpandedCell(item, column, i) || 'ï¿½' }}</strong>
                                       @if (grnExpandedProductSubtitle(item); as subtitle) {
                                         <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
                                       }
                                     } @else {
-                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                      {{ grnExpandedCell(item, column, i) || 'ï¿½' }}
                                     }
                                   </td>
                                 }

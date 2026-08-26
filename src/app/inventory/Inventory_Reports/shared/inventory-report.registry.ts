@@ -182,7 +182,10 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['referenceNo', 'Reference No'],
       ['productCode', 'Product Code'],
       ['productName', 'Product Name'],
-      ['warehouse', 'Warehouse'],
+      // A stock location is a warehouse OR a branch from Round 1 onward — the
+      // column already carries whichever one the row belongs to, so the header
+      // says so. Label only; the row field stays 'warehouse'.
+      ['warehouse', 'Warehouse / Branch'],
       ['inwardQty', 'Inward Qty', 'number', true],
       ['outwardQty', 'Outward Qty', 'number', true],
       ['balanceQty', 'Balance Qty', 'number'],
@@ -211,7 +214,7 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     audience: ['Warehouse', 'Admin', 'Business Owner'],
     filters: [...baseFilters, ...productFilters],
     columns: cols([
-      ['warehouse', 'Warehouse'],
+      ['warehouse', 'Warehouse / Branch'],
       ['productCode', 'Product Code'],
       ['productName', 'Product Name'],
       ['uom', 'UOM'],
@@ -237,7 +240,7 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     filters: [...baseFilters, ...productFilters, 'createdBy'],
     columns: cols([
       ['product', 'Product'],
-      ['warehouse', 'Warehouse'],
+      ['warehouse', 'Warehouse / Branch'],
       ['currentStock', 'Current Stock', 'number', true],
       ['reorderLevel', 'Reorder Level', 'number'],
       ['shortageQty', 'Shortage Qty', 'number', true],
@@ -494,7 +497,7 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['manufacturingDate', 'Manufacturing Date', 'date'],
       ['expiryDate', 'Expiry Date', 'date'],
       ['daysToExpire', 'Days to Expire', 'number'],
-      ['warehouse', 'Warehouse'],
+      ['warehouse', 'Warehouse / Branch'],
       ['quantity', 'Quantity', 'number', true],
       ['value', 'Value', 'currency', true],
       ['status', 'Status', 'status']
@@ -532,6 +535,35 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       { product: 'LED Display 32 inch', category: 'Electronics', salesQuantity: 48, salesValue: 1512000, purchaseCost: 1176000, grossProfit: 336000, marginPercent: 22.22 },
       { product: 'AMC Support', category: 'IT Services', salesQuantity: 14, salesValue: 960000, purchaseCost: 556800, grossProfit: 403200, marginPercent: 42 },
       { product: 'Drone Motor 2KW', category: 'Drone Manufacturing', salesQuantity: 220, salesValue: 1100000, purchaseCost: 869000, grossProfit: 231000, marginPercent: 21 }
+    ]
+  }),
+  phaseOneReport({
+    key: 'lossSales',
+    slug: 'loss-sales',
+    title: 'Loss Sales Report',
+    groupId: 'costingProfitability',
+    endpoint: 'loss-sales',
+    icon: 'pi pi-arrow-down',
+    purpose: 'Sales invoice lines where the selling rate fell below the product\'s current cost price -- flags sales made at a loss (a floor check, unrelated to MRP).',
+    audience: ['Business Owner', 'Accountant', 'Sales'],
+    filters: [...baseFilters, 'productId', 'productCategory', 'brand', 'customerId', 'status'],
+    columns: cols([
+      ['invoiceNumber', 'Invoice No'],
+      ['invoiceDate', 'Invoice Date', 'date'],
+      ['customer', 'Customer'],
+      ['product', 'Product'],
+      ['qty', 'Qty', 'number'],
+      ['rate', 'Rate', 'currency'],
+      ['cost', 'Cost', 'currency'],
+      ['lossAmount', 'Loss Amount', 'currency', true],
+      ['lossPercent', 'Loss %', 'percent']
+    ]),
+    defaultGroupBy: 'product',
+    drillDown: true,
+    sampleRows: [
+      { invoiceNumber: 'SI-2607', invoiceDate: '2026-08-05', customer: 'Metro Electronics', product: 'LED Display 32 inch', qty: 4, rate: 28000, cost: 31500, lossAmount: 14000, lossPercent: 11.11 },
+      { invoiceNumber: 'SI-2611', invoiceDate: '2026-08-10', customer: 'AeroBuild Pvt Ltd', product: 'Drone Motor 2KW', qty: 10, rate: 3800, cost: 4200, lossAmount: 4000, lossPercent: 9.52 },
+      { invoiceNumber: 'SI-2618', invoiceDate: '2026-08-14', customer: 'Spice Route Restaurant', product: 'Cooking Oil 1L', qty: 60, rate: 145, cost: 162, lossAmount: 1020, lossPercent: 10.49 }
     ]
   }),
   phaseOneReport({

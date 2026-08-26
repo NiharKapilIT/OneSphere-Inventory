@@ -1,0 +1,259 @@
+// Trigger button that sits inside the grid's Product <td> in place of the
+// old wide ng-select. Deliberately plain -- width/height compaction for the
+// 3 pilot screens comes from each screen's own component-scoped styles
+// block (see sales-invoice.ts / purchase-invoice.ts / stock-transfer.ts),
+// never from here, so this component looks reasonable if it's ever reused
+// somewhere that hasn't opted into that compaction.
+.inventory-line-product-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: flex-start;
+  overflow: hidden;
+  text-align: left;
+}
+
+.inventory-line-product-trigger-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.inventory-line-product-trigger--empty {
+  color: #64748b;
+  font-weight: 600;
+}
+
+// Dedicated top transaction layer. The backdrop and popup sit above the app
+// shell/breadcrumb; this popup's ng-select option panels are appended to the
+// popup root so they stay in the same modal layer.
+.inventory-line-product-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+}
+
+.inventory-line-product-popup {
+  position: fixed;
+  z-index: 20010;
+  width: min(680px, calc(100vw - 24px));
+  padding: 0;
+  overflow: visible;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+
+.inventory-line-product-popup-header {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px 14px 0 0;
+  background: #f8fafc;
+}
+
+.inventory-line-product-popup-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inventory-line-product-config-btn {
+  color: #0c4a6e;
+}
+
+.inventory-line-product-popup-header strong {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.inventory-line-product-popup-body {
+  max-height: min(74vh, 620px);
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+// Compact confirm footer -- the shared `.inventory-modal-footer` rule
+// (styles.scss) is designed for a taller, centered modal, so its
+// margin-top/padding-top are trimmed here to match this popup's smaller
+// scale. Single right-aligned "Add Product" button; a dedicated Cancel
+// isn't needed since the header's own close (X) already covers that, and
+// outside-click-to-close (this component's outsideClickHandler) still works
+// unchanged for anyone who just clicks away instead.
+.inventory-line-product-popup-footer {
+  margin-top: 0;
+  padding: 10px 14px;
+  border-radius: 0 0 14px 14px;
+  background: #f8fafc;
+}
+
+.inv-line-picker-add-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  transform: none;
+}
+
+// Product / Variant / each Attribute sit in one horizontal row (wrapping
+// onto further rows once there isn't room, e.g. a product with several
+// mapped attributes) instead of stacking one-per-line -- keeps the popup
+// short/compact, matching the "small popup" intent, rather than growing
+// tall with every extra attribute a product happens to have.
+.inv-line-picker-fields-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.inv-line-picker-field {
+  flex: 1 1 140px;
+  min-width: 130px;
+}
+
+.inv-line-picker-field label {
+  display: block;
+  margin-bottom: 4px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inv-line-picker-field .inventory-grid-static-value {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 4px;
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+// Closing Stock and Stock Across Branches sit side by side when there's
+// room, same horizontal-over-stacked preference as the fields row above --
+// wraps to stacked below ~360px combined width (a narrow viewport, or
+// simply because either panel's own content needs it).
+.inv-line-picker-stock-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e8eef6;
+}
+
+.inv-line-picker-stock,
+.inv-line-picker-branches {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.inv-line-picker-stock-title {
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inv-line-picker-stock-total {
+  margin-bottom: 6px;
+  color: #0c4a6e;
+  font-size: 12.5px;
+}
+
+.inv-line-picker-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-line-picker-stock-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  font-size: 12px;
+  color: #334155;
+}
+
+.inv-line-picker-branch-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inv-line-picker-branch-card {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+// Label only -- the card whose branch matches the transaction's own current
+// branch (from-warehouse/document branch) is visually distinguished, but
+// stays exactly as non-clickable/informational as every other card here.
+.inv-line-picker-branch-card--current {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.inv-line-picker-branch-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0c4a6e;
+}
+
+.inv-line-picker-branch-card-head > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inv-line-picker-current-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.inv-line-picker-branch-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-line-picker-branch-card li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+// ng-select instances only exist inside this popup's own body -- scoped
+// ::ng-deep is safe here (no bleed into the grid's own ng-selects, which are
+// styled by each pilot screen's own compaction block).
+:host ::ng-deep .inv-line-picker-field .ng-select-container {
+  min-height: 34px;
+}

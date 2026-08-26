@@ -2289,10 +2289,11 @@ export class CommonService {
 
   fileUploadS3(formName: string, data: any) {
     const urldata = environment.apiUrl;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${sessionStorage.getItem('token') || ''}` });
 
     return this.http.get(urldata).pipe(
       mergeMap((json: any) =>
-        this.http.post(`${json[0]['api']}/uploadFile/${formName}`, data).pipe(
+        this.http.post(`${json[0]['api']}/uploadFile/${formName}`, data, { headers }).pipe(
           // this.http.post(`${json[0]['ApiHostUrl']}/uploadFile/${formName}`, data).pipe(
           map(this.extractData),
           catchError(this.handleError)

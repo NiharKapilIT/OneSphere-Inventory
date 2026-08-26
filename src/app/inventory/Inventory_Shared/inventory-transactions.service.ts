@@ -496,6 +496,8 @@ export interface PurchaseReturn {
   pi_number?: string;
   pi_grn_id?: number;
   debit_note_ref?: string;
+  branch_id?: number;
+  branch_name?: string;
   warehouse_id?: number;
   warehouse_name?: string;
   return_reason?: string;
@@ -1105,6 +1107,20 @@ export class InventoryTransactionsService {
 
   // ── API methods ───────────────────────────────────────────────────────────────
 
+  private normPurchaseInvoiceAttachment(r: any): PurchaseInvoiceAttachment {
+    return {
+      id: Number(r?.id || 0),
+      purchaseInvoiceId: Number(r?.purchaseInvoiceId ?? r?.purchase_invoice_id ?? 0),
+      fileKey: r?.fileKey || r?.file_key || '',
+      fileName: r?.fileName || r?.file_name || '',
+      contentType: r?.contentType ?? r?.content_type ?? null,
+      fileSizeBytes: r?.fileSizeBytes ?? r?.file_size_bytes ?? null,
+      uploadedBy: r?.uploadedBy ?? r?.uploaded_by ?? null,
+      uploadedByName: r?.uploadedByName ?? r?.uploaded_by_name ?? null,
+      createdAt: r?.createdAt ?? r?.created_at ?? null
+    };
+  }
+
   getPurchaseRequisitions(status?: string, segmentId?: number | null): Observable<ApiResponse<PurchaseRequisition[]>> {
     let params = new HttpParams();
     if (status) params = params.set('status', status);
@@ -1603,6 +1619,8 @@ export class InventoryTransactionsService {
       pi_number: r?.piNumber || r?.pi_number,
       pi_grn_id: r?.piGrnId ?? r?.pi_grn_id,
       debit_note_ref: r?.debitNoteRef || r?.debit_note_ref,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
       warehouse_id: r?.warehouseId ?? r?.warehouse_id,
       warehouse_name: r?.warehouseName || r?.warehouse_name,
       return_reason: r?.returnReason || r?.return_reason,
@@ -2050,16 +2068,30 @@ export class InventoryTransactionsService {
   // ── Purchase Invoice Attachments (item 11 — Purchase Invoice screen only) ──
 
   getPurchaseInvoiceAttachments(purchaseInvoiceId: number): Observable<ApiResponse<PurchaseInvoiceAttachment[]>> {
-    return this.http.get<ApiResponse<PurchaseInvoiceAttachment[]>>(
+    return this.http.get<ApiResponse<any[]>>(
       this.url(`purchase-invoices/${purchaseInvoiceId}/attachments`), { headers: this.headers() }
+    ).pipe(
+      map(res => ({ ...res, data: (res.data ?? []).map(r => this.normPurchaseInvoiceAttachment(r)) }))
     );
   }
 
   savePurchaseInvoiceAttachment(purchaseInvoiceId: number, attachment: {
     fileKey: string; fileName: string; contentType?: string | null; fileSizeBytes?: number | null;
   }): Observable<ApiResponse<PurchaseInvoiceAttachment>> {
-    return this.http.post<ApiResponse<PurchaseInvoiceAttachment>>(
+    return this.http.post<ApiResponse<any>>(
       this.url(`purchase-invoices/${purchaseInvoiceId}/attachments`), attachment, { headers: this.headers() }
+    ).pipe(
+      map(res => ({ ...res, data: res.data ? this.normPurchaseInvoiceAttachment(res.data) : undefined }))
+    );
+  }
+
+  uploadPurchaseInvoiceAttachment(purchaseInvoiceId: number, file: File): Observable<ApiResponse<PurchaseInvoiceAttachment>> {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    return this.http.post<ApiResponse<any>>(
+      this.url(`purchase-invoices/${purchaseInvoiceId}/attachments/upload`), fd, { headers: this.headers() }
+    ).pipe(
+      map(res => ({ ...res, data: res.data ? this.normPurchaseInvoiceAttachment(res.data) : undefined }))
     );
   }
 

@@ -90,6 +90,31 @@ interface GlobalContactOption {
   source?: 'inv_contacts' | 'global_contact';
 }
 
+// Round 1 (Warehouse/Branch independent stock): the merged Warehouse/Branch
+// picker shared by GRN, Purchase Invoice, Purchase Return and Delivery
+// Challan. Each option carries what KIND of location it is and which master
+// row it came from, so a selection never has to be re-identified by matching
+// its name string back against two different masters.
+type MergedLocationType = 'warehouse' | 'branch';
+
+interface MergedLocationEntry {
+  label: string;
+  type: MergedLocationType;
+  /** Master row id; null only when the label has no matching master row. */
+  id: number | null;
+}
+
+/** What the grouped dropdown binds to — `label` remains the bound value. */
+interface MergedLocationOption extends MergedLocationEntry {
+  group: string;
+}
+
+interface MergedLocationResolution {
+  type: MergedLocationType | null;
+  warehouse: WarehouseItem | null;
+  branch: BranchInvItem | null;
+}
+
 // Item 13: one entry per distinct source warehouse an auto-transfer plan
 // needs to draw from -- see planInterbranchAutoTransfers().
 interface InterbranchTransferPlanItem {
@@ -217,6 +242,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   readonly activeAddMaster = signal('');
   get quickAddHost(): this { return this; }
+  // Item: Product Picker popup pilot (Sales Invoice / Purchase Invoice /
+  // Stock Transfer) -- which grid row's InventoryLineProductPickerComponent
+  // popup is currently open, or null. Same "one active thing at a time"
+  // role activeAddMaster plays for the quick-add modal, scoped to a row
+  // index instead of a master-name string since a picker is mounted once
+  // PER ROW rather than once per screen.
+  readonly activeLineProductPickerRow = signal<number | null>(null);
   readonly advicePanelOpen = signal(false);
   readonly partySummaryOpen = signal(false);
   readonly selectedPartyName = signal('');
@@ -309,6 +341,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly isSaving = signal(false);
   readonly saveMsg = signal('');
   readonly saveError = signal('');
+  // Non-blocking advisory captured at save time (currently only the Sales
+  // Invoice MRP-ceiling notice) and appended to saveMsg once the document has
+  // actually saved, so it reads as information rather than a stopped save.
+  private pendingSaveNotice = '';
   readonly confirmDialog = signal<{
     title: string;
     message: string;
@@ -434,7 +470,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // named-sub-field system (e.g. IMEI No/Chassis No labels on one serial).
   readonly lineSerialUnitsMap = signal<Record<number, string[]>>({});
   readonly lineGstIncludedMap = signal<Record<number, boolean>>({});
-  readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited'; qtyNeeded: number; productId: number | null; productName: string } | null>(null);
+  // 'view' is the read-only counterpart used by openSerialPickerReadOnly() --
+  // shows already-captured serials (e.g. a GRN-linked PI line) with no
+  // add/remove affordances, distinct from 'inherited' (which is specifically
+  // the DC/SI cross-reference flow with its own "reserved via ..." copy).
+  readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited' | 'view'; qtyNeeded: number; productId: number | null; productName: string } | null>(null);
   readonly serialPickerDraftValues = signal<string[]>([]);
   readonly serialPickerAvailableOptions = signal<{ id: number; serial_no: string }[]>([]);
   // "select" mode tracks the checked STATE by unique unit id, not by
@@ -515,7 +555,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private readonly customerOptionList = signal<string[]>([]);
   private readonly loadedChannelPartnerObjects = signal<ChannelPartnerItem[]>([]);
   private readonly channelPartnerOptionList = signal<string[]>([]);
-  private readonly loadedWarehouseObjects = signal<WarehouseItem[]>([]);
+  // Widened to protected (was private) so InventoryLineProductPickerComponent
+  // (Product Picker popup pilot) can resolve a warehouse's branch for its
+  // cross-branch stock cards -- implementation-detail visibility change
+  // only, no change to what this holds or how it's populated.
+  protected readonly loadedWarehouseObjects = signal<WarehouseItem[]>([]);
   protected readonly loadedBranchObjects = signal<BranchInvItem[]>([]);
   private readonly loadedPaymentTermObjects = signal<PaymentTermItem[]>([]);
   private readonly loadedProductTypeObjects = signal<ProductTypeItem[]>([]);
@@ -2082,7 +2126,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || this.optionEquals(this.uomNameFromSelection(rawA), this.uomNameFromSelection(rawB));
   }
 
-  private findProductBySelection(value: any): ProductItem | null {
+  // Widened to protected (was private) so InventoryLineProductPickerComponent
+  // (Product Picker popup pilot) can resolve the picked row's product object
+  // for its own stock-lookup calls -- implementation-detail visibility
+  // change only, no logic change.
+  protected findProductBySelection(value: any): ProductItem | null {
     const raw = String(value ?? '').trim();
     if (!raw) return null;
     const selectedKey = this.normalizeKey(raw);
@@ -2180,6 +2228,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   protected defaultProductUomForTransaction(product: ProductItem | null | undefined, key = this.config?.key || ''): { name: string; id: number | null } {
     if (!product) return { name: '', id: null };
+    const baseName = this.productBaseUomLabel(product);
+    if (baseName) {
+      return { name: baseName, id: this.optionalNumber(product.base_uom_id) };
+    }
+
     const usage = this.transactionUomUsageForKey(key);
     const conversions = this.productUomConversionsForTransaction(product, key);
     const defaultConversion = usage === 'purchase'
@@ -2193,7 +2246,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return { name: defaultName, id: this.productUomConversionId(defaultConversion) };
     }
 
-    return { name: this.productBaseUomLabel(product), id: this.optionalNumber(product.base_uom_id) };
+    return { name: '', id: null };
   }
 
   protected productUomIdForSelection(product: ProductItem | null | undefined, selection: any, key = this.config?.key || ''): number | null {
@@ -2268,7 +2321,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       .filter(option => !!option.id && !!option.label);
   }
 
-  private productVariantOptionMatches(option: { label: string; variant_name: string; aliases?: string[] }, value: string | null | undefined): boolean {
+  // Widened to protected (was private) so InventoryLineProductPickerComponent
+  // (Product Picker popup pilot) can match its own picked variant text back
+  // to a variant id for stock-lookup calls -- implementation-detail
+  // visibility change only, no logic change.
+  protected productVariantOptionMatches(option: { label: string; variant_name: string; aliases?: string[] }, value: string | null | undefined): boolean {
     return (option.aliases || [option.label, option.variant_name]).some(alias => this.optionEquals(alias, value || ''));
   }
 
@@ -2545,6 +2602,270 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.normalizeKey(item.branch_name) === selectedKey
       || this.normalizeKey(item.branch_code) === selectedKey
     ) ?? null;
+  }
+
+  private branchDisplayName(branch: BranchInvItem | null | undefined): string {
+    return String(branch?.branch_name || branch?.branch_code || '').trim();
+  }
+
+  private branchResolvedId(branch: BranchInvItem | null | undefined): number | null {
+    return this.optionalNumber(branch?.branch_id) ?? this.optionalNumber(branch?.id);
+  }
+
+  // ---------------------------------------------------------------------
+  // Merged "Warehouse / Branch" picker -> real warehouse resolution.
+  //
+  // GRN, Purchase Invoice and Delivery Challan each show ONE merged picker
+  // listing both warehouses and branches. Picking a branch used to leave
+  // warehouse_id / from_warehouse_id NULL on the payload, and every stock
+  // posting function matches its stock rows with
+  //     COALESCE(warehouse_id, 0) = COALESCE(v_doc.<warehouse>_id, 0)
+  // so a NULL document warehouse matched every OTHER stock row that also had
+  // a NULL warehouse — company-wide. Postings against a "branch" therefore
+  // landed in one shared, cross-document, cross-branch "Unassigned" pool
+  // instead of a real location.
+  //
+  // A branch selection is now resolved to a real warehouse through the
+  // existing inv_warehouses.branch_id link (N:1 — many warehouses may name
+  // one branch). Exactly one linked warehouse resolves transparently; zero or
+  // more than one is refused outright by validatePayload() rather than
+  // guessed at, because a wrong warehouse and a NULL warehouse are both
+  // stock-integrity bugs. The branch_id/branch_name still travel on the
+  // payload — the document really is at that branch — only warehouse_id stops
+  // being NULL.
+  // ---------------------------------------------------------------------
+
+  /** Active warehouses linked to the given branch via inv_warehouses.branch_id. */
+  private warehousesForBranch(branch: BranchInvItem | null | undefined): WarehouseItem[] {
+    const branchId = this.branchResolvedId(branch);
+    if (!branchId) return [];
+    return this.loadedWarehouseObjects().filter(item =>
+      this.optionalNumber(item.branch_id) === branchId
+      && String(item.status || 'active').toLowerCase() !== 'inactive'
+    );
+  }
+
+  /** The branch's single linked warehouse, or null when there are zero or many. */
+  private singleWarehouseForBranch(branch: BranchInvItem | null | undefined): WarehouseItem | null {
+    const matches = this.warehousesForBranch(branch);
+    return matches.length === 1 ? matches[0] : null;
+  }
+
+  /** Screens whose location field is one merged Warehouse/Branch picker. */
+  private readonly mergedLocationScreenKeys = new Set(['goodsReceipt', 'purchaseInvoice', 'deliveryChallan']);
+
+  /**
+   * Every screen whose posting moves stock at a single header warehouse, and
+   * so must never save a NULL warehouse id. Sales Invoice and Sales Return
+   * reach the same failure a different way: they have a warehouse-only picker
+   * (plus, on SI, a separate interbranch Branch field) rather than the merged
+   * dropdown, but an unresolved selection there lands in the identical shared
+   * "Unassigned" pool — INV-26-00002 / SR-26-00001 on company 60 are live
+   * examples, both NULL-id with the stock physically at warehouse 6.
+   */
+  private readonly stockLocationScreenKeys = new Set([
+    'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'salesInvoice', 'salesReturn'
+  ]);
+
+  /**
+   * Screens refused a POST that carries no location at all, with the message
+   * naming that screen's own field label.
+   *
+   * Goods Receipt and Purchase Invoice are deliberately ABSENT: both already
+   * hard-require a branch-or-warehouse further down in validatePayload()
+   * ("Receiving Branch / Warehouse is required for GRN." / "Branch /
+   * Warehouse is required for Purchase Invoice."), and those rules are
+   * stricter than this one — they block a DRAFT too. Listing them here would
+   * preempt the existing rule on post with a different wording while the old
+   * one still handled the draft, so the same mistake would report itself two
+   * different ways. Delivery Challan has no such rule, hence its entry.
+   */
+  private readonly postedStockLocationMessages: Record<string, string> = {
+    deliveryChallan: 'Select the From Warehouse / Branch — a posted Delivery Challan has to dispatch the stock from a real location.',
+    salesInvoice: 'Select the Warehouse this invoice ships from — a posted Sales Invoice has to draw stock from a real location.',
+    salesReturn: 'Select the Return To Warehouse — a posted Sales Return has to put the stock back somewhere real.'
+  };
+
+  /**
+   * Blocks a save on the merged-picker screens when a branch was selected but
+   * could not be resolved to exactly one warehouse. Reads the built payload,
+   * so it covers every path that reaches validatePayload().
+   */
+  private mergedLocationValidationMessage(payload: Record<string, any>): string {
+    const key = this.config?.key || '';
+    if (!this.stockLocationScreenKeys.has(key)) return '';
+
+    // Resolved to a real warehouse (directly picked, or via its branch) — fine.
+    const warehouseId = this.optionalNumber(payload['warehouse_id'])
+      ?? this.optionalNumber(payload['from_warehouse_id'])
+      ?? this.optionalNumber(payload['return_to_warehouse_id']);
+    if (warehouseId) return '';
+
+    // ---- A branch was picked but did not resolve to exactly one warehouse.
+    const branchName = String(payload['branch_name'] || '').trim();
+    const branchId = this.optionalNumber(payload['branch_id']);
+    const formBranchName = this.mergedLocationScreenKeys.has(key)
+      ? ''
+      : String(this.formValues()['branch'] || '').trim();
+    if (branchId || branchName || formBranchName) {
+      const branch = this.findBranchBySelection(branchName || formBranchName)
+        ?? this.loadedBranchObjects().find(item => this.branchResolvedId(item) === branchId)
+        ?? null;
+      const label = this.branchDisplayName(branch) || branchName || formBranchName || 'The selected branch';
+      const matches = this.warehousesForBranch(branch);
+      if (matches.length > 1) {
+        return `${label} has ${matches.length} warehouses (${matches.map(item => item.warehouse_name).join(', ')}). `
+          + 'Select the specific Warehouse instead of the Branch so stock posts to the right location.';
+      }
+      return `${label} has no Warehouse linked to it, so stock cannot be posted against it. `
+        + 'Select a specific Warehouse instead, or link a Warehouse to this Branch in Warehouse Setup.';
+    }
+
+    // ---- A location NAME survived on the document but matches no warehouse
+    // and no branch in this company (typically a stale value left over from
+    // the hardcoded INVENTORY_OPTIONS.locations demo list the pickers used to
+    // merge in — "HYD Main WH" and friends). It used to be written through as
+    // free text next to a NULL id, which is precisely how a posted document
+    // ends up drawing on the shared "Unassigned" pool.
+    const locationName = String(
+      payload['warehouse_name']
+      || payload['from_warehouse_name']
+      || payload['return_to_warehouse_name']
+      || ''
+    ).trim();
+    if (locationName) {
+      return `"${locationName}" is not a Warehouse in this company. `
+        + 'Select a Warehouse from the list so stock posts to a real location.';
+    }
+
+    // ---- Nothing selected at all. Refused on every stock-moving screen, but
+    // only when the document is actually being POSTED and at least one line
+    // really tracks stock — that is the exact case that silently moves stock
+    // into the Unassigned pool, since each posting function reads the header
+    // warehouse id and skips service lines the same way productTracksStock()
+    // does. A DRAFT posts nothing, so it keeps the existing "no location yet"
+    // allowance and stays saveable; so does a service-only document.
+    const postedMessage = this.postedStockLocationMessages[key];
+    if (!postedMessage) return '';
+    if (String(payload['status'] || '').toLowerCase() !== 'posted') return '';
+    // Generic despite the name — directEntryLineRows() backs every transaction
+    // screen's grid (GRN/PI/DC included) and is a no-op once rows are loaded.
+    if (!this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))) return '';
+    return postedMessage;
+  }
+
+  /**
+   * Mirrors the line filter inside fn_post_sales_invoice_stock: a line only
+   * moves stock when its product tracks inventory and is not a service.
+   */
+  private productTracksStock(product: ProductItem | null | undefined): boolean {
+    if (!product) return false;
+    const typeIsService = String(product.product_type || '').toLowerCase() === 'service';
+    if (product.is_service ?? typeIsService) return false;
+    return product.tracks_inventory ?? !typeIsService;
+  }
+
+  private branchCreatedTime(branch: BranchInvItem): number {
+    const parsed = Date.parse(String(branch.created_at || ''));
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
+  }
+
+  private branchIsHeadOffice(branch: BranchInvItem): boolean {
+    const nameKey = this.normalizeKey(this.branchDisplayName(branch));
+    const codeKey = this.normalizeKey(branch.branch_code || '');
+    return !!branch.is_head_office
+      || nameKey === 'headoffice'
+      || codeKey === 'ho'
+      || codeKey === 'headoffice';
+  }
+
+  private orderBranchesForDefault(branches: BranchInvItem[]): BranchInvItem[] {
+    return [...branches].sort((a, b) => {
+      const headOfficeDelta = Number(this.branchIsHeadOffice(b)) - Number(this.branchIsHeadOffice(a));
+      if (headOfficeDelta !== 0) return headOfficeDelta;
+      const createdDelta = this.branchCreatedTime(a) - this.branchCreatedTime(b);
+      if (createdDelta !== 0) return createdDelta;
+      return this.branchDisplayName(a).localeCompare(this.branchDisplayName(b));
+    });
+  }
+
+  private defaultBranchForTransaction(): BranchInvItem | null {
+    const activeBranches = this.loadedBranchObjects().filter(branch => this.normalizeKey(branch.status || 'active') !== 'inactive');
+    return this.orderBranchesForDefault(activeBranches)[0] || null;
+  }
+
+  private configHasField(key: string): boolean {
+    return (this.config?.fields || []).some(field => field.key === key);
+  }
+
+  private shouldDefaultBranchForCurrentScreen(): boolean {
+    const key = this.config?.key || '';
+    return key === 'purchaseRequisition'
+      || key === 'goodsReceipt'
+      || key === 'purchaseInvoice'
+      || key === 'purchaseReturn';
+  }
+
+  private applyReceivingLocationSelection(next: Record<string, any>, value: any): void {
+    const selected = String(value || '').trim();
+    const selectedWarehouse = this.findWarehouseBySelection(selected);
+    const selectedBranch = selectedWarehouse ? null : this.findBranchBySelection(selected);
+    next['warehouseId'] = selectedWarehouse?.id ?? null;
+    next['warehouse'] = selectedWarehouse?.warehouse_name || '';
+    next['branchId'] = this.branchResolvedId(selectedBranch);
+    next['branch'] = selectedBranch?.branch_name || '';
+  }
+
+  private applyPurchaseReturnLocationSelection(next: Record<string, any>, value: any): void {
+    const selected = String(value || '').trim();
+    const selectedWarehouse = this.findWarehouseBySelection(selected);
+    const selectedBranch = selectedWarehouse ? null : this.findBranchBySelection(selected);
+    next['warehouseId'] = selectedWarehouse?.id ?? null;
+    next['warehouse'] = selectedWarehouse?.warehouse_name || selectedBranch?.branch_name || selected;
+    next['branchId'] = this.branchResolvedId(selectedBranch);
+    next['branch'] = selectedBranch?.branch_name || '';
+  }
+
+  private applyDefaultBranchToCurrentTransaction(force = false): void {
+    if (!this.shouldDefaultBranchForCurrentScreen()) return;
+    if (!force && this.editingId() !== null) return;
+    const branch = this.defaultBranchForTransaction();
+    const branchName = this.branchDisplayName(branch);
+    if (!branch || !branchName) return;
+
+    this.formValues.update(values => {
+      if (!force && (
+        String(values['receivingLocation'] || '').trim()
+        || String(values['branch'] || '').trim()
+        || this.optionalNumber(values['branchId']) !== null
+        || String(values['warehouse'] || '').trim()
+        || this.optionalNumber(values['warehouseId']) !== null
+      )) {
+        return values;
+      }
+
+      const next = { ...values };
+      if (this.configHasField('receivingLocation')) {
+        next['receivingLocation'] = branchName;
+        next['warehouseId'] = null;
+        next['warehouse'] = '';
+        next['branchId'] = this.branchResolvedId(branch);
+        next['branch'] = branch.branch_name || branchName;
+      } else if (this.config?.key === 'purchaseReturn' && this.configHasField('warehouse')) {
+        next['warehouse'] = branchName;
+        next['warehouseId'] = null;
+        next['branchId'] = this.branchResolvedId(branch);
+        next['branch'] = branch.branch_name || branchName;
+      } else if (this.configHasField('branch')) {
+        next['branch'] = branchName;
+        next['branchId'] = this.branchResolvedId(branch);
+        if (this.config?.key === 'purchaseRequisition') {
+          const requesterOptions = this.purchaseRequisitionRequesterOptions(branchName);
+          if (requesterOptions.length === 1) next['requestedBy'] = requesterOptions[0];
+        }
+      }
+      return next;
+    });
   }
 
   private purchaseRequisitionRequesterOptions(branchValue: any = this.formValues()['branch']): string[] {
@@ -3407,10 +3728,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: res => {
-          const branches = res.data ?? [];
+          const branches = this.orderBranchesForDefault(res.data ?? []);
           this.loadedBranchObjects.set(branches);
           const names = branches.map(item => item.branch_name || item.branch_code).filter(Boolean) as string[];
           this.branchOptionList.set(this.mergeOptions([], names));
+          this.applyDefaultBranchToCurrentTransaction();
         },
         error: () => {}
       });
@@ -6525,6 +6847,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
+    this.applyDefaultBranchToCurrentTransaction(true);
   }
 
   private applyDirectPurchaseInvoiceReference(field: InventoryField): void {
@@ -6549,6 +6872,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
+    this.applyDefaultBranchToCurrentTransaction(true);
   }
 
   useDirectPurchaseInvoice(): void {
@@ -6676,6 +7000,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
+    this.applyDefaultBranchToCurrentTransaction(true);
   }
 
   useDirectGoodsReceipt(): void {
@@ -7163,21 +7488,123 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return field.options;
   }
 
-  // Merged Receiving Branch / Warehouse picker (GRN needs only one location field,
-  // user selects whichever applies) — combines both master lists into one dropdown.
-  private readonly grnReceivingLocationOptions = computed((): string[] => {
-    return Array.from(new Set([...this.warehouseOptions, ...this.branchOptions]));
+  // ---------------------------------------------------------------------
+  // Merged Receiving Branch / Warehouse picker (GRN, Purchase Invoice,
+  // Purchase Return and Delivery Challan each need only one location field,
+  // the user selects whichever applies) — combines both master lists into one
+  // dropdown.
+  //
+  // Every entry now carries an explicit { type, id } tag. The list used to be
+  // plain name strings, and a selection was resolved by re-matching that
+  // string against Warehouse Master first and Branch Master second — so a
+  // warehouse and a branch sharing a name were indistinguishable downstream
+  // and always resolved as the warehouse. That is cosmetic while branches
+  // cannot hold stock, and becomes a wrong-location posting the moment they
+  // can, so the tag is added now (Round 1) while it is still risk-free.
+  //
+  // What is deliberately NOT changed: the labels shown, their order, and the
+  // fact that the CONTROL still binds the plain name string (bindValue="label"
+  // in goods-receipt/purchase-invoice/purchase-return HTML). Everything that
+  // reads formValues()['receivingLocation'] keeps seeing exactly what it sees
+  // today.
+  // ---------------------------------------------------------------------
+
+  /** One merged, type-tagged option list — the single source of truth. */
+  private readonly mergedLocationEntries = computed((): MergedLocationEntry[] => {
+    const warehouses = this.loadedWarehouseObjects();
+    const branches = this.loadedBranchObjects();
+
+    // Labels come from the option lists (not straight off the objects) so the
+    // dropdown keeps rendering exactly the strings it renders today; the tag
+    // is resolved by looking each label back up in the master objects.
+    const warehouseEntries = this.warehouseOptions.map(label => {
+      const key = this.normalizeKey(label);
+      const match = warehouses.find(item =>
+        this.normalizeKey(item.warehouse_name) === key
+        || this.normalizeKey(item.warehouse_code) === key
+      );
+      return { label, type: 'warehouse' as const, id: this.optionalNumber(match?.id) ?? null };
+    });
+
+    const branchEntries = this.branchOptions.map(label => {
+      const key = this.normalizeKey(label);
+      const match = branches.find(item =>
+        this.normalizeKey(item.branch_name) === key
+        || this.normalizeKey(item.branch_code) === key
+      );
+      return { label, type: 'branch' as const, id: this.branchResolvedId(match) };
+    });
+
+    // Warehouses first, then branches — the same order the merged list has
+    // always had, which is also what makes a name collision resolve to the
+    // warehouse exactly as it does today.
+    return [...warehouseEntries, ...branchEntries];
   });
 
-  // Same picker as above but grouped by master, so the GRN dropdown visibly
-  // labels which entries are Warehouses vs Branches instead of one flat list.
-  // bindValue stays the plain name string, so every existing consumer of
-  // formValues()['receivingLocation'] (findWarehouseBySelection, the GRN
-  // payload builder, etc.) is unaffected.
-  readonly grnReceivingLocationGroups = computed((): { label: string; group: string }[] => [
-    ...this.warehouseOptions.map(label => ({ label, group: 'Warehouse' })),
-    ...this.branchOptions.map(label => ({ label, group: 'Branch' }))
-  ]);
+  private readonly grnReceivingLocationOptions = computed((): string[] => {
+    // Still deduplicated by name, so the flat list (Delivery Challan's From
+    // Warehouse field) renders precisely the entries it renders today.
+    return Array.from(new Set(this.mergedLocationEntries().map(entry => entry.label)));
+  });
+
+  // Same picker as above but grouped by master, so the dropdown visibly labels
+  // which entries are Warehouses vs Branches instead of one flat list. The
+  // extra type/id properties are inert for the control (bindLabel/bindValue
+  // both point at 'label') and exist so resolution can be tag-driven.
+  readonly grnReceivingLocationGroups = computed((): MergedLocationOption[] =>
+    this.mergedLocationEntries().map(entry => ({
+      label: entry.label,
+      group: entry.type === 'warehouse' ? 'Warehouse' : 'Branch',
+      type: entry.type,
+      id: entry.id
+    }))
+  );
+
+  /**
+   * Resolves a merged-picker selection through the type-tagged list above,
+   * returning the real master object together with the tag that identified it.
+   *
+   * Behaviour is identical to the previous
+   * `findWarehouseBySelection(v) || findBranchBySelection(v)` chain:
+   * warehouse entries precede branch entries in mergedLocationEntries, so a
+   * label that names both still resolves to the warehouse. The difference is
+   * that the ANSWER now comes from an explicit tag rather than from the order
+   * two lookups happened to be written in, which is what later rounds need in
+   * order to post to a branch as a location in its own right.
+   *
+   * Falls through to the name matchers when the selection is not in the option
+   * list at all — a warehouse_code or a stale value loaded off a saved
+   * document — so nothing that resolves today stops resolving.
+   */
+  private resolveMergedLocation(value: any): MergedLocationResolution {
+    const raw = String(value ?? '').trim();
+    if (!raw) return { type: null, warehouse: null, branch: null };
+
+    const key = this.normalizeKey(raw);
+    const entry = this.mergedLocationEntries().find(item => this.normalizeKey(item.label) === key);
+
+    if (entry?.type === 'warehouse') {
+      const warehouse = (entry.id !== null
+        ? this.loadedWarehouseObjects().find(item => this.optionalNumber(item.id) === entry.id)
+        : null) ?? this.findWarehouseBySelection(raw);
+      if (warehouse) return { type: 'warehouse', warehouse, branch: null };
+    }
+
+    if (entry?.type === 'branch') {
+      const branch = (entry.id !== null
+        ? this.loadedBranchObjects().find(item => this.branchResolvedId(item) === entry.id)
+        : null) ?? this.findBranchBySelection(raw);
+      if (branch) return { type: 'branch', warehouse: null, branch };
+    }
+
+    const warehouse = this.findWarehouseBySelection(raw);
+    if (warehouse) return { type: 'warehouse', warehouse, branch: null };
+
+    const branch = this.findBranchBySelection(raw);
+    if (branch) return { type: 'branch', warehouse: null, branch };
+
+    return { type: null, warehouse: null, branch: null };
+  }
 
   private runtimeField(field: InventoryField): InventoryField {
     const next: InventoryField = { ...field, options: this.runtimeOptions(field) };
@@ -7423,7 +7850,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   });
 
   private readonly lineGridSerialColumnList = computed((): string[] => {
-    if (!this.isPolicyAwarePurchaseLineGrid()) return [];
+    if (!this.supportsPolicySerialHeaderLineGrid()) return [];
     const names: string[] = [];
     const seen = new Set<string>();
     for (const rowView of this.entryLineRowViews()) {
@@ -7447,15 +7874,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private readonly lineGridRenderColumnList = computed((): string[] => {
     const baseColumns = this.transactionLineDisplayColumns(this.visibleLineColumns());
-    if (!this.isPolicyAwarePurchaseLineGrid()) return baseColumns;
-    const attributeColumns = this.lineGridAttributeColumnList();
-    const serialColumns = this.lineGridSerialColumnList();
+    const renderAttributeColumns = this.isPolicyAwarePurchaseLineGrid();
+    const renderSerialColumns = this.supportsPolicySerialHeaderLineGrid();
+    if (!renderAttributeColumns && !renderSerialColumns) return baseColumns;
+    const attributeColumns = renderAttributeColumns ? this.lineGridAttributeColumnList() : [];
+    const serialColumns = renderSerialColumns ? this.lineGridSerialColumnList() : [];
     const rendered: string[] = [];
     for (const column of baseColumns) {
       const key = column.toLowerCase().replace(/[^a-z0-9]+/g, '');
-      if (key === 'attribute') {
+      if (key === 'attribute' && renderAttributeColumns) {
         rendered.push(...(attributeColumns.length ? attributeColumns : [column]));
-      } else if (key === 'serialno') {
+      } else if (this.isStandaloneSerialPolicyColumn(column) && renderSerialColumns) {
         rendered.push(...(serialColumns.length ? serialColumns : [column]));
       } else {
         rendered.push(column);
@@ -7480,9 +7909,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // (declutters the view), not a permissions gate. Session-only, same as
   // isLineGridFullscreen's own toggle — no persistence across reloads.
   readonly hideMrpSellingPrice = signal(false);
+  readonly showPurchaseInvoiceMrpColumn = signal(true);
+  readonly showPurchaseInvoiceSellingPriceColumn = signal(true);
 
   toggleMrpSellingPriceColumns(): void {
     this.hideMrpSellingPrice.update(v => !v);
+  }
+
+  setPurchaseInvoiceMrpColumnVisible(checked: boolean): void {
+    this.showPurchaseInvoiceMrpColumn.set(!!checked);
+  }
+
+  setPurchaseInvoiceSellingPriceColumnVisible(checked: boolean): void {
+    this.showPurchaseInvoiceSellingPriceColumn.set(!!checked);
   }
 
   transactionLineDisplayColumns(columns: string[]): string[] {
@@ -7491,16 +7930,23 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return columns.filter(column => {
       const key = this.normalizeKey(column);
       if (key === 'variant' || key === 'attribute') return false;
-      if (this.hideMrpSellingPrice() && (key === 'mrp' || key === 'selling price')) return false;
-      // Item 5: Received/Accepted Qty are GRN concepts (received vs. what
-      // passed QC) -- only meaningful once this Purchase Invoice actually
-      // references a posted GRN, where they display what that GRN already
+      if (this.config?.key === 'purchaseInvoice') {
+        if (key === 'mrp') return this.showPurchaseInvoiceMrpColumn();
+        if (key === 'selling price') return this.showPurchaseInvoiceSellingPriceColumn();
+      } else if (this.hideMrpSellingPrice() && (key === 'mrp' || key === 'selling price')) {
+        return false;
+      }
+      // Item 5: Accepted Qty is a GRN concept (what passed QC) -- only
+      // meaningful once this Purchase Invoice actually references a posted
+      // GRN, where it displays the accepted quantity that GRN already
       // recorded. A direct invoice (no GRN reference) has no such
       // distinction, so it gets a single plain Qty column instead.
+      // Received Qty is never a PI column at all -- PI always bills on
+      // Accepted Qty when GRN-linked, never on what merely arrived.
       if (this.config?.key === 'purchaseInvoice') {
         const compact = this.compactKey(column);
         if (piGrnLinked && compact === 'qty') return false;
-        if (!piGrnLinked && (compact === 'receivedqty' || compact === 'acceptedqty')) return false;
+        if (!piGrnLinked && compact === 'acceptedqty') return false;
       }
       return true;
     });
@@ -7511,14 +7957,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   lineGridColumnHeader(column: string): string {
-    // Header always shows the generic "Serial No." label, even on the 4
-    // policy-aware grids (GRN/PI/DC/SI) where lineGridRenderColumns() has
-    // already substituted a policy-specific column name (e.g. "Chassis No").
-    // The specific policy label shows on the picker button inside the cell
-    // instead (serialPickerSummaryForRow()) — keeps the header stable and
-    // uniform while the button reflects what's actually being captured.
-    if (this.lineGridColumnIsSerialValue(column) || column.toLowerCase().includes('serial')) {
-      return 'Serial No.';
+    // Header follows the product's mapped serial policy label where available.
+    if (this.lineGridColumnIsSerialValue(column)) {
+      return column;
+    }
+    if (this.isStandaloneSerialPolicyColumn(column)) {
+      const policyNames = this.lineGridSerialColumnNames();
+      if (policyNames.length === 1) return policyNames[0];
+      if (policyNames.length > 1) return 'Serial / IMEI Number';
     }
     return column;
   }
@@ -7723,13 +8169,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   lineGridColumnIsSerialPicker(column: string): boolean {
-    const key = this.compactKey(column);
     return this.lineGridColumnIsSerialValue(column)
-      || key.includes('serial')
-      || key.includes('chassis')
-      || key.includes('chasis')
-      || key.includes('imei')
-      || key.includes('vin');
+      || this.isSerialPolicyColumnName(column);
   }
 
   lineGridAttributeSelection(rowView: EntryLineRowView | undefined, column: string): VariantAttrSelection | null {
@@ -7767,9 +8208,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // Rows added manually via "+ Add row" have no lineRefItemIdMap entry
       // and stay fully editable — that's the "direct return, no reference"
       // mode the config description explicitly still allows.
-      if (this.lineGridColumnIsAttributeValue(column)) return true;
       const refCellKey = this.normalizeKey(column);
-      if (refCellKey === 'product' || refCellKey === 'variant') return true;
+      if (refCellKey.includes('return') && (refCellKey.includes('qty') || refCellKey.includes('quantity'))) return false;
+      if (this.lineGridColumnIsSerialPicker(column)) return false;
+      return true;
     }
     if (this.config?.key !== 'purchaseInvoice' || !this.optionalNumber(this.formValues()['grnId'])) return false;
     if (this.lineGridColumnIsAttributeValue(column) || this.lineGridColumnIsSerialValue(column)) return true;
@@ -7781,7 +8223,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || compactKey === 'receivedqty'
       || compactKey === 'acceptedqty'
       || key.includes('batch')
-      || key.includes('serial')
+      || this.isSerialPolicyColumnName(column)
       || key.includes('expiry');
   }
 
@@ -7795,6 +8237,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return this.lineGridSerialValue(rowIndex, row, column);
     }
     const key = this.config?.key || '';
+    if ((key === 'purchaseReturn' || key === 'salesReturn')
+      && this.lineRefItemIdMap()[rowIndex]
+      && this.lineGridColumnIsGstValue(column)) {
+      return this.lineGridGstPercentText(row, column);
+    }
     if ((key === 'salesInvoice' || key === 'deliveryChallan') && this.normalizeKey(column) === 'warehouse') {
       const existing = String(cellView?.controlValue ?? this.lineCellValue(row, column) ?? '').trim();
       if (existing) return existing;
@@ -7989,7 +8436,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             }
             this.applyProductPricingDefaults(nextRow, product);
           }
-          if (this.isPolicyAwarePurchaseLineGrid()) {
+          if (this.isPolicyAwarePurchaseLineGrid() || this.supportsPolicySerialHeaderLineGrid()) {
             // Clear stale Batch/Serial/Expiry values that no longer apply to the newly selected product.
             (this.config?.lineColumns || []).forEach((policyCol, policyIdx) => {
               if (!this.isPolicyLineColumn(policyCol)) return;
@@ -8162,12 +8609,32 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return /\b(no|number|id|code)\b/i.test(label) ? label : `${label} No`;
   }
 
+  private serialLabelFromPolicyName(name: string): string {
+    const raw = String(name || '').trim();
+    if (!raw) return '';
+    const stripped = raw
+      .replace(/\b(required|tracking|capture|format|policy)\b/ig, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const label = toInventoryTitleCase(stripped || raw)
+      .replace(/\bImei\b/g, 'IMEI')
+      .replace(/\bVin\b/g, 'VIN');
+    if (/\b(no|number|id|code)\b/i.test(label)) return label;
+    return /(imei|chassis|chasis|engine|vin|serial)/i.test(label)
+      ? `${label} Number`
+      : label;
+  }
+
   private productSerialColumnLabels(product: ProductItem | null | undefined): string[] {
     if (!product?.serial_applicable) return [];
     const policy = this.serialPolicyForProduct(product);
     const format = String(policy?.serial_format || '').trim();
     const policyName = String(policy?.policy_name || product.serial_policy_name || '').trim();
-    const source = this.serialFormatLooksLikeLabels(format) ? format : (policyName || format || 'Serial No');
+    if (policyName) {
+      const label = this.serialLabelFromPolicyName(policyName);
+      return label ? [label] : ['Serial No'];
+    }
+    const source = this.serialFormatLooksLikeLabels(format) ? format : (format || 'Serial No');
     const labels = source
       .split(/\s*(?:,|\||;|\/|\+|&|\band\b)\s*/i)
       .map(token => this.serialLabelFromToken(token))
@@ -8279,7 +8746,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
     }
 
-    if (!this.isPolicyAwarePurchaseLineGrid() || !this.isPolicyLineColumn(column)) return true;
+    if (!(this.isPolicyAwarePurchaseLineGrid() || this.supportsPolicySerialHeaderLineGrid()) || !this.isPolicyLineColumn(column)) return true;
     if (existingValue) return true;
 
     const productName = this.lineValue(row, ['product', 'item', 'sku']);
@@ -8660,20 +9127,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return { severity: 'info', fingerprint, message: formula };
   }
 
-  // Hard bound on the Rate a Sales Invoice line can be billed at: never
-  // above MRP (when the product has one). Checked on the raw Rate before
-  // Disc % — an applied discount is a visible, deliberate business decision
-  // and can legitimately bring the net amount below it; this only blocks a
-  // wrong Rate typed directly.
-  // Selling below cost price is intentionally NOT blocked here — a below-
-  // cost rate is sometimes a deliberate business call (clearance, loss
-  // leader, etc.), so it's surfaced as a non-blocking warning instead via
-  // transactionPriceHint()'s 'warn' severity on the below-cost branch, not
-  // enforced as a save-time error.
+  // A Sales Invoice line rated above the product's MRP is surfaced as an
+  // informational notice alongside the save confirmation — it does NOT block
+  // Save Draft or Post. It used to be a hard validatePayload() failure, which
+  // stopped both; in practice the trigger is almost always a wrong MRP on the
+  // product master rather than a wrong Rate on the invoice, so a document the
+  // user needs to raise must never be held hostage to it. Checked on the raw
+  // Rate before Disc % — an applied discount is a visible, deliberate business
+  // decision and can legitimately bring the net amount below MRP.
+  // Selling below cost price is likewise not blocked — it's surfaced via
+  // transactionPriceHint()'s 'warn' severity on the below-cost branch.
   // Sales Order is deliberately excluded — its Rate is only the price
-  // expected/quoted to the customer, not a bounded billing rate, so no
-  // MRP validation applies there.
-  private validateSalesRateBounds(): string {
+  // expected/quoted to the customer, not a bounded billing rate.
+  private salesRateBoundsNotice(): string {
     if (this.config?.key !== 'salesInvoice') return '';
     const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
     for (const row of this.activeSalesLineRows()) {
@@ -8684,7 +9150,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const mrp = this.firstPositiveCurrencyValue(String(this.lineValue(row, ['mrp'])), productMrpForLineUom);
       const productName = this.lineValue(row, ['product', 'item', 'sku']) || 'Line item';
       if (mrp > 0 && rate > mrp) {
-        return `${productName}: Rate ₹${fmt(rate)} cannot exceed MRP ₹${fmt(mrp)}.`;
+        return `Note: ${productName} — Rate ₹${fmt(rate)} exceeds MRP ₹${fmt(mrp)}. Please check the product's MRP.`;
       }
     }
     return '';
@@ -8824,13 +9290,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     set('Variant', item.variant_name || item.variantName || '');
     set('Attribute', this.referenceItemAttributeText(item));
     set('UOM', item.uom_name || item.uomName || '');
-    // Qty (direct entries) and Received/Accepted Qty (GRN-linked, read-only
-    // display of what the GRN recorded) are mutually exclusive in the
-    // rendered grid (see transactionLineDisplayColumns) but both get the
+    // Qty (direct entries) and Accepted Qty (GRN-linked, read-only display
+    // of the accepted quantity the GRN recorded) are mutually exclusive in
+    // the rendered grid (see transactionLineDisplayColumns) but both get the
     // same underlying value written here -- whichever one is actually
-    // visible for this record picks it up.
+    // visible for this record picks it up. Received Qty is never shown/set
+    // on PI -- billing is always on Accepted Qty once GRN-linked.
     set('Qty', qty);
-    set('Received Qty', qty);
     set('Accepted Qty', qty);
     set('Rate', String(item.rate ?? ''));
     set('MRP', String(item.mrp ?? item.Mrp ?? ''));
@@ -9367,9 +9833,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (key.includes('rounding')) return ['Exact', '2 Decimals', 'Whole Number', 'Commercial Rounding'];
     if (key.includes('is purchase') || key.includes('is sales') || key === 'active') return ['Yes', 'No'];
     if (key.includes('gst') || key.includes('tax')) return this.config?.kind === 'transaction' ? [] : ['0%', '5%', '12%', '18%', '28%'];
-    if (this.isPolicyAwarePurchaseLineGrid() && this.isPolicyLineColumn(column)) return [];
+    if ((this.isPolicyAwarePurchaseLineGrid() || this.supportsPolicySerialHeaderLineGrid()) && this.isPolicyLineColumn(column)) return [];
     if (key.includes('batch')) return ['NA', 'LOT-FOOD-001', 'LOT-DRN-001', 'LOT-CBL-011'];
-    if (key.includes('serial')) return ['NA', 'SN-1042..46', 'IMEI Required', 'Auto Capture'];
+    if (this.isSerialPolicyColumnName(column)) return ['NA', 'SN-1042..46', 'IMEI Required', 'Auto Capture'];
     if (key.includes('warehouse') || key.includes('location') || key.includes('store')) return this.locationOptions;
     if (key.includes('expiry')) return ['NA', '18-Jun-2026', '18-Aug-2026', '30-Sep-2026'];
     return [];
@@ -9393,6 +9859,28 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // isPolicyAwarePurchaseLineGrid(), which also drives purchase-only
   // behaviors (dynamic attribute/serial columns, Accepted-Qty-driven Amount
   // recalculation) that must never activate on Sales Order/Invoice.
+  private isSerialPolicyColumnName(column: string): boolean {
+    const key = this.compactKey(column);
+    return key.includes('serial')
+      || key.includes('imei')
+      || key.includes('chassis')
+      || key.includes('chasis')
+      || key.includes('engine')
+      || key.includes('vin');
+  }
+
+  private isStandaloneSerialPolicyColumn(column: string): boolean {
+    const key = String(column || '').toLowerCase();
+    return this.isSerialPolicyColumnName(column)
+      && !key.includes('batch')
+      && !key.includes('lot');
+  }
+
+  private supportsPolicySerialHeaderLineGrid(): boolean {
+    return this.config?.kind === 'transaction'
+      && (this.config?.lineColumns || []).some(column => this.isStandaloneSerialPolicyColumn(column));
+  }
+
   private isGstAutoFillLineGrid(): boolean {
     return this.isPolicyAwarePurchaseLineGrid()
       || this.config?.key === 'salesOrder'
@@ -9406,12 +9894,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // unrelated purchase-only behaviors (dynamic attribute/serial columns,
   // Accepted-Qty-driven Amount recalculation) for a screen that doesn't use them.
   private isPolicyColumnHidingScreen(): boolean {
-    return this.isPolicyAwarePurchaseLineGrid() || this.config?.key === 'purchaseReturn';
+    return this.isPolicyAwarePurchaseLineGrid()
+      || this.config?.key === 'purchaseReturn'
+      || this.supportsPolicySerialHeaderLineGrid();
   }
 
   private isPolicyLineColumn(column: string): boolean {
     const key = String(column || '').toLowerCase();
-    return key.includes('batch') || key.includes('lot') || key.includes('serial') || key.includes('expiry');
+    return key.includes('batch')
+      || key.includes('lot')
+      || key.includes('expiry')
+      || this.isSerialPolicyColumnName(column);
   }
 
   private shouldShowPolicyLineColumn(column: string): boolean {
@@ -9448,9 +9941,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const batch = !!product.batch_applicable;
     const serial = !!product.serial_applicable;
     if (key.includes('expiry')) return !!product.expiry_applicable;
-    if (key.includes('serial') && !key.includes('batch')) return serial;
-    if ((key.includes('batch') || key.includes('lot')) && !key.includes('serial')) return batch;
-    if (key.includes('batch') || key.includes('serial')) return batch || serial;
+    if (this.isStandaloneSerialPolicyColumn(column)) return serial;
+    if ((key.includes('batch') || key.includes('lot')) && !this.isSerialPolicyColumnName(column)) return batch;
+    if (key.includes('batch') || key.includes('lot') || this.isSerialPolicyColumnName(column)) return batch || serial;
     return true;
   }
 
@@ -11447,13 +11940,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (screenKey === 'purchaseInvoice') {
-      // Same operational grid as GRN. For a GRN-linked PI, Accepted Qty is the
-      // invoice quantity and stock does not move again; for a direct PI it is
-      // the quantity posted to stock.
+      // Same operational grid as GRN, but PI only ever pulls Accepted Qty —
+      // what the GRN actually kept, not what merely arrived. For a
+      // GRN-linked PI, Accepted Qty is the invoice quantity and stock does
+      // not move again; for a direct PI it is the quantity posted to stock.
+      // Received Qty is deliberately not read into any PI cell here (PI has
+      // no such column at all) — the fallback chain below only covers the
+      // case where the GRN item is missing accepted_qty/qty outright.
       const variant = this.referenceItemVariantText(item);
       const attribute = this.referenceItemAttributeText(item);
-      const receivedQtyText = String(item?.received_qty ?? item?.receivedQty ?? item?.qty ?? requiredQty);
-      const invoiceQty = String(item?.accepted_qty ?? item?.acceptedQty ?? item?.qty ?? receivedQtyText);
+      const receivedQtyFallback = String(item?.received_qty ?? item?.receivedQty ?? item?.qty ?? requiredQty);
+      const invoiceQty = String(item?.accepted_qty ?? item?.acceptedQty ?? item?.qty ?? receivedQtyFallback);
       const row = this.blankLineRow();
       const set = (column: string, value: string) => {
         const idx = this.lineColumnIndex(column);
@@ -11463,7 +11960,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       set('Variant', variant);
       set('Attribute', attribute);
       set('UOM', uom);
-      set('Received Qty', receivedQtyText);
       set('Accepted Qty', invoiceQty);
       set('Rate', rate);
       set('MRP', String(item?.mrp ?? item?.Mrp ?? ''));
@@ -11479,7 +11975,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (screenKey === 'purchaseReturn') {
-      // columns: Product, Variant, Attribute, UOM, Invoice Qty, Return Qty, Rate, GST, Return Amount, Return Reason
+      // columns: Product, Variant, Attribute, UOM, Invoice Qty, Return Qty, Rate, GST, Return Amount, Serial No
       // "Invoice Qty" is what the column header says it is — the qty
       // actually invoiced on this PI line, a fixed historical fact — not
       // qty-still-returnable-after-prior-returns. It was previously set from
@@ -11726,19 +12222,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // Shared by purchasePiItems() (save payload) and serialPickerQtyForRow()
   // below — both need precisely the qty that will actually be saved, or the
   // backend's count-vs-qty guard rejects the save. A GRN-linked invoice
-  // carries its qty via Accepted/Received Qty (echoing what the GRN
-  // recorded); a direct invoice (no GRN reference) uses the plain Qty
-  // column instead, looked up by exact column name — a needle-based lookup
-  // like ['invoice', 'qty'] is unsafe here on its own: lineValue() matches
-  // the first column whose label *contains* any needle, and "Received Qty"/
-  // "Accepted Qty" both contain the substring "qty" too, so a substring
-  // search would silently resolve to one of those instead of the real Qty
-  // column whenever they're present (item 5).
+  // carries its qty via Accepted Qty (echoing the accepted quantity the
+  // GRN recorded — PI has no Received Qty column at all, see item 5); a
+  // direct invoice (no GRN reference) uses the plain Qty column instead,
+  // looked up by exact column name — a needle-based lookup like
+  // ['invoice', 'qty'] is unsafe here on its own: lineValue() matches the
+  // first column whose label *contains* any needle, and "Accepted Qty"
+  // also contains the substring "qty" too, so a substring search would
+  // silently resolve to it instead of the real Qty column whenever it's
+  // present.
   private purchaseInvoiceQtyForRow(row: string[]): number {
     const acceptedRaw = this.lineValue(row, ['accepted']).trim();
     if (acceptedRaw !== '') return this.lineNumber(row, ['accepted']);
-    const receivedRaw = this.lineValue(row, ['received']).trim();
-    if (receivedRaw !== '') return this.lineNumber(row, ['received']);
     const qtyIdx = this.lineColumnIndex('Qty');
     return qtyIdx >= 0 ? this.parseCurrency(String(row[qtyIdx] ?? '')) : 0;
   }
@@ -11854,6 +12349,50 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (siItemId) return count ? `${count} ${label}(s) from SI` : 'Loading...';
     const verb = this.serialPickerModeForKey() === 'capture' ? 'Enter' : 'Select';
     return `${verb} ${label} (${count}/${qty || 0})`;
+  }
+
+  // Compact "{policy name} · {count}" badge text for a row whose serial cell
+  // is being rendered read-only (currently: a GRN-linked Purchase Invoice —
+  // see purchase-invoice.html's readonly-cell branch). Returns '' when there's
+  // nothing to show a badge for (non-serial product, or genuinely zero units
+  // captured) so the caller can fall through to the normal readonly-text
+  // rendering instead of showing a misleading "· 0" badge.
+  serialViewBadgeTextForRow(rowIndex: number, row: string[]): string {
+    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const product = this.findProductBySelection(productName);
+    if (!product?.serial_applicable) return '';
+    const count = (this.lineSerialUnitsMap()[rowIndex] || []).length;
+    if (!count) return '';
+    const policyName = String(product.serial_policy_name || '').trim() || this.productSerialColumnLabels(product)[0] || 'Serial No';
+    return `${policyName} · ${count}`;
+  }
+
+  // Read-only counterpart to openSerialPicker() -- shows the already-captured
+  // serial numbers for a saved/reference-bound line (e.g. a GRN-linked PI,
+  // where the units were captured on the GRN, not this document) with no
+  // add/remove affordances and no backend fetch, unlike openSerialPicker()'s
+  // 'select'/'capture'/'inherited' modes which all fetch or mutate. Reuses
+  // the same modal (InventorySerialPickerModalComponent) and activeSerialPicker
+  // state via a dedicated 'view' mode so the shared save/close plumbing (
+  // closeSerialPicker(false) just clears state, never writes back) stays
+  // identical to the existing picker.
+  openSerialPickerReadOnly(rowIndex: number, row: string[]): void {
+    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const product = this.findProductBySelection(productName);
+    const serials = this.lineSerialUnitsMap()[rowIndex] || [];
+    this.activeSerialPicker.set({
+      rowIndex,
+      mode: 'view',
+      qtyNeeded: serials.length,
+      productId: product?.id ?? null,
+      productName: product?.product_name || productName
+    });
+    this.serialPickerDraftValues.set([...serials]);
+    this.serialPickerAvailableOptions.set([]);
+    this.serialPickerSelectedIds.set(new Set());
+    this.serialPickerLoading.set(false);
+    this.serialPickerError.set('');
+    this.serialPickerMessage.set('');
   }
 
   private resolveHeaderWarehouseId(): number | null {
@@ -12222,6 +12761,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.entryLineRows.set([this.blankLineRow()]);
       this.lineAttrValueMap.set({});
       this.lineSerialValueMap.set({});
+      this.applyDefaultBranchToCurrentTransaction(true);
       return;
     }
 
@@ -12341,6 +12881,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (this.config?.key === 'purchaseInvoice') {
         this.applyPurchaseInvoiceFieldDefaults(next, key, normalizedValue);
       }
+      if (this.config?.key === 'goodsReceipt' && key === 'receivingLocation') {
+        this.applyReceivingLocationSelection(next, normalizedValue);
+      }
+      if (this.config?.key === 'purchaseReturn' && key === 'warehouse') {
+        this.applyPurchaseReturnLocationSelection(next, normalizedValue);
+      }
       if (this.config?.key === 'deliveryChallan') {
         this.applyDeliveryChallanFieldDefaults(next, key, normalizedValue);
       }
@@ -12373,15 +12919,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (key === 'receivingLocation') {
-      const selected = String(value || '').trim();
-      const selectedWarehouse = this.findWarehouseBySelection(selected);
-      const selectedBranch = selectedWarehouse ? null : this.findBranchBySelection(selected);
-      next['warehouseId'] = selectedWarehouse?.id ?? null;
-      next['warehouse'] = selectedWarehouse?.warehouse_name || '';
-      next['branchId'] = selectedBranch
-        ? (this.optionalNumber(selectedBranch.branch_id) ?? this.optionalNumber(selectedBranch.id))
-        : null;
-      next['branch'] = selectedBranch?.branch_name || '';
+      this.applyReceivingLocationSelection(next, value);
     }
 
     if (key === 'vendor' || key === 'piDate' || key === 'paymentTerms') {
@@ -13360,6 +13898,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return;
     }
 
+    // Captured after validation passes, shown after the save succeeds — the
+    // MRP ceiling on a Sales Invoice line is advisory, never a blocker, so it
+    // must not short-circuit Save Draft or Post the way validatePayload() does.
+    this.pendingSaveNotice = this.salesRateBoundsNotice();
+
     // Rule 11 / Item 13: posting an SI with any line over its available
     // stock is never hard-blocked — just confirmed first. Interbranch Sale
     // gets its own path (auto-transfer-and-post before the SI saves);
@@ -13559,7 +14102,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             : '';
           const finishSave = () => {
             const forcedStatusMessage = this.forcedDocumentStatusMessage(forceDocumentStatus);
-            this.saveMsg.set(forcedStatusMessage || (id ? 'Record updated.' : 'Record saved.'));
+            const savedMessage = forcedStatusMessage || (id ? 'Record updated.' : 'Record saved.');
+            // Advisory captured before the save (e.g. Rate over MRP) rides
+            // along with the confirmation instead of having blocked it.
+            const saveNotice = this.pendingSaveNotice;
+            this.pendingSaveNotice = '';
+            this.saveMsg.set(saveNotice ? `${savedMessage} ${saveNotice}` : savedMessage);
+            this.afterConfigRecordSaved(res.data, payload, forceDocumentStatus);
             if (this.config?.key === 'purchaseInvoice') {
               this.removePurchaseInvoiceGrnReference(savedPurchaseInvoiceGrnId, savedPurchaseInvoiceGrnNumber);
               this.invalidateTransactionReferenceDocs();
@@ -13612,7 +14161,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               // screen was opened.
               this.loadTransactionReferenceDocs(true, false);
             }
-            setTimeout(() => this.saveMsg.set(''), 3000);
+            // A confirmation carrying an advisory needs longer on screen than
+            // a bare "Record saved." — it's the only place the user sees it.
+            setTimeout(() => this.saveMsg.set(''), saveNotice ? 8000 : 3000);
             if (savedSalesInvoiceId > 0 && savedSalesInvoiceStatus === 'posted') {
               this.loadSalesInvoiceBundleConsumption(savedSalesInvoiceId, savedSalesInvoiceNo);
             }
@@ -13657,6 +14208,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   // ── Pending grid (temp entries before batch save) ────────────────────────
+
+  protected afterConfigRecordSaved(_savedRecord: any, _payload: Record<string, any>, _forceDocumentStatus?: 'draft' | 'posted' | 'sent'): void {
+  }
 
   private purchaseInvoiceCurrentStatusKey(): string {
     if (this.config?.key !== 'purchaseInvoice') return '';
@@ -13781,7 +14335,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // the shared DB.
   private static readonly PROCUREMENT_RETURN_ROUTES: Record<string, string> = {
     goodsReceipt: '/dashboard/inventory/transactions/goods-receipt',
-    purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice'
+    purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice',
+    salesInvoice: '/dashboard/inventory/transactions/sales-invoice',
+    stockTransfer: '/dashboard/inventory/transactions/stock-transfer'
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
   private static readonly PROCUREMENT_RESUME_TTL_MS = 30 * 60 * 1000;
@@ -13821,9 +14377,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     });
   }
 
+  addProductFromLineProductPicker(): void {
+    this.addProductFromProcurementGrid();
+  }
+
   private restoreProcurementResumeIfReturning(): void {
     const key = this.config?.key;
-    if (key !== 'goodsReceipt' && key !== 'purchaseInvoice') return;
+    if (!key || !InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key]) return;
     const resumed = this.activatedRoute?.snapshot.queryParamMap.get('resumed') === '1';
     if (!resumed) return;
 
@@ -13880,7 +14440,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const returnTo = params?.get('returnTo');
     const returnRoute = params?.get('returnRoute');
     if (!returnTo || !returnRoute) return;
-    if (returnTo !== 'goodsReceipt' && returnTo !== 'purchaseInvoice') return;
+    if (!InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[returnTo]) return;
     this.router.navigate([returnRoute], { queryParams: { resumed: '1' } });
   }
 
@@ -15604,8 +16164,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         piReference: record.pi_number || '',
         piGrnId: record.pi_grn_id ?? null,
         debitNoteRef: record.debit_note_ref || '',
-        warehouseId: record.warehouse_id ?? null,
-        warehouse: record.warehouse_name || '',
+        branchId: record.branch_id ?? record.branchId ?? null,
+        branch: record.branch_name || record.branchName || '',
+        warehouseId: record.warehouse_id ?? record.warehouseId ?? null,
+        warehouse: record.warehouse_name || record.warehouseName || record.branch_name || record.branchName || '',
         returnReason: record.return_reason || '',
         status: cap(record.status || 'draft'),
         remarks: record.remarks || ''
@@ -15621,8 +16183,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         String(item.rate ?? ''),
         String(item.gst_rate ?? ''),
         String(item.return_amount ?? ''),
-        '',
-        item.return_reason || ''
+        ''
       ])).concat((record.items || []).length ? [] : [this.blankLineRow()]));
       this.restoreLineGstModes(record.items || []);
       // Restore the already-saved attribute_id/attribute_value per line (see
@@ -15636,7 +16197,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           attributeValue: item?.attribute_value ?? item?.attributeValue ?? null
         };
       });
-      this.lineRefItemIdMap.set(purchaseReturnAttrMap);
+      this.lineRefItemIdMap.set((record.pi_id ?? record.piId) ? purchaseReturnAttrMap : {});
     }
 
     if (this.config?.key === 'debitNote') {
@@ -15920,7 +16481,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           attributeValue: item?.attribute_value ?? item?.attributeValue ?? null
         };
       });
-      this.lineRefItemIdMap.set(salesReturnAttrMap);
+      this.lineRefItemIdMap.set((record.invoice_id ?? record.invoiceId) ? salesReturnAttrMap : {});
     }
 
     if (this.config?.key === 'creditNote') {
@@ -16628,21 +17189,26 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.config?.key === 'goodsReceipt') {
       const grnStatus = status(v['status'], 'draft');
       // GRN shows a single merged Branch/Warehouse picker — resolve the picked
-      // name against Warehouse Master first, then Branch Master, so only the
-      // matching side of the record gets populated (whichever the user picked).
+      // name against Warehouse Master first, then Branch Master. A branch
+      // selection resolves onward to that branch's single linked warehouse
+      // (see warehousesForBranch()) so stock never posts with a NULL
+      // warehouse_id; zero or several linked warehouses is refused by
+      // mergedLocationValidationMessage() rather than guessed at.
       const grnLocation = v['receivingLocation'];
-      const grnWarehouse = this.findWarehouseBySelection(grnLocation) || warehouse;
-      const grnBranch = !grnWarehouse ? (this.findBranchBySelection(grnLocation) || branch) : null;
+      const grnPicked = this.resolveMergedLocation(grnLocation);
+      const grnPickedWarehouse = grnPicked.warehouse || warehouse;
+      const grnBranch = !grnPickedWarehouse ? (grnPicked.branch || branch) : null;
+      const grnWarehouse = grnPickedWarehouse || this.singleWarehouseForBranch(grnBranch);
       const grnWarehouseId = grnWarehouse?.id ?? (grnBranch ? null : warehouseId);
       const grnBranchId = grnBranch
-        ? (this.optionalNumber(grnBranch.branch_id) ?? this.optionalNumber(grnBranch.id))
-        : (grnWarehouse ? null : branchId);
+        ? this.branchResolvedId(grnBranch)
+        : (grnPickedWarehouse ? null : branchId);
       return {
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
         branch_id: grnBranchId,
-        branch_name: grnBranch?.branch_name || (grnWarehouse ? null : (v['branch'] || null)),
+        branch_name: grnBranch?.branch_name || (grnPickedWarehouse ? null : (v['branch'] || null)),
         warehouse_id: grnWarehouseId,
         warehouse_name: grnWarehouse?.warehouse_name || (grnBranch ? null : (grnLocation || v['warehouse'] || null)),
         vendor_id: vendorId,
@@ -16663,13 +17229,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'purchaseInvoice') {
+      // Same merged Warehouse/Branch picker as GRN — a branch selection
+      // resolves onward to its single linked warehouse so stock never posts
+      // with a NULL warehouse_id. See the GRN branch above.
       const piLocation = v['receivingLocation'] || v['warehouse'] || v['branch'];
-      const piWarehouse = this.findWarehouseBySelection(piLocation) || warehouse;
-      const piBranch = !piWarehouse ? (this.findBranchBySelection(piLocation) || branch) : null;
+      const piPicked = this.resolveMergedLocation(piLocation);
+      const piPickedWarehouse = piPicked.warehouse || warehouse;
+      const piBranch = !piPickedWarehouse ? (piPicked.branch || branch) : null;
+      const piWarehouse = piPickedWarehouse || this.singleWarehouseForBranch(piBranch);
       const piWarehouseId = piWarehouse?.id ?? (piBranch ? null : warehouseId);
       const piBranchId = piBranch
-        ? (this.optionalNumber(piBranch.branch_id) ?? this.optionalNumber(piBranch.id))
-        : (piWarehouse ? null : branchId);
+        ? this.branchResolvedId(piBranch)
+        : (piPickedWarehouse ? null : branchId);
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -16680,7 +17251,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         grn_id: this.optionalNumber(v['grnId']),
         grn_number: v['grnReference'] || null,
         branch_id: piBranchId,
-        branch_name: piBranch?.branch_name || (piWarehouse ? null : (v['branch'] || piLocation || null)),
+        branch_name: piBranch?.branch_name || (piPickedWarehouse ? null : (v['branch'] || piLocation || null)),
         warehouse_id: piWarehouseId,
         warehouse_name: piWarehouse?.warehouse_name || (piBranch ? null : (v['warehouse'] || piLocation || null)),
         pi_number: docNo('piNo', 'PI Number'),
@@ -16696,6 +17267,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'purchaseReturn') {
+      const prLocation = v['warehouse'] || v['branch'];
+      const prWarehouse = this.findWarehouseBySelection(prLocation) || warehouse;
+      const prBranch = prWarehouse ? null : (this.findBranchBySelection(prLocation) || branch);
+      const prWarehouseId = prWarehouse?.id ?? (prBranch ? null : warehouseId);
+      const prBranchId = prBranch
+        ? (this.optionalNumber(prBranch.branch_id) ?? this.optionalNumber(prBranch.id))
+        : (prWarehouse ? null : branchId);
+      const prBranchName = prBranch?.branch_name || (prWarehouse ? null : (v['branch'] || prLocation || null));
+      const prWarehouseName = prWarehouse?.warehouse_name || (prBranch ? (prLocation || prBranch?.branch_name || null) : (v['warehouse'] || prLocation || null));
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -16708,8 +17288,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return_number: docNo('returnNo', 'Return Number'),
         return_date: docDate('returnDate'),
         debit_note_ref: v['debitNoteRef'] || null,
-        warehouse_id: warehouseId,
-        warehouse_name: warehouse?.warehouse_name || v['warehouse'] || null,
+        branch_id: prBranchId,
+        branch_name: prBranchName,
+        warehouse_id: prWarehouseId,
+        warehouse_name: prWarehouseName,
         return_reason: v['returnReason'] || null,
         remarks: v['remarks'] || null,
         status: status(v['status'], 'draft'),
@@ -16800,7 +17382,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'salesInvoice') {
-      const warehouse = this.findWarehouseBySelection(v['warehouse']);
+      // fn_post_sales_invoice_stock draws stock at the HEADER warehouse_id
+      // (matching COALESCE(warehouse_id, 0)), so a NULL here silently draws on
+      // the shared "Unassigned" pool rather than a real location — the line
+      // grid's own Warehouse column is display-only for posting. When the
+      // Warehouse field itself is empty, fall back to the interbranch Branch's
+      // single linked warehouse; validatePayload() refuses whatever is still
+      // unresolved rather than letting a NULL through.
+      const pickedWarehouse = this.findWarehouseBySelection(v['warehouse']);
+      const siBranch = pickedWarehouse ? null : this.findBranchBySelection(v['branch']);
+      const warehouse = pickedWarehouse || this.singleWarehouseForBranch(siBranch);
       const warehouseId = warehouse?.id ?? this.optionalNumber(v['warehouseId']);
       return {
         id: this.editingId(),
@@ -16873,13 +17464,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'deliveryChallan') {
+      // Same merged Warehouse/Branch picker as GRN — a branch selection
+      // resolves onward to its single linked warehouse so a dispatch never
+      // posts with a NULL from_warehouse_id. See the GRN branch above.
       const dcLocation = v['fromWarehouse'] || v['warehouse'] || v['branch'];
-      const fromWarehouse = this.findWarehouseBySelection(dcLocation);
-      const fromBranch = fromWarehouse ? null : this.findBranchBySelection(dcLocation);
+      const dcPicked = this.resolveMergedLocation(dcLocation);
+      const pickedFromWarehouse = dcPicked.warehouse;
+      const fromBranch = pickedFromWarehouse ? null : dcPicked.branch;
+      const fromWarehouse = pickedFromWarehouse || this.singleWarehouseForBranch(fromBranch);
       const fromWarehouseId = fromWarehouse?.id ?? (fromBranch ? null : this.optionalNumber(v['fromWarehouseId']));
       const fromBranchId = fromBranch
-        ? (this.optionalNumber(fromBranch.branch_id) ?? this.optionalNumber(fromBranch.id))
-        : (fromWarehouse ? null : this.optionalNumber(v['branchId']));
+        ? this.branchResolvedId(fromBranch)
+        : (pickedFromWarehouse ? null : this.optionalNumber(v['branchId']));
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -16896,7 +17492,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         channel_partner_id: channelPartnerId,
         channel_partner_name: channelPartnerName,
         branch_id: fromBranchId,
-        branch_name: fromBranch?.branch_name || (fromWarehouse ? null : (v['branch'] || dcLocation || null)),
+        branch_name: fromBranch?.branch_name || (pickedFromWarehouse ? null : (v['branch'] || dcLocation || null)),
         from_warehouse_id: fromWarehouseId,
         from_warehouse_name: fromWarehouse?.warehouse_name || (fromBranch ? null : (dcLocation || null)),
         vehicle: v['vehicle'] || null,
@@ -16910,7 +17506,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'salesReturn') {
-      const retWarehouse = this.findWarehouseBySelection(v['returnToWarehouse'] || v['warehouse']);
+      // Same NULL-warehouse hazard as Sales Invoice above: a posted return
+      // puts stock back at this warehouse, so an unresolved selection would
+      // credit the shared "Unassigned" pool instead. A branch name (inherited
+      // from the referenced invoice, say) resolves through its single linked
+      // warehouse; anything still unresolved is refused by validatePayload().
+      const pickedRetWarehouse = this.findWarehouseBySelection(v['returnToWarehouse'] || v['warehouse']);
+      const retBranch = pickedRetWarehouse
+        ? null
+        : this.findBranchBySelection(v['returnToWarehouse'] || v['branch']);
+      const retWarehouse = pickedRetWarehouse || this.singleWarehouseForBranch(retBranch);
       const retWarehouseId = retWarehouse?.id ?? this.optionalNumber(v['returnToWarehouseId']);
       return {
         id: this.editingId(),
@@ -17547,7 +18152,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         taxable_amount: breakup.taxableAmount,
         tax_amount: breakup.taxAmount,
         return_amount: this.lineNumber(row, ['amount']) || breakup.total,
-        return_reason: this.lineValue(row, ['reason']) || null,
+        return_reason: this.formValues()['returnReason'] || null,
         serial_numbers: this.lineSerialUnitsMap()[index] || null
       };
     });
@@ -17777,6 +18382,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   protected validatePayload(payload: Record<string, any>): string {
     const hasValue = (value: any) => String(value ?? '').trim().length > 0;
 
+    // GRN / Purchase Invoice / Delivery Challan: a Branch picked in the merged
+    // Warehouse/Branch dropdown must resolve to exactly one real warehouse, or
+    // the save is refused. Never let one through with a NULL warehouse — that
+    // silently posts stock into the shared "Unassigned" pool.
+    const mergedLocationMessage = this.mergedLocationValidationMessage(payload);
+    if (mergedLocationMessage) return mergedLocationMessage;
+
     if (String(payload['status'] || '').toLowerCase() === 'posted') {
       const serialMessage = this.serialCoverageValidationMessage();
       if (serialMessage) return serialMessage;
@@ -17873,10 +18485,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (!hasValue(payload['doc_date'])) return 'Invoice Date is required for Sales Invoice.';
     }
 
-    if (this.config?.key === 'salesInvoice' || this.config?.key === 'salesOrder') {
-      const rateBoundsError = this.validateSalesRateBounds();
-      if (rateBoundsError) return rateBoundsError;
-    }
+    // The MRP-ceiling check that used to live here (validateSalesRateBounds)
+    // is no longer fatal — see salesRateBoundsNotice(), which saveConfigRecord()
+    // now captures and shows as an info notice next to the save confirmation.
 
     if (this.isPurchaseTransactionKey()) {
       if (!Array.isArray(payload['items']) || !payload['items'].length) {
@@ -17926,7 +18537,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
       if (this.config?.key === 'purchaseReturn') {
         if (!hasValue(payload['vendor_name'])) return 'Vendor is required for Purchase Return.';
-        if (!hasValue(payload['warehouse_name'])) return 'From Warehouse is required for Purchase Return.';
+        if (!hasValue(payload['branch_id']) && !hasValue(payload['branch_name']) && !hasValue(payload['warehouse_id']) && !hasValue(payload['warehouse_name'])) {
+          return 'Warehouse / Branch is required for Purchase Return.';
+        }
         const returnItemsError = this.validatePurchaseReturnLineItems(payload['items']);
         if (returnItemsError) return returnItemsError;
       }

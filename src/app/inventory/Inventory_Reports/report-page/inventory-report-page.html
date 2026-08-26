@@ -2,21 +2,6 @@
   <div class="inventory-shell">
     <div class="inventory-report-header-card">
       <div class="inventory-header inventory-report-header">
-        <div class="inventory-report-header-title">
-          <div class="inventory-report-header-title-row">
-            <span class="inventory-kicker"><i [class]="groupIcon()"></i> {{ groupTitle() }}</span>
-            <div class="inventory-report-header-meta-text">
-              @if (currentCompanyName()) {
-                <span title="Reports are always scoped to the company you're signed into"><i class="pi pi-building"></i> {{ currentCompanyName() }}</span>
-              }
-              <span>Phase {{ report().phase }}</span>
-              <span [class.is-live]="loadedFromApi()">{{ loadedFromApi() ? 'API data' : 'Preview data' }}</span>
-            </div>
-          </div>
-          <h2><i [class]="report().icon"></i> {{ report().title }}</h2>
-          <p>{{ report().purpose }}</p>
-        </div>
-
         <div class="inventory-report-header-top-filters">
           @if (segmentFilterDefinition(); as segmentFilter) {
             <div class="inventory-report-filter inventory-report-filter--segment">

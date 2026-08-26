@@ -5,10 +5,15 @@ import { InventoryScreenShell } from './inventory-screen-shell';
 import { InventoryScreenConfig } from '../inventory-screen.model';
 
 // Coverage for item 32: the Sales Invoice hard block that used to prevent
-// saving a line rated below the product's cost price is removed —
-// validateSalesRateBounds() only enforces the MRP ceiling now. The existing
+// saving a line rated below the product's cost price is removed. The existing
 // below-cost hint in transactionPriceHint() is downgraded from 'error' to
 // 'warn' severity so it reads as a non-blocking warning, not a stopped save.
+//
+// The MRP ceiling is likewise no longer a blocker: salesRateBoundsNotice()
+// (formerly validateSalesRateBounds()) still detects a rate over MRP, but
+// saveConfigRecord() now shows it as an info notice alongside the save
+// confirmation instead of validatePayload() refusing the save — verified
+// below by asserting validatePayload() itself stays clean.
 describe('InventoryScreenShell — selling below cost is a warning, not a block (item 32)', () => {
   let fixture: ComponentFixture<InventoryScreenShell>;
   let component: InventoryScreenShell;
@@ -47,14 +52,27 @@ describe('InventoryScreenShell — selling below cost is a warning, not a block 
 
   it('does not block saving when the rate is below cost price', () => {
     setLineRow(50);
-    const error = (component as any).validateSalesRateBounds();
-    expect(error).toBe('');
+    const notice = (component as any).salesRateBoundsNotice();
+    expect(notice).toBe('');
   });
 
-  it('still blocks saving when the rate exceeds MRP', () => {
+  it('reports a rate over MRP as an advisory notice', () => {
     setLineRow(250);
-    const error = (component as any).validateSalesRateBounds();
-    expect(error).toContain('cannot exceed MRP');
+    const notice = (component as any).salesRateBoundsNotice();
+    expect(notice).toContain('exceeds MRP');
+  });
+
+  it('does not block Save Draft / Post when the rate exceeds MRP', () => {
+    setLineRow(250);
+    const payload = {
+      doc_number: 'SI-TEST-1',
+      doc_date: '2026-08-20',
+      customer_name: 'Test Customer',
+      channel_partner_name: 'Test Partner',
+      status: 'draft',
+      items: [{ product_name: 'Test Product', qty: 2, rate: 250, total_amount: 500 }]
+    };
+    expect((component as any).validatePayload(payload)).toBe('');
   });
 
   it('shows a warn-severity hint (not error) for a below-cost rate', () => {

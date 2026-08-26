@@ -1324,10 +1324,6 @@ export const goodsReceiptConfig = transaction(
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
       { key: 'receivingLocation', label: 'Receiving Branch / Warehouse', type: 'select', options: [] },
-      { key: 'hasTransportDetails', label: 'Transport Details', type: 'select', options: ['Yes', 'No'] },
-      { key: 'transportVehicleNo', label: 'Vehicle No' },
-      { key: 'transportDriverName', label: 'Driver Name' },
-      { key: 'transportContactNo', label: 'Driver Contact No' },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
@@ -1376,10 +1372,11 @@ export const purchaseInvoiceConfig = transaction(
     ],
     lineTitle: 'Invoice Items',
     // Qty is for a direct entry (no GRN reference) -- a plain purchased
-    // quantity, nothing more. Received Qty/Accepted Qty only apply once
-    // this invoice actually references a posted GRN, where they display
-    // (read-only) what that GRN already recorded -- see item 5.
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Received Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    // quantity, nothing more. Accepted Qty only applies once this invoice
+    // actually references a posted GRN, where it displays (read-only) the
+    // GRN's accepted quantity -- see item 5. Received Qty is intentionally
+    // NOT a PI column: PI always bills on Accepted Qty when GRN-linked.
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
     lineRows: [],
     columns: ['PI No', 'PI Date', 'Vendor', 'Branch / Warehouse', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
     rows: []
@@ -1731,15 +1728,19 @@ export const purchaseReturnConfig = transaction(
       { key: 'returnDate', label: 'Return Date', type: 'date' },
       { key: 'vendor', label: 'Party / Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
       { key: 'piReference', label: 'PI Reference', type: 'select', options: [] },
-      { key: 'warehouse', label: 'From Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
+      // Warehouse-only despite the old "/ Branch" label: runtimeOptions()
+      // matches key.includes('warehouse') first and returns warehouseOptions,
+      // and the payload builder never consults the branch list — no branch was
+      // ever selectable here, so the label was the whole problem.
+      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations },
       { key: 'returnReason', label: 'Return Reason', type: 'select', options: ['Damaged in Transit', 'Quality Failure', 'Wrong Item Delivered', 'Excess Quantity', 'Expired on Arrival'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Return Items',
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No', 'Return Reason'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No'],
     lineRows: [
-      ['LED Display', '', '', 'Nos', '5', '1', '24,500', '18', '28,910', '', 'Damaged in Transit'],
-      ['Drone Motor', '', '', 'Set', '12', '2', '8,500', '18', '20,060', '', 'Quality Failure']
+      ['LED Display', '', '', 'Nos', '5', '1', '24,500', '18', '28,910', ''],
+      ['Drone Motor', '', '', 'Set', '12', '2', '8,500', '18', '20,060', '']
     ],
     columns: ['Return No', 'Return Date', 'Vendor', 'PI Ref', 'Items', 'Return Amount', 'Status'],
     rows: [

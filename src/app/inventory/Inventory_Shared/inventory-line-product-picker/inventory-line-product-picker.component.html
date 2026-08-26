@@ -1,0 +1,140 @@
+<button #triggerBtn type="button"
+  class="erp-btn btn-white btn-sm inventory-line-product-trigger"
+  [class.inventory-line-product-trigger--empty]="!productValue()"
+  [title]="triggerTitle()"
+  [attr.aria-label]="triggerTitle()"
+  (click)="openPopup($event)">
+  <i class="pi" [class.pi-plus]="!productValue()" [class.pi-box]="!!productValue()"></i>
+  <span class="inventory-line-product-trigger-text">{{ triggerLabel() }}</span>
+</button>
+
+<ng-template #popupTemplate>
+  <div class="inventory-modal-backdrop inventory-line-product-popup-backdrop">
+    <div #popupRoot class="inventory-modal inventory-line-product-popup"
+      [style.left.px]="popupLeft()" [style.top.px]="popupTop()"
+      (click)="stopPropagation($event)">
+      <div class="inventory-modal-header inventory-line-product-popup-header">
+        <strong>Pick Product</strong>
+        <div class="inventory-line-product-popup-header-actions">
+          @if (canOpenProductConfig()) {
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm inventory-line-product-config-btn"
+              title="Open Product Master"
+              aria-label="Open Product Master"
+              (click)="openProductConfig($event)">
+              <i class="pi pi-cog"></i>
+            </button>
+          }
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Close" aria-label="Close" (click)="close()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="inventory-line-product-popup-body">
+        <div class="inv-line-picker-fields-row">
+          <div class="inv-line-picker-field">
+            <label>Product</label>
+            <ng-select class="erp-ng-select inventory-ng-select inventory-line-product-select" appendTo=".inventory-line-product-popup"
+              dropdownPosition="auto"
+              [items]="productOptions()" [searchable]="true" [clearable]="false"
+              [ngModel]="productValue()" (ngModelChange)="pickProduct($event)"
+              placeholder="Select product">
+            </ng-select>
+          </div>
+
+          @if (showVariantStep()) {
+            <div class="inv-line-picker-field">
+              <label>Variant</label>
+              @if (variantReadonly()) {
+                <span class="inventory-grid-static-value">{{ variantValue() || '—' }}</span>
+              } @else {
+                <ng-select class="erp-ng-select inventory-ng-select inventory-line-product-select" appendTo=".inventory-line-product-popup"
+                  dropdownPosition="auto"
+                  [items]="variantOptions()" [searchable]="true" [clearable]="false"
+                  [ngModel]="variantValue()" (ngModelChange)="pickVariant($event)"
+                  placeholder="Select variant">
+                </ng-select>
+              }
+            </div>
+          }
+
+          @for (attr of attrSelections(); track attr.name) {
+            <div class="inv-line-picker-field">
+              <label>{{ attr.name }}</label>
+              @if (attr.isAuto || isAttributeReadonly(attr.name)) {
+                <span class="inventory-grid-static-value">{{ attr.value || '—' }}</span>
+              } @else {
+                <ng-select class="erp-ng-select inventory-ng-select inventory-line-product-select" appendTo=".inventory-line-product-popup"
+                  dropdownPosition="auto"
+                  [items]="attr.options" [searchable]="false" [clearable]="false"
+                  [ngModel]="attr.value" (ngModelChange)="pickAttribute(attr.name, $event)"
+                  placeholder="Select">
+                </ng-select>
+              }
+            </div>
+          }
+        </div>
+
+        @if (productValue()) {
+          <div class="inv-line-picker-stock-row">
+            <div class="inv-line-picker-stock">
+              <div class="inv-line-picker-stock-title">Closing Stock</div>
+              @if (currentPickStockLoading()) {
+                <span class="inventory-grid-empty-hint">Loading…</span>
+              } @else if (currentPickStockRows().length) {
+                <div class="inv-line-picker-stock-total">
+                  Total available: <strong>{{ currentPickTotal() | number:'1.0-3' }}</strong>
+                </div>
+                <ul class="inv-line-picker-stock-list">
+                  @for (row of currentPickStockRows(); track row.warehouse_id) {
+                    <li><span>{{ row.warehouse_name || 'Warehouse' }}</span><strong>{{ row.available | number:'1.0-3' }}</strong></li>
+                  }
+                </ul>
+              } @else {
+                <span class="inventory-grid-empty-hint">No stock recorded for this pick yet.</span>
+              }
+            </div>
+
+            <div class="inv-line-picker-branches">
+              <div class="inv-line-picker-stock-title">Stock Across Branches</div>
+              @if (branchStockLoading()) {
+                <span class="inventory-grid-empty-hint">Loading…</span>
+              } @else if (branchCards().length) {
+                <div class="inv-line-picker-branch-cards">
+                  @for (card of branchCards(); track card.key) {
+                    <div class="inv-line-picker-branch-card" [class.inv-line-picker-branch-card--current]="card.isCurrentBranch">
+                      <div class="inv-line-picker-branch-card-head">
+                        <span>
+                          {{ card.branchName }}
+                          @if (card.isCurrentBranch) {
+                            <span class="inv-line-picker-current-badge">Current Branch</span>
+                          }
+                        </span>
+                        <strong>{{ card.total | number:'1.0-3' }}</strong>
+                      </div>
+                      <ul>
+                        @for (wh of card.warehouses; track wh.name) {
+                          <li><span>{{ wh.name }}</span><span>{{ wh.available | number:'1.0-3' }}</span></li>
+                        }
+                      </ul>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <span class="inventory-grid-empty-hint">No stock recorded for this product anywhere yet.</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="inventory-modal-footer inventory-line-product-popup-footer">
+        <button type="button" class="erp-btn btn-primary btn-sm inv-line-picker-add-btn"
+          [disabled]="!canAddProduct()"
+          (click)="addProduct()">
+          <i class="pi pi-check"></i> Add Product
+        </button>
+      </div>
+    </div>
+  </div>
+</ng-template>

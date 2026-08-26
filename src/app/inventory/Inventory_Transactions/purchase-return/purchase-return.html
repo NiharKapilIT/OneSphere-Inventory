@@ -21,7 +21,7 @@
               <div [class.inventory-reference-picker-field]="transactionReferencePickerButtonVisible(refField)">
                 @if (config.key === 'purchaseReturn') {
                   <div class="erp-input inventory-readonly-label" [class.inventory-readonly-label--empty]="!formFieldValue(refField)">
-                    {{ formFieldValue(refField) || 'Not selected — use Pick Reference' }}
+                    {{ formFieldValue(refField) || 'Not selected â€” use Pick Reference' }}
                   </div>
                 } @else if (transactionReferenceUsesSelect(refField)) {
                   <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
@@ -154,7 +154,7 @@
                 </ng-select>
               } @else if (field.key === 'piReference') {
                 <div class="erp-input inventory-readonly-label" [class.inventory-readonly-label--empty]="!formFieldValue(field)">
-                  {{ formFieldValue(field) || 'Not selected — use Pick Reference' }}
+                  {{ formFieldValue(field) || 'Not selected â€” use Pick Reference' }}
                 </div>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
@@ -215,22 +215,20 @@
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
-            <button type="button" class="erp-btn btn-white btn-sm" (click)="addEntryLineRow()">
-              <i class="pi pi-plus"></i> Add Row
-            </button>
+            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
           </div>
           <div class="tbl-wrap">
+            @let renderedColumns = lineGridRenderColumns();
+            @let rowViews = entryLineRowViews();
             <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
-                  @for (column of transactionLineDisplayColumns(config.lineColumns || []); track column) {
-                    @if (isLineColumnVisible(column)) {
-                      <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
-                        {{ column }}
-                        <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
-                      </th>
-                    }
+                  @for (column of renderedColumns; track column) {
+                    <th [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [style.width]="lineGridColumnWidthPx(column)">
+                      {{ lineGridColumnHeader(column) }}
+                      <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
+                    </th>
                   }
                 </tr>
               </thead>
@@ -243,13 +241,16 @@
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                       </div>
                     </td>
-                    @let rowView = entryLineRowViews()[rowIndex];
-                    @for (column of transactionLineDisplayColumns(config.lineColumns || []); track column; let columnIndex = $index) {
-                      @if (isLineColumnVisible(column)) {
-                        @let cellView = rowView?.columns?.[columnIndex];
-                        <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
-                          @if (lineGridCellReadonly(rowIndex, row, column)) {
-                            <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '—' }}</span>
+                    @let rowView = rowViews[rowIndex];
+                    @for (column of renderedColumns; track column) {
+                      @let columnIndex = lineGridSourceColumnIndex(column);
+                      @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
+                      @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
+                      <td [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
+                          @if (!cellApplies) {
+                            <span class="inventory-grid-na">-</span>
+                          } @else if (lineGridCellReadonly(rowIndex, row, column)) {
+                            <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || 'â€”' }}</span>
                           } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
                             <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
                               {{ serialPickerSummaryForRow(rowIndex, row) }}
@@ -279,12 +280,12 @@
                               (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
                               [placeholder]="cellView?.placeholder || ''" />
                           }
-                          @if (cellView?.stockHint; as stockHint) {
+                          @if (cellApplies && cellView?.stockHint; as stockHint) {
                             <small [class]="cellView?.stockHintClass">
                               <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                             </small>
                           }
-                          @if (cellView?.priceHint; as priceHint) {
+                          @if (cellApplies && cellView?.priceHint; as priceHint) {
                             @if (!isPriceHintDismissed(rowIndex, priceHint.fingerprint)) {
                               <small [class]="transactionPriceHintClass(priceHint)">
                                 <i class="pi" [class.pi-exclamation-triangle]="priceHint.severity !== 'info'" [class.pi-info-circle]="priceHint.severity === 'info'" style="font-size:9px"></i>
@@ -315,7 +316,7 @@
                             @for (attr of rowView?.attrSelections || []; track attr.name) {
                               <div class="inventory-line-subcell">
                                 @if (attr.isAuto || lineGridCellReadonly(rowIndex, row, attr.name)) {
-                                  <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || '—' }}</small>
+                                  <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || 'â€”' }}</small>
                                 } @else {
                                   <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
                                     [items]="attr.options" [searchable]="false" [clearable]="false"
@@ -327,7 +328,6 @@
                             }
                           }
                         </td>
-                      }
                     }
                   </tr>
                 }
@@ -505,12 +505,12 @@
                                 @for (column of returnColumns; track column.key) {
                                   <td>
                                     @if (column.key === 'product') {
-                                      <strong>{{ grnExpandedCell(item, column, i) || '�' }}</strong>
+                                      <strong>{{ grnExpandedCell(item, column, i) || 'ï¿½' }}</strong>
                                       @if (grnExpandedProductSubtitle(item); as subtitle) {
                                         <br><small class="inventory-grid-subtitle">{{ subtitle }}</small>
                                       }
                                     } @else {
-                                      {{ grnExpandedCell(item, column, i) || '�' }}
+                                      {{ grnExpandedCell(item, column, i) || 'ï¿½' }}
                                     }
                                   </td>
                                 }

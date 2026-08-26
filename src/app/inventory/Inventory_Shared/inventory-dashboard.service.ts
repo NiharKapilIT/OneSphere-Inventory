@@ -150,6 +150,29 @@ export interface DcPendingInvoiceLineRow {
   pending_qty: number;
 }
 
+// Posted Sales Invoice lines where the selling rate fell below the
+// product's current cost_price (a floor check, unrelated to MRP). No
+// per-line cost-at-time-of-sale is persisted anywhere in this schema, so
+// this is CURRENT cost joined against HISTORICAL rate -- accurate for
+// recent sales, approximate for older ones (same accepted tradeoff as
+// Product Profitability). Live/derived, not a snapshot -- standalone
+// endpoint/widget, not part of DashboardSummary (see 155_loss_sales_
+// report.sql).
+export interface LossSaleFlagRow {
+  id: number;
+  invoice_id: number;
+  doc_number?: string;
+  doc_date?: string;
+  customer_name?: string;
+  product_id?: number;
+  product_name?: string;
+  qty: number;
+  rate: number;
+  cost_price: number;
+  loss_amount: number;
+  loss_percent: number;
+}
+
 export interface DashboardSummary {
   kpis: DashboardKpis;
   daily_movement: DashboardMovementPoint[];
@@ -339,6 +362,29 @@ export class InventoryDashboardService {
           dispatch_qty: r?.dispatchQty ?? r?.dispatch_qty ?? 0,
           invoiced_qty: r?.invoicedQty ?? r?.invoiced_qty ?? 0,
           pending_qty: r?.pendingQty ?? r?.pending_qty ?? 0
+        }))
+      }))
+    );
+  }
+
+  getLossSalesFlags(limit?: number): Observable<ApiResponse<LossSaleFlagRow[]>> {
+    let params = new HttpParams();
+    if (limit) params = params.set('limit', String(limit));
+    return this.http.get<ApiResponse<any[]>>(`${this.base()}/inventory/dashboard/loss-sales`, { headers: this.headers(), params }).pipe(
+      map(res => ({
+        ...res, data: (res.data ?? []).map((r: any) => ({
+          id: r?.id ?? 0,
+          invoice_id: r?.invoiceId ?? r?.invoice_id ?? 0,
+          doc_number: r?.docNumber ?? r?.doc_number,
+          doc_date: r?.docDate ?? r?.doc_date,
+          customer_name: r?.customerName ?? r?.customer_name,
+          product_id: r?.productId ?? r?.product_id,
+          product_name: r?.productName ?? r?.product_name,
+          qty: r?.qty ?? 0,
+          rate: r?.rate ?? 0,
+          cost_price: r?.costPrice ?? r?.cost_price ?? 0,
+          loss_amount: r?.lossAmount ?? r?.loss_amount ?? 0,
+          loss_percent: r?.lossPercent ?? r?.loss_percent ?? 0
         }))
       }))
     );

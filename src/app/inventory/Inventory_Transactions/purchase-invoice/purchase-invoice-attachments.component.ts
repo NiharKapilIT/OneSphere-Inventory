@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, SimpleChanges, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, inject, signal } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
-import { CommonService } from '../../../core/services/Common/common.service';
 import { InventoryTransactionsService, PurchaseInvoiceAttachment } from '../../Inventory_Shared/inventory-transactions.service';
 
 // Item 11 — Purchase Invoice attachments upload + preview. Deliberately
@@ -9,13 +8,13 @@ import { InventoryTransactionsService, PurchaseInvoiceAttachment } from '../../I
 // Transport Details / Bank Details) per the task's explicit scope: attach
 // only to Purchase Invoice, don't touch any other transaction screen.
 //
-// Reuses the already-existing, already-live plumbing rather than adding
-// anything new to it:
-//   - upload:  CommonService.fileUploadS3('PurchaseInvoiceAttachment', fd)
-//              -> generic POST /api/uploadFile/{formName}
+// Reuses the already-existing S3 plumbing server-side through a PI-specific
+// endpoint:
+//   - upload + metadata save:
+//              POST /inventory/transactions/purchase-invoices/{id}/attachments/upload
 //   - preview: InventoryTransactionsService.downloadS3File(...)
 //              -> generic GET /api/Accounts/DownloadImage/{formName}/{fileName}
-//   - list/save/delete metadata: the three new purchase-invoices/{id}/
+//   - list/delete metadata: purchase-invoices/{id}/
 //     attachments endpoints added for this item (147_purchase_invoice_
 //     attachments.sql + InventoryTransactionsController).
 //
@@ -208,8 +207,10 @@ import { InventoryTransactionsService, PurchaseInvoiceAttachment } from '../../I
 })
 export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
   @Input() purchaseInvoiceId = 0;
+  @Output() readonly attachmentListChange = new EventEmitter<PurchaseInvoiceAttachment[]>();
+  @Output() readonly attachmentSaveComplete = new EventEmitter<{ purchaseInvoiceId: number; attachment: PurchaseInvoiceAttachment | null }>();
+  @Output() readonly attachmentSaveFailed = new EventEmitter<{ purchaseInvoiceId: number; message: string }>();
 
-  private readonly commonService = inject(CommonService);
   private readonly txService = inject(InventoryTransactionsService);
   private readonly sanitizer = inject(DomSanitizer);
 
@@ -237,9 +238,15 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
   private pendingFile: File | null = null;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['purchaseInvoiceId'] && this.purchaseInvoiceId) {
+    if (!changes['purchaseInvoiceId']) return;
+    const invoiceId = Number(this.purchaseInvoiceId || 0);
+    if (invoiceId) {
       this.loadAttachments();
-      if (this.pendingFile) this.attachPendingToPurchaseInvoice(this.purchaseInvoiceId);
+      if (this.pendingFile) this.attachPendingToPurchaseInvoice(invoiceId);
+      return;
+    }
+    if (!this.uploadPending() && !this.pendingFile) {
+      this.clearCurrentAttachmentView();
     }
   }
 
@@ -251,6 +258,7 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
       next: res => {
         this.loading.set(false);
         this.attachments.set(res.data || []);
+        this.attachmentListChange.emit(this.attachments());
       },
       error: err => {
         this.loading.set(false);
@@ -297,6 +305,13 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
     this.uploadError.set('');
   }
 
+  resetForNewInvoice(): void {
+    this.purchaseInvoiceId = 0;
+    this.clearPendingAttachment();
+    this.clearCurrentAttachmentView();
+    this.closePreview();
+  }
+
   setPendingAttachmentMessage(message: string): void {
     this.uploadError.set(message);
   }
@@ -315,7 +330,8 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
   }
 
   private uploadFile(file: File, input?: HTMLInputElement): void {
-    if (!this.purchaseInvoiceId) {
+    const targetPurchaseInvoiceId = Number(this.purchaseInvoiceId || 0);
+    if (!targetPurchaseInvoiceId) {
       this.pendingFile = file;
       this.pendingFileName.set(file.name);
       if (input) input.value = '';
@@ -325,52 +341,26 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
     this.uploadError.set('');
     this.uploadPending.set(true);
 
-    const fd = new FormData();
-    fd.append(file.name, file);
-
-    this.commonService.fileUploadS3('PurchaseInvoiceAttachment', fd).subscribe({
-      next: (data: any) => {
-        const uploadedPath = Array.isArray(data) ? data[0] : '';
-        if (!uploadedPath) {
-          this.uploadPending.set(false);
-          this.uploadError.set('Upload failed — no file path returned.');
-          if (input) input.value = '';
-          return;
+    this.txService.uploadPurchaseInvoiceAttachment(targetPurchaseInvoiceId, file).subscribe({
+      next: res => {
+        this.uploadPending.set(false);
+        if (input) input.value = '';
+        this.clearPendingAttachment();
+        const savedAttachment = res.data ? res.data as PurchaseInvoiceAttachment : null;
+        if (res.data) {
+          this.attachments.update(list => [savedAttachment as PurchaseInvoiceAttachment, ...list]);
+          this.attachmentListChange.emit(this.attachments());
+        } else {
+          this.loadAttachments();
         }
-        // Store only the bare, GUID-prefixed filename (strip the folder
-        // prefix) -- see the fileKey comment on 147_purchase_invoice_
-        // attachments.sql for why.
-        const fileKey = uploadedPath.includes('/')
-          ? uploadedPath.substring(uploadedPath.indexOf('/') + 1)
-          : uploadedPath;
-
-        this.txService.savePurchaseInvoiceAttachment(this.purchaseInvoiceId, {
-          fileKey,
-          fileName: file.name,
-          contentType: file.type || null,
-          fileSizeBytes: file.size
-        }).subscribe({
-          next: res => {
-            this.uploadPending.set(false);
-            if (input) input.value = '';
-            this.clearPendingAttachment();
-            if (res.data) {
-              this.attachments.update(list => [res.data as PurchaseInvoiceAttachment, ...list]);
-            } else {
-              this.loadAttachments();
-            }
-          },
-          error: err => {
-            this.uploadPending.set(false);
-            if (input) input.value = '';
-            this.uploadError.set(this.errorMessage(err, 'File uploaded but saving the attachment record failed.'));
-          }
-        });
+        this.attachmentSaveComplete.emit({ purchaseInvoiceId: targetPurchaseInvoiceId, attachment: savedAttachment });
       },
       error: err => {
         this.uploadPending.set(false);
         if (input) input.value = '';
-        this.uploadError.set(this.errorMessage(err, 'Upload failed — try again.'));
+        const message = this.errorMessage(err, 'Attachment upload failed - try again.');
+        this.uploadError.set(message);
+        this.attachmentSaveFailed.emit({ purchaseInvoiceId: targetPurchaseInvoiceId, message });
       }
     });
   }
@@ -436,6 +426,7 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
       next: () => {
         this.deletingId.set(null);
         this.attachments.update(list => list.filter(a => a.id !== attachment.id));
+        this.attachmentListChange.emit(this.attachments());
       },
       error: err => {
         this.deletingId.set(null);
@@ -469,6 +460,15 @@ export class PurchaseInvoiceAttachmentsComponent implements OnChanges {
       URL.revokeObjectURL(this.previewObjectUrl);
       this.previewObjectUrl = null;
     }
+  }
+
+  private clearCurrentAttachmentView(): void {
+    this.attachments.set([]);
+    this.loading.set(false);
+    this.listError.set('');
+    this.uploadError.set('');
+    this.deletingId.set(null);
+    this.attachmentListChange.emit([]);
   }
 
   private errorMessage(err: any, fallback: string): string {

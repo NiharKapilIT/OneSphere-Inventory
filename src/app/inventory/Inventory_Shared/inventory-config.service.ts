@@ -241,6 +241,8 @@ export interface BranchInvItem {
   activity_types: string[];
   is_head_office: boolean;
   status: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CompanyDetails {
@@ -1014,7 +1016,9 @@ export class InventoryConfigService {
       contact_email: this.value(item, 'contact_email', 'contactEmail'),
       activity_types: this.value(item, 'activity_types', 'activityTypes', []) ?? [],
       is_head_office: this.value(item, 'is_head_office', 'isHeadOffice', false),
-      status: this.value(item, 'status', 'status', 'active')
+      status: this.value(item, 'status', 'status', 'active'),
+      created_at: this.value(item, 'created_at', 'createdAt'),
+      updated_at: this.value(item, 'updated_at', 'updatedAt')
     };
   }
 

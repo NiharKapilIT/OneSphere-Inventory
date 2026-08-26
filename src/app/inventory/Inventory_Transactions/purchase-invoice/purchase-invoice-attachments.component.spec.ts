@@ -8,11 +8,10 @@ import { PurchaseInvoiceAttachmentsComponent } from './purchase-invoice-attachme
 import { PurchaseInvoiceAttachment } from '../../Inventory_Shared/inventory-transactions.service';
 
 // Coverage for item 11: Purchase Invoice attachments upload/list/preview/delete
-// panel. fileUploadS3() itself (CommonService) is pre-existing, already-used
-// infrastructure -- mocked via spy here rather than re-simulated, so these
-// tests stay focused on what's actually new: extension/size validation,
-// stripping the S3 folder prefix before saving metadata, list state after
-// save/delete, and preview classification (image vs pdf vs other).
+// panel. The browser calls the PI-specific upload endpoint, which performs
+// S3 upload + metadata insert server-side and returns the saved reference
+// row. These tests stay focused on extension/size validation, list state
+// after save/delete, and preview classification (image vs pdf vs other).
 describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
   let fixture: ComponentFixture<PurchaseInvoiceAttachmentsComponent>;
   let component: PurchaseInvoiceAttachmentsComponent;
@@ -80,16 +79,16 @@ describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
   describe('client-side upload validation', () => {
     beforeEach(() => flushInitialLoad([]));
 
-    it('rejects a disallowed file extension before ever calling fileUploadS3', () => {
-      const uploadSpy = vi.spyOn(component['commonService'], 'fileUploadS3');
+    it('rejects a disallowed file extension before calling the upload endpoint', () => {
+      const uploadSpy = vi.spyOn((component as any).txService, 'uploadPurchaseInvoiceAttachment');
       component.onFileSelected(makeChangeEvent(makeFile('malware.exe', 100, 'application/octet-stream')));
 
       expect(component.uploadError()).toContain('.exe');
       expect(uploadSpy).not.toHaveBeenCalled();
     });
 
-    it('rejects a file over the 25 MB limit before ever calling fileUploadS3', () => {
-      const uploadSpy = vi.spyOn(component['commonService'], 'fileUploadS3');
+    it('rejects a file over the 25 MB limit before calling the upload endpoint', () => {
+      const uploadSpy = vi.spyOn((component as any).txService, 'uploadPurchaseInvoiceAttachment');
       component.onFileSelected(makeChangeEvent(makeFile('big.pdf', 26 * 1024 * 1024)));
 
       expect(component.uploadError()).toContain('25 MB');
@@ -97,9 +96,7 @@ describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
     });
 
     it('accepts every extension the backend whitelist allows', () => {
-      const uploadSpy = vi.spyOn(component['commonService'], 'fileUploadS3')
-        .mockReturnValue(of(['PurchaseInvoiceAttachment/fake.ext']));
-      const saveSpy = vi.spyOn((component as any).txService, 'savePurchaseInvoiceAttachment')
+      const uploadSpy = vi.spyOn((component as any).txService, 'uploadPurchaseInvoiceAttachment')
         .mockReturnValue(of({ success: true, message: 'ok', data: makeAttachment({ id: 99 }) }));
       for (const ext of ['pdf', 'jpg', 'jpeg', 'png', 'docx', 'xlsx', 'csv']) {
         component.uploadError.set('');
@@ -107,22 +104,17 @@ describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
         expect(component.uploadError()).toBe('');
       }
       expect(uploadSpy).toHaveBeenCalledTimes(7);
-      expect(saveSpy).toHaveBeenCalledTimes(7);
     });
   });
 
   describe('upload happy path', () => {
     beforeEach(() => flushInitialLoad([]));
 
-    it('strips the S3 folder prefix before saving the attachment record, and prepends the new row', () => {
-      vi.spyOn(component['commonService'], 'fileUploadS3')
-        .mockReturnValue(of(['PurchaseInvoiceAttachment/8f2e-invoice-scan.pdf']));
-
+    it('uploads through the PI attachment endpoint and prepends the returned reference row', () => {
       component.onFileSelected(makeChangeEvent(makeFile('invoice-scan.pdf', 1024)));
 
-      const req = httpMock.expectOne(r => r.url.includes('purchase-invoices/5/attachments') && r.method === 'POST');
-      expect(req.request.body.fileKey).toBe('8f2e-invoice-scan.pdf');
-      expect(req.request.body.fileName).toBe('invoice-scan.pdf');
+      const req = httpMock.expectOne(r => r.url.includes('purchase-invoices/5/attachments/upload') && r.method === 'POST');
+      expect(req.request.body instanceof FormData).toBe(true);
       req.flush({
         success: true, message: 'ok',
         data: makeAttachment({ id: 2, fileKey: '8f2e-invoice-scan.pdf', fileName: 'invoice-scan.pdf' })
@@ -133,8 +125,8 @@ describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
       expect(component.uploadPending()).toBe(false);
     });
 
-    it('surfaces an upload error and resets uploadPending when fileUploadS3 fails', () => {
-      vi.spyOn(component['commonService'], 'fileUploadS3')
+    it('surfaces an upload error and resets uploadPending when the PI upload endpoint fails', () => {
+      vi.spyOn((component as any).txService, 'uploadPurchaseInvoiceAttachment')
         .mockReturnValue(throwError(() => ({ error: 'No active config for module' })));
 
       component.onFileSelected(makeChangeEvent(makeFile('invoice-scan.pdf', 1024)));
@@ -143,13 +135,10 @@ describe('PurchaseInvoiceAttachmentsComponent (item 11)', () => {
       expect(component.uploadError()).toBe('No active config for module');
     });
 
-    it('surfaces a metadata-save error when the upload succeeded but the save call fails', () => {
-      vi.spyOn(component['commonService'], 'fileUploadS3')
-        .mockReturnValue(of(['PurchaseInvoiceAttachment/8f2e-invoice-scan.pdf']));
-
+    it('surfaces a server-side metadata-save error from the PI upload endpoint', () => {
       component.onFileSelected(makeChangeEvent(makeFile('invoice-scan.pdf', 1024)));
 
-      const req = httpMock.expectOne(r => r.url.includes('purchase-invoices/5/attachments') && r.method === 'POST');
+      const req = httpMock.expectOne(r => r.url.includes('purchase-invoices/5/attachments/upload') && r.method === 'POST');
       req.flush('Purchase Invoice 5 not found for this company', { status: 400, statusText: 'Bad Request' });
 
       expect(component.uploadPending()).toBe(false);
