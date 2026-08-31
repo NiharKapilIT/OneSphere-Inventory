@@ -81,6 +81,22 @@
                     <span class="switch-text switch-off">{{ fieldSwitchOffLabel(field) }}</span>
                   </span>
                 </label>
+              } @else if (field.key === 'fromWarehouse' || field.key === 'toWarehouse') {
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(field)"
+                  (ngModelChange)="collectFormField(field.key, $event)"
+                  [placeholder]="fieldTypingHint(field)">
+                  <ng-template ng-option-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
+                  <ng-template ng-label-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
+                </ng-select>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="field.options || []" [searchable]="true" [clearable]="true"
@@ -134,13 +150,16 @@
       <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items grn-grid-compact stock-transfer-line-grid">
+        <div class="inventory-line-items grn-grid-compact stock-transfer-line-grid" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
-            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+            <div class="inventory-line-title-actions">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" [title]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" (click)="toggleLineGridFullscreen()"><i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i></button>
+            </div>
           </div>
           <div class="tbl-wrap">
             @let renderedColumns = lineGridRenderColumns();
@@ -176,6 +195,16 @@
                           <span class="inventory-grid-na">â€” N/A â€”</span>
                         } @else if (lineGridCellReadonly(rowIndex, row, column)) {
                           <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || 'â€”' }}</span>
+                        } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
+                          <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
+                            {{ serialPickerSummaryForRow(rowIndex, row) }}
+                          </button>
+                        } @else if (lineGridColumnIsSerialPicker(column)) {
+                          <input class="erp-input inventory-grid-input"
+                            type="text"
+                            [ngModel]="lineGridSerialValue(rowIndex, row, column)"
+                            (ngModelChange)="setLineSerialValue(rowIndex, column, $event)"
+                            [placeholder]="'Enter ' + column" />
                         } @else if (lineGridColumnIsProduct(column)) {
                           <app-inventory-line-product-picker
                             [host]="this" [rowIndex]="rowIndex" [column]="column"
@@ -212,6 +241,31 @@
               </tbody>
             </table>
           </div>
+          @if (isLineGridFullscreen()) {
+            <div class="inventory-line-fullscreen-actions">
+              @if (saveError()) {
+                <div class="inventory-save-error">
+                  <span>{{ saveError() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              @if (saveMsg()) {
+                <div class="inventory-save-msg">
+                  <span>{{ saveMsg() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
+              <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || stockTransferIsPostedForm()" (click)="saveStockTransferDraft()">
+                <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
+                {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+              </button>
+              <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || stockTransferIsPostedForm()" (click)="postStockTransfer()">
+                <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+                {{ isSaving() ? 'Posting...' : editingId() ? 'Post / Update Transfer' : 'Post Transfer' }}
+              </button>
+            </div>
+          }
         </div>
       }
 
@@ -230,9 +284,13 @@
 
       <div class="inventory-form-actions">
         <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
-        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()">
-          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : editingId() ? 'pi pi-check' : 'pi pi-plus'"></i>
-          {{ isSaving() ? 'Saving...' : editingId() ? 'Update' : 'Save' }}
+        <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || stockTransferIsPostedForm()" (click)="saveStockTransferDraft()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-save'"></i>
+          {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+        </button>
+        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || stockTransferIsPostedForm()" (click)="postStockTransfer()">
+          <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i>
+          {{ isSaving() ? 'Posting...' : editingId() ? 'Post / Update Transfer' : 'Post Transfer' }}
         </button>
       </div>
 
@@ -341,7 +399,10 @@
                   <div class="inventory-row-actions">
                     @if (isAdmin()) {
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      @if (isStockTransferDraftRow(row)) {
+                        <button type="button" class="erp-btn btn-primary btn-icon btn-sm" title="Post" [disabled]="isSaving()" (click)="postStockTransferRecordByRow(row)"><i [class]="isSaving() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"></i></button>
+                      }
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete" (click)="cancelRecordByRow(row)"><i class="pi pi-trash"></i></button>
                     }
                   </div>
                 </td>
@@ -357,4 +418,5 @@
   </div>
 
   <app-inventory-quick-add-modal [host]="quickAddHost"></app-inventory-quick-add-modal>
+  <app-inventory-serial-picker-modal [host]="quickAddHost"></app-inventory-serial-picker-modal>
 </div>

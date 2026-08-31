@@ -1,9 +1,16 @@
-// Trigger button that sits inside the grid's Product <td> in place of the
-// old wide ng-select. Deliberately plain -- width/height compaction for the
-// 3 pilot screens comes from each screen's own component-scoped styles
-// block (see sales-invoice.ts / purchase-invoice.ts / stock-transfer.ts),
-// never from here, so this component looks reasonable if it's ever reused
-// somewhere that hasn't opted into that compaction.
+// Trigger button that sits inside the grid's Product <td>. Row-height
+// normalization (Workstream C) is centralized here so every one of the 9
+// screens using this picker gets the same compact height by default,
+// instead of relying on each consuming screen to opt in individually --
+// previously only Sales Invoice/Stock Transfer did this consistently,
+// Purchase Invoice set a height floor without fixing vertical alignment,
+// and the other screens had no override at all (falling back to the
+// tallest, top-aligned app-wide grid default). Screens that already carry
+// their own `:host ::ng-deep .inventory-line-product-trigger` override
+// (sales-invoice.ts / stock-transfer.ts) win via their own higher-
+// specificity `:host`-scoped selector and render unchanged; this is just
+// the shared baseline for every other screen. Column *width* is a
+// different, already-working concern and is untouched here.
 .inventory-line-product-trigger {
   display: flex;
   align-items: center;
@@ -12,12 +19,27 @@
   justify-content: flex-start;
   overflow: hidden;
   text-align: left;
+  min-height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
 }
 
+// Workstream 2 Step A: bold product name on its own line, small Variant/
+// Attribute subtitle on the line below (<strong>/<br><small> in the
+// template) -- each line ellipsis-truncates independently instead of the
+// whole two-line block being squashed onto one nowrap line the way the
+// former flat trigger label was.
 .inventory-line-product-trigger-text {
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  min-width: 0;
+
+  strong,
+  small {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
 }
 
 .inventory-line-product-trigger--empty {

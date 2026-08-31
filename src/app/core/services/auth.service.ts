@@ -48,6 +48,17 @@ export interface OtpIssueResponse {
   };
 }
 
+export interface LoginBranchWarehouse {
+  id: number;
+  warehouseCode: string;
+  warehouseName: string;
+  // Populated on the company-wide list (LoginTenantOption.warehouses /
+  // AuthPayload.warehouse) — the branch-scoped BranchResponse.Warehouses list
+  // this interface also backs doesn't set these (see GetBranchWarehousesBatchAsync).
+  isDefault?: boolean;
+  status?: string;
+}
+
 export interface AuthPayload {
   requiresSelection?: boolean;
   accessToken: string;
@@ -73,12 +84,17 @@ export interface AuthPayload {
     branchCode: string;
     branchName: string;
     isDefault: boolean;
+    warehouses?: LoginBranchWarehouse[];
   }>;
   defaultBranch?: {
     id: number;
     branchCode: string;
     branchName: string;
   };
+  // Session-level active warehouse — directly parallel to defaultBranch, but
+  // company-wide rather than branch-scoped (Warehouse and Branch have no FK
+  // link to each other).
+  warehouse?: LoginBranchWarehouse | null;
   roles: Array<{
     id: number;
     roleCode: string;
@@ -103,7 +119,12 @@ export interface LoginTenantOption {
     branchCode: string;
     branchName: string;
     isDefault: boolean;
+    warehouses?: LoginBranchWarehouse[];
   }>;
+  // Company-wide, flat — deliberately NOT the same list as any single branch's
+  // `warehouses` above (that's branch-scoped). Every active warehouse the
+  // company has, for the login screen's independent Warehouse selector.
+  warehouses?: LoginBranchWarehouse[];
 }
 
 @Injectable({
@@ -163,19 +184,21 @@ export class AuthService {
     return this.http.post<OtpIssueResponse>(`${this.apiBaseUrl()}/auth/request-otp`, body);
   }
 
-  verifyOtp(loginId: string, otp: string, companyCode?: string, companyId?: number | null, branchId?: number | null): Observable<AuthApiResponse> {
+  verifyOtp(loginId: string, otp: string, companyCode?: string, companyId?: number | null, branchId?: number | null, warehouseId?: number | null): Observable<AuthApiResponse> {
     const body: Record<string, string | number> = { loginId, otp };
     if (companyCode?.trim()) body['companyCode'] = companyCode.trim();
     if (companyId) body['companyId'] = companyId;
     if (branchId) body['branchId'] = branchId;
+    if (warehouseId) body['warehouseId'] = warehouseId;
     return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/verify-otp`, body);
   }
 
-  passwordLogin(loginId: string, password: string, companyCode?: string, companyId?: number | null, branchId?: number | null): Observable<AuthApiResponse> {
+  passwordLogin(loginId: string, password: string, companyCode?: string, companyId?: number | null, branchId?: number | null, warehouseId?: number | null): Observable<AuthApiResponse> {
     const body: Record<string, string | number> = { loginId, password };
     if (companyCode?.trim()) body['companyCode'] = companyCode.trim();
     if (companyId) body['companyId'] = companyId;
     if (branchId) body['branchId'] = branchId;
+    if (warehouseId) body['warehouseId'] = warehouseId;
     return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/password-login`, body);
   }
 
@@ -208,13 +231,16 @@ export class AuthService {
     return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/refresh-token`, { refreshToken });
   }
 
-  switchBranch(branchId: number): Observable<AuthApiResponse> {
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-branch`, { branchId });
+  switchBranch(branchId: number, warehouseId?: number | null): Observable<AuthApiResponse> {
+    const body: Record<string, number> = { branchId };
+    if (warehouseId) body['warehouseId'] = warehouseId;
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-branch`, body);
   }
 
-  switchCompany(companyId: number, branchId?: number | null): Observable<AuthApiResponse> {
+  switchCompany(companyId: number, branchId?: number | null, warehouseId?: number | null): Observable<AuthApiResponse> {
     const body: Record<string, number> = { companyId };
     if (branchId) body['branchId'] = branchId;
+    if (warehouseId) body['warehouseId'] = warehouseId;
     return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-company`, body);
   }
 
@@ -243,6 +269,9 @@ export class AuthService {
     sessionStorage.setItem('companyId', String(payload.company?.id || payload.user?.companyId || 0));
     sessionStorage.setItem('branchCode', branch?.branchCode || '');
     sessionStorage.setItem('branchId', String(branch?.id || 0));
+    sessionStorage.setItem('warehouseId', String(payload.warehouse?.id || 0));
+    sessionStorage.setItem('warehouseCode', payload.warehouse?.warehouseCode || '');
+    sessionStorage.setItem('warehouseName', payload.warehouse?.warehouseName || '');
     sessionStorage.setItem('userId', String(payload.user?.id || 0));
     sessionStorage.setItem('authUser', JSON.stringify(payload.user || {}));
     sessionStorage.setItem('authCompany', JSON.stringify(payload.company || {}));
@@ -350,6 +379,10 @@ export class AuthService {
 
   getBranchId(): number {
     return Number(sessionStorage.getItem('branchId') || 0);
+  }
+
+  getWarehouseId(): number {
+    return Number(sessionStorage.getItem('warehouseId') || 0);
   }
 
   getMenu(): any[] {

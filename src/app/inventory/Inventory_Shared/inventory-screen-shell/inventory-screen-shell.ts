@@ -131,9 +131,15 @@ interface InterbranchTransferPlanItem {
   qty: number;
 }
 
+// Full Warehouse/Branch Independence: a group now sources from EITHER a
+// warehouse OR a branch directly (fn_post_stock_transfer, migration 160,
+// already accepts a branch-sourced transfer) -- the two id/name pairs are
+// mutually exclusive per group, exactly one is ever populated.
 interface InterbranchTransferPlanGroup {
-  fromWarehouseId: number;
-  fromWarehouseName: string;
+  fromWarehouseId?: number | null;
+  fromWarehouseName?: string | null;
+  fromBranchId?: number | null;
+  fromBranchName?: string | null;
   toWarehouseId: number;
   toWarehouseName: string;
   items: InterbranchTransferPlanItem[];
@@ -565,6 +571,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // only, no change to what this holds or how it's populated.
   protected readonly loadedWarehouseObjects = signal<WarehouseItem[]>([]);
   protected readonly loadedBranchObjects = signal<BranchInvItem[]>([]);
+
+  // Load-order race fix (Phase 4): the branches and warehouses master-list
+  // fetches are two independent HTTP calls with no ordering guarantee. Only
+  // the branches stream used to trigger the default-apply, so a
+  // warehouse-preferred default (session Warehouse active) could be
+  // pre-empted by branches resolving first and applying a branch-only
+  // default before warehouses ever arrived. Both streams now set their own
+  // flag and call tryApplyDefaultLocation(), which gates on BOTH being true.
+  private branchesMasterLoaded = false;
+  private warehousesMasterLoaded = false;
+
+  private tryApplyDefaultLocation(): void {
+    if (!this.branchesMasterLoaded || !this.warehousesMasterLoaded) return;
+    this.applyDefaultLocationToCurrentTransaction();
+  }
   private readonly loadedPaymentTermObjects = signal<PaymentTermItem[]>([]);
   private readonly loadedProductTypeObjects = signal<ProductTypeItem[]>([]);
   get productNatureObjects(): ProductTypeItem[] { return this.loadedProductTypeObjects(); }
@@ -1069,6 +1090,127 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
   get salesEligibleProductOptions(): string[] {
     return this.productNamesForTransaction('salesInvoice');
+  }
+
+  // ---------------------------------------------------------------------
+  // Workstream B: branch/warehouse-scoped product filtering. Once a
+  // Branch/Warehouse is selected on one of the 5 stockLocationScreenKeys
+  // screens, the product picker narrows to what's actually in stock there
+  // instead of showing the entire catalog -- reusing sp_get_available_stock
+  // (via getAvailableStock) with no productId, which returns every product
+  // with stock at that one location in a single bulk call.
+  //
+  // Deliberately fails open at every uncertain step (unresolved location,
+  // fetch in flight, or a location that resolves to genuinely zero stocked
+  // products) by returning the SAME unfiltered list productNamesForTransaction()
+  // already returns -- a filtering bug here would read as "I can't find my
+  // product at all," which is worse than not filtering.
+  // ---------------------------------------------------------------------
+
+  /** Resolved location key -> product ids with available > 0 there. */
+  private readonly locationScopedProductIdsCache = signal<Record<string, number[]>>({});
+  private readonly locationScopedProductIdsFetching = new Set<string>();
+
+  private locationFilterCacheKey(location: { warehouseId: number } | { branchId: number }): string {
+    return 'warehouseId' in location ? `w:${location.warehouseId}` : `b:${location.branchId}`;
+  }
+
+  /**
+   * Reads this screen's own header Branch/Warehouse selection (each of the
+   * stockLocationScreenKeys screens names that field differently — merged
+   * picker for GRN/PI/Purchase Return, 'fromWarehouse' for DC, plain
+   * warehouse-only pickers for SI/Sales Return) and resolves it to one
+   * location: a specific warehouse id (picked directly), or a branch id when
+   * a branch is picked — Warehouse and Branch are fully independent location
+   * concepts, so a branch pick always resolves straight to { branchId },
+   * never collapsed down to "the one warehouse it's linked to". Returns null
+   * when nothing is selected yet or the raw value matches neither a
+   * warehouse nor a branch — callers fail open on null.
+   */
+  private resolvedProductFilterLocation(key: string): { warehouseId: number } | { branchId: number } | null {
+    let raw = '';
+    if (key === 'goodsReceipt' || key === 'purchaseInvoice' || key === 'purchaseReturn') {
+      raw = String(this.formValues()['receivingLocation'] || this.formValues()['warehouse'] || '').trim();
+    } else if (key === 'deliveryChallan') {
+      raw = String(this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'] || '').trim();
+    } else if (key === 'salesInvoice') {
+      raw = String(this.formValues()['warehouse'] || this.formValues()['warehouseId'] || '').trim();
+    } else if (key === 'salesReturn') {
+      raw = String(this.formValues()['returnToWarehouse'] || this.formValues()['warehouse'] || '').trim();
+    }
+    if (!raw) return null;
+
+    const warehouse = this.findWarehouseBySelection(raw);
+    if (warehouse?.id != null) return { warehouseId: Number(warehouse.id) };
+
+    const branch = this.findBranchBySelection(raw);
+    if (!branch) return null;
+    const branchId = this.branchResolvedId(branch);
+    if (branchId == null) return null;
+    return { branchId };
+  }
+
+  /**
+   * Kicks off (and caches, signal-backed so a template/computed read wakes
+   * up once it lands — same shape as fetchAvailableStockForLine()'s own
+   * cache-signal + in-flight-Set guard) a bulk fetch of every product with
+   * available > 0 at one resolved location. Fire-and-forget: callers read
+   * whatever is already cached and treat "nothing cached yet" as fail-open,
+   * not as zero results.
+   */
+  private fetchLocationScopedProductIds(location: { warehouseId: number } | { branchId: number }): void {
+    const cacheKey = this.locationFilterCacheKey(location);
+    if (this.locationScopedProductIdsCache()[cacheKey] || this.locationScopedProductIdsFetching.has(cacheKey)) return;
+    this.locationScopedProductIdsFetching.add(cacheKey);
+    const params = 'warehouseId' in location
+      ? { warehouseId: location.warehouseId }
+      : { branchId: location.branchId };
+    this.txService.getAvailableStock(params)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          this.locationScopedProductIdsFetching.delete(cacheKey);
+          const ids = Array.from(new Set(
+            (res.data || [])
+              .filter(row => Number(row.available || 0) > 0 && row.product_id != null)
+              .map(row => Number(row.product_id))
+          ));
+          this.locationScopedProductIdsCache.update(map => ({ ...map, [cacheKey]: ids }));
+        },
+        error: () => this.locationScopedProductIdsFetching.delete(cacheKey)
+      });
+  }
+
+  /**
+   * Wraps productNamesForTransaction(): on the 5 stockLocationScreenKeys
+   * screens, once the header location resolves and its scoped product list
+   * has actually landed with at least one id in it, narrows to that set;
+   * every other case (screen not in scope, Interbranch Sale mode on Sales
+   * Invoice — item 5's deliberately global search, unresolved location,
+   * fetch still in flight, or a location that genuinely has zero stocked
+   * products) returns the full unfiltered list unchanged.
+   */
+  protected productNamesScopedToLocation(key = this.config?.key || ''): string[] {
+    const allNames = this.productNamesForTransaction(key);
+    if (!this.stockLocationScreenKeys.has(key)) return allNames;
+    if (key === 'salesInvoice' && this.interbranchSaleEnabled()) return allNames;
+
+    const location = this.resolvedProductFilterLocation(key);
+    if (!location) return allNames;
+
+    const cacheKey = this.locationFilterCacheKey(location);
+    const cachedIds = this.locationScopedProductIdsCache()[cacheKey];
+    if (!cachedIds || !cachedIds.length) {
+      this.fetchLocationScopedProductIds(location);
+      return allNames;
+    }
+
+    const idSet = new Set(cachedIds);
+    const scopedNames = this.loadedProductObjects()
+      .filter(product => this.productAllowedForTransaction(product, key) && product.id != null && idSet.has(Number(product.id)))
+      .map(product => product.product_name)
+      .filter(Boolean) as string[];
+    return scopedNames.length ? scopedNames : allNames;
   }
   get vendorOptions(): string[] { return this.vendorOptionList(); }
   get customerOptions(): string[] { return this.customerOptionList(); }
@@ -2631,58 +2773,63 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   // ---------------------------------------------------------------------
-  // Merged "Warehouse / Branch" picker -> real warehouse resolution.
+  // Merged "Warehouse / Branch" picker.
   //
-  // GRN, Purchase Invoice and Delivery Challan each show ONE merged picker
-  // listing both warehouses and branches. Picking a branch used to leave
-  // warehouse_id / from_warehouse_id NULL on the payload, and every stock
-  // posting function matches its stock rows with
-  //     COALESCE(warehouse_id, 0) = COALESCE(v_doc.<warehouse>_id, 0)
-  // so a NULL document warehouse matched every OTHER stock row that also had
-  // a NULL warehouse — company-wide. Postings against a "branch" therefore
-  // landed in one shared, cross-document, cross-branch "Unassigned" pool
-  // instead of a real location.
-  //
-  // A branch selection is now resolved to a real warehouse through the
-  // existing inv_warehouses.branch_id link (N:1 — many warehouses may name
-  // one branch). Exactly one linked warehouse resolves transparently; zero or
-  // more than one is refused outright by validatePayload() rather than
-  // guessed at, because a wrong warehouse and a NULL warehouse are both
-  // stock-integrity bugs. The branch_id/branch_name still travel on the
-  // payload — the document really is at that branch — only warehouse_id stops
-  // being NULL.
+  // GRN, Purchase Invoice, Delivery Challan, Purchase Return and Sales
+  // Invoice each show ONE merged picker listing both warehouses and
+  // branches. Warehouse and Branch are fully independent location concepts
+  // now (Full Warehouse/Branch Independence project) — a branch pick is
+  // never resolved to "the one warehouse it's linked to"; it posts stock
+  // directly against the branch itself. branch_id/branch_name and
+  // warehouse_id/warehouse_name are simply whichever the picker resolved,
+  // mutually exclusive, with no ambiguity check needed: there is nothing
+  // left to disambiguate once a Branch pick is always valid on its own.
   // ---------------------------------------------------------------------
 
-  /** Active warehouses linked to the given branch via inv_warehouses.branch_id. */
-  private warehousesForBranch(branch: BranchInvItem | null | undefined): WarehouseItem[] {
-    const branchId = this.branchResolvedId(branch);
-    if (!branchId) return [];
-    return this.loadedWarehouseObjects().filter(item =>
-      this.optionalNumber(item.branch_id) === branchId
-      && String(item.status || 'active').toLowerCase() !== 'inactive'
-    );
-  }
-
-  /** The branch's single linked warehouse, or null when there are zero or many. */
-  private singleWarehouseForBranch(branch: BranchInvItem | null | undefined): WarehouseItem | null {
-    const matches = this.warehousesForBranch(branch);
-    return matches.length === 1 ? matches[0] : null;
-  }
-
   /** Screens whose location field is one merged Warehouse/Branch picker. */
-  private readonly mergedLocationScreenKeys = new Set(['goodsReceipt', 'purchaseInvoice', 'deliveryChallan']);
+  private readonly mergedLocationScreenKeys = new Set([
+    'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'purchaseReturn', 'salesInvoice',
+    // Opening Inventory Balance and Opening Stock Entry were missed by the
+    // original Full Warehouse/Branch Independence migration.
+    'openingInventoryBalance', 'openingStockEntry',
+    // Stock Adjustment was the last stockLocationScreenKeys-style screen still
+    // Warehouse-only ("in stock adjustment should add even branches too").
+    'stockAdjustment'
+  ]);
 
   /**
-   * Every screen whose posting moves stock at a single header warehouse, and
-   * so must never save a NULL warehouse id. Sales Invoice and Sales Return
-   * reach the same failure a different way: they have a warehouse-only picker
-   * (plus, on SI, a separate interbranch Branch field) rather than the merged
-   * dropdown, but an unresolved selection there lands in the identical shared
-   * "Unassigned" pool — INV-26-00002 / SR-26-00001 on company 60 are live
-   * examples, both NULL-id with the stock physically at warehouse 6.
+   * Every screen whose posting moves stock at a single header location, and
+   * so must never save with no location at all. Sales Return reaches the
+   * same failure a different way: it has a warehouse-only picker rather than
+   * the merged dropdown, but an unresolved selection there lands in the
+   * identical shared "Unassigned" pool — INV-26-00002 / SR-26-00001 on
+   * company 60 are live examples, both NULL-id with the stock physically at
+   * warehouse 6.
+   *
+   * Opening Stock Entry is included too: it really does post to the stock
+   * ledger/cost layers via saveOpeningStockEntry (item 35, isApiWired()),
+   * previously via two independent branch/warehouse fields with no
+   * cross-check between them at all — the exact same "silently lands in
+   * Unassigned" failure was already possible there. Opening Inventory
+   * Balance is deliberately ABSENT — unlike its similarly-named sibling, it
+   * has no backend wiring at all (not in isApiWired(), no buildPayload case,
+   * no save endpoint): it is a static/mock master screen only, so there is
+   * no real POST to guard here despite what its outputImpact copy claims.
+   *
+   * Stock Adjustment is included too (moves real stock via
+   * fn_post_stock_adjustment, migration 172) — but its posting trigger is
+   * pending_approval -> approved, not draft -> posted, so it never satisfies
+   * the generic isPosted check below (payload['status'] is never literally
+   * "posted" for this screen) and has no entry in postedStockLocationMessages.
+   * Membership here still buys it the unconditional stale-free-text-location
+   * refusal every other member gets; its own "nothing selected at approval
+   * time" gate is the dedicated stockAdjustmentLocationValidationMessage()
+   * below, called directly from validatePayload() the same way Stock
+   * Transfer's two-sided check is.
    */
   private readonly stockLocationScreenKeys = new Set([
-    'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'salesInvoice', 'salesReturn'
+    'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'purchaseReturn', 'salesInvoice', 'salesReturn',
+    'openingStockEntry', 'stockAdjustment'
   ]);
 
   /**
@@ -2701,43 +2848,44 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private readonly postedStockLocationMessages: Record<string, string> = {
     deliveryChallan: 'Select the From Warehouse / Branch — a posted Delivery Challan has to dispatch the stock from a real location.',
     salesInvoice: 'Select the Warehouse this invoice ships from — a posted Sales Invoice has to draw stock from a real location.',
-    salesReturn: 'Select the Return To Warehouse — a posted Sales Return has to put the stock back somewhere real.'
+    salesReturn: 'Select the Return To Warehouse — a posted Sales Return has to put the stock back somewhere real.',
+    openingStockEntry: 'Select the Warehouse / Branch — a posted Opening Stock Entry has to seed a real location.'
   };
 
   /**
-   * Blocks a save on the merged-picker screens when a branch was selected but
-   * could not be resolved to exactly one warehouse. Reads the built payload,
-   * so it covers every path that reaches validatePayload().
+   * Core single-location check: resolved to a real warehouse -> fine;
+   * resolved to a branch -> fine, unconditionally (Warehouse and Branch are
+   * fully independent location concepts — a branch pick needs no linked
+   * warehouse to be a valid, real location in its own right); a stale
+   * free-text location name that matches neither -> refused; nothing
+   * selected at all -> refused only once the document is actually being
+   * POSTED and at least one line really tracks stock (a DRAFT, or a
+   * service-only document, keeps the "no location yet" allowance).
+   *
+   * Extracted from mergedLocationValidationMessage() (Workstream E) so
+   * Stock Transfer — the only stockLocationScreenKeys-style screen with two
+   * independent location fields — can call this twice, once per side, with
+   * side-specific field values and posted-message text via
+   * stockTransferLocationValidationMessage() below.
+   * hasStockTrackingLine is a thunk (not a precomputed boolean) so the
+   * potentially-expensive activeSalesLineRows() scan only ever runs in the
+   * one case that actually needs it, exactly as it did inline before this
+   * extraction.
    */
-  private mergedLocationValidationMessage(payload: Record<string, any>): string {
-    const key = this.config?.key || '';
-    if (!this.stockLocationScreenKeys.has(key)) return '';
+  private singleLocationValidationMessage(input: {
+    warehouseId: number | null;
+    branchId: number | null;
+    branchName: string;
+    formBranchName: string;
+    locationName: string;
+    postedMessage: string;
+    isPosted: boolean;
+    hasStockTrackingLine: () => boolean;
+  }): string {
+    if (input.warehouseId) return '';
 
-    // Resolved to a real warehouse (directly picked, or via its branch) — fine.
-    const warehouseId = this.optionalNumber(payload['warehouse_id'])
-      ?? this.optionalNumber(payload['from_warehouse_id'])
-      ?? this.optionalNumber(payload['return_to_warehouse_id']);
-    if (warehouseId) return '';
-
-    // ---- A branch was picked but did not resolve to exactly one warehouse.
-    const branchName = String(payload['branch_name'] || '').trim();
-    const branchId = this.optionalNumber(payload['branch_id']);
-    const formBranchName = this.mergedLocationScreenKeys.has(key)
-      ? ''
-      : String(this.formValues()['branch'] || '').trim();
-    if (branchId || branchName || formBranchName) {
-      const branch = this.findBranchBySelection(branchName || formBranchName)
-        ?? this.loadedBranchObjects().find(item => this.branchResolvedId(item) === branchId)
-        ?? null;
-      const label = this.branchDisplayName(branch) || branchName || formBranchName || 'The selected branch';
-      const matches = this.warehousesForBranch(branch);
-      if (matches.length > 1) {
-        return `${label} has ${matches.length} warehouses (${matches.map(item => item.warehouse_name).join(', ')}). `
-          + 'Select the specific Warehouse instead of the Branch so stock posts to the right location.';
-      }
-      return `${label} has no Warehouse linked to it, so stock cannot be posted against it. `
-        + 'Select a specific Warehouse instead, or link a Warehouse to this Branch in Warehouse Setup.';
-    }
+    // ---- A branch was picked — always a valid, real location on its own.
+    if (input.branchId || input.branchName || input.formBranchName) return '';
 
     // ---- A location NAME survived on the document but matches no warehouse
     // and no branch in this company (typically a stale value left over from
@@ -2745,14 +2893,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // merge in — "HYD Main WH" and friends). It used to be written through as
     // free text next to a NULL id, which is precisely how a posted document
     // ends up drawing on the shared "Unassigned" pool.
-    const locationName = String(
-      payload['warehouse_name']
-      || payload['from_warehouse_name']
-      || payload['return_to_warehouse_name']
-      || ''
-    ).trim();
-    if (locationName) {
-      return `"${locationName}" is not a Warehouse in this company. `
+    if (input.locationName) {
+      return `"${input.locationName}" is not a Warehouse in this company. `
         + 'Select a Warehouse from the list so stock posts to a real location.';
     }
 
@@ -2763,13 +2905,119 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // warehouse id and skips service lines the same way productTracksStock()
     // does. A DRAFT posts nothing, so it keeps the existing "no location yet"
     // allowance and stays saveable; so does a service-only document.
-    const postedMessage = this.postedStockLocationMessages[key];
-    if (!postedMessage) return '';
-    if (String(payload['status'] || '').toLowerCase() !== 'posted') return '';
+    if (!input.postedMessage) return '';
+    if (!input.isPosted) return '';
+    if (!input.hasStockTrackingLine()) return '';
+    return input.postedMessage;
+  }
+
+  /**
+   * Blocks a save on the merged-picker screens when a branch was selected but
+   * could not be resolved to exactly one warehouse. Reads the built payload,
+   * so it covers every path that reaches validatePayload(). Every field read
+   * here, and the call shape, are byte-identical to before this function's
+   * body moved into singleLocationValidationMessage() above.
+   */
+  private mergedLocationValidationMessage(payload: Record<string, any>): string {
+    const key = this.config?.key || '';
+    if (!this.stockLocationScreenKeys.has(key)) return '';
+
+    const warehouseId = this.optionalNumber(payload['warehouse_id'])
+      ?? this.optionalNumber(payload['from_warehouse_id'])
+      ?? this.optionalNumber(payload['return_to_warehouse_id']);
+    const branchName = String(payload['branch_name'] || '').trim();
+    const branchId = this.optionalNumber(payload['branch_id']);
+    const formBranchName = this.mergedLocationScreenKeys.has(key)
+      ? ''
+      : String(this.formValues()['branch'] || '').trim();
     // Generic despite the name — directEntryLineRows() backs every transaction
     // screen's grid (GRN/PI/DC included) and is a no-op once rows are loaded.
-    if (!this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))) return '';
-    return postedMessage;
+    const locationName = String(
+      payload['warehouse_name']
+      || payload['from_warehouse_name']
+      || payload['return_to_warehouse_name']
+      || ''
+    ).trim();
+
+    return this.singleLocationValidationMessage({
+      warehouseId,
+      branchId,
+      branchName,
+      formBranchName,
+      locationName,
+      postedMessage: this.postedStockLocationMessages[key] || '',
+      isPosted: String(payload['status'] || '').toLowerCase() === 'posted',
+      hasStockTrackingLine: () => this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))
+    });
+  }
+
+  /**
+   * Workstream E: Stock Transfer's own two-sided call into
+   * singleLocationValidationMessage() above — one check for From, one for
+   * To, since it's the only stockLocationScreenKeys-style screen with two
+   * independent location fields and so can't share the single-warehouseId
+   * gate mergedLocationValidationMessage() uses for every other screen.
+   * Posted-message text is written out per side here (rather than added to
+   * postedStockLocationMessages, whose shape is one message per screen key,
+   * not per side).
+   */
+  private stockTransferLocationValidationMessage(payload: Record<string, any>): string {
+    const isPosted = String(payload['status'] || '').toLowerCase() === 'posted';
+    const hasStockTrackingLine = () => this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)));
+
+    const fromMessage = this.singleLocationValidationMessage({
+      warehouseId: this.optionalNumber(payload['from_warehouse_id']),
+      branchId: this.optionalNumber(payload['from_branch_id']),
+      branchName: String(payload['from_branch_name'] || '').trim(),
+      formBranchName: '',
+      locationName: String(payload['from_warehouse_name'] || '').trim(),
+      postedMessage: 'Select the From Warehouse / Branch — a posted Stock Transfer has to draw stock from a real location.',
+      isPosted,
+      hasStockTrackingLine
+    });
+    if (fromMessage) return `From: ${fromMessage}`;
+
+    const toMessage = this.singleLocationValidationMessage({
+      warehouseId: this.optionalNumber(payload['to_warehouse_id']),
+      branchId: this.optionalNumber(payload['to_branch_id']),
+      branchName: String(payload['to_branch_name'] || '').trim(),
+      formBranchName: '',
+      locationName: String(payload['to_warehouse_name'] || '').trim(),
+      postedMessage: 'Select the To Warehouse / Branch — a posted Stock Transfer has to put the stock back somewhere real.',
+      isPosted,
+      hasStockTrackingLine
+    });
+    if (toMessage) return `To: ${toMessage}`;
+
+    return '';
+  }
+
+  /**
+   * Stock Adjustment's own single-sided call into
+   * singleLocationValidationMessage() above — same shape as
+   * mergedLocationValidationMessage() uses for every draft->posted screen,
+   * but gated on THIS screen's real posting transition
+   * (pending_approval -> approved) instead of status === 'posted', which
+   * this screen's status field never is. Kept separate from
+   * postedStockLocationMessages (a dead entry there would never fire, since
+   * mergedLocationValidationMessage()'s own isPosted check only recognizes
+   * literal "posted").
+   */
+  private stockAdjustmentLocationValidationMessage(payload: Record<string, any>): string {
+    return this.singleLocationValidationMessage({
+      warehouseId: this.optionalNumber(payload['warehouse_id']),
+      branchId: this.optionalNumber(payload['branch_id']),
+      branchName: String(payload['branch_name'] || '').trim(),
+      formBranchName: '',
+      // The stale-free-text-name case is already caught unconditionally by
+      // mergedLocationValidationMessage() above (stockAdjustment is in both
+      // mergedLocationScreenKeys and stockLocationScreenKeys) — leaving this
+      // blank here avoids reporting the same problem twice.
+      locationName: '',
+      postedMessage: 'Select the Warehouse / Branch — an approved Stock Adjustment has to move stock at a real location.',
+      isPosted: String(payload['status'] || '').toLowerCase() === 'approved',
+      hasStockTrackingLine: () => this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))
+    });
   }
 
   /**
@@ -2816,12 +3064,73 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return (this.config?.fields || []).some(field => field.key === key);
   }
 
-  private shouldDefaultBranchForCurrentScreen(): boolean {
-    const key = this.config?.key || '';
-    return key === 'purchaseRequisition'
-      || key === 'goodsReceipt'
-      || key === 'purchaseInvoice'
-      || key === 'purchaseReturn';
+  // Phase 4 (session Warehouse/Branch defaulting): every screen with a
+  // location-capable header field, tagged by how that field resolves.
+  //   merged       -- one picker accepts either a Warehouse or a Branch name.
+  //   branchOnly   -- Branch-only field (no Warehouse option at all).
+  //   warehouseOnly -- Warehouse-only field; a session Branch is NEVER
+  //                    stuffed in here (see applyDefaultLocationToCurrentTransaction).
+  // Replaces the old 4-screen shouldDefaultBranchForCurrentScreen() allowlist.
+  private static readonly LOCATION_DEFAULT_CAPABILITIES: Record<string, Array<{
+    field: string;
+    kind: 'merged' | 'branchOnly' | 'warehouseOnly';
+  }>> = {
+    purchaseRequisition: [{ field: 'branch', kind: 'branchOnly' }],
+    goodsReceipt:        [{ field: 'receivingLocation', kind: 'merged' }],
+    purchaseInvoice:     [{ field: 'receivingLocation', kind: 'merged' }],
+    purchaseReturn:      [{ field: 'warehouse', kind: 'merged' }],
+    deliveryChallan:     [{ field: 'fromWarehouse', kind: 'merged' }],
+    // Sales Invoice's own merged Warehouse/Branch picker, plus its separate
+    // Interbranch Sale Branch field -- two independent capabilities.
+    salesInvoice:        [{ field: 'warehouse', kind: 'merged' }, { field: 'branch', kind: 'branchOnly' }],
+    // Only fromWarehouse defaults -- toWarehouse is deliberately left blank
+    // so the existing mutual-exclusivity logic isn't pre-violated.
+    stockTransfer:       [{ field: 'fromWarehouse', kind: 'merged' }],
+    salesReturn:         [{ field: 'returnToWarehouse', kind: 'warehouseOnly' }],
+    purchaseOrder:       [{ field: 'receivingWarehouse', kind: 'warehouseOnly' }],
+    // Opening Inventory Balance and Opening Stock Entry were missed by the
+    // original Full Warehouse/Branch Independence migration -- both used to
+    // show Branch and Warehouse as two separate mandatory fields and are
+    // folded into the same single merged 'warehouse' field as PR/SI now.
+    openingInventoryBalance: [{ field: 'warehouse', kind: 'merged' }],
+    openingStockEntry:   [{ field: 'warehouse', kind: 'merged' }],
+    // "in stock adjustment should add even branches too".
+    stockAdjustment:     [{ field: 'warehouse', kind: 'merged' }]
+  };
+
+  private shouldDefaultLocationForCurrentScreen(): boolean {
+    return !!InventoryScreenShell.LOCATION_DEFAULT_CAPABILITIES[this.config?.key || ''];
+  }
+
+  // The session's currently active Warehouse/Branch (from login or the
+  // post-login switcher — see auth.service.ts's setMultiTenantSession), only
+  // when it still resolves to a real, loaded record. A stale/invalid session
+  // value (e.g. deactivated since login) falls through to the heuristics
+  // below rather than writing a dangling id.
+  private sessionActiveWarehouse(): WarehouseItem | null {
+    const id = Number(sessionStorage.getItem('warehouseId') || 0);
+    if (!id) return null;
+    return this.loadedWarehouseObjects().find(item => Number(item.id) === id) ?? null;
+  }
+
+  private sessionActiveBranch(): BranchInvItem | null {
+    const id = Number(sessionStorage.getItem('branchId') || 0);
+    if (!id) return null;
+    return this.loadedBranchObjects().find(item => this.branchResolvedId(item) === id) ?? null;
+  }
+
+  // Symmetric counterpart to defaultBranchForTransaction() above, for
+  // warehouseOnly screens with no active session warehouse. Mirrors
+  // inventory.sp_get_warehouses' own ORDER BY is_default DESC, warehouse_name
+  // exactly, so the fallback picks the same warehouse the Inventory config
+  // screen would call "the default".
+  private defaultWarehouseForTransaction(): WarehouseItem | null {
+    const activeWarehouses = this.loadedWarehouseObjects().filter(item => this.normalizeKey(item.status || 'active') !== 'inactive');
+    return [...activeWarehouses].sort((a, b) => {
+      const defaultDelta = Number(!!b.is_default) - Number(!!a.is_default);
+      if (defaultDelta !== 0) return defaultDelta;
+      return String(a.warehouse_name || '').localeCompare(String(b.warehouse_name || ''));
+    })[0] || null;
   }
 
   private applyReceivingLocationSelection(next: Record<string, any>, value: any): void {
@@ -2844,45 +3153,87 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     next['branch'] = selectedBranch?.branch_name || '';
   }
 
-  private applyDefaultBranchToCurrentTransaction(force = false): void {
-    if (!this.shouldDefaultBranchForCurrentScreen()) return;
+  // Re-dispatches a resolved display name through the exact per-field
+  // selection handler that already runs when a user manually picks a value
+  // in that screen's own merged picker (applyReceivingLocationSelection /
+  // applyPurchaseReturnLocationSelection / applyDeliveryChallanFieldDefaults)
+  // -- guarantees identical companion-field writes (warehouseId/branchId/
+  // warehouse/branch) to a real user selection instead of a second,
+  // independently-maintained copy of that logic. Sales Invoice's own
+  // 'warehouse' field and Stock Transfer's 'fromWarehouse' have no dedicated
+  // companion-writer even on manual selection today (buildPayload resolves
+  // them straight from the plain string via resolveMergedLocation), so
+  // setting next[field] is already everything they need.
+  private applyMergedFieldSelection(next: Record<string, any>, field: string, value: string): void {
+    next[field] = value;
+    switch (this.config?.key) {
+      case 'goodsReceipt':
+      case 'purchaseInvoice':
+        if (field === 'receivingLocation') this.applyReceivingLocationSelection(next, value);
+        break;
+      case 'purchaseReturn':
+        if (field === 'warehouse') this.applyPurchaseReturnLocationSelection(next, value);
+        break;
+      case 'deliveryChallan':
+        if (field === 'fromWarehouse') this.applyDeliveryChallanFieldDefaults(next, field, value);
+        break;
+    }
+  }
+
+  private applyDefaultLocationToCurrentTransaction(force = false): void {
+    const capabilities = InventoryScreenShell.LOCATION_DEFAULT_CAPABILITIES[this.config?.key || ''];
+    if (!capabilities || !capabilities.length) return;
     if (!force && this.editingId() !== null) return;
-    const branch = this.defaultBranchForTransaction();
-    const branchName = this.branchDisplayName(branch);
-    if (!branch || !branchName) return;
 
     this.formValues.update(values => {
-      if (!force && (
-        String(values['receivingLocation'] || '').trim()
-        || String(values['branch'] || '').trim()
-        || this.optionalNumber(values['branchId']) !== null
-        || String(values['warehouse'] || '').trim()
-        || this.optionalNumber(values['warehouseId']) !== null
-      )) {
-        return values;
+      const next = { ...values };
+      let changed = false;
+
+      for (const capability of capabilities) {
+        if (!this.configHasField(capability.field)) continue;
+        if (!force && String(next[capability.field] || '').trim()) continue;
+
+        if (capability.kind === 'warehouseOnly') {
+          // A session Branch is never stuffed into a warehouse-only field.
+          const warehouse = this.sessionActiveWarehouse() ?? this.defaultWarehouseForTransaction();
+          if (!warehouse?.warehouse_name) continue;
+          next[capability.field] = warehouse.warehouse_name;
+          changed = true;
+          continue;
+        }
+
+        if (capability.kind === 'branchOnly') {
+          const branch = this.sessionActiveBranch() ?? this.defaultBranchForTransaction();
+          const branchName = this.branchDisplayName(branch);
+          if (!branch || !branchName) continue;
+          next[capability.field] = branchName;
+          if (capability.field === 'branch') {
+            next['branchId'] = this.branchResolvedId(branch);
+          }
+          if (this.config?.key === 'purchaseRequisition') {
+            const requesterOptions = this.purchaseRequisitionRequesterOptions(branchName);
+            if (requesterOptions.length === 1) next['requestedBy'] = requesterOptions[0];
+          }
+          changed = true;
+          continue;
+        }
+
+        // merged: prefer session Warehouse (if active) -> session Branch (if
+        // active) -> today's branch heuristic.
+        const warehouse = this.sessionActiveWarehouse();
+        if (warehouse?.warehouse_name) {
+          this.applyMergedFieldSelection(next, capability.field, warehouse.warehouse_name);
+          changed = true;
+          continue;
+        }
+        const branch = this.sessionActiveBranch() ?? this.defaultBranchForTransaction();
+        const branchName = this.branchDisplayName(branch);
+        if (!branch || !branchName) continue;
+        this.applyMergedFieldSelection(next, capability.field, branch.branch_name || branchName);
+        changed = true;
       }
 
-      const next = { ...values };
-      if (this.configHasField('receivingLocation')) {
-        next['receivingLocation'] = branchName;
-        next['warehouseId'] = null;
-        next['warehouse'] = '';
-        next['branchId'] = this.branchResolvedId(branch);
-        next['branch'] = branch.branch_name || branchName;
-      } else if (this.config?.key === 'purchaseReturn' && this.configHasField('warehouse')) {
-        next['warehouse'] = branchName;
-        next['warehouseId'] = null;
-        next['branchId'] = this.branchResolvedId(branch);
-        next['branch'] = branch.branch_name || branchName;
-      } else if (this.configHasField('branch')) {
-        next['branch'] = branchName;
-        next['branchId'] = this.branchResolvedId(branch);
-        if (this.config?.key === 'purchaseRequisition') {
-          const requesterOptions = this.purchaseRequisitionRequesterOptions(branchName);
-          if (requesterOptions.length === 1) next['requestedBy'] = requesterOptions[0];
-        }
-      }
-      return next;
+      return changed ? next : values;
     });
   }
 
@@ -3750,7 +4101,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           this.loadedBranchObjects.set(branches);
           const names = branches.map(item => item.branch_name || item.branch_code).filter(Boolean) as string[];
           this.branchOptionList.set(this.mergeOptions([], names));
-          this.applyDefaultBranchToCurrentTransaction();
+          this.branchesMasterLoaded = true;
+          this.tryApplyDefaultLocation();
         },
         error: () => {}
       });
@@ -3766,6 +4118,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           // INVENTORY_OPTIONS.locations (a hardcoded pre-backend demo list),
           // so real warehouses always showed alongside fake ones.
           this.warehouseOptionList.set(this.mergeOptions([], names));
+          this.warehousesMasterLoaded = true;
+          this.tryApplyDefaultLocation();
         },
         error: () => {}
       });
@@ -6917,7 +7271,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
-    this.applyDefaultBranchToCurrentTransaction(true);
+    this.applyDefaultLocationToCurrentTransaction(true);
   }
 
   private applyDirectPurchaseInvoiceReference(field: InventoryField): void {
@@ -6942,7 +7296,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
-    this.applyDefaultBranchToCurrentTransaction(true);
+    this.applyDefaultLocationToCurrentTransaction(true);
   }
 
   useDirectPurchaseInvoice(): void {
@@ -7070,7 +7424,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.entryLineRowsKey.set(this.config?.key || '');
     this.entryLineRows.set([this.blankLineRow()]);
-    this.applyDefaultBranchToCurrentTransaction(true);
+    this.applyDefaultLocationToCurrentTransaction(true);
   }
 
   useDirectGoodsReceipt(): void {
@@ -7519,6 +7873,57 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return this.grnReceivingLocationOptions();
     }
 
+    // Full Warehouse/Branch Independence: Purchase Return and Sales Invoice
+    // each gained their own direct branch_id/branch_name (migrations 161/162)
+    // and now show the same merged Warehouse/Branch picker as GRN/PI/DC on
+    // their single 'warehouse' field. Opening Inventory Balance and Opening
+    // Stock Entry were missed by the original migration (they still showed
+    // Branch and Warehouse as two separate mandatory fields) and are folded
+    // in here now, on the same single 'warehouse' field key.
+    // "in stock adjustment should add even branches too" -- Stock Adjustment
+    // joins the same single 'warehouse' field group as Purchase Return /
+    // Sales Invoice / Opening Inventory Balance / Opening Stock Entry above.
+    if (
+      (this.config?.key === 'purchaseReturn' || this.config?.key === 'salesInvoice'
+        || this.config?.key === 'openingInventoryBalance' || this.config?.key === 'openingStockEntry'
+        || this.config?.key === 'stockAdjustment')
+      && key === 'warehouse'
+    ) {
+      return this.grnReceivingLocationOptions();
+    }
+
+    // Workstream E: Stock Transfer is the only screen with two location
+    // fields (From/To), both merged Warehouse/Branch pickers now -- mirrors
+    // Delivery Challan's single 'fromwarehouse' case above so a Branch with
+    // zero linked warehouses (e.g. Head Office) is directly pickable on
+    // either side. Each side also excludes whatever is currently resolved on
+    // the OTHER side (see stockTransferLocationOptions()) so the same
+    // Warehouse or Branch can never be picked as both From and To.
+    if (this.config?.key === 'stockTransfer' && (key === 'fromwarehouse' || key === 'towarehouse')) {
+      // Bug fix (live UX report: "from/to warehouse hard to select"): these
+      // two option lists MUST be referentially stable across calls. This
+      // runtimeOptions() switch runs fresh on every displayFields()/
+      // bodyDisplayFields() change-detection pass (it's a plain method, not
+      // a signal read), and the ng-select for this field binds directly to
+      // [items]="field.options". Every other merged-picker screen (GRN/PI/
+      // DC/PR/SI) hands ng-select a real computed()'s cached array
+      // (grnReceivingLocationOptions below), so repeated calls return the
+      // SAME array instance and ng-select sees no change. Stock Transfer's
+      // own picker used to call stockTransferLocationOptions() directly --
+      // a plain method that rebuilds a brand-new array (Array.from(new
+      // Set(...))) on literally every invocation, even when nothing
+      // relevant changed. ng-select's [items] setter treats that new
+      // reference as "the option list changed" on every keystroke/digest
+      // anywhere on the page, resetting its open/filtered/highlighted state
+      // each time -- which is exactly the "flickery, hard to select"
+      // behaviour reported. Routing through the two computed()s below
+      // (stockTransferFromWarehouseOptions/stockTransferToWarehouseOptions)
+      // gives the same result array but memoized like every other screen's
+      // picker, so ng-select only sees a new reference when the underlying
+      // location list or the other side's selection actually changes.
+      return key === 'fromwarehouse' ? this.stockTransferFromWarehouseOptions() : this.stockTransferToWarehouseOptions();
+    }
+
     if (key.includes('warehouse') || key.includes('location') || label.includes('warehouse') || label.includes('location') || addMaster === 'location') {
       return this.optionFallback(this.warehouseOptions, field.options);
     }
@@ -7596,14 +8001,42 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return { label, type: 'warehouse' as const, id: this.optionalNumber(match?.id) ?? null };
     });
 
-    const branchEntries = this.branchOptions.map(label => {
-      const key = this.normalizeKey(label);
-      const match = branches.find(item =>
-        this.normalizeKey(item.branch_name) === key
-        || this.normalizeKey(item.branch_code) === key
-      );
-      return { label, type: 'branch' as const, id: this.branchResolvedId(match) };
-    });
+    // Item 2 (active-branches-only): every consumer of this computed (GRN,
+    // Purchase Invoice, Purchase Return, Delivery Challan, Sales Invoice,
+    // Stock Transfer) must never OFFER an inactive branch for a fresh pick.
+    // An already-saved document that references a branch since deactivated
+    // still needs to keep resolving/displaying correctly, though, so the
+    // value currently sitting in whichever of these screens' single location
+    // field holds it stays in the list even if its branch has since gone
+    // inactive -- resolveMergedLocation() already falls back to
+    // findBranchBySelection() (unfiltered by status) for id resolution, so
+    // this carve-out is purely about keeping the ng-select label visible.
+    const currentSelectionKey = this.normalizeKey(String(
+      this.formValues()['receivingLocation']
+      || this.formValues()['warehouse']
+      || this.formValues()['fromWarehouse']
+      || this.formValues()['toWarehouse']
+      || ''
+    ));
+
+    const branchEntries = this.branchOptions
+      .filter(label => {
+        const key = this.normalizeKey(label);
+        if (currentSelectionKey && key === currentSelectionKey) return true;
+        const match = branches.find(item =>
+          this.normalizeKey(item.branch_name) === key
+          || this.normalizeKey(item.branch_code) === key
+        );
+        return this.normalizeKey(match?.status || 'active') !== 'inactive';
+      })
+      .map(label => {
+        const key = this.normalizeKey(label);
+        const match = branches.find(item =>
+          this.normalizeKey(item.branch_name) === key
+          || this.normalizeKey(item.branch_code) === key
+        );
+        return { label, type: 'branch' as const, id: this.branchResolvedId(match) };
+      });
 
     // Warehouses first, then branches — the same order the merged list has
     // always had, which is also what makes a name collision resolve to the
@@ -7616,6 +8049,54 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Warehouse field) renders precisely the entries it renders today.
     return Array.from(new Set(this.mergedLocationEntries().map(entry => entry.label)));
   });
+
+  /**
+   * Stock Transfer's From/To Warehouse-or-Branch pickers must be mutually
+   * exclusive live, as the user picks -- not just a save-time validation
+   * error. Whatever is currently resolved on the OTHER side is removed from
+   * THIS side's option list.
+   *
+   * Comparison is by resolved {type, id} (via resolveMergedLocation()), not
+   * by label text: a Warehouse and a Branch that happen to share a display
+   * name are never "the same" here, only the literal same warehouse or the
+   * literal same branch already chosen on the other side is excluded. When
+   * the other side has nothing resolved yet (empty, or a value that matches
+   * no master row), nothing is excluded.
+   *
+   * MUST stay referentially stable (computed(), not a plain method) -- see
+   * the long comment at this function's one call site in runtimeOptions().
+   * A plain method rebuilding a new array on every call broke ng-select's
+   * [items] binding (new array reference on every change-detection pass ==
+   * ng-select treats the option list as changed on every keystroke/digest,
+   * resetting its open/filtered/highlighted state), which is exactly the
+   * "hard to select" bug reported live on this screen. computed() caches
+   * the array until mergedLocationEntries() or the other side's resolved
+   * value actually changes, matching every other merged-picker screen's
+   * grnReceivingLocationOptions() stability.
+   */
+  private readonly stockTransferFromWarehouseOptions = computed((): string[] =>
+    this.stockTransferLocationOptionsExcluding('toWarehouse')
+  );
+
+  private readonly stockTransferToWarehouseOptions = computed((): string[] =>
+    this.stockTransferLocationOptionsExcluding('fromWarehouse')
+  );
+
+  private stockTransferLocationOptionsExcluding(otherFormKey: 'fromWarehouse' | 'toWarehouse'): string[] {
+    const otherResolved = this.resolveMergedLocation(this.formValues()[otherFormKey]);
+    const excludeType = otherResolved.type;
+    const excludeId = excludeType === 'warehouse'
+      ? this.optionalNumber(otherResolved.warehouse?.id)
+      : excludeType === 'branch'
+        ? this.branchResolvedId(otherResolved.branch)
+        : null;
+
+    const entries = (excludeType && excludeId !== null)
+      ? this.mergedLocationEntries().filter(entry => !(entry.type === excludeType && entry.id === excludeId))
+      : this.mergedLocationEntries();
+
+    return Array.from(new Set(entries.map(entry => entry.label)));
+  }
 
   // Same picker as above but grouped by master, so the dropdown visibly labels
   // which entries are Warehouses vs Branches instead of one flat list. The
@@ -9033,13 +9514,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     const headerField = key === 'deliveryChallan' ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
       : (this.formValues()['warehouse'] || this.formValues()['warehouseId']);
-    const warehouse = this.findWarehouseBySelection(headerField);
-    const warehouseId = warehouse?.id ?? this.optionalNumber(headerField) ?? null;
+    // Item 1: the header field is a merged Warehouse/Branch picker now, so
+    // it may resolve to a branch rather than a warehouse — resolveHeaderStockLocation()
+    // (unlike the old findWarehouseBySelection()-only read) knows both, so a
+    // branch-resolved header correctly excludes ITS OWN row from "also in
+    // stock at" instead of showing itself as one of the "other" locations.
+    const { warehouseId, branchId } = this.resolveHeaderStockLocation(headerField);
 
     const fmt = (value: number) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
-    const others = this.otherWarehousesWithStock(rows, warehouseId);
+    const others = this.otherLocationsWithStock(rows, { warehouseId, branchId });
     if (!others.length) return null;
-    const list = others.slice(0, 3).map(o => `${o.warehouse_name || 'Warehouse'}: ${fmt(o.available)}`).join(', ');
+    const list = others.slice(0, 3).map(o => `${this.stockRowLocationLabel(o)}: ${fmt(o.available)}`).join(', ');
     return { message: `Also in stock at ${list}`, severity: 'info' };
   }
 
@@ -9376,6 +9861,63 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       .sort((a, b) => Number(b.available || 0) - Number(a.available || 0));
   }
 
+  // Item 1: an inv_stock_balance row can now carry warehouse_id, branch_id,
+  // or (a legacy "Unassigned" anomaly that pre-dates the Full Warehouse/
+  // Branch Independence work) neither. Every hint that labels a stock row by
+  // location must account for all three, or a dual-NULL row silently gets
+  // mislabeled with whatever fallback string the caller happened to pick
+  // (previously the literal word "Warehouse", which read as a real location
+  // and was flatly wrong).
+  private stockRowLocationLabel(row: AvailableStock, fallback = 'Unassigned'): string {
+    return row.warehouse_name || row.branch_name || fallback;
+  }
+
+  // Branch-aware counterpart to stockRowForWarehouse() above: a branch's own
+  // direct stock is a row with branch_id set and warehouse_id NULL (Full
+  // Warehouse/Branch Independence — a branch can hold stock in its own
+  // right, not only via a linked warehouse).
+  private stockRowForBranch(rows: AvailableStock[], branchId: number | null): AvailableStock | null {
+    if (!branchId) return null;
+    return rows.find(row => row.branch_id === branchId && row.warehouse_id == null) ?? null;
+  }
+
+  // Branch-aware counterpart to otherWarehousesWithStock(): excludes
+  // whichever single row is "here" (by warehouse OR by branch, whichever the
+  // header resolved to) rather than only ever knowing how to exclude by
+  // warehouse_id. Without this, a header resolved to a Branch (not a
+  // Warehouse) fell through otherWarehousesWithStock()'s warehouseId-only
+  // exclusion, which — passed null — excludes nothing, so the branch's own
+  // row appeared inside its own "also in stock elsewhere" list.
+  private otherLocationsWithStock(
+    rows: AvailableStock[],
+    here: { warehouseId: number | null; branchId: number | null }
+  ): AvailableStock[] {
+    return rows
+      .filter(row => {
+        const isHere = here.warehouseId != null
+          ? row.warehouse_id === here.warehouseId
+          : here.branchId != null
+            ? (row.branch_id === here.branchId && row.warehouse_id == null)
+            : false;
+        return !isHere && Number(row.available || 0) > 0;
+      })
+      .sort((a, b) => Number(b.available || 0) - Number(a.available || 0));
+  }
+
+  // Resolves a DC/SI header location field (the merged Warehouse/Branch
+  // picker) to whichever one it actually is, via the same resolver the
+  // picker itself uses (resolveMergedLocation()) — falling back to a plain
+  // warehouse-selection/id read only when that fails to find anything, so
+  // behaviour for a header value that predates the merged picker is
+  // unchanged. Returns both ids so a caller can branch on whichever is
+  // non-null instead of assuming "not a warehouse" means "nothing selected".
+  private resolveHeaderStockLocation(headerField: any): { warehouseId: number | null; branchId: number | null } {
+    const resolved = this.resolveMergedLocation(headerField);
+    if (resolved.warehouse) return { warehouseId: this.optionalNumber(resolved.warehouse.id), branchId: null };
+    if (resolved.branch) return { warehouseId: null, branchId: this.branchResolvedId(resolved.branch) };
+    return { warehouseId: this.optionalNumber(headerField), branchId: null };
+  }
+
   private fetchAvailableStockForLine(
     productId: number | null,
     variantId: number | null,
@@ -9407,9 +9949,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const key = this.config?.key || '';
     // Sales Order is an estimate of customer demand, not a stock commitment —
     // the goods can still be procured after the order is placed, so no
-    // available-stock hint/check applies here. Only Delivery Challan and
-    // Sales Invoice actually move stock out, so only those get this hint.
-    if (key !== 'deliveryChallan' && key !== 'salesInvoice') return null;
+    // available-stock hint/check applies here. Delivery Challan and Sales
+    // Invoice actually move stock out; Stock Transfer draws stock OUT of its
+    // From location exactly the same way (item 4a), so it gets this same
+    // hint on its own Qty column.
+    if (key !== 'deliveryChallan' && key !== 'salesInvoice' && key !== 'stockTransfer') return null;
     const actionableColumn = key === 'deliveryChallan' ? 'dispatch qty' : 'qty';
     if (String(column || '').trim().toLowerCase() !== actionableColumn) return null;
 
@@ -9422,11 +9966,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Sales Order has no warehouse field any more — warehouseId stays null
     // there, and the hint below shows the cross-warehouse breakdown instead
     // of a single "here" figure.
-    const warehouseField = key === 'deliveryChallan' ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
+    const warehouseField = key === 'deliveryChallan' || key === 'stockTransfer' ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
       : key === 'salesInvoice' ? (this.formValues()['warehouse'] || this.formValues()['warehouseId'])
       : null;
-    const warehouse = this.findWarehouseBySelection(warehouseField);
-    const warehouseId = warehouse?.id ?? this.optionalNumber(warehouseField) ?? null;
+    // Item 1: DC's "From Warehouse / Branch" and SI's "Warehouse / Branch"
+    // header fields are both merged pickers now (Full Warehouse/Branch
+    // Independence) — findWarehouseBySelection() alone silently returns
+    // nothing when the header resolved to a branch, which used to fall this
+    // whole hint through to the "no location resolved" cross-location
+    // breakdown below even though a real, specific location WAS selected.
+    // resolveHeaderStockLocation() knows both shapes.
+    const { warehouseId, branchId } = this.resolveHeaderStockLocation(warehouseField);
     const attr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, rowIndex));
     const attributeValue = attr.attribute_value || null;
 
@@ -9454,26 +10004,29 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       available: valueInLineUom(stockRow.available)
     }));
 
-    if (warehouseId) {
-      const here = this.stockRowForWarehouse(displayRows, warehouseId);
+    if (warehouseId || branchId) {
+      const here = warehouseId
+        ? this.stockRowForWarehouse(displayRows, warehouseId)
+        : this.stockRowForBranch(displayRows, branchId);
       const hereAvailable = here?.available ?? 0;
       if (Number.isFinite(qty) && qty > hereAvailable) {
         const short = qty - hereAvailable;
-        const others = this.otherWarehousesWithStock(displayRows, warehouseId).slice(0, 2);
+        const others = this.otherLocationsWithStock(displayRows, { warehouseId, branchId }).slice(0, 2);
         const message = others.length
-          ? `Short by ${fmt(short)} here — available at ${others.map(o => `${o.warehouse_name || 'another warehouse'}: ${fmt(o.available)}`).join(', ')}`
+          ? `Short by ${fmt(short)} here — available at ${others.map(o => `${this.stockRowLocationLabel(o, 'another location')}: ${fmt(o.available)}`).join(', ')}`
           : `Short by ${fmt(short)} here — no stock at other warehouses either`;
         return { message, severity: 'warn' };
       }
       return { message: `Available here: ${fmt(hereAvailable)}`, severity: 'info' };
     }
 
-    // No specific warehouse to compare against (Sales Order) — surface the
-    // cross-warehouse breakdown directly.
+    // No specific warehouse or branch to compare against (Sales Order, or a
+    // stale header value that resolved to neither) — surface the
+    // cross-location breakdown directly.
     const total = this.sumStockRows(displayRows);
     const breakdown = this.otherWarehousesWithStock(displayRows, null)
       .slice(0, 3)
-      .map(r => `${r.warehouse_name || 'Warehouse'}: ${fmt(r.available)}`)
+      .map(r => `${this.stockRowLocationLabel(r)}: ${fmt(r.available)}`)
       .join(', ');
     const message = `Available (all warehouses): ${fmt(total.available)}${breakdown ? ` — ${breakdown}` : ''}`;
     return { message, severity: Number.isFinite(qty) && qty > total.available ? 'warn' : 'info' };
@@ -9523,30 +10076,41 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   // Item 13: same scan as overAvailableStockLines() above, but instead of
   // just reporting a shortfall, greedily allocates it across candidate
-  // source warehouses (same-branch siblings first, via the existing
-  // otherWarehousesWithStock() descending-availability sort; falls back to
-  // any company-wide warehouse if no sibling covers it) and groups the
-  // allocation by source warehouse -- a Stock Transfer is warehouse-to-
-  // warehouse, so two different sources need two different transfer
-  // documents. Only called when interbranchSaleEnabled() -- switch-off
-  // keeps using overAvailableStockLines()'s existing "Post anyway" path
-  // untouched.
+  // sources and groups the allocation by source -- a Stock Transfer moves
+  // stock between two locations, so two different sources need two
+  // different transfer documents. Only called when interbranchSaleEnabled()
+  // -- switch-off keeps using overAvailableStockLines()'s existing "Post
+  // anyway" path untouched.
+  //
+  // Full Warehouse/Branch Independence: the selected Interbranch branch is
+  // now checked FIRST as a valid transfer source in its own right -- its own
+  // direct stock (branch_id set, warehouse_id NULL), not a pool of "its"
+  // warehouses -- before falling through to the existing warehouse-sibling
+  // (same-branch warehouses, via otherWarehousesWithStock()'s descending-
+  // availability sort) / company-wide search for whatever the branch itself
+  // can't cover. fn_post_stock_transfer (migration 160) already accepts a
+  // branch-sourced transfer, so the resulting save call sends
+  // from_branch_id/from_branch_name instead of a warehouse for that group.
   private planInterbranchAutoTransfers(): { transfers: InterbranchTransferPlanGroup[]; uncoveredLines: string[] } {
     const warehouse = this.findWarehouseBySelection(this.formValues()['warehouse'] || this.formValues()['warehouseId']);
     const fulfillmentWarehouseId = warehouse?.id ?? this.optionalNumber(this.formValues()['warehouseId']) ?? null;
     if (!fulfillmentWarehouseId) return { transfers: [], uncoveredLines: [] };
 
     const branchId = this.optionalNumber(this.formValues()['branchId']);
+    const branch = branchId != null
+      ? this.loadedBranchObjects().find(b => this.branchResolvedId(b) === branchId) ?? null
+      : null;
     // branchWarehousePool() already narrows to the invoice's own segment --
     // a same-branch, different-segment warehouse is never a valid transfer
-    // source, same reasoning as resolveBranchDefaultWarehouse() above.
+    // source. Only used for the warehouse-sibling fallback search now; the
+    // branch's own direct stock (checked first, below) needs no pool at all.
     const branchPoolIds = new Set(
       this.branchWarehousePool(branchId)
         .filter(w => w.id !== fulfillmentWarehouseId)
         .map(w => w.id)
     );
 
-    const groups = new Map<number, InterbranchTransferPlanGroup>();
+    const groups = new Map<string, InterbranchTransferPlanGroup>();
     const uncoveredLines: string[] = [];
     const cache = this.availableStockCache();
 
@@ -9578,6 +10142,43 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return;
       }
 
+      const itemFor = (take: number) => ({
+        productId: product.id ?? null,
+        productName: product.product_name || productName,
+        productCode: product.product_code || null,
+        variantId: variant_id,
+        variantName: variant_name,
+        attributeId: resolvedAttr.attribute_id,
+        attributeName: resolvedAttr.attribute_name,
+        attributeValue: resolvedAttr.attribute_value,
+        uomId: uom_id,
+        uomName: uom_name,
+        qty: take
+      });
+
+      // The branch itself, first: its own direct stock is a valid transfer
+      // source in its own right now, checked before any warehouse pool.
+      if (branchId) {
+        const branchRow = rows.find(r => r.branch_id === branchId && r.warehouse_id == null);
+        const branchAvailable = Number(branchRow?.available || 0);
+        const branchTake = Math.min(short, branchAvailable);
+        if (branchTake > 0) {
+          const key = `branch_${branchId}`;
+          if (!groups.has(key)) {
+            groups.set(key, {
+              fromBranchId: branchId,
+              fromBranchName: branch?.branch_name || branchRow?.branch_name || '',
+              toWarehouseId: fulfillmentWarehouseId,
+              toWarehouseName: warehouse?.warehouse_name || '',
+              items: []
+            });
+          }
+          groups.get(key)!.items.push(itemFor(branchTake));
+          short -= branchTake;
+        }
+      }
+      if (short <= 0) return;
+
       // Segment is a hard boundary, not just a branch-sibling preference --
       // the company-wide fallback (when no branch sibling covers the
       // shortfall) must never reach into a different segment's warehouse
@@ -9599,8 +10200,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         if (take <= 0) continue;
         const sourceId = candidate.warehouse_id;
         if (sourceId == null) continue;
-        if (!groups.has(sourceId)) {
-          groups.set(sourceId, {
+        const key = `warehouse_${sourceId}`;
+        if (!groups.has(key)) {
+          groups.set(key, {
             fromWarehouseId: sourceId,
             fromWarehouseName: candidate.warehouse_name || `Warehouse ${sourceId}`,
             toWarehouseId: fulfillmentWarehouseId,
@@ -9608,19 +10210,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             items: []
           });
         }
-        groups.get(sourceId)!.items.push({
-          productId: product.id ?? null,
-          productName: product.product_name || productName,
-          productCode: product.product_code || null,
-          variantId: variant_id,
-          variantName: variant_name,
-          attributeId: resolvedAttr.attribute_id,
-          attributeName: resolvedAttr.attribute_name,
-          attributeValue: resolvedAttr.attribute_value,
-          uomId: uom_id,
-          uomName: uom_name,
-          qty: take
-        });
+        groups.get(key)!.items.push(itemFor(take));
         short -= take;
       }
       if (short > 0) {
@@ -9840,7 +10430,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const key = column.toLowerCase();
     if (this.config?.key === 'attributeMaster' && key === 'status') return ['Active', 'Inactive'];
     if (key.includes('item') || key.includes('product') || key.includes('sku') || key.includes('material')) {
-      return this.config?.kind === 'transaction' ? this.productNamesForTransaction(this.config?.key ?? '') : this.productOptions;
+      // productNamesScopedToLocation() itself falls straight back to
+      // productNamesForTransaction() unchanged on every screen outside the
+      // 5 stockLocationScreenKeys screens, so this is safe to call
+      // unconditionally for every transaction grid.
+      return this.config?.kind === 'transaction' ? this.productNamesScopedToLocation(this.config?.key ?? '') : this.productOptions;
     }
     if (key.includes('attribute name')) return this.attributeOptions;
     if (this.config?.key === 'variantMaster' && key.includes('attribute value')) {
@@ -12427,11 +13021,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.serialPickerMessage.set('');
   }
 
-  private resolveHeaderWarehouseId(): number | null {
-    const headerField = this.config?.key === 'deliveryChallan' ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
+  // Item 4b: resolves the header "From" location for the serial picker's
+  // 'select' mode (openSerialPicker() below) to BOTH a warehouse id and a
+  // branch id, not just a warehouse — DC/SI/Stock Transfer's header field is
+  // a merged Warehouse/Branch picker (Full Warehouse/Branch Independence), so
+  // a header resolved to a branch previously left this permanently null,
+  // scoping the fetch to "every in-stock serial company-wide" instead of
+  // just the ones at the actual source. Stock Transfer's own field is named
+  // 'fromWarehouse', same as Delivery Challan's, hence the shared branch here.
+  private resolveHeaderLocationForSerialPicker(): { warehouseId: number | null; branchId: number | null } {
+    const headerField = (this.config?.key === 'deliveryChallan' || this.config?.key === 'stockTransfer')
+      ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
       : (this.formValues()['warehouse'] || this.formValues()['warehouseId']);
-    const warehouse = this.findWarehouseBySelection(headerField);
-    return warehouse?.id ?? this.optionalNumber(headerField) ?? null;
+    return this.resolveHeaderStockLocation(headerField);
   }
 
   // A serial already picked in a DIFFERENT row of the same not-yet-saved
@@ -12539,7 +13141,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             : { productId: product.id, sourceDocType: 'purchase_invoice', sourceDocId: purchaseReturnPiId, variantId, attributeId, attributeValue })
         : this.config?.key === 'salesReturn'
           ? this.txService.getSoldSerialsForReturn({ productId: product.id, invoiceId: salesReturnInvoiceId, variantId, attributeId, attributeValue })
-          : this.txService.getAvailableSerials({ productId: product.id, variantId, attributeId, attributeValue, warehouseId: this.resolveHeaderWarehouseId() });
+          : this.txService.getAvailableSerials({ productId: product.id, variantId, attributeId, attributeValue, ...this.resolveHeaderLocationForSerialPicker() });
       const usedElsewhere = this.serialUnitsUsedInOtherRows(rowIndex);
       const previouslySaved = [...this.serialPickerDraftValues()];
       obs.pipe(takeUntilDestroyed(this.destroyRef))
@@ -12793,7 +13395,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.entryLineRows.set([this.blankLineRow()]);
       this.lineAttrValueMap.set({});
       this.lineSerialValueMap.set({});
-      this.applyDefaultBranchToCurrentTransaction(true);
+      this.applyDefaultLocationToCurrentTransaction(true);
       return;
     }
 
@@ -12803,6 +13405,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.lineAttrValueMap.set({});
       this.lineSerialValueMap.set({});
       this.lineRefItemIdMap.set({});
+      // Mirrors the isPurchaseTransactionKey() branch above -- deliveryChallan/
+      // salesInvoice/salesReturn are location-capable screens too (Phase 4),
+      // so a "New" reset within an already-loaded screen must re-apply the
+      // session default the same way the purchase side already does.
+      this.applyDefaultLocationToCurrentTransaction(true);
       return;
     }
 
@@ -12981,12 +13588,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   );
 
   // Item 13: keeps the Interbranch Sale switch/Branch field in sync with
-  // formValues() the same way applyDeliveryChallanFieldDefaults() does for
-  // DC's combined field, but as two independent hooks -- switching off
-  // must scrub any branch context so nothing can leak into the branch-aware
-  // stock filter or auto-transfer planner after Off (byte-for-byte-off
-  // guarantee), and picking a branch only ever auto-fills Warehouse when
-  // it's still empty, never overwriting a value the user already set.
+  // formValues(), as two independent hooks -- switching off must scrub any
+  // branch context so nothing can leak into the branch-aware stock filter or
+  // auto-transfer planner after Off (byte-for-byte-off guarantee). The
+  // warehouse-autofill-from-branch-pool step that used to live here is gone
+  // (Full Warehouse/Branch Independence project): Interbranch Sale's own
+  // Branch field no longer touches the invoice's own Warehouse/Branch
+  // picker at all -- the two are unrelated fields now.
   private applySalesInvoiceBranchFieldDefaults(next: Record<string, any>, key: string, value: any): void {
     if (key === 'interbranchSale') {
       if (String(value || '').toLowerCase() !== 'yes') {
@@ -13001,13 +13609,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ? (this.optionalNumber(branch.branch_id) ?? this.optionalNumber(branch.id))
       : null;
     next['branchId'] = branchId;
-    if (!String(next['warehouse'] || '').trim()) {
-      const def = this.resolveBranchDefaultWarehouse(branchId);
-      if (def) {
-        next['warehouse'] = def.warehouse_name;
-        next['warehouseId'] = def.id;
-      }
-    }
   }
 
   // "Default warehouse for a branch" has no dedicated schema flag once a
@@ -13029,7 +13630,63 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const segmentId = this.selectedSegmentId();
     const branches = this.loadedBranchObjects();
     const pool = segmentId ? branches.filter(b => Number(b.segment_id) === segmentId) : branches;
-    return pool.map(b => b.branch_name).filter((name): name is string => !!name);
+    // Item 2: this is the Interbranch Sale branch field, not one of the
+    // merged Warehouse/Branch pickers, but it shares the same
+    // never-offer-an-inactive-branch rule.
+    const activeBranches = pool.filter(b => this.normalizeKey(b.status || 'active') !== 'inactive');
+    const names = () => activeBranches.map(b => b.branch_name).filter((name): name is string => !!name);
+
+    if (!this.interbranchSaleEnabled()) return names();
+    return this.stockAwareInterbranchBranchNames(activeBranches) ?? names();
+  }
+
+  // Item 3: once Interbranch Sale is on, narrow the Branch dropdown further
+  // to branches that can actually supply stock for at least one of the
+  // invoice's current line items -- a branch with nothing to draw from can
+  // never usefully receive an auto-transfer (planInterbranchAutoTransfers()
+  // would just report it as an uncovered line later), so it shouldn't be
+  // offered at all. "At least one line" rather than "every line" is the
+  // least-surprising reading: the branch is picked once per invoice, and a
+  // user who has only priced out their first line shouldn't lose the one
+  // reasonable branch because a second, not-yet-resolved line has no stock
+  // data yet. Reuses the exact getAvailableStock cache the per-line stock
+  // hints (salesOutwardStockControlState()/warehouseStockLocationHint())
+  // already populate -- no new stock query. Returns null (defer to the
+  // plain active-branch list) rather than an empty array whenever no line
+  // has resolved stock data yet, so the dropdown never goes blank while
+  // data is still loading in.
+  private stockAwareInterbranchBranchNames(activeBranches: BranchInvItem[]): string[] | null {
+    const cache = this.availableStockCache();
+    const lineStockRows: AvailableStock[][] = [];
+    this.activeSalesLineRows().forEach((row, index) => {
+      const productName = this.lineValue(row, ['product', 'item', 'sku']);
+      const product = this.findProductBySelection(productName);
+      if (!product) return;
+      const variantText = this.lineValue(row, ['variant']);
+      const { variant_id } = this.resolveLineVariant(product, variantText);
+      const resolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attributeValue = resolvedAttr.attribute_value || null;
+
+      this.fetchAvailableStockForLine(product.id ?? null, null);
+      if (variant_id) this.fetchAvailableStockForLine(product.id ?? null, variant_id);
+      if (variant_id && attributeValue) this.fetchAvailableStockForLine(product.id ?? null, variant_id, attributeValue);
+
+      const rows = (attributeValue && variant_id ? cache[this.availableStockKey(product.id ?? null, variant_id, attributeValue)] : null)
+        || (variant_id ? cache[this.availableStockKey(product.id ?? null, variant_id)] : null)
+        || cache[this.availableStockKey(product.id ?? null, null)];
+      if (rows) lineStockRows.push(rows);
+    });
+    if (!lineStockRows.length) return null;
+
+    return activeBranches
+      .filter(branch => {
+        const branchId = this.branchResolvedId(branch);
+        if (branchId == null) return false;
+        const warehouseIds = this.branchWarehousePool(branchId).map(w => w.id);
+        return lineStockRows.some(rows => this.stockAvailableAcrossWarehouses(rows, { warehouseIds, branchId }));
+      })
+      .map(b => b.branch_name)
+      .filter((name): name is string => !!name);
   }
 
   // Item 13 follow-up: branch AND warehouse are each independently
@@ -13044,12 +13701,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.loadedWarehouseObjects().filter(w =>
       Number(w.branch_id) === branchId && (!segmentId || Number(w.segment_id) === segmentId)
     );
-  }
-
-  private resolveBranchDefaultWarehouse(branchId: number | null): WarehouseItem | null {
-    const pool = this.branchWarehousePool(branchId);
-    if (pool.length === 1) return pool[0];
-    return pool.find(w => w.is_default) || null;
   }
 
   private applySalesCustomerFieldDefaults(next: Record<string, any>, key: string, value: any): void {
@@ -13918,7 +14569,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       'salesOrder',
       'salesInvoice',
       'deliveryChallan',
-      'salesReturn'
+      'salesReturn',
+      'stockTransfer'
     ].includes(this.config?.key || '') && !!forceDocumentStatus;
     // Snapshotted so a failed/cancelled Post can put the record back to how
     // it was — otherwise isCurrentRecordPosted() (read by the [attr.inert]
@@ -14003,7 +14655,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const plan = this.planInterbranchAutoTransfers();
       if (plan.transfers.length || plan.uncoveredLines.length) {
         const transferLines = plan.transfers.flatMap(group => group.items.map(item =>
-          `Transfer ${this.formatStockLimitQty(item.qty)}${item.uomName ? ' ' + item.uomName : ''} of ${item.productName} from ${group.fromWarehouseName} to ${group.toWarehouseName}`
+          `Transfer ${this.formatStockLimitQty(item.qty)}${item.uomName ? ' ' + item.uomName : ''} of ${item.productName} from ${group.fromBranchName || group.fromWarehouseName} to ${group.toWarehouseName}`
         ));
         this.confirmAction({
           title: plan.uncoveredLines.length ? 'Stock short even across branch warehouses' : 'Auto-transfer needed to fulfil this invoice',
@@ -14020,8 +14672,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           forkJoin(plan.transfers.map(group => this.txService.saveStockTransfer({
             transfer_date: this.todayIso(),
             segment_id: this.selectedSegmentId(),
-            from_warehouse_id: group.fromWarehouseId,
-            from_warehouse_name: group.fromWarehouseName,
+            from_warehouse_id: group.fromWarehouseId ?? null,
+            from_warehouse_name: group.fromWarehouseName ?? null,
+            from_branch_id: group.fromBranchId ?? null,
+            from_branch_name: group.fromBranchName ?? null,
             to_warehouse_id: group.toWarehouseId,
             to_warehouse_name: group.toWarehouseName,
             status: 'posted',
@@ -14202,6 +14856,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               // figure until the user navigates away and back.
               this.availableStockCache.set({});
               this.availableStockFetching.clear();
+              // Workstream B: same staleness problem as availableStockCache
+              // above -- a save that actually moves stock can change which
+              // products still have available > 0 at a given location.
+              this.locationScopedProductIdsCache.set({});
+              this.locationScopedProductIdsFetching.clear();
             }
             this.clearConfigForm();
             this.loadApiRecords();
@@ -14295,6 +14954,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.goodsReceiptCurrentStatusKey() === 'posted';
   }
 
+  // Workstream 3: Stock Transfer had no Post workflow at all before this --
+  // draft-only, even though sp_save_stock_transfer/fn_post_stock_transfer
+  // (141_stock_transfer.sql) already fully support posting. Mirrors
+  // goodsReceiptIsPostedForm() exactly; unlike GRN's own
+  // goodsReceiptCurrentStatusKey() there's no dedicated status-key helper for
+  // Stock Transfer yet, so this reads formValues()['status'] directly --
+  // the same source isCurrentRecordPosted()'s own 'stockTransfer' case
+  // already reads.
+  stockTransferIsPostedForm(): boolean {
+    return String(this.formValues()['status'] || '').toLowerCase() === 'posted';
+  }
+
   purchaseReturnIsPostedForm(): boolean {
     return this.purchaseReturnCurrentStatusKey() === 'posted';
   }
@@ -14324,6 +14995,25 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.goodsReceiptIsPostedForm()) {
       this.saveMsg.set('');
       this.saveError.set('This GRN is already posted.');
+      return;
+    }
+    this.saveConfigRecord('posted');
+  }
+
+  // Workstream 3: mirrors saveGrnDraft()/postGrn() exactly.
+  saveStockTransferDraft(): void {
+    if (this.stockTransferIsPostedForm()) {
+      this.saveMsg.set('');
+      this.saveError.set('Posted Stock Transfer cannot be moved back to Draft.');
+      return;
+    }
+    this.saveConfigRecord('draft');
+  }
+
+  postStockTransfer(): void {
+    if (this.stockTransferIsPostedForm()) {
+      this.saveMsg.set('');
+      this.saveError.set('This Stock Transfer is already posted.');
       return;
     }
     this.saveConfigRecord('posted');
@@ -14880,6 +15570,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return !!record && String(record.status || 'draft').trim().toLowerCase() === 'draft';
   }
 
+  // Workstream 3: gates the records-grid Post action for Stock Transfer.
+  // grnRecordForRow() (above) doesn't handle 'stockTransfer' at all, so this
+  // goes through findRecordByRow() instead, which already does.
+  isStockTransferDraftRow(row: string[]): boolean {
+    if (this.config?.key !== 'stockTransfer') return false;
+    const record = this.findRecordByRow(row);
+    return !!record && String(record.status || 'draft').trim().toLowerCase() === 'draft';
+  }
+
   isPurchaseInvoiceDraftRow(row: string[]): boolean {
     if (this.config?.key !== 'purchaseInvoice') return false;
     const record = this.grnRecordForRow(row);
@@ -14899,6 +15598,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // longer a field on the entry form itself — Post (here) is the only
   // deliberate way to move a GRN from Draft to Posted.
   postGrnRecordByRow(row: string[]): void {
+    this.editRecordByRow(row);
+    this.saveConfigRecord('posted');
+  }
+
+  // Workstream 3: mirrors postGrnRecordByRow() -- posts an already-saved
+  // draft Stock Transfer straight from the saved-records grid.
+  postStockTransferRecordByRow(row: string[]): void {
     this.editRecordByRow(row);
     this.saveConfigRecord('posted');
   }
@@ -15280,14 +15986,24 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.lineGstIncludedMap.set(next);
   }
 
+  // Workstream 2 Step A: the exact "Variant · Attr Value" join rule, factored
+  // out of grnExpandedProductSubtitle() below so the live entry grid's
+  // InventoryLineProductPickerComponent trigger label (host.
+  // productSubtitleFromParts(), called from its own triggerSubtitle()
+  // computed) renders an identically-formatted subtitle to the saved-records
+  // drilldown -- one join rule, not two.
+  productSubtitleFromParts(variantName: string, attrPairs: Array<{ name: string; value: string }>): string {
+    const attributeParts = (attrPairs || []).map(part => `${part.name} ${part.value}`);
+    return [variantName, ...attributeParts].filter(Boolean).join(' · ');
+  }
+
   // Item 8: Variant + every captured Attribute name/value, combined into the
   // single subtitle line shown under the product name in the saved-records
   // drilldown — replaces what used to be their own separate 'variant'/'attr:*'
   // columns (see grnExpandedColumns()).
   grnExpandedProductSubtitle(item: any): string {
     const variant = this.grnExpandedValue(item, 'variant_name', 'variantName');
-    const attributeParts = this.grnExpandedAttributeParts(item).map(part => `${part.name} ${part.value}`);
-    return [variant, ...attributeParts].filter(Boolean).join(' · ');
+    return this.productSubtitleFromParts(variant, this.grnExpandedAttributeParts(item));
   }
 
   grnExpandedCell(item: any, column: GrnExpandedColumn, rowIndex: number): string {
@@ -15717,6 +16433,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         });
         this.entryLineRowsKey.set('stockTransfer');
         this.entryLineRows.set((record.items || []).map((item: any) => this.stockTransferItemToLineRow(item)));
+        // Item 4b: now that Stock Transfer has a real serial picker
+        // (openSerialPicker()/lineSerialUnitsMap) instead of a free-text
+        // cell, re-opening a saved draft needs the same restore
+        // hydrateLineSerialUnitsFromRecord() already gives GRN/PI/DC/SI/
+        // returns, or the picker would show "0 entered" on a line that
+        // actually has serials saved, and re-posting would send them back
+        // as null and wipe what was captured.
+        this.hydrateLineSerialUnitsFromRecord(record);
         break;
       case 'stockAdjustment': {
         const adjStatusRaw = String(record.status || 'pending_approval');
@@ -15727,8 +16451,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           segment: record.segment_name || '',
           adjustmentNo: record.adjustment_number || record.adjustmentNumber || '',
           adjustmentDate: record.adjustment_date || record.adjustmentDate || '',
-          warehouse: record.warehouse_name || record.warehouseName || '',
+          // Merged Warehouse/Branch picker, same field as PI/PR/Opening Stock
+          // Entry — a branch-only posted adjustment has a null warehouse_name,
+          // so this must fall back to branch_name or the field would render
+          // empty when reopened.
+          warehouse: record.warehouse_name || record.warehouseName
+            || record.branch_name || record.branchName
+            || this.branchNameFromRecord(record) || '',
           warehouseId: record.warehouse_id ?? record.warehouseId ?? null,
+          branchId: record.branch_id ?? record.branchId ?? this.branchIdFromRecord(record),
           adjustmentType: record.adjustment_type || record.adjustmentType || 'Increase',
           reason: record.reason || '',
           remarks: record.remarks || '',
@@ -15745,9 +16476,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           segment: record.segment_name || '',
           entryNo: record.entry_number || record.entryNumber || '',
           entryDate: record.entry_date || record.entryDate || '',
-          branch: record.branch_name || record.branchName || '',
-          warehouse: record.warehouse_name || record.warehouseName || '',
+          // Merged Warehouse/Branch picker, same field as PI/GRN — a
+          // branch-only posted document has a null warehouse_name, so this
+          // must fall back to branch_name or the field would render empty
+          // when reopened.
+          warehouse: record.warehouse_name || record.warehouseName
+            || record.branch_name || record.branchName
+            || this.branchNameFromRecord(record) || '',
           warehouseId: record.warehouse_id ?? record.warehouseId ?? null,
+          branchId: record.branch_id ?? record.branchId ?? null,
           remarks: record.remarks || '',
           status: cap(record.status || 'draft')
         });
@@ -16996,8 +17733,23 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // which pull in vendor lookups and PO/GRN reference logic that don't apply
   // here (no vendor, no purchase-doc chain -- just a From/To warehouse move).
   private buildStockTransferPayload(v: Record<string, any>, selectedSegmentId: number | null, selectedSegmentName: string | null): Record<string, any> {
-    const fromWarehouse = this.findWarehouseBySelection(v['fromWarehouse']);
-    const toWarehouse = this.findWarehouseBySelection(v['toWarehouse']);
+    // Workstream E: both fields are merged Warehouse/Branch pickers
+    // (runtimeOptions()). Warehouse and Branch are fully independent location
+    // concepts now -- a branch pick is never resolved to "the one warehouse
+    // it's linked to"; it posts/transfers stock directly against the branch
+    // itself (fn_post_stock_transfer, migration 160).
+    const fromPicked = this.resolveMergedLocation(v['fromWarehouse']);
+    const fromBranch = !fromPicked.warehouse ? fromPicked.branch : null;
+    const fromWarehouse = fromPicked.warehouse;
+    const fromWarehouseId = fromWarehouse?.id ?? (fromBranch ? null : this.optionalNumber(v['fromWarehouseId']));
+    const fromBranchId = (fromBranch && !fromWarehouse) ? this.branchResolvedId(fromBranch) : null;
+
+    const toPicked = this.resolveMergedLocation(v['toWarehouse']);
+    const toBranch = !toPicked.warehouse ? toPicked.branch : null;
+    const toWarehouse = toPicked.warehouse;
+    const toWarehouseId = toWarehouse?.id ?? (toBranch ? null : this.optionalNumber(v['toWarehouseId']));
+    const toBranchId = (toBranch && !toWarehouse) ? this.branchResolvedId(toBranch) : null;
+
     const status = this.purchaseStatus(v['status'], 'draft');
     const docNo = String(v['transferNo'] || this.transactionNumberValue({ key: 'transferNo', label: 'Transfer No' })).trim() || null;
     const docDate = v['transferDate'] || this.todayIso();
@@ -17007,10 +17759,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       segment_name: selectedSegmentName,
       transfer_number: docNo,
       transfer_date: docDate,
-      from_warehouse_id: fromWarehouse?.id ?? this.optionalNumber(v['fromWarehouseId']),
-      from_warehouse_name: fromWarehouse?.warehouse_name || v['fromWarehouse'] || null,
-      to_warehouse_id: toWarehouse?.id ?? this.optionalNumber(v['toWarehouseId']),
-      to_warehouse_name: toWarehouse?.warehouse_name || v['toWarehouse'] || null,
+      from_warehouse_id: fromWarehouseId,
+      from_warehouse_name: fromWarehouse?.warehouse_name || (fromBranchId ? null : (v['fromWarehouse'] || null)),
+      from_branch_id: fromBranchId,
+      from_branch_name: fromBranchId ? (fromBranch?.branch_name || v['fromWarehouse'] || null) : null,
+      to_warehouse_id: toWarehouseId,
+      to_warehouse_name: toWarehouse?.warehouse_name || (toBranchId ? null : (v['toWarehouse'] || null)),
+      to_branch_id: toBranchId,
+      to_branch_name: toBranchId ? (toBranch?.branch_name || v['toWarehouse'] || null) : null,
       remarks: v['remarks'] || null,
       status,
       post: status === 'posted',
@@ -17027,12 +17783,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
       const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
       const resolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
-      // Stock Transfer's Serial No column is a plain text cell (no serial
-      // picker wired in yet, unlike DC/SI/GRN) -- accepts a comma/space
-      // separated list, split here into the array the backend requires when
-      // the product is serial_applicable.
-      const serialText = this.lineValue(row, ['serial']).trim();
-      const serialNumbers = serialText ? serialText.split(/[,\s]+/).map(s => s.trim()).filter(Boolean) : null;
+      // Item 4b: Stock Transfer's Serial No column now uses the same real
+      // picker (openSerialPicker()/lineSerialUnitsMap) as DC/SI/GRN, instead
+      // of parsing a comma/space-separated free-text cell -- matches every
+      // other screen's stockTransferItems()-equivalent builder below.
       return {
         sno: index + 1,
         product_id: product?.id ?? null,
@@ -17047,7 +17801,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         uom_name,
         qty,
         batch_no: this.lineValue(row, ['batch']) || null,
-        serial_numbers: serialNumbers && serialNumbers.length ? serialNumbers : null,
+        serial_numbers: this.lineSerialUnitsMap()[index] || null,
         remarks: null
       };
     });
@@ -17061,7 +17815,23 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // needed here (unlike every other transaction screen, an adjustment posts
   // on pending_approval -> approved, not on draft -> posted).
   private buildStockAdjustmentPayload(v: Record<string, any>, selectedSegmentId: number | null, selectedSegmentName: string | null): Record<string, any> {
-    const warehouse = this.findWarehouseBySelection(v['warehouse']);
+    // Same merged Warehouse/Branch picker as Purchase Return/Sales Invoice/
+    // Opening Stock Entry — a branch pick moves stock directly against the
+    // branch itself (fn_post_stock_adjustment, migration 172), never
+    // resolved to "the one warehouse it's linked to". See the GRN branch
+    // comment in buildPurchaseTransactionPayload for the general pattern.
+    const picked = this.resolveMergedLocation(v['warehouse']);
+    const warehouse = picked.warehouse;
+    const branch = warehouse ? null : picked.branch;
+    const warehouseId = warehouse?.id ?? (branch ? null : this.optionalNumber(v['warehouseId']));
+    const branchId = branch ? this.branchResolvedId(branch) : null;
+    // The raw unresolved location string must not fall back into
+    // warehouse_name once a branch is resolved, or a stale name would
+    // silently pass the "a branch was picked" check instead of being
+    // refused as "not a Warehouse in this company" (singleLocationValidationMessage).
+    const warehouseName = warehouse?.warehouse_name || (branch ? null : (v['warehouse'] || null));
+    const branchName = branch?.branch_name || (warehouse ? null : null);
+
     const docNo = String(v['adjustmentNo'] || this.transactionNumberValue({ key: 'adjustmentNo', label: 'Adjustment No' })).trim() || null;
     const docDate = v['adjustmentDate'] || this.todayIso();
     return {
@@ -17070,8 +17840,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       segment_name: selectedSegmentName,
       adjustment_number: docNo,
       adjustment_date: docDate,
-      warehouse_id: warehouse?.id ?? this.optionalNumber(v['warehouseId']),
-      warehouse_name: warehouse?.warehouse_name || v['warehouse'] || null,
+      warehouse_id: warehouseId,
+      warehouse_name: warehouseName,
+      branch_id: branchId,
+      branch_name: branchName,
       adjustment_type: (v['adjustmentType'] === 'Decrease') ? 'Decrease' : 'Increase',
       reason: v['reason'] || null,
       remarks: v['remarks'] || null,
@@ -17117,9 +17889,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // Stock Adjustment's Increase, this carries its own Rate per line (like a
   // Purchase Invoice), so the backend creates a cost layer at THAT rate
   // rather than the product's current cost_price.
+  //
+  // Full Warehouse/Branch Independence follow-up: this used to be two
+  // separate fields (v['branch'] and v['warehouse']) with no cross-check
+  // between them, missed by the original merged-picker migration. Now one
+  // merged Warehouse/Branch picker on v['warehouse'], resolved the same way
+  // as Purchase Invoice/Sales Invoice -- a branch pick posts directly
+  // against the branch itself, never resolved to "the one warehouse it's
+  // linked to".
   private buildOpeningStockEntryPayload(v: Record<string, any>, selectedSegmentId: number | null, selectedSegmentName: string | null): Record<string, any> {
-    const warehouse = this.findWarehouseBySelection(v['warehouse']);
-    const branch = this.findBranchBySelection(v['branch']);
+    const location = v['warehouse'];
+    const picked = this.resolveMergedLocation(location);
+    const warehouse = picked.warehouse;
+    const branch = warehouse ? null : picked.branch;
+    const warehouseId = warehouse?.id ?? (branch ? null : this.optionalNumber(v['warehouseId']));
+    const branchId = branch ? this.branchResolvedId(branch) : null;
     const status = this.purchaseStatus(v['status'], 'draft');
     const docNo = String(v['entryNo'] || this.transactionNumberValue({ key: 'entryNo', label: 'Entry No' })).trim() || null;
     const docDate = v['entryDate'] || this.todayIso();
@@ -17129,10 +17913,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       segment_name: selectedSegmentName,
       entry_number: docNo,
       entry_date: docDate,
-      branch_id: this.optionalNumber(branch?.branch_id) ?? this.optionalNumber(branch?.id) ?? this.optionalNumber(v['branchId']),
-      branch_name: branch?.branch_name || v['branch'] || null,
-      warehouse_id: warehouse?.id ?? this.optionalNumber(v['warehouseId']),
-      warehouse_name: warehouse?.warehouse_name || v['warehouse'] || null,
+      branch_id: branchId,
+      // See the analogous PI/SI comment elsewhere: the raw unresolved
+      // location string must not fall back into branch_name.
+      branch_name: branch?.branch_name || null,
+      warehouse_id: warehouseId,
+      warehouse_name: warehouse?.warehouse_name || (branch ? null : (location || null)),
       remarks: v['remarks'] || null,
       status,
       post: status === 'posted',
@@ -17304,16 +18090,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.config?.key === 'goodsReceipt') {
       const grnStatus = status(v['status'], 'draft');
       // GRN shows a single merged Branch/Warehouse picker — resolve the picked
-      // name against Warehouse Master first, then Branch Master. A branch
-      // selection resolves onward to that branch's single linked warehouse
-      // (see warehousesForBranch()) so stock never posts with a NULL
-      // warehouse_id; zero or several linked warehouses is refused by
-      // mergedLocationValidationMessage() rather than guessed at.
+      // name against Warehouse Master first, then Branch Master. Warehouse and
+      // Branch are fully independent location concepts: a branch pick posts
+      // stock directly against the branch itself (fn_post_grn_stock, migration
+      // 163), never resolved to "the one warehouse it's linked to".
       const grnLocation = v['receivingLocation'];
       const grnPicked = this.resolveMergedLocation(grnLocation);
       const grnPickedWarehouse = grnPicked.warehouse || warehouse;
       const grnBranch = !grnPickedWarehouse ? (grnPicked.branch || branch) : null;
-      const grnWarehouse = grnPickedWarehouse || this.singleWarehouseForBranch(grnBranch);
+      const grnWarehouse = grnPickedWarehouse;
       const grnWarehouseId = grnWarehouse?.id ?? (grnBranch ? null : warehouseId);
       const grnBranchId = grnBranch
         ? this.branchResolvedId(grnBranch)
@@ -17343,14 +18128,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'purchaseInvoice') {
-      // Same merged Warehouse/Branch picker as GRN — a branch selection
-      // resolves onward to its single linked warehouse so stock never posts
-      // with a NULL warehouse_id. See the GRN branch above.
+      // Same merged Warehouse/Branch picker as GRN — a branch pick posts
+      // stock directly against the branch itself (fn_post_pi_stock, migration
+      // 159), never resolved to "the one warehouse it's linked to". See the
+      // GRN branch above.
       const piLocation = v['receivingLocation'] || v['warehouse'] || v['branch'];
       const piPicked = this.resolveMergedLocation(piLocation);
       const piPickedWarehouse = piPicked.warehouse || warehouse;
       const piBranch = !piPickedWarehouse ? (piPicked.branch || branch) : null;
-      const piWarehouse = piPickedWarehouse || this.singleWarehouseForBranch(piBranch);
+      const piWarehouse = piPickedWarehouse;
       const piWarehouseId = piWarehouse?.id ?? (piBranch ? null : warehouseId);
       const piBranchId = piBranch
         ? this.branchResolvedId(piBranch)
@@ -17365,7 +18151,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         grn_id: this.optionalNumber(v['grnId']),
         grn_number: v['grnReference'] || null,
         branch_id: piBranchId,
-        branch_name: piBranch?.branch_name || (piPickedWarehouse ? null : (v['branch'] || piLocation || null)),
+        // NOTE: the raw unresolved location string deliberately does NOT
+        // fall back into branch_name here (only into warehouse_name below) --
+        // duplicating it into both would make mergedLocationValidationMessage()'s
+        // "a branch was picked" check pass for a stale name that matches
+        // neither a warehouse nor a branch, masking the "not a Warehouse in
+        // this company" refusal that should fire instead.
+        branch_name: piBranch?.branch_name || (piPickedWarehouse ? null : (v['branch'] || null)),
         warehouse_id: piWarehouseId,
         warehouse_name: piWarehouse?.warehouse_name || (piBranch ? null : (v['warehouse'] || piLocation || null)),
         pi_number: docNo('piNo', 'PI Number'),
@@ -17381,15 +18173,25 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'purchaseReturn') {
+      // Same merged Warehouse/Branch picker as GRN/PI/DC — a branch pick
+      // posts stock directly against the branch itself
+      // (fn_post_purchase_return_stock, migration 165), never resolved to
+      // "the one warehouse it's linked to". See the GRN branch above.
       const prLocation = v['warehouse'] || v['branch'];
-      const prWarehouse = this.findWarehouseBySelection(prLocation) || warehouse;
-      const prBranch = prWarehouse ? null : (this.findBranchBySelection(prLocation) || branch);
+      const prPicked = this.resolveMergedLocation(prLocation);
+      const prPickedWarehouse = prPicked.warehouse || warehouse;
+      const prBranch = !prPickedWarehouse ? (prPicked.branch || branch) : null;
+      const prWarehouse = prPickedWarehouse;
       const prWarehouseId = prWarehouse?.id ?? (prBranch ? null : warehouseId);
       const prBranchId = prBranch
-        ? (this.optionalNumber(prBranch.branch_id) ?? this.optionalNumber(prBranch.id))
+        ? this.branchResolvedId(prBranch)
         : (prWarehouse ? null : branchId);
-      const prBranchName = prBranch?.branch_name || (prWarehouse ? null : (v['branch'] || prLocation || null));
-      const prWarehouseName = prWarehouse?.warehouse_name || (prBranch ? (prLocation || prBranch?.branch_name || null) : (v['warehouse'] || prLocation || null));
+      // See the analogous PI comment above: the raw unresolved location
+      // string must not fall back into branch_name, or a stale name would
+      // silently pass the "a branch was picked" check instead of being
+      // refused as "not a Warehouse in this company".
+      const prBranchName = prBranch?.branch_name || (prWarehouse ? null : (v['branch'] || null));
+      const prWarehouseName = prWarehouse?.warehouse_name || (prBranch ? null : (v['warehouse'] || prLocation || null));
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -17496,17 +18298,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'salesInvoice') {
-      // fn_post_sales_invoice_stock draws stock at the HEADER warehouse_id
-      // (matching COALESCE(warehouse_id, 0)), so a NULL here silently draws on
-      // the shared "Unassigned" pool rather than a real location — the line
-      // grid's own Warehouse column is display-only for posting. When the
-      // Warehouse field itself is empty, fall back to the interbranch Branch's
-      // single linked warehouse; validatePayload() refuses whatever is still
-      // unresolved rather than letting a NULL through.
-      const pickedWarehouse = this.findWarehouseBySelection(v['warehouse']);
-      const siBranch = pickedWarehouse ? null : this.findBranchBySelection(v['branch']);
-      const warehouse = pickedWarehouse || this.singleWarehouseForBranch(siBranch);
-      const warehouseId = warehouse?.id ?? this.optionalNumber(v['warehouseId']);
+      // Same merged Warehouse/Branch picker as Purchase Invoice — a branch
+      // pick draws stock directly against the branch itself
+      // (fn_post_sales_invoice_stock, migration 166), never resolved to "the
+      // one warehouse it's linked to". Sales Invoice's separate Interbranch
+      // Sale Branch field (v['branch']) is an unrelated concept — see
+      // planInterbranchAutoTransfers() — and no longer feeds this
+      // resolution at all.
+      const siLocation = v['warehouse'];
+      const siPicked = this.resolveMergedLocation(siLocation);
+      const siWarehouse = siPicked.warehouse;
+      const siBranch = siWarehouse ? null : siPicked.branch;
+      const siWarehouseId = siWarehouse?.id ?? (siBranch ? null : this.optionalNumber(v['warehouseId']));
+      const siBranchId = siBranch ? this.branchResolvedId(siBranch) : null;
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -17523,8 +18327,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         channel_partner_id: channelPartnerId,
         channel_partner_name: channelPartnerName,
         place_of_supply: v['placeOfSupply'] || null,
-        warehouse_id: warehouseId,
-        warehouse_name: warehouse?.warehouse_name || v['warehouse'] || null,
+        branch_id: siBranchId,
+        // See the analogous PI comment above: the raw unresolved location
+        // string must not fall back into branch_name (and, unlike PI/DC/PR,
+        // SI has no separate legacy 'branch' field to fall back to here at
+        // all -- that key names the unrelated Interbranch Sale field).
+        branch_name: siBranch?.branch_name || null,
+        warehouse_id: siWarehouseId,
+        warehouse_name: siWarehouse?.warehouse_name || (siBranch ? null : (siLocation || null)),
         transport_mode: v['transportMode'] || null,
         vehicle_no: v['vehicleNo'] || null,
         payment_terms: v['paymentTerms'] || null,
@@ -17578,14 +18388,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'deliveryChallan') {
-      // Same merged Warehouse/Branch picker as GRN — a branch selection
-      // resolves onward to its single linked warehouse so a dispatch never
-      // posts with a NULL from_warehouse_id. See the GRN branch above.
+      // Same merged Warehouse/Branch picker as GRN — a branch pick dispatches
+      // stock directly against the branch itself
+      // (fn_post_delivery_challan_dispatch, migration 164), never resolved to
+      // "the one warehouse it's linked to". See the GRN branch above.
       const dcLocation = v['fromWarehouse'] || v['warehouse'] || v['branch'];
       const dcPicked = this.resolveMergedLocation(dcLocation);
       const pickedFromWarehouse = dcPicked.warehouse;
       const fromBranch = pickedFromWarehouse ? null : dcPicked.branch;
-      const fromWarehouse = pickedFromWarehouse || this.singleWarehouseForBranch(fromBranch);
+      const fromWarehouse = pickedFromWarehouse;
       const fromWarehouseId = fromWarehouse?.id ?? (fromBranch ? null : this.optionalNumber(v['fromWarehouseId']));
       const fromBranchId = fromBranch
         ? this.branchResolvedId(fromBranch)
@@ -17606,7 +18417,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         channel_partner_id: channelPartnerId,
         channel_partner_name: channelPartnerName,
         branch_id: fromBranchId,
-        branch_name: fromBranch?.branch_name || (pickedFromWarehouse ? null : (v['branch'] || dcLocation || null)),
+        // See the analogous PI comment above: the raw unresolved location
+        // string must not fall back into branch_name here.
+        branch_name: fromBranch?.branch_name || (pickedFromWarehouse ? null : (v['branch'] || null)),
         from_warehouse_id: fromWarehouseId,
         from_warehouse_name: fromWarehouse?.warehouse_name || (fromBranch ? null : (dcLocation || null)),
         vehicle: v['vehicle'] || null,
@@ -17622,14 +18435,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.config?.key === 'salesReturn') {
       // Same NULL-warehouse hazard as Sales Invoice above: a posted return
       // puts stock back at this warehouse, so an unresolved selection would
-      // credit the shared "Unassigned" pool instead. A branch name (inherited
-      // from the referenced invoice, say) resolves through its single linked
-      // warehouse; anything still unresolved is refused by validatePayload().
+      // credit the shared "Unassigned" pool instead. Sales Return has no
+      // branch-aware posting path (out of scope for the Warehouse/Branch
+      // independence project — fn_post_sales_return_stock is untouched), so
+      // a branch pick here simply stays unresolved to a warehouse, same as
+      // it already did whenever the branch had zero or several linked
+      // warehouses; anything still unresolved is refused by validatePayload().
       const pickedRetWarehouse = this.findWarehouseBySelection(v['returnToWarehouse'] || v['warehouse']);
-      const retBranch = pickedRetWarehouse
-        ? null
-        : this.findBranchBySelection(v['returnToWarehouse'] || v['branch']);
-      const retWarehouse = pickedRetWarehouse || this.singleWarehouseForBranch(retBranch);
+      const retWarehouse = pickedRetWarehouse;
       const retWarehouseId = retWarehouse?.id ?? this.optionalNumber(v['returnToWarehouseId']);
       return {
         id: this.editingId(),
@@ -17743,7 +18556,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         base['batch_no'] = this.lineValue(row, ['batch']) || null;
         base['serial_no'] = this.lineValue(row, ['serial']) || null;
         base['expiry_date'] = this.lineValue(row, ['expiry']) || null;
-        base['warehouse_name'] = this.lineValue(row, ['warehouse']) || this.formValues()['warehouse'] || null;
+        // Workstream D: the grid's own per-line Warehouse column is gone
+        // (inventory-screen.model.ts's salesInvoiceConfig.lineColumns) -- it
+        // was forced read-only and always carried the same value as the
+        // header field anyway, so this reads straight from the header now.
+        base['warehouse_name'] = this.formValues()['warehouse'] || null;
         const ref = refMap[index];
         base['so_item_id'] = ref?.soItemId ?? null;
         base['dc_item_id'] = ref?.dcItemId ?? null;
@@ -17896,24 +18713,34 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   // Item 14: when Interbranch Sale is on and a Branch is picked, "in stock"
   // widens from "available at the single resolved warehouse" to "available
-  // at any warehouse tagged with this branch" -- returns null in every
-  // other case (switch off, no branch picked, DC), so callers only branch
-  // their evaluation when this is genuinely non-null; the single-warehouse
-  // id from salesOrderAttributeStockWarehouseId() stays the "is a warehouse
-  // resolved at all" gate either way.
-  private interbranchStockWarehouseIds(): number[] | null {
+  // anywhere that branch counts as a source" -- its own direct stock
+  // (branch_id set, warehouse_id NULL) FIRST, since a branch is a valid
+  // stock location in its own right now (Full Warehouse/Branch
+  // Independence), plus its sibling warehouse pool as before. Returns null
+  // in every other case (switch off, no branch picked, DC), so callers only
+  // branch their evaluation when this is genuinely non-null; the
+  // single-warehouse id from salesOrderAttributeStockWarehouseId() stays the
+  // "is a warehouse resolved at all" gate either way.
+  private interbranchStockWarehouseIds(): { warehouseIds: number[]; branchId: number | null } | null {
     if (!this.interbranchSaleEnabled()) return null;
     const branchId = this.optionalNumber(this.formValues()['branchId']);
     if (!branchId) return null;
-    const ids = this.branchWarehousePool(branchId).map(w => w.id);
-    return ids.length ? ids : null;
+    const warehouseIds = this.branchWarehousePool(branchId).map(w => w.id);
+    return { warehouseIds, branchId };
   }
 
-  // Presence-based: any one branch warehouse with available > 0 counts as
-  // "in stock" for a boolean dropdown-filter decision -- no numeric total
-  // across warehouses is computed or displayed anywhere.
-  private stockAvailableAcrossWarehouses(rows: AvailableStock[], warehouseIds: number[]): boolean {
-    return rows.some(row => warehouseIds.includes(row.warehouse_id ?? -1) && Number(row.available || 0) > 0);
+  // Presence-based: any one branch warehouse, or the branch's own direct
+  // stock, with available > 0 counts as "in stock" for a boolean
+  // dropdown-filter decision -- no numeric total across locations is
+  // computed or displayed anywhere.
+  private stockAvailableAcrossWarehouses(rows: AvailableStock[], scope: { warehouseIds: number[]; branchId: number | null }): boolean {
+    return rows.some(row =>
+      Number(row.available || 0) > 0
+      && (
+        (scope.branchId != null && row.branch_id === scope.branchId)
+        || scope.warehouseIds.includes(row.warehouse_id ?? -1)
+      )
+    );
   }
 
   // Narrows an attribute's selectable values down to those with stock > 0 in
@@ -17923,7 +18750,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // dropdown doesn't flash empty while stock data is still loading in.
   private filterAttributeOptionsByWarehouseStock(productId: number, variantId: number | null, options: string[], warehouseId: number): string[] {
     const cache = this.availableStockCache();
-    const branchWarehouseIds = this.interbranchStockWarehouseIds();
+    const interbranchScope = this.interbranchStockWarehouseIds();
     return options.filter(value => {
       const key = this.availableStockKey(productId, variantId, value);
       const rows = cache[key];
@@ -17931,7 +18758,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.fetchAvailableStockForLine(productId, variantId, value);
         return true;
       }
-      if (branchWarehouseIds) return this.stockAvailableAcrossWarehouses(rows, branchWarehouseIds);
+      if (interbranchScope) return this.stockAvailableAcrossWarehouses(rows, interbranchScope);
       const here = this.stockRowForWarehouse(rows, warehouseId);
       return Number(here?.available || 0) > 0;
     });
@@ -17949,7 +18776,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!warehouseId || !product?.id) return options.map(option => option.label);
 
     const cache = this.availableStockCache();
-    const branchWarehouseIds = this.interbranchStockWarehouseIds();
+    const interbranchScope = this.interbranchStockWarehouseIds();
     const inStock = options.filter(option => {
       const key = this.availableStockKey(product.id, option.id);
       const rows = cache[key];
@@ -17957,7 +18784,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.fetchAvailableStockForLine(product.id ?? null, option.id);
         return true;
       }
-      if (branchWarehouseIds) return this.stockAvailableAcrossWarehouses(rows, branchWarehouseIds);
+      if (interbranchScope) return this.stockAvailableAcrossWarehouses(rows, interbranchScope);
       return Number(this.stockRowForWarehouse(rows, warehouseId)?.available || 0) > 0;
     });
 
@@ -18502,6 +19329,37 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // silently posts stock into the shared "Unassigned" pool.
     const mergedLocationMessage = this.mergedLocationValidationMessage(payload);
     if (mergedLocationMessage) return mergedLocationMessage;
+
+    // Workstream E: Stock Transfer isn't in stockLocationScreenKeys (it has
+    // two independent location fields, not the one mergedLocationValidationMessage()
+    // is built around), so it gets its own two-sided call here instead.
+    if (this.config?.key === 'stockTransfer') {
+      const stockTransferLocationMessage = this.stockTransferLocationValidationMessage(payload);
+      if (stockTransferLocationMessage) return stockTransferLocationMessage;
+    }
+
+    // Stock Adjustment posts on pending_approval -> approved, not
+    // draft -> posted, so mergedLocationValidationMessage()'s own
+    // isPosted check (literal "posted") never gates its "nothing selected"
+    // case — this dedicated call does, keyed off this screen's real
+    // posting transition.
+    if (this.config?.key === 'stockAdjustment') {
+      const stockAdjustmentLocationMessage = this.stockAdjustmentLocationValidationMessage(payload);
+      if (stockAdjustmentLocationMessage) return stockAdjustmentLocationMessage;
+    }
+
+    // Workstream 3: surfaces the From = To Warehouse mistake inline, before
+    // any round-trip, instead of only failing once fn_post_stock_transfer's
+    // own server-side exception fires at Post time (141_stock_transfer.sql).
+    // Applied to both Draft and Post saves -- it's a data-entry mistake
+    // regardless of status, so there's no reason to let a draft carry it.
+    if (this.config?.key === 'stockTransfer') {
+      const fromWarehouseId = this.optionalNumber(payload['from_warehouse_id']);
+      const toWarehouseId = this.optionalNumber(payload['to_warehouse_id']);
+      if (fromWarehouseId && toWarehouseId && fromWarehouseId === toWarehouseId) {
+        return 'From Warehouse and To Warehouse cannot be the same.';
+      }
+    }
 
     if (String(payload['status'] || '').toLowerCase() === 'posted') {
       const serialMessage = this.serialCoverageValidationMessage();

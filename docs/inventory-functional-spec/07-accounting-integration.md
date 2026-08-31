@@ -1,0 +1,37 @@
+# Accounting Integration — How Inventory Reaches the Accounts Schema
+
+This is the one part of the Inventory module that touches another module's data directly, so it gets its own document. It's also the area with the sharpest gap between "looks integrated" and "actually correct," which matters a lot for planning future work here.
+
+## 1. The mechanism (shared by every posting)
+
+Every accounting posting from an Inventory transaction writes one row per debit/credit leg into `accounts.tbl_trans_total_transactions` (columns include `transaction_no, transaction_date, account_id, accountname, parent_id, parentaccountname, accounttype, contact_id, contactname, particulars, narration, debitamount, creditamount, company_code, branch_code` — debit and credit are separate amount columns on the same row shape, not a signed single amount). `account_id` is a foreign key into `accounts.tbl_mst_account` (the chart of accounts: `account_id, account_name, parent_id, account_type, chracc_type, account_balance, status, company_code, branch_code`). Inserting a transaction row fires `accounts.trg_tbl_total_transaction`, which automatically rolls `tbl_mst_account.account_balance` for that account. Both tables pre-date the Inventory-side migrations that write to them — they belong to the Accounts module and were already populated before Inventory ever posted to them.
+
+The one existing "create an account on demand" pattern is `accounts.fn_ensure_party_subledger()`: the first time a given vendor or customer is used, it creates a new row under a fixed parent (Sundry Creditors / Sundry Debtors) named after that party, allocating `account_id = MAX(account_id) + 1`. This is the precedent the new Stock Transfer posting (section 3) follows for per-location sub-ledgers.
+
+## 2. Purchase Invoice / Sales Invoice — real, but not branch-aware
+
+Migration `091_accounts_invoice_posting.sql` (refined by `135_gst_interstate_posting.sql`) wired Purchase Invoice and Sales Invoice to post real journal entries the moment they're saved with `status = 'posted'`, via `accounts.sp_post_purchase_invoice` / `accounts.sp_post_sales_invoice`, called from C# (`InventoryTransactionsDataService.cs`/equivalent) immediately after the inventory-side save succeeds. A Purchase Invoice typically posts four legs: debit the relevant purchase/expense account(s), debit GST input (CGST+SGST or IGST, decided by `fn_is_interstate_transaction`), credit the vendor's sub-ledger account. Sales Invoice mirrors this on the revenue side.
+
+**The gap**: every one of these procedures hardcodes `v_company_code := 'COMP1'; v_branch_code := 'BNCH1'` — it does not read the actual transaction's real `company_id`/`branch_id`. Migration 135 does resolve the real `branch_id`/`warehouse_id` for GST *classification* purposes (via `fn_branch_gstin_state`, to decide interstate vs intrastate tax split correctly), but the ledger rows themselves always land under the same fake single company/branch identity regardless. In practical terms: **this system has never had genuinely separate per-branch accounting books**, despite `branch_code` existing as a column on both the ledger and chart-of-accounts tables, and despite the rest of the Inventory module (stock, costing, session context) having gone fully branch/warehouse-independent. This was confirmed, flagged, and deliberately left untouched while building the Stock Transfer integration below — fixing it is a real, separate piece of future work, not something to assume is already solved.
+
+## 3. Stock Transfer — the first genuinely branch/warehouse-aware posting (migration 174, 2026-08-28)
+
+Stock Transfer previously posted nothing to Accounts at all — pure inventory movement. As of migration `174_stock_transfer_accounting_posting.sql`, posting a Stock Transfer (only at `status = 'posted'`, never on draft) creates a correct four-leg journal entry that genuinely separates each side's books:
+
+- **At the sending location's books** (`branch_id` or `warehouse_id` set to whichever the source resolved to): Debit **"Inter Branch - \<destination location name>"**, Credit **"Stock Transfer Out"**.
+- **At the receiving location's books**: Debit **"Stock Transfer In"**, Credit **"Inter Branch - \<source location name>"**.
+- The amount posted is the real cost value the stock valuation engine already computed for that transfer (read from `inventory.inv_stock_cost_layers` where `source_doc_type = 'stock_transfer'`) — never recomputed independently, so it can't drift from the inventory-side value.
+
+**New schema, additive only**: `accounts.tbl_trans_total_transactions` gained two new nullable columns, `location_branch_id` (FK `global.branches`) and `location_warehouse_id` (FK `inventory.inv_warehouses`) — deliberately *not* reusing the table's existing `branch_id` column, because that column turned out to be a legacy holdover FK'd to an unrelated chit-fund-era config table (`global.tbl_mst_branch_configuration`), not Inventory's real `global.branches`. Anyone touching this table in future work should check what an existing `branch_id`/`branch_code`-named column actually points to before assuming it means what it sounds like.
+
+**New chart-of-accounts entries**: `Stock Transfer Out` and `Stock Transfer In` are single shared heads (their own rolled-up balance is a company-wide P&L-style total across every location; branch/warehouse-level detail lives in the transaction rows, not the account balance). `Inter Branch` is a parent/group head with no direct postings — the real counterparty-tracking happens in per-location child sub-ledgers (`"Inter Branch - <name>"`), created on demand by the new `accounts.fn_ensure_location_subledger(location_type, location_id, location_name)` function, one per distinct branch or warehouse the first time it's a transfer counterparty. This preserves a correct, non-netted running balance per counterparty — verified live: five real test transfers left five distinct sub-ledger balances (e.g. Hyderabad -8000, Secunderabad +2000), never merged into one number.
+
+**Generalized for full location independence**: because Branch and Warehouse are peer, independent location types, this posting works identically for branch→branch, warehouse→warehouse, and mixed branch↔warehouse transfers — verified live in all three combinations.
+
+## 4. Everything else — no accounting impact today
+
+GRN, Delivery Challan, Purchase Return, Sales Return, Debit Note, Credit Note, Vendor Payment, Customer Receipt, Stock Adjustment, and every Manufacturing screen do not currently post to `accounts.tbl_trans_total_transactions` at all (confirm the current state per-screen in the relevant domain document — this is the state as of 2026-08-28; a future migration may extend accounting integration further). Vendor Payment/Customer Receipt already have some standalone tax logic (TDS auto-apply, TCS threshold — see the Payment Voucher work referenced in project history) but that's separate from the GL-posting mechanism described here.
+
+## 5. What this means for planning the next migration
+
+If the next piece of work is "make GRN/PI/DC/etc. accounting-aware of real branches," the template to follow is section 3 (Stock Transfer), not section 2 (Purchase Invoice) — section 2's hardcoding is the bug, not the pattern. Any new posting that needs "whose books" semantics should use the new `location_branch_id`/`location_warehouse_id` columns (or add the equivalent), not the legacy `branch_id`/`branch_code` columns already on the table.

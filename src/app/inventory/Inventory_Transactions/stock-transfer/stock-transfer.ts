@@ -7,6 +7,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
 import { stockTransferConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryQuickAddModalComponent } from '../../Inventory_Shared/inventory-quick-add-modal/inventory-quick-add-modal.component';
+import { InventorySerialPickerModalComponent } from '../../Inventory_Shared/inventory-serial-picker-modal/inventory-serial-picker-modal.component';
 
 import { InventoryTransportDetailsComponent } from '../../Inventory_Shared/inventory-transport-details/inventory-transport-details.component';
 import { InventoryLineProductPickerComponent } from '../../Inventory_Shared/inventory-line-product-picker/inventory-line-product-picker.component';
@@ -14,7 +15,7 @@ import { InventoryLineProductPickerComponent } from '../../Inventory_Shared/inve
 @Component({
   selector: 'app-inventory-stock-transfer',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventoryTransportDetailsComponent, InventoryLineProductPickerComponent],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule, DatePickerModule, InventoryScreenShell, InventoryQuickAddModalComponent, InventorySerialPickerModalComponent, InventoryTransportDetailsComponent, InventoryLineProductPickerComponent],
   templateUrl: './stock-transfer.html',
   styles: [`
     // Product Picker popup pilot: Stock Transfer's grid was migrated from its

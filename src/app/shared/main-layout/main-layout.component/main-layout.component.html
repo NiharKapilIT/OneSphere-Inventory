@@ -247,13 +247,21 @@
               </select>
             </label>
 
-            <label class="ap-context-select-row">
-              <span>Branch</span>
-              <select [(ngModel)]="selectedSwitchBranchId">
-                <option *ngFor="let branch of selectedSwitchBranches; trackBy: trackSwitchBranch" [ngValue]="branch.id">
-                  {{ branch.branchName }} ({{ branch.branchCode }})
-                </option>
-              </select>
+            <label class="ap-context-select-row ap-context-select-row--wide" *ngIf="mergedSwitchLocationOptions.length > 0">
+              <span>Branch / Warehouse</span>
+              <ng-select class="ap-switch-ng-select" appendTo="body"
+                [items]="mergedSwitchLocationOptions" bindLabel="label" bindValue="key"
+                [ngModel]="selectedSwitchLocationKey" (ngModelChange)="onSwitchLocationChange($event)"
+                [searchable]="true" [clearable]="false" placeholder="Select Branch or Warehouse">
+                <ng-template ng-option-tmp let-item="item">
+                  {{ item.label }}
+                  <span class="inventory-location-badge" *ngIf="item.type === 'warehouse'">WH</span>
+                </ng-template>
+                <ng-template ng-label-tmp let-item="item">
+                  {{ item.label }}
+                  <span class="inventory-location-badge" *ngIf="item.type === 'warehouse'">WH</span>
+                </ng-template>
+              </ng-select>
             </label>
 
             <button class="ap-switch-btn" (click)="applyTenantSwitch()"

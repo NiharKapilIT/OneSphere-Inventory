@@ -117,6 +117,9 @@ export class LoginComponent implements OnInit, OnDestroy {
   loginTenantOptions = signal<LoginTenantOption[]>([]);
   selectedLoginCompanyId = signal<number | null>(null);
   selectedLoginBranchId = signal<number | null>(null);
+  // Independent sibling of selectedLoginBranchId — never filtered by which
+  // branch is selected (Warehouse and Branch have no FK link to each other).
+  selectedLoginWarehouseId = signal<number | null>(null);
 
   // ── Login with User ID (direct password, no company pre-select) ───
   useridIdentifier = signal('');
@@ -125,6 +128,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   useridTenantOptions = signal<LoginTenantOption[]>([]);
   selectedUseridCompanyId = signal<number | null>(null);
   selectedUseridBranchId = signal<number | null>(null);
+  selectedUseridWarehouseId = signal<number | null>(null);
 
   registrationIdentity = signal('');
   readonly registrationIdentifierChannel = computed(() => {
@@ -189,12 +193,14 @@ export class LoginComponent implements OnInit, OnDestroy {
   );
 
   selectedLoginBranches = computed(() => this.selectedLoginTenant()?.branches ?? []);
+  selectedLoginWarehouses = computed(() => this.selectedLoginTenant()?.warehouses ?? []);
 
   selectedUseridTenant = computed(() =>
     this.useridTenantOptions().find(option => option.companyId === this.selectedUseridCompanyId()) ?? null
   );
 
   selectedUseridBranches = computed(() => this.selectedUseridTenant()?.branches ?? []);
+  selectedUseridWarehouses = computed(() => this.selectedUseridTenant()?.warehouses ?? []);
 
   ngOnDestroy(): void {
     if (this._codeDebounce) clearTimeout(this._codeDebounce);
@@ -337,6 +343,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginTenantOptions.set([]);
     this.selectedLoginCompanyId.set(null);
     this.selectedLoginBranchId.set(null);
+    this.selectedLoginWarehouseId.set(null);
     this.legacyStep.set(2);
   }
 
@@ -425,6 +432,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.loginTenantOptions.set([]);
       this.selectedLoginCompanyId.set(null);
       this.selectedLoginBranchId.set(null);
+      this.selectedLoginWarehouseId.set(null);
       this.loginOtpDeliveryMessage.set('');
       this.loadCompanyCodes();
     }
@@ -435,6 +443,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.useridTenantOptions.set([]);
       this.selectedUseridCompanyId.set(null);
       this.selectedUseridBranchId.set(null);
+      this.selectedUseridWarehouseId.set(null);
     }
     if (mode === 'register') {
       this.registerStep.set(1);
@@ -536,6 +545,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginTenantOptions.set([]);
     this.selectedLoginCompanyId.set(null);
     this.selectedLoginBranchId.set(null);
+    this.selectedLoginWarehouseId.set(null);
     this.loginOtpDeliveryMessage.set('');
     this.loading.set(true);
     try {
@@ -602,6 +612,10 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.errorMessage.set('Please select a branch.');
         return;
       }
+      if (this.selectedLoginWarehouses().length > 0 && !this.selectedLoginWarehouseId()) {
+        this.errorMessage.set('Please select a warehouse.');
+        return;
+      }
     }
     this.loading.set(true);
     try {
@@ -611,7 +625,8 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.loginOtp().trim(),
           this.loginOtpCompanyCode().trim() || undefined,
           this.selectedLoginCompanyId(),
-          this.selectedLoginBranchId()
+          this.selectedLoginBranchId(),
+          this.selectedLoginWarehouseId()
         ).pipe(timeout(10000))
       );
 
@@ -646,17 +661,19 @@ export class LoginComponent implements OnInit, OnDestroy {
   selectLoginCompany(companyId: number | string): void {
     const resolvedCompanyId = Number(companyId) || null;
     this.selectedLoginCompanyId.set(resolvedCompanyId);
-    const branch = this.loginTenantOptions()
-      .find(option => option.companyId === resolvedCompanyId)
-      ?.branches
-      ?.find(item => item.isDefault)
-      ?? this.loginTenantOptions().find(option => option.companyId === resolvedCompanyId)?.branches?.[0]
-      ?? null;
+    const option = this.loginTenantOptions().find(o => o.companyId === resolvedCompanyId);
+    const branch = option?.branches?.find(item => item.isDefault) ?? option?.branches?.[0] ?? null;
     this.selectedLoginBranchId.set(branch?.id ?? null);
+    const warehouse = option?.warehouses?.find(item => item.isDefault) ?? option?.warehouses?.[0] ?? null;
+    this.selectedLoginWarehouseId.set(warehouse?.id ?? null);
   }
 
   selectLoginBranch(branchId: number | string): void {
     this.selectedLoginBranchId.set(Number(branchId) || null);
+  }
+
+  selectLoginWarehouse(warehouseId: number | string): void {
+    this.selectedLoginWarehouseId.set(Number(warehouseId) || null);
   }
 
   // ── Login with User ID ────────────────────────────────────────────
@@ -671,6 +688,25 @@ export class LoginComponent implements OnInit, OnDestroy {
     if (!id) { this.errorMessage.set('Please enter your email or user ID.'); return; }
     if (!pw) { this.errorMessage.set('Please enter your password.'); return; }
 
+    // This path previously had NO pre-submit selection validation at all (unlike
+    // verifyLoginOtp above) — a missing company/branch/warehouse just silently
+    // rode through to the backend. Mirror the OTP path's gate exactly so the
+    // password path can't regress silently again.
+    if (this.useridRequiresSelection()) {
+      if (!this.selectedUseridCompanyId()) {
+        this.errorMessage.set('Please select a company.');
+        return;
+      }
+      if (this.selectedUseridBranches().length > 0 && !this.selectedUseridBranchId()) {
+        this.errorMessage.set('Please select a branch.');
+        return;
+      }
+      if (this.selectedUseridWarehouses().length > 0 && !this.selectedUseridWarehouseId()) {
+        this.errorMessage.set('Please select a warehouse.');
+        return;
+      }
+    }
+
     this.loading.set(true);
     try {
       const response = await firstValueFrom(
@@ -679,7 +715,8 @@ export class LoginComponent implements OnInit, OnDestroy {
           pw,
           undefined,
           this.useridRequiresSelection() ? this.selectedUseridCompanyId() : null,
-          this.useridRequiresSelection() ? this.selectedUseridBranchId() : null
+          this.useridRequiresSelection() ? this.selectedUseridBranchId() : null,
+          this.useridRequiresSelection() ? this.selectedUseridWarehouseId() : null
         ).pipe(timeout(10000))
       );
 
@@ -696,6 +733,9 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.selectedUseridCompanyId.set(first?.companyId ?? null);
         this.selectedUseridBranchId.set(
           first?.branches?.find(b => b.isDefault)?.id ?? first?.branches?.[0]?.id ?? null
+        );
+        this.selectedUseridWarehouseId.set(
+          first?.warehouses?.find(w => w.isDefault)?.id ?? first?.warehouses?.[0]?.id ?? null
         );
         this.useridRequiresSelection.set(true);
         this.showToast('info', 'Select company', 'Your credentials are linked to multiple companies. Pick one to continue.');
@@ -718,16 +758,19 @@ export class LoginComponent implements OnInit, OnDestroy {
   selectUseridCompany(companyId: number | string): void {
     const id = Number(companyId) || null;
     this.selectedUseridCompanyId.set(id);
-    const branch = this.useridTenantOptions()
-      .find(o => o.companyId === id)
-      ?.branches?.find(b => b.isDefault)
-      ?? this.useridTenantOptions().find(o => o.companyId === id)?.branches?.[0]
-      ?? null;
+    const option = this.useridTenantOptions().find(o => o.companyId === id);
+    const branch = option?.branches?.find(b => b.isDefault) ?? option?.branches?.[0] ?? null;
     this.selectedUseridBranchId.set(branch?.id ?? null);
+    const warehouse = option?.warehouses?.find(w => w.isDefault) ?? option?.warehouses?.[0] ?? null;
+    this.selectedUseridWarehouseId.set(warehouse?.id ?? null);
   }
 
   selectUseridBranch(branchId: number | string): void {
     this.selectedUseridBranchId.set(Number(branchId) || null);
+  }
+
+  selectUseridWarehouse(warehouseId: number | string): void {
+    this.selectedUseridWarehouseId.set(Number(warehouseId) || null);
   }
 
   private prepareTenantSelection(options: LoginTenantOption[]): void {
@@ -735,6 +778,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     const first = options[0] ?? null;
     this.selectedLoginCompanyId.set(first?.companyId ?? null);
     this.selectedLoginBranchId.set(first?.branches?.find(branch => branch.isDefault)?.id ?? first?.branches?.[0]?.id ?? null);
+    this.selectedLoginWarehouseId.set(first?.warehouses?.find(warehouse => warehouse.isDefault)?.id ?? first?.warehouses?.[0]?.id ?? null);
   }
 
   // ── Login completion (biometric gate) ───────────────────────────
@@ -958,6 +1002,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginTenantOptions.set([]);
     this.selectedLoginCompanyId.set(null);
     this.selectedLoginBranchId.set(null);
+    this.selectedLoginWarehouseId.set(null);
     this.errorMessage.set('');
   }
 
@@ -971,6 +1016,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.loginTenantOptions.set([]);
     this.selectedLoginCompanyId.set(null);
     this.selectedLoginBranchId.set(null);
+    this.selectedLoginWarehouseId.set(null);
     this.errorMessage.set('');
   }
 
@@ -1176,6 +1222,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       this.loginTenantOptions.set([]);
       this.selectedLoginCompanyId.set(null);
       this.selectedLoginBranchId.set(null);
+      this.selectedLoginWarehouseId.set(null);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || 'Registration failed.');
       this.showToast('error', 'Registration failed', this.errorMessage());

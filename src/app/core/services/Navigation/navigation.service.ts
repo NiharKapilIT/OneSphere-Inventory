@@ -125,7 +125,7 @@ export class NavigationService {
                 { id: 'stock-transfer', name: 'Stock Transfer', route: '/dashboard/inventory/transactions/stock-transfer', group: 'Inventory' },
                 { id: 'stock-adjustment', name: 'Stock Adjustment', route: '/dashboard/inventory/transactions/stock-adjustment', group: 'Inventory' },
                 { id: 'opening-stock-entry', name: 'Opening Stock Entry', route: '/dashboard/inventory/transactions/opening-stock-entry', group: 'Inventory' },
-                { id: 'cycle-count', name: 'Cycle Count', route: '/dashboard/inventory/transactions/cycle-count', group: 'Inventory' },
+                { id: 'cycle-count', name: 'Cycle Count', route: '/dashboard/inventory/transactions/cycle-count', group: 'Inventory', disabled: true },
                 // Manufacturing
                 { id: 'production-planning', name: 'Production Planning', route: '/dashboard/inventory/transactions/production-planning', group: 'Manufacturing', disabled: true },
                 { id: 'material-issue-production', name: 'Material Issue for Production', route: '/dashboard/inventory/transactions/material-issue-production', group: 'Manufacturing', disabled: true },

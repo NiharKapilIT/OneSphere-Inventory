@@ -8,6 +8,8 @@ Continuous automated test coverage for the ERP Inventory module (this frontend, 
 
 - **Frontend test runner**: Angular's native `@angular/build:unit-test` builder (Vitest-backed — see `angular.json`'s `test` target and `vitest` in `package.json`). No Karma/Jasmine in this repo. Run via `ng test` or `ng test --include='<glob>'` to scope to one spec.
   - **Fixed 2026-08-14**: the `test` target had no `buildTarget` configured, so it defaulted to the project's federation `build` target (`@angular-architects/native-federation:build`), which the unit-test builder doesn't support — every `ng test` run failed with `pluginOptions.instrumentForCoverage is not a function`, including on the two pre-existing spec files. Fix: pointed `test.options.buildTarget` at the already-existing `esbuild` target (plain `@angular/build:application`, the same one `serve`'s underlying config already resolves through) — see `angular.json`. Verified: pre-existing specs and the new one below all pass now.
+  - **Found 2026-08-28 (Phase 3, Branch/Warehouse selector merge), NOT fixed — out of scope**: the whole-project `ng test`/`ng build` type-check for **both** `OneSphere-Accounts` and `OneSphere-Inventory` is currently broken by files unrelated to this session's work, and `--include`/`--exclude` don't help (the unit-test builder still type-checks every file matched by `tsconfig.spec.json`'s `include`, regardless of which specs are actually run). Accounts: `src/app/core/guards/auth.guard.spec.ts` imports a non-existent `AuthGuard` (real export is `authGuard`), and `src/app/core/services/accounts/accounts-dashboard.spec.ts` imports a non-existent `AccountsDashboard`. Inventory: `src/app/shared/login/login.component.spec.ts` — a previously-undocumented **third** hand-duplicated copy of the login screen living inside Inventory's own tree (`src/app/shared/login/{login.component.ts,.html,.scss,login.component.spec.ts}`, plus `old_login.component.html`/`old_login_utf8.html`/`old_ts*.txt` cruft alongside it) — uses Jasmine `spyOn(...).and.returnValue(...)` syntax the configured Vitest runner doesn't support. Per this project's architecture (Accounts is the host/shell for login; Inventory is federated in as a remote with no independent login route), this Inventory-side login copy is very likely dead code, but that wasn't confirmed and it was NOT touched — only Accounts' login was in Phase 3's scope. Verified via a scratch `tsconfig.spec.*.json` overriding just `include` (not committed) that Phase 3's own spec files pass cleanly once isolated from these three unrelated files — see the Phase 3 Live-Verification Findings section below for the actual run output.
+    - **Partially fixed 2026-08-30 (Stock Adjustment branch support item)**: `src/app/shared/login/login.component.spec.ts`'s Jasmine syntax (`spyOn(...).and.returnValue(...)`) was blocking `ng test --include=...` from compiling *any* Inventory spec at all, not just this one file, since the unit-test builder bundles every file `tsconfig.spec.json` includes regardless of the `--include` filter. Rewrote the 3 call sites to `vi.spyOn(...).mockReturnValue(...)` (the convention every other spec in this repo already uses) purely to unblock compilation — no assertions changed. This resolves the TS2304 compile error, but the file's 10 tests still fail at runtime with the separate, already-documented `NG0201: No provider found for DatePipe` gap (see 2026-08-20's note below) — that part is unchanged and still out of scope here.
 - **Frontend component testing**: `TestBed.configureTestingModule({ imports: [StandaloneComponent], providers: [...] })` + `ComponentFixture`, standard Angular signals-based component testing. Spec files are `*.spec.ts`, colocated next to the component/module they cover. For a component with `@Input({ required: true })`, set the input directly on the fixture's component instance before `detectChanges()`. Private business-rule methods are reachable via `(component as any).methodName(...)` when going through the full async/UI path would be disproportionate to what's being verified — see the reference-picker spec below for the pattern.
 - **Backend**: xUnit + Moq (`Kapil_Group_ERP_API.Tests`), controller-layer tests against mocked services via shared helpers in `TestSupport/` (`ControllerTestContext`, `TenantContextFactory`, `TestableControllerBase`, `LoggerMockExtensions`). Run via `dotnet test --filter "FullyQualifiedName~<ClassName>"` from `Kapil_Group_ERP_API.Tests/`, or `dotnet test` for the whole project.
   - **Fixed 2026-08-14**: the whole test project failed to *compile* because `Controllers/UsersControllerTests.cs` (Users/Accounts module, not Inventory) called `IMultiTenantDataService.CreateUserAsync(...)`, a method removed when production code moved to an `InviteUserAsync`-based invite flow — see `erp_multitenant_architecture` project memory. Beyond the rename, `UsersController.Create` now returns a plain 200 OK ("Invitation sent") instead of `201 CreatedAtAction` pointing at `GetById`, since no users row/id exists yet for an invitation — the stale test asserted the old `CreatedAtActionResult` shape, so that assertion was rewritten to match, not just renamed. This is outside the "Inventory only" scope in isolation, but it was blocking every backend test in the project (Inventory included) from running at all, so it was fixed rather than left broken.
@@ -40,11 +42,19 @@ Continuous automated test coverage for the ERP Inventory module (this frontend, 
 | Purchase Invoice — multi-attribute grid rendering (Variant/Attribute columns removed in favor of the shared Product-cell sub-row) | `src/app/inventory/Inventory_Transactions/purchase-invoice/purchase-invoice.multi-attribute-columns.spec.ts` | Component (`InventoryPurchaseInvoiceComponent` via TestBed, not just the base shell) | Covered (6 cases, passing) | 2026-08-19 |
 | Inventory Screen Shell — Purchase Invoice direct-Qty vs GRN-linked-Accepted-Qty column switch, and `purchaseInvoiceQtyForRow()`'s column resolution (item 5, Received Qty removed) | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.pi-direct-qty.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (4 cases, passing) | 2026-08-19 |
 | Purchase Invoice — read-only Serial No cell renders a "{policy name} · {count}" badge instead of a raw joined serial list, and the read-only picker view it opens (`serialViewBadgeTextForRow()`, `openSerialPickerReadOnly()`) | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.pi-serial-badge.spec.ts` | Unit (base shell configured as `purchaseInvoice`, private methods via `as any` where needed) | Covered (5 cases, passing) | 2026-08-19 |
-| `InventoryLineProductPickerComponent` — Product Picker popup pilot (Sales Invoice / Purchase Invoice / Stock Transfer): trigger label, popup open/position/close, Product→Variant→Attribute pick calls into `host.setEntryLineCell()`/`host.setLineAttrValue()`, outside-click-to-close vs. an `appendTo="body"` ng-select dropdown panel, branch-card stock grouping, "Current Branch" card labeling (DOM-level, all 3 screens' own current-branch field resolution), explicit "Add Product" confirm gating (`canAddProduct()`), backdrop presence, viewport reclamp on growth | `src/app/inventory/Inventory_Shared/inventory-line-product-picker/inventory-line-product-picker.component.spec.ts` | Component (TestBed, hand-built `host` stub + stubbed `InventoryTransactionsService`) | Covered (26 cases, passing) | 2026-08-20 |
+| `InventoryLineProductPickerComponent` — Product Picker popup pilot (Sales Invoice / Purchase Invoice / Stock Transfer): trigger label, popup open/position/close, Product→Variant→Attribute pick calls into `host.setEntryLineCell()`/`host.setLineAttrValue()`, outside-click-to-close vs. an `appendTo="body"` ng-select dropdown panel, explicit "Add Product" confirm gating (`canAddProduct()`), backdrop presence, viewport reclamp on growth. Full Warehouse/Branch Independence (2026-08-27): the old single merged "Stock Across Branches" panel (warehouse rows grouped under their linked branch) is now two fully independent flat lists — `warehouseCards()` ("By Warehouse", one card per warehouse-posted row) and `branchCards()` ("By Branch", one card per branch-posted row, built only from rows carrying their own `branch_id` directly) — with separate `currentWarehouseId()`/`currentBranchId()` "Current Warehouse"/"Current Branch" badge resolution, neither ever cross-resolving into the other's kind. **Bug found+fixed 2026-08-30**: "Total available" (`currentPickTotal()`, from the scoped `currentPickQuery$`) collapsed to "No stock recorded for this pick yet" once a 3rd attribute value was ALSO picked on top of Product+Variant, while the separate, always-unfiltered "By Warehouse" cards (`warehouseCards()`, from `branchQuery$`, which never sends `variantId`/`attributeValue`) kept showing real stock for the same product/location — e.g. Dell Computer-I7 / Memory / Speed=256 showed Total available = 0 while By Warehouse still showed Hyderabad = 109. Root cause was backend, not frontend: `inventory.sp_get_available_stock`'s attribute_value match was a strict string-equality filter, and this SKU's `inv_stock_balance` rows (live-confirmed via psql, company 53 / product 12 / variant 13) had accumulated with `attribute_id`/`attribute_value` both NULL — legacy stock never split by attribute, even though the source Purchase Invoice items that built it up do carry `attribute_value` 128/256/516 per line. Once a specific attribute value was requested, the strict filter matched none of these untagged rows and returned zero. Fixed in `173_available_stock_untagged_attribute_fallback.sql`: untagged rows (`attribute_id IS NULL` and blank `attribute_value`) now also match ANY requested `attribute_value`, since untagged stock isn't known to belong to a particular value and so can't be excluded from a specific pick without disagreeing with the unfiltered totals shown alongside it. Live-verified via direct `CALL inventory.sp_get_available_stock(...)`: before the fix, `attribute_value='256'` returned `[]`; after, it returns the same two rows as the unfiltered call (Hyderabad 109 + Unassigned 2 = 111), and a sanity check against a different, properly attribute-tagged product/variant confirmed the fallback does NOT leak into SKUs whose stock IS already split by attribute (a value that genuinely has zero stock still correctly returns `[]`). New frontend regression case added: `Total available never disagrees with the By Warehouse breakdown` | `src/app/inventory/Inventory_Shared/inventory-line-product-picker/inventory-line-product-picker.component.spec.ts`; backend: `Database/Migrations/inventory/173_available_stock_untagged_attribute_fallback.sql`, registered in `MultiTenancy/Services/DatabaseBootstrapper.cs` | Component (TestBed, hand-built `host` stub + stubbed `InventoryTransactionsService`) | Covered (34 cases, passing) | 2026-08-30 |
 | `ReportsController.GetLossSalesReport` — Loss Sales Report (rate-below-cost, config-driven registry pattern, `155_loss_sales_report.sql`) | `Kapil_Group_ERP_API.Tests/Controllers/ReportsControllerTests.cs` | Controller (xUnit/Moq) | Covered (2 cases, passing) | 2026-08-20 |
 | `InventoryTransactionsController.GetLossSalesFlags` — Loss Sales dashboard KPI tile drill-down (live/derived, `sp_get_loss_sales_flags`) | `Kapil_Group_ERP_API.Tests/Controllers/InventoryTransactionsControllerTests.cs` | Controller (xUnit/Moq) | Covered (2 cases, passing) | 2026-08-20 |
-| Inventory Screen Shell — merged Warehouse/Branch picker type-tagging (Round 1 of independent branch stock): every option carries `{ type, id }`, displayed labels/order/dedup unchanged, `resolveMergedLocation()` resolves by tag, still prefers the warehouse on a name collision, still falls back to code matching, and GRN payload behaviour is unchanged | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.merged-location-tagging.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (11 cases, passing) | 2026-08-21 |
+| Inventory Screen Shell — merged Warehouse/Branch picker type-tagging: every option carries `{ type, id }`, displayed labels/order/dedup unchanged, `resolveMergedLocation()` resolves by tag, still prefers the warehouse on a name collision, still falls back to code matching. Full Warehouse/Branch Independence (2026-08-27): the payload-behaviour case now pins the CURRENT rule — a branch selection posts branch-only, no longer resolved onward to its linked warehouse | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.merged-location-tagging.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (11 cases, passing) | 2026-08-27 |
 | Inventory Report Page — Branch filter actually filters (`rowFieldsForFilter().branchId` was `[]`, so `matchesValueFilter()` short-circuited to "matches everything"), plus the "Warehouse / Branch" column relabel on the four stock reports | `src/app/inventory/Inventory_Reports/report-page/inventory-report-page.branch-filter.spec.ts` | Component (TestBed) + registry unit | Covered (7 cases, passing) | 2026-08-21 |
+| Inventory Screen Shell — merged Warehouse/Branch picker offers only ACTIVE branches for a fresh pick on GRN/PI/PR/DC/SI/Stock Transfer (all share `mergedLocationEntries()`), while an already-selected inactive branch stays visible/resolvable for editing an older document (item 2) | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.active-branch-filter.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (8 cases, passing) | 2026-08-27 |
+| Inventory Screen Shell — per-line stock-hint location labeling (`stockRowLocationLabel()`: a dual-NULL `inv_stock_balance` row now shows "Unassigned", never the literal word "Warehouse"; a branch-only row shows its real branch name) and branch-aware header resolution on DC/SI's outward-qty hint (`resolveHeaderStockLocation()` — a Branch-resolved "From Warehouse / Branch" header now gets "Available here"/"Short by X here" against its own stock, instead of silently falling through to the generic cross-location breakdown) (item 1) | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.stock-hint-location-label.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (7 cases, passing) | 2026-08-27 |
+| Inventory Screen Shell — Required Session-Level Warehouse Selection, Phase 4: `applyDefaultLocationToCurrentTransaction()`'s populate-on-open defaulting across the full 9-screen (now 11, see below) `LOCATION_DEFAULT_CAPABILITIES` map (merged / branchOnly / warehouseOnly / stockTransfer), replacing the old 4-screen allowlist; plus `tryApplyDefaultLocation()`'s branches+warehouses load-order gate. Deliberately separate from `inventory-screen-shell.branch-warehouse-resolution.spec.ts`, which covers save-time resolution, not this populate-on-open behavior. **Bug found and fixed 2026-08-28 (Opening Inventory Balance/Opening Stock Entry merge item)**: this file's own `transaction()` test helper never set a `fields` array on its ad-hoc configs, so `configHasField()` (`this.config?.fields || []`) always returned false and every capability's `continue` fired unconditionally — 14 of 19 cases were failing (every "a default IS applied" assertion; only "nothing happens" assertions passed, which is what made it easy to miss). Fixed by adding a `FIELD_KEYS_BY_SCREEN` map so each ad-hoc config carries the right field key(s), mirroring the real production configs. Not caused by this item's own changes (verified: identical failure pattern on unrelated pre-existing screens like `goodsReceipt`/`purchaseRequisition` untouched by this session), but found while extending this exact map for the two newly-merged screens and fixed since it directly guards that map. | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.location-defaulting.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (19/19 passing) | 2026-08-28 |
+| Login screen (Accounts, the real served host) — **Phase 3 superseded Phase 2's separate-mandatory-fields design**: Branch and Warehouse are now ONE merged `ng-select` per flow (all 3 variants: legacy password step 2, OTP, userid/password), tagged `type: 'branch'\|'warehouse'` with the shared "WH" badge (`mergedLoginLocationOptions`/`selectedLoginLocationKey`/`selectLoginLocation()`); picking one leaves the other's already-resolved value untouched (never nulled). The required-gate now blocks only when NEITHER resolves (previously blocked whenever Warehouse alone was unpicked) | `OneSphere-Accounts/src/app/shared/login/login.component.spec.ts` | Component (TestBed, spied `AuthService`, vitest-native `vi.spyOn`) | Covered (28 cases total in file, passing) | 2026-08-28 |
+| Post-login switcher (both apps, hand-duplicated copies kept identical) — **Phase 3**: same merged-selector treatment as the login screen (`mergedSwitchLocationOptions`/`selectedSwitchLocationKey`/`onSwitchLocationChange()`); `applyTenantSwitch()`'s gate now blocks only when NEITHER Branch nor Warehouse resolves, `switchBranchDirectly()` (Inventory only) unaffected, still carries the session warehouse forward | `OneSphere-Accounts/src/app/shared/main-layout/main-layout.component/main-layout.component.spec.ts` (28 cases), `OneSphere-Inventory/src/app/shared/main-layout/main-layout.component/main-layout.component.spec.ts` (13 cases) | Component (TestBed, spied `AuthService`, vitest-native `vi.spyOn`) | Covered (both files passing) | 2026-08-28 |
+| Opening Inventory Balance / Opening Stock Entry — Full Warehouse/Branch Independence follow-up: both screens were missed by the original migration and still showed Branch + Warehouse as two separate mandatory fields; collapsed into the same single merged Warehouse/Branch picker GRN/PI/DC/PR/SI use, on field key `warehouse`. Covers: config shape (one `warehouse` field, no `branch` field), `grnReceivingLocationGroups()` type-tagging identical to the pre-existing merged screens (same data source the WH badge template reads), Opening Stock Entry's real `buildOpeningStockEntryPayload()` resolving a branch-only pick (`branch_id` set, `warehouse_id` falsy) vs. a warehouse pick, the new posted-with-no-location refusal (`stockLocationScreenKeys`/`postedStockLocationMessages` — draft still allowed), and re-opening a branch-only posted entry re-populating the field from `branch_name` (not blank). Opening Inventory Balance has no backend wiring at all (not `isApiWired()`, no `buildPayload` case, no save endpoint — Save is a pre-existing no-op unrelated to this change), so it's only covered at the config/option-list level, and explicitly pinned NOT to be gated by the stock-location-required-on-post check (nothing real to guard). | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.opening-screens-merged-location.spec.ts` | Unit (base shell + private methods via `as any`) | Covered (9 cases, passing) | 2026-08-28 |
+| Merged Warehouse/Branch picker — small "WH" badge next to Warehouse entries (not Branch entries), in the dropdown option list and the selected-value display. Applied via `ng-option-tmp`/`ng-label-tmp` templates reading each option's existing `type` tag (`grnReceivingLocationGroups()`, previously dead code outside its own definition — this is its first real consumer alongside the pre-existing `groupBy="group"` headers) across all 7 merged-picker screens: Goods Receipt, Purchase Invoice, Purchase Return, Sales Invoice, Delivery Challan (upgraded from a flat `field.options` list to `grnReceivingLocationGroups()` for consistency — it was the one merged screen not already using the grouped/tagged list), Opening Inventory Balance, Opening Stock Entry. Shared CSS `.inventory-location-badge` added to both `OneSphere-Inventory/src/styles.scss` and `OneSphere-Accounts/src/styles.scss` (byte-identical, per the existing shared-class convention — Inventory's own copy is dead once federated). No dedicated frontend spec for the template markup itself (`ng-option-tmp`/`ng-label-tmp` render inside 3rd-party `ng-select`, not easily unit-tested without a full DOM harness) — verified live instead, see Live-Verification Findings below. | (verified live, no new spec — see note) | — | Verified live 2026-08-28 | 2026-08-28 |
+| Stock Adjustment — user request "in stock adjustment should add even branches too": the field (`stockAdjustmentConfig`'s `warehouse` key) was the last `stockLocationScreenKeys`-style screen still Warehouse-only (label literally "Warehouse", not "Warehouse / Branch"). Joined `mergedLocationScreenKeys`/`LOCATION_DEFAULT_CAPABILITIES` (`merged` kind)/the `runtimeOptions()` grouped-picker gate/`grnReceivingLocationGroups()` WH-badge template (`stock-adjustment.html`, mirrors Opening Stock Entry's block) the same way Purchase Return/Sales Invoice/Opening Stock Entry did. `buildStockAdjustmentPayload()` rewritten to resolve via `resolveMergedLocation()` (was `findWarehouseBySelection()` only) so a branch pick writes `branch_id`/`branch_name` with `warehouse_id`/`warehouse_name` null, mirroring the single-field merged screens exactly. `editRecordByRow()`'s stockAdjustment case now falls back to `branch_name`/`branchNameFromRecord()` when reopening a branch-only record (was warehouse-only, would render blank). Added to `stockLocationScreenKeys` for the unconditional stale-free-text-location refusal every merged screen gets; since this screen posts on `pending_approval -> approved` (never literally `'posted'`), its own "nothing selected at posting time" gate is a dedicated `stockAdjustmentLocationValidationMessage()` gated on `status === 'approved'`, called directly from `validatePayload()` (same shape as Stock Transfer's two-sided call, single-sided here). Backend: `fn_post_stock_adjustment` previously hard-required `warehouse_id` and only ever wrote `warehouse_id` when moving stock/cost-layers/serials even though `inv_stock_adjustments`/`sp_save_stock_adjustment`/`sp_get_stock_adjustments` already carried `branch_id`/`branch_name` (since the original migration 142) — fixed in `172_stock_adjustment_branch_stock_posting.sql` by routing through the branch-aware `fn_upsert_stock_balance`/`fn_add_stock_cost_layer`/`fn_consume_stock_cost_layers` helpers (157), same pattern as Stock Transfer (160)/GRN (163)/Purchase Return (165)/Sales Invoice (166)/Purchase Invoice (159). Not a guarded function (confirmed live against `inventory.tbl_guarded_function_defs`), so no guard dance needed. | `src/app/inventory/Inventory_Shared/inventory-screen-shell/inventory-screen-shell.stock-adjustment-branch.spec.ts`; backend: `Database/Migrations/inventory/172_stock_adjustment_branch_stock_posting.sql`, registered in `MultiTenancy/Services/DatabaseBootstrapper.cs` | Unit (base shell + private methods via `as any`) | Covered (8 cases, passing) | 2026-08-30 |
 
 ## Business Rules Covered
 
@@ -99,6 +109,7 @@ Continuous automated test coverage for the ERP Inventory module (this frontend, 
   - Also removed entirely (matched nothing after the CDK revert above, so pure dead weight): a hand-written `.cdk-overlay-container`/`.cdk-global-overlay-wrapper`/`.cdk-overlay-backdrop`/`.cdk-overlay-pane` base-style block (recreating what `@angular/cdk/overlay-prebuilt.css` normally provides, since this app never actually imports that prebuilt stylesheet), `.cdk-overlay-pane.inventory-line-product-overlay-pane`, `.cdk-overlay-backdrop.inventory-line-product-popup-backdrop`, and `body .ng-dropdown-panel.inventory-line-product-select`.
   - `git diff HEAD -- src/styles.scss` after this cleanup contains zero z-index/CDK content — only pre-existing, unrelated, already-in-progress uncommitted work from elsewhere in this shared working tree (a multi-select ng-select tick-mark rendering change, a generic-report-page header grid change, a report-filter chip-height fix), all correctly left untouched.
   - Live re-verified after clearing a coincidental, unrelated dev-server staleness issue (`ng serve --port 4203`'s Vite/native-federation dependency pre-bundle cache had gone stale — `_ng_select_ng_select.*-dev.js` 404ing from a hash mismatch between what the Accounts host expected and what the Inventory remote was actually serving; fixed by clearing `node_modules/.cache/native-federation` + `.angular/cache` and restarting just the Inventory dev server, nothing else): the popup's own Product/Variant/Attribute ng-select dropdown panels still render and are clickable above both the popup and its backdrop at `z-index: 13050`; a normal, unrelated screen dropdown (Sales Invoice header's own Segment/Warehouse-style ng-selects) spot-checked and still opens/renders correctly at the same reverted value. Full suite re-run after this cleanup: unchanged from the round above, 0 regressions.
+- **Stock Adjustment merged Warehouse/Branch picker (2026-08-30)**: last remaining stockLocationScreenKeys-style screen to still be Warehouse-only; joined the same `mergedLocationScreenKeys`/`LOCATION_DEFAULT_CAPABILITIES`/`runtimeOptions()` grouped-picker/`grnReceivingLocationGroups()` WH-badge machinery every other merged screen already uses, on its single `warehouse` field. Because this screen posts on `pending_approval -> approved` rather than `draft -> posted`, its own "nothing selected at posting time" refusal needed a dedicated gate (`stockAdjustmentLocationValidationMessage()`, keyed on `status === 'approved'`) rather than reusing `postedStockLocationMessages`' generic `'posted'` check, which would silently never fire for this screen. `fn_post_stock_adjustment` (migration 172) now moves stock/cost-layers/serials through the same branch-aware helpers (`fn_upsert_stock_balance`/`fn_add_stock_cost_layer`/`fn_consume_stock_cost_layers`) as every other branch-capable posting function, which also incidentally fixed the Decrease side's old clamp-to-zero-on-insufficient-stock bug (now refuses with a named "Insufficient stock..." message, same as Stock Transfer/GRN/etc.) — a deliberate, in-scope side effect of routing through the canonical helper, not a separate ask.
 
 ## API Scenarios Covered
 
@@ -195,8 +206,498 @@ is deliberately a no-op, verified as such before any later round changes behavio
   type-tagged `grnReceivingLocationGroups()` picker as GRN/PI. Harmless today; worth converting to
   `resolveMergedLocation()` in Round 2/3 when branch posting becomes real.
 
+## Live-Verification Findings (Warehouse/Branch Round 2 for PI, Product-Picker rollout, Stock Transfer/Adjustment UX — 2026-08-26)
+
+Three independent workstreams shipped together: (1) Round 2 of "Warehouse/Branch independent
+stock" — Purchase Invoice can now post stock straight against a Branch with zero linked
+warehouses, not just a Warehouse; (2) `InventoryLineProductPickerComponent` (previously a
+3-screen pilot) rolled out to the 5 remaining transaction screens (GRN, Purchase Return, Sales
+Order, Delivery Challan, Sales Return) plus a bold-name/small-subtitle label fix shared with the
+saved-records drilldown; (3) Stock Transfer gained a real Post workflow (previously draft-only
+despite `fn_post_stock_transfer`/`sp_save_stock_transfer` already fully supporting it server-side),
+Stock Adjustment was re-platformed onto the shared `lineGridRenderColumns()`/`entryLineRowViews()`
+pipeline so it could get the picker too, and both screens gained a fullscreen toggle.
+
+- **Workstream 1 (guarded function)**: new migration `159_purchase_invoice_branch_stock_posting.sql`
+  rewires `fn_post_pi_stock` (guarded, one of the ~10 objects `trg_guard_serial_qty_functions`
+  watches) onto `inventory.fn_upsert_stock_balance` — built in 157, this is its first real caller —
+  passing both warehouse and branch values, appends `v_pi.branch_id` as `fn_add_stock_cost_layer`'s
+  12th positional arg, and adds `branch_id`/`branch_name` to the `inv_serial_units` insert. Followed
+  the guarded-object checklist exactly (`SET guard_active` → `CREATE OR REPLACE` →
+  `INSERT ... tbl_guarded_function_defs ... ON CONFLICT DO UPDATE` capturing
+  `pg_get_functiondef()` → `RESET guard_active`). Companion frontend change: a new
+  `branchOnlyStockPostingScreenKeys` set (`purchaseInvoice` only) in
+  `mergedLocationValidationMessage()` returns `''` instead of blocking when a Branch resolves to
+  zero linked warehouses, for that one screen only — the ambiguous (2+ warehouses) branch is
+  untouched for every screen.
+- **Verified live, twice, across two full clean restarts** (all `dotnet.exe`/`Kapil_Group_ERP_API.exe`
+  killed first, per `erp_migration_restart_race`): migration 159 applied with no error both times;
+  `pg_get_functiondef('inventory.fn_post_pi_stock')` matches its own `tbl_guarded_function_defs`
+  snapshot byte-for-byte after each boot (the guard did not revert it). Functional test, real company
+  7 / branch 11 ("Branch Two", zero linked warehouses) / product 16 ("Disposable Test Widget"),
+  entirely inside `BEGIN … ROLLBACK`: before posting, `inv_stock_balance` had no matching row; calling
+  `fn_post_pi_stock` directly produced one row with `warehouse_id NULL, branch_id 11, branch_name
+  'Branch Two', qty_on_hand 3.000` and a matching `inv_stock_cost_layers` row (`unit_cost 100,
+  remaining_qty 3`); after `ROLLBACK`, zero rows again — confirming the fix works and that nothing
+  was left behind in this shared database.
+- **A pre-existing bug fixed as a necessary side effect, not a separate ask**: `fn_post_pi_stock`'s old
+  hand-rolled stock-balance UPDATE/INSERT matched only on `product_id + product_name` — never
+  `variant_id`/`attribute_id`/`attribute_value` — silently merging different variants/attributes of the
+  same product into one stock row. Switching to `fn_upsert_stock_balance` (as Workstream 1 explicitly
+  directs) inherently fixes this too, since that helper's match key already includes them; this applies
+  to every future PI posting, not just branch-only ones.
+- **Workstream 2 (Product Picker rollout + label fix)**: `productSubtitleFromParts(variantName,
+  attrPairs)` extracted out of `grnExpandedProductSubtitle()` (`inventory-screen-shell.ts`) — the exact
+  same "Variant · Attr Value" join, now called from both the saved-records drilldown and the picker's
+  new `triggerSubtitle()` computed. The picker's trigger markup changed from one flat line to
+  `<strong>{{ product }}</strong><br><small class="inventory-grid-subtitle">{{ subtitle }}</small>`,
+  matching the drilldown look; `triggerLabel()`/`triggerTitle()` are untouched (still used for the
+  `title`/`aria-label` tooltip). `.inventory-line-product-trigger-text`'s CSS lost its blanket
+  `white-space: nowrap` (which would have squashed the new two-line markup back onto one line) in
+  favor of independent per-line (`strong`/`small`) ellipsis truncation. The picker itself was then
+  wired onto GRN/Purchase Return/Sales Order/Delivery Challan/Sales Return — one `@else if
+  (lineGridColumnIsProduct(column))` branch inserted immediately before each screen's existing
+  generic-select branch (copied verbatim from the Purchase Invoice/Stock Transfer precedent), plus the
+  component import — with the existing Variant/Attribute subcell markup left in place underneath,
+  unchanged, exactly as Purchase Invoice already proved safe. The component's own header comment was
+  updated from "Pilot (3 screens)" to "Standard control across every transaction screen."
+- **Workstream 3 (Stock Transfer Post + Stock Adjustment re-platform)**: `'stockTransfer'` added to
+  `saveConfigRecord()`'s `forceStatusAllowed` whitelist; `stockTransferIsPostedForm()` /
+  `saveStockTransferDraft()` / `postStockTransfer()` / `postStockTransferRecordByRow()` /
+  `isStockTransferDraftRow()` added, mirroring GRN's equivalents exactly (no new save/post mechanism —
+  `sp_save_stock_transfer`/`fn_post_stock_transfer`, 141/156, already fully support posting and needed
+  no SQL change). `stock-transfer.html` gained the two-button Save Draft/Post Transfer pattern (both the
+  normal and fullscreen-mode action bars), a fullscreen toggle, and a Post icon in the saved-records
+  grid row (gated on `isStockTransferDraftRow(row)`). A cheap client-side "From Warehouse and To
+  Warehouse cannot be the same" check was added to `validatePayload()`, mirroring
+  `fn_post_stock_transfer`'s own server-side exception (141) but surfaced before any round-trip, for
+  both Draft and Post saves. **Stock Adjustment's line grid was re-platformed** off its old bespoke
+  `config.lineColumns`-iterating rendering onto the same `lineGridRenderColumns()`/
+  `entryLineRowViews()` skeleton GRN/Stock Transfer already use — required no shell (`.ts`) logic
+  changes at all (confirmed by tracing `directEntryLineRows()`/`entryLineRowViews`/
+  `lineGridRenderColumnList()`: all already config-driven off `config.kind === 'transaction'` /
+  `config.lineColumns`, with zero hardcoded screen-key gates excluding `stockAdjustment` — the
+  identical `lineColumns` shape it already shared with Stock Transfer made this a template-only change).
+  This let the picker branch (and a fullscreen toggle) be added the same way as the 5 Workstream-2
+  screens. Both screens' dead records-grid Delete button (`(click)` entirely absent before this) now
+  calls `cancelRecordByRow(row)`. The guide-panel's "Reason master: Ready"/"Approval workflow: Ready"
+  overclaim (`stockAdjustmentConfig.dependsOn`) was corrected to name what actually exists (a free-text
+  field; the generic Status dropdown) with status downgraded to `'Pending Setup'`.
+- **Discovered gap, flagged rather than silently built or silently left as a working-looking dead
+  button**: wiring Stock Transfer's/Stock Adjustment's Delete to `cancelRecordByRow(row)` follows the
+  plan's literal instruction and matches the exact wiring pattern every other screen uses, but tracing
+  it further shows the click will still no-op in practice today — `purchaseDocType()`/`salesDocType()`
+  (the two lookups `cancelRecordByRow` needs to pick an API call) have no `'stockTransfer'`/
+  `'stockAdjustment'` entries, and live DB inspection confirms there is no cancel/delete stored
+  procedure for either doc type at all (`sp_cancel_purchase_doc` only recognizes `PR/RFQ/GRN/PI/
+  PURCHASERETURN/DN`; no equivalent exists for stock transfer/adjustment). Adding that backend support
+  would be new, guarded-function-adjacent scope this plan never asked for, so it was not built — the
+  button is now wired identically to every other screen's (ready to work the moment a docType mapping
+  + backend cancel path exists) but is not yet functionally different from before for the end user.
+- **Backend test project found NOT compiling, pre-existing, unrelated to this session**: `dotnet test`
+  on `Kapil_Group_ERP_API.Tests` fails at compile time — `UsersControllerTests.cs` still calls
+  `IMultiTenantDataService.CreateUserAsync(...)` (the method this doc's own 2026-08-14 entry recorded
+  as already fixed) and `InventoryTransactionsControllerTests.cs`'s constructor calls are still missing
+  the `S3UploadService` 5th argument (recorded fixed 2026-08-18). Neither file was touched by this
+  session's work (Workstreams 1-3 touch no C# beyond one `DatabaseBootstrapper.cs` registration line +
+  comment) — most likely another concurrent session in this shared working tree reverted or
+  re-branched from before those fixes landed. Not fixed here (out of this task's scope, and unrelated
+  to anything Workstreams 1-3 touch); flagged for whoever owns those two files next. This session's own
+  backend change was instead verified independently via two full live API boot cycles (migration 159
+  applying cleanly, guard byte-match confirmed both times) plus the rolled-back `psql` functional test
+  above — nothing here depended on the xUnit project compiling.
+- **Full unscoped `ng test` (Inventory frontend)**: 63 spec files, 434 tests, **426 passing**, same 8
+  pre-existing `NG0201: No provider found for DatePipe` failures in the same 7 non-Inventory files as
+  every prior entry (`app.spec.ts`, `login.component.spec.ts`, `common.service.spec.ts`,
+  `company-details-service.spec.ts`, `login.service.spec.ts`, `navigation.service.spec.ts`,
+  `main-layout.component.spec.ts`) — 0 new failures. The +18 tests over the last recorded total (416)
+  are exactly this session's additions: 1 in `inventory-screen-shell.branch-warehouse-resolution.spec.ts`
+  (the newly-allowed 0-linked-warehouse branch on Purchase Invoice only), 5 in
+  `inventory-screen-shell.product-merge.spec.ts` (`productSubtitleFromParts()`), 8 in
+  `inventory-screen-shell.stock-transfer.spec.ts` (the new Post workflow + the From≠To guard), and 4 in
+  `inventory-line-product-picker.component.spec.ts` (`triggerSubtitle()` / the bold-name/small-subtitle
+  DOM rendering) — no new spec files. `ng build --configuration=development` (real AOT template
+  compilation across all 7 edited `.html` templates plus the picker component) succeeds with no errors.
+
+## Live-Verification Findings (Product-Picker rollout regression — duplicate Variant/Attribute sub-row, 2026-08-26)
+
+Live regression reported the same day the 2026-08-26 Product-Picker rollout (see the entry above) shipped:
+"Items grid + '+' product btn not filled in the row overlapping and in some screens binding dropdowns
+variant and attributes ex: in Purchase return etc." Reproduced live (Playwright against the running dev
+server, `testreg21358478@example.com` / `multibranch297643@example.com` / `norole972197@example.com` test
+identities) on Purchase Return with product "Test Phone Multi Attr" (one variant, two mapped attributes —
+Ram, Screen Size): the Product `<td>` rendered the picker's trigger button correctly (bold name + small
+Variant/Attribute subtitle, e.g. "Test Phone Multi Attr" / "Model A · Ram 8GB · Screen Size 6.1 Inch"), but
+directly underneath it rendered a SECOND, fully independent, live-editable Variant `<ng-select>` plus one
+static "Ram: 8GB" / "Screen Size: 6.1 Inch" line — the OLD sub-row markup the rollout was supposed to
+replace. Confirmed via DOM geometry: the row's height was 150.5625px before the fix (picker trigger
+60.375px + 3 stacked duplicate sub-cells) vs. 70.875px after — visually this reads as the reported "not
+filled in / overlapping" (every other cell in that inflated row looks empty by comparison) and "binding
+dropdowns variant and attributes" (a second, redundant Variant control the user notices and interacts
+with, confusingly duplicating what the picker's own popup already sets).
+
+**Root cause, confirmed not guessed**: contrary to the plan's own working theory (that
+`transactionLineDisplayColumns()`/`lineGridRenderColumns()` folded Variant/Attribute differently per
+screen), that shared method already strips `'variant'`/`'attribute'` from the column list identically for
+*every* transaction-kind screen, PI included — it was never the gate that differed. The real cause: the
+2026-08-26 rollout's own `Live-Verification Findings` entry above says it plainly — "with the existing
+Variant/Attribute subcell markup left in place underneath, unchanged, exactly as Purchase Invoice already
+proved safe." That premise was false. Purchase Invoice's (and Sales Invoice's, and Stock Transfer's)
+`.html` templates never carry that sub-row markup at all — `purchase-invoice.ts` even has a dead CSS
+comment documenting its deletion ("Product Picker popup pilot: Variant/Attribute used to render as stacked
+sub-selects under the main product ng-select in this same cell (.inventory-line-subcell below) ... They
+now live inside the picker's own popup instead"). The rollout's copy-paste carried the leftover
+`@if (lineGridColumnIsProduct(column)) { ... }` block (a second one, independent of the picker's own
+`@else if (lineGridColumnIsProduct(column))` branch) into all 5 new templates verbatim, so it kept
+rendering there. Separately, none of the 5 screens ever got the per-screen `.inventory-line-col-product`
+width override PI/SI/Stock Transfer each have (`purchase-invoice.ts` etc., 190-200px) — so even independent
+of the duplicate markup, their Product column was still sized by the shared `.grn-grid-compact` global rule
+in `styles.scss` for the *old* wide layout (**560px** min-width), which alone would have made a
+lone compact trigger button look mostly-empty in an oversized cell.
+
+**Fix, all 5 screens identically** (`goods-receipt.html`, `purchase-return.html`, `sales-order.html`,
+`delivery-challan.html`, `sales-return.html`): deleted the leftover `@if (lineGridColumnIsProduct(column))`
+sub-row block entirely, matching Purchase Invoice/Sales Invoice/Stock Transfer's templates exactly — the
+picker is now the Product cell's only control on every rolled-out screen. Added a matching per-screen
+`.<screen>-line-grid` wrapper class (mirroring `.purchase-invoice-line-grid` etc.) plus a `styles: [...]`
+block on each of the 5 (previously style-less) components narrowing `.inventory-line-col-product` to
+190px, so the column no longer inherits the stale 560px sizing meant for the deleted sub-row layout.
+
+**Verified live** (Playwright, same product/variant/attribute pick as the repro): Product cell HTML now
+contains only `<app-inventory-line-product-picker>` (zero `.inventory-line-subcell` nodes, zero stray
+`<ng-select>` in the cell); row height back to 70.875px; trigger button shows
+"Test Phone Multi Attr" / "Model A · Ram 8GB · Screen Size 6.1 Inch" correctly. Screenshot-confirmed
+identical to Purchase Invoice's own (already-correct) rendering of the same product. End-to-end save/data-
+integrity verification (posting a real draft and reading back `inventory.inv_purchase_return_items`) was
+not completed in this pass — blocked partway through by the shared test-account OTP rate limiter
+(`MaxOtpRequestsPerWindow: 5` per identity, `OtpIpPermitLimit: 10` per IP, both exhausted mid-session from
+the repro + fix-verification cycles) after a `Vendor is required for Purchase Return` validation stop;
+the underlying write path (`setEntryLineCell`/`setLineAttrValue`) is unchanged by this fix (same calls the
+picker always made), so this is a low-risk gap, not a known failure, but is flagged here rather than
+silently claimed as done.
+
+**New regression tests** (one per rolled-out screen, mirroring `purchase-invoice.multi-attribute-columns.spec.ts`'s
+"Test Phone Multi Attr" fixture): `purchase-return.no-duplicate-variant-subcell.spec.ts`,
+`goods-receipt.no-duplicate-variant-subcell.spec.ts`, `sales-order.no-duplicate-variant-subcell.spec.ts`,
+`delivery-challan.no-duplicate-variant-subcell.spec.ts`, `sales-return.no-duplicate-variant-subcell.spec.ts`
+— each mounts the real concrete component (not just the shared `InventoryScreenShell` base, which doesn't
+exercise any concrete screen's own template), seeds a product/variant/2-attribute row, and asserts: exactly
+one `app-inventory-line-product-picker` and zero `.inventory-line-subcell` nodes render for the row; the
+Product `<td>` contains no stray `<ng-select>`; the trigger button's text carries the product, variant, and
+both attribute values. Confirmed each spec actually catches the regression (not a false-positive) by
+temporarily re-inserting the deleted block into `purchase-return.html` and re-running — 2 of the 3 cases
+failed as expected, then reverted. Also corrected a stale comment in
+`purchase-invoice.multi-attribute-columns.spec.ts` that described GRN/Purchase Return's now-deleted sub-row
+as current, intentional design.
+
+Inventory-scoped run (5 new files): **5 spec files, 15/15 passing**. Full unscoped `ng test`: 68 spec
+files, 449 tests, **441 passing**, the same 8 pre-existing `NG0201 DatePipe` failures in the same 7
+non-Inventory files as every entry above (`app.spec.ts`, `login.component.spec.ts`, `common.service.spec.ts`,
+`company-details-service.spec.ts`, `login.service.spec.ts`, `navigation.service.spec.ts`,
+`main-layout.component.spec.ts`) — 0 new failures. The +15 tests over the prior recorded total (434) are
+exactly this fix's 5 new spec files.
+
+## Live-Verification Findings (Inventory Fixes Round 2 — Stock Accuracy, Product-Picker Filtering, Stock Transfer Branch Support, 2026-08-26)
+
+Five workstreams from the same round: (A) `AvailableStockResponse`/`AvailableStock` gained
+`branch_id`/`branch_name`/`location_type`/`location_id`/`location_name` (pure additive mapping —
+`sp_get_available_stock`, migration 158, already emitted them), fixing two picker bugs a branch-only
+stock row (from Purchase Invoice's migration-159 branch-posting path) used to hit: a duplicate `@for`
+track-key hazard in the Closing Stock list (two NULL-`warehouse_id` rows for different branches used to
+collide) and `branchCards()` deriving a branch only via a warehouse lookup that can never succeed when
+`warehouse_id` is NULL; (B) the product picker's name list now narrows to what's actually in stock once
+a Branch/Warehouse header field is selected, on the 5 `stockLocationScreenKeys` screens (GRN, Purchase
+Invoice, Delivery Challan, Sales Invoice, Sales Return) — explicitly bypassed for Sales Invoice while
+Interbranch Sale is on, and deliberately fails open (shows the full list) whenever the location is
+unresolved, its fetch is still in flight, or it resolves to genuinely zero stocked products; (C) the
+product-cell trigger's row height/vertical-alignment is now centralized instead of left to each
+consuming screen; (D) Sales Invoice's forced-read-only, purely-cosmetic per-line Warehouse grid column
+is removed; (E) Stock Transfer gained full branch-primary support — a branch with zero linked warehouses
+(or one that auto-collapses, same rule GRN/PI/DC's merged picker already applies) is now a valid
+location on either side, not just a specific Warehouse.
+
+- **Workstream A**: `MultiTenancy/Models/SalesTransactionDtos.cs` (`AvailableStockResponse`) and
+  `inventory-transactions.service.ts` (`AvailableStock` interface, plus its `getAvailableStock()`
+  response mapper, which previously silently dropped every field not explicitly listed there) both
+  gained the 5 new fields. `inventory-line-product-picker.component.html`'s Closing Stock `@for` now
+  tracks `(row.location_type || 'unassigned') + '_' + (row.location_id ?? 'none')` instead of the bare
+  `row.warehouse_id`, and its label reads `row.location_name` first (falling back to `warehouse_name`,
+  then `'Warehouse'`) instead of only `warehouse_name`. `branchCards()`
+  (`inventory-line-product-picker.component.ts`) now reads `stockRow.branch_id`/`branch_name` directly
+  when `warehouse_id` is null instead of only deriving a branch via a warehouse lookup — the two are
+  mutually exclusive per row (`ck_stock_balance_single_location`), so the warehouse lookup path is kept
+  unchanged for warehouse rows.
+- **Workstream B**: three new `InventoryScreenShell` methods — `resolvedProductFilterLocation(key)`
+  (reads the screen's own header field per screen, resolves via `findWarehouseBySelection`/
+  `findBranchBySelection`/`resolveBranchDefaultWarehouse`, the same "does this branch resolve to exactly
+  one warehouse" rule `mergedLocationValidationMessage()` already applies at save time), a signal-backed
+  `locationScopedProductIdsCache`/`fetchLocationScopedProductIds(location)` (mirrors
+  `fetchAvailableStockForLine()`'s own cache-signal + in-flight-`Set` pattern, one bulk
+  `getAvailableStock({ warehouseId })`/`{ branchId }` call with no `productId`), and
+  `productNamesScopedToLocation(key)` wrapping `productNamesForTransaction()` — wired into
+  `lineColumnOptions()`'s product-column branch unconditionally (it's a no-op pass-through for every
+  screen outside `stockLocationScreenKeys`). The Angular `getAvailableStock()` params and the C#
+  `GetAvailableStockAsync`/`GetAvailableStock` controller action both gained an optional `branchId`
+  parameter (the stored procedure already had an unused `branch_id` filter). Fail-open is unconditional
+  once the resolved id set comes back empty for any reason (unresolved, in-flight, or genuinely zero
+  products) — deliberately not distinguished, per the plan's explicit correctness requirement.
+- **Workstream C**: centralized `min-height`/padding/`font-size` directly into the shared
+  `.inventory-line-product-trigger` rule (`inventory-line-product-picker.component.scss`), plus one
+  `.grn-grid-compact.inventory-line-items .erp-table.compact td.inventory-line-col-product { vertical-align:
+  middle; }` rule matched to the same selector prefix as the pre-existing `td { vertical-align: top; }`
+  default (needed to actually win the cascade) — added to **both** `OneSphere-Inventory/src/styles.scss`
+  and `OneSphere-Accounts/src/styles.scss` (the Inventory copy is federation-dead per
+  `erp_inventory_accounts_shared_css_duplication`; only the Accounts copy renders in the real served
+  app). Sales Invoice/Stock Transfer's own pre-existing overrides are untouched and render unchanged
+  (their values already agreed with the new default); Purchase Invoice's height floor now also gets
+  correct vertical centering as a natural side effect of the new default (it previously set no
+  vertical-align at all).
+- **Workstream D**: `'Warehouse'` removed from `salesInvoiceConfig.lineColumns`
+  (`inventory-screen.model.ts`) — Purchase Order's own independently-editable per-line Warehouse column
+  (a different config object) is untouched. `salesLineItems()`'s `warehouse_name` assignment
+  (`inventory-screen-shell.ts`) simplified from `this.lineValue(row, ['warehouse']) ||
+  this.formValues()['warehouse']` to just `this.formValues()['warehouse']`, since the per-line cell can
+  no longer exist.
+- **Workstream E (highest-risk — money-adjacent cost-layer logic)**: new migration
+  `160_stock_transfer_branch_stock_posting.sql` rewrites `fn_post_stock_transfer` to require a resolved
+  location (warehouse OR branch) on each side instead of specifically a warehouse, routes both the
+  source decrement and destination increment through `inventory.fn_upsert_stock_balance` (157) instead
+  of a hand-rolled UPDATE/INSERT-if-NOT-FOUND pair plus a separate manual availability check (collapsing
+  the duplicated insufficient-stock guard into the one canonical implementation), passes each side's
+  branch id as `fn_consume_stock_cost_layers`/`fn_add_stock_cost_layer`'s existing trailing parameter,
+  and widens the same-location guard to also catch From Branch == To Branch (not just From Warehouse ==
+  To Warehouse — a warehouse and its own parent branch are still different locations here). **Re-read
+  live before writing** (per the plan's own instruction, since a prior workstream's premise turned out to
+  need re-verifying): `fn_post_stock_transfer`'s live body matched the plan's quoted one exactly, and
+  `SELECT object_name FROM inventory.tbl_guarded_function_defs` confirmed it is still not one of the 10
+  guarded objects — plain `CREATE OR REPLACE`, no bypass needed. Frontend:
+  `buildStockTransferPayload()` (previously warehouse-only via `findWarehouseBySelection`) now resolves
+  each side through `resolveMergedLocation()` + `singleWarehouseForBranch()` (the same auto-collapse
+  GRN/PI/DC already use) and populates `from_branch_id`/`from_branch_name`/`to_branch_id`/
+  `to_branch_name` — the backend `StockTransferUpsertRequest` DTO and `sp_save_stock_transfer` already
+  had these fields wired end-to-end from an earlier round, they'd simply never been populated by the
+  frontend before. `runtimeOptions()` gained a `stockTransfer` + `fromwarehouse`/`towarehouse` case
+  wired onto the same merged Warehouse/Branch option list Delivery Challan uses.
+  `branchOnlyStockPostingScreenKeys` gained `'stockTransfer'`. `mergedLocationValidationMessage()`'s
+  single-location body was extracted into `singleLocationValidationMessage()` (byte-identical behavior
+  for its 5 existing callers) so the new `stockTransferLocationValidationMessage()` could call it twice
+  — once per side — since Stock Transfer is the only screen with two independent location fields; wired
+  into `validatePayload()` alongside (not through) the existing `mergedLocationValidationMessage()` call,
+  since Stock Transfer was deliberately kept out of `stockLocationScreenKeys` (that set's single-
+  `warehouseId` gate can't represent two sides). The same-branch guard itself lives only in the SQL
+  function, not client-side — deliberately not added to `validatePayload()`'s existing From≠To-Warehouse
+  check, since the plan's frontend fix list didn't call for it and the SQL guard already covers it.
+- **Live-verified, rolled back, real database** (Company 7 "Test Co 21358478" / Branch 11 "Branch Two" /
+  Branch 9 "Head Office" — both zero linked warehouses — / product 16 "Disposable Test Widget", the same
+  disposable fixtures the migration-159 verification used): seeded 10 units of branch-only stock at
+  Branch 11 via `fn_post_pi_stock`, then called the real `sp_save_stock_transfer` (not
+  `fn_post_stock_transfer` directly) with `from_branch_id 11` / `to_branch_id 9`, both zero-warehouse
+  branches, `qty 4`, `post: true` — Branch 11 correctly dropped to 6, Branch 9 correctly gained 4, and
+  `inv_stock_cost_layers` grew a new Branch-9 layer at the same `unit_cost 100.0000` the Branch-11 layer
+  consumed from. A follow-up transfer of `qty 999` (exceeding the now-6-available) raised `Insufficient
+  stock for ... at Branch Two: available 6, required 999` and left Branch 11's balance unchanged at 6 —
+  refused, not clamped. A `from_branch_id == to_branch_id` (11/11) attempt raised `From Branch and To
+  Branch cannot be the same.`. Entire script wrapped in `BEGIN … SAVEPOINT … ROLLBACK`; post-rollback
+  query confirms zero residual rows for either branch. Separately, `sp_get_available_stock(company_id:
+  7, product_id: 16)` (same seeded branch-only row) returned `branch_id: 11, branch_name: "Branch Two",
+  location_id: 11, location_name: "Branch Two", location_type: "branch", warehouse_id: null` alongside
+  the pre-existing legacy dual-NULL row tagged `location_type: "unassigned"` — confirming Workstream A's
+  new fields carry real data end-to-end and that the two rows stay distinguishable (Workstream A's
+  track-key fix).
+- **Workstream C visually verified**: a minimal static-HTML reproduction (4 mini grids: Goods Receipt/
+  Purchase Invoice/Sales Invoice/Stock Transfer, each with a `.inventory-line-col-product` cell next to a
+  4-line-tall sibling cell), rendered via headless Chrome (`playwright-core`) before and after the CSS
+  fix. Before: Goods Receipt's and Purchase Invoice's "+ Product" trigger sat at the top of the row
+  (visible empty space below); Sales Invoice/Stock Transfer already centered. After: all four render with
+  the trigger vertically centered, Sales Invoice/Stock Transfer unchanged. Chosen over driving the real
+  served app because a second agent was concurrently using the same running dev API/login session for an
+  unrelated workstream (F) at the time — the plan explicitly allows this fallback when login is hard to
+  automate around a live, actively-used session.
+- **A concurrent restart by that other in-progress session picked up migration 160 as a side effect**:
+  the API had already been restarted (for the other session's own purposes) after migration 160 and its
+  `DatabaseBootstrapper.cs` registration existed on disk; its boot log independently shows
+  `DatabaseBootstrapper: applied idempotent migration 160_stock_transfer_branch_stock_posting.sql.`
+  immediately followed by `schema check complete.`, no warning in between — consistent with the direct
+  `pg_get_functiondef` check (live body byte-matches the migration file, and the guard table still
+  correctly excludes it). This session did not itself restart the API, to avoid disrupting that other
+  session's own in-flight login/OTP testing.
+- **Backend `dotnet build` (main API project): 0 errors.** `Kapil_Group_ERP_API.Tests` still fails to
+  **compile** for the same pre-existing, unrelated reasons recorded in the 2026-08-26 entry above
+  (`UsersControllerTests.cs` / `InventoryTransactionsControllerTests.cs`) — not touched by this work
+  either; this work's own backend changes (one new DTO's worth of additive fields, one new optional
+  controller/service parameter, one new migration + its registration) were instead verified via the live
+  `psql` scripts above.
+- **Full unscoped `ng test`**: 68 spec files (no new files — 4 existing ones gained cases), 465 tests,
+  **457 passing**, the same 8 pre-existing `NG0201 DatePipe` failures as every entry above, 0 new
+  failures. `npx tsc --noEmit -p tsconfig.app.json` clean.
+
+## Live-Verification Findings (Stock-hint mislabeling + branch-aware hints, active-branch-only merged picker, stock-aware Interbranch Sale picker, Stock Transfer stock hint + real serial picker — 2026-08-27)
+
+- **Item 1 root cause, confirmed live via `psql`, not guessed**: `inv_stock_balance` for the reported
+  product ("Dell Computer-I7", `product_id` 12, `company_id` 53) has exactly two rows — one real
+  warehouse row (`warehouse_id` 4 "Hyderabad", 109) and one legacy dual-NULL "Unassigned" row (neither
+  `warehouse_id` nor `branch_id` set, 2) — confirming the DC screenshot's "Hyderabad: 109, Warehouse: 2"
+  was the dual-NULL row mislabeled, not a second warehouse. Fixed by a new `stockRowLocationLabel()`
+  helper (`warehouse_name || branch_name || 'Unassigned'`) used at all three label call sites
+  (`warehouseStockLocationHint()`, and both breakdown lines inside `salesOutwardStockControlState()`) —
+  this also fixes the previously-undetected case of a real branch-only stock row being mislabeled
+  "Warehouse" too. The SI-shows-0 half of item 1 did **not** reproduce as a code bug: calling
+  `sp_get_available_stock` directly with `company_id=53, product_id=12` (no variant — the product has no
+  configured variants at all, despite carrying a `variant_id` in `inv_stock_balance`, itself a pre-existing,
+  unrelated data anomaly not touched here) returns both rows summing to 111, and DC/SI share the exact
+  same fetch/cache/company-scoping code path (`fetchAvailableStockForLine()` → `getAvailableStock()`,
+  company_id always server-derived from tenant context, never client-sent) with no per-screen branching
+  that could produce a different total for the identical product+company. Concluded: either the two
+  screenshots were captured under two different company sessions, or the SI line's product cell held a
+  different product than it visually appeared to — genuinely not the same query returning different
+  answers. What **was** a real, separate, fixable bug found during this investigation: DC's/SI's header
+  "From Warehouse / Branch" field is a merged picker now (Full Warehouse/Branch Independence), but
+  `salesOutwardStockControlState()`/`warehouseStockLocationHint()` only ever resolved it via
+  `findWarehouseBySelection()` — a Branch-resolved header silently fell through to the generic "no
+  location resolved" cross-location breakdown (the literal DC screenshot's "Available (all warehouses)"
+  phrasing on a Delivery Challan, which per the code's own prior comment should only ever happen for
+  Sales Order). Fixed via a new `resolveHeaderStockLocation()` (built on the existing
+  `resolveMergedLocation()`) plus branch-aware `stockRowForBranch()`/`otherLocationsWithStock()`
+  counterparts to the existing warehouse-only helpers.
+- **Item 2**: `mergedLocationEntries()` (the single computed backing GRN/PI/PR/DC/SI/Stock Transfer's
+  merged picker) now filters branch entries to `status !== 'inactive'`, with a carve-out that keeps an
+  already-selected branch visible even if it has since gone inactive (`resolveMergedLocation()` already
+  falls back to the unfiltered `findBranchBySelection()` for id resolution regardless, so this is purely
+  about not leaving the ng-select showing blank on an older document). Sales Return was investigated and
+  found **not** to share this code path at all — its own `returnToWarehouse` field is still warehouse-only
+  (never merged; migrations 161/162 only gave Sales Invoice and Purchase Return their own branch columns,
+  not Sales Return) — so there is no Branch option there to filter yet; documented rather than built,
+  since adding a Branch option to Sales Return is a materially bigger change than "restrict to active"
+  and outside this item's stated scope. The company-wide `branchOptions`/`branchOptionList` getter used by
+  Purchase Requisition/Opening Balance/Sales Enquiry/Opening Stock Entry (and Branch Master's own screen)
+  is deliberately untouched.
+- **Item 3**: `salesInvoiceBranchOptions()` gained a `stockAwareInterbranchBranchNames()` step, gated on
+  `interbranchSaleEnabled()`, reusing the exact `availableStockCache` the per-line hints already populate
+  (no new stock query) and the existing `stockAvailableAcrossWarehouses()`/`branchWarehousePool()` helpers
+  from items 13/14. Chosen semantics (documented in-code): a branch is offered if it can supply **at
+  least one** of the invoice's current line items, not every line — the branch field is picked once per
+  invoice, and requiring every line to already be priced out would make the one useful branch disappear
+  while a user is still building up the line grid. Falls back to the full active list (never empty) while
+  stock data is still loading in for every line.
+- **Item 4a**: `salesOutwardStockControlState()`'s screen-key gate widened to include `'stockTransfer'`,
+  reading `fromWarehouse`/`fromWarehouseId` (same field names Delivery Challan already uses) — no new
+  hint-building code, exactly the existing DC/SI pattern reused as instructed. Verified the branch-side
+  case too (From resolved to a Branch, not a Warehouse) via the same `resolveHeaderStockLocation()` fix
+  from item 1.
+- **Item 4b, a real backend gap found and fixed, not just frontend wiring**: `sp_get_available_serials`
+  (`GET /serials/available`, backing the serial picker's `'select'` mode) has never had a `branch_id`
+  filter, even though `inv_serial_units` already carries `branch_id`/`branch_name` and
+  `fn_post_stock_transfer` (migration 160, confirmed live below) already supports a branch-sourced
+  transfer end-to-end. Without it, opening the serial picker against a Branch-resolved "From" would have
+  scoped to `warehouseId: null` — every in-stock serial company-wide instead of just the ones at the
+  source — letting a user "select" a serial that was never actually there, which would then fail at Post
+  time with `fn_post_stock_transfer`'s own "not in stock at the From location" exception instead of being
+  caught by the picker itself. Fixed via a new migration (`168_available_serials_branch_scope.sql`,
+  registered in `DatabaseBootstrapper.cs`) adding the same optional-filter pattern `warehouse_id` already
+  uses, plus the full stack above it (`SalesTransactionsController.GetAvailableSerials` /
+  `SalesTransactionsDataService.GetAvailableSerialsAsync` / `InventoryTransactionsService
+  .getAvailableSerials()` all gained an optional `branchId` param) and a new
+  `resolveHeaderLocationForSerialPicker()` on the frontend (replacing the old warehouse-only
+  `resolveHeaderWarehouseId()`, itself also missing Stock Transfer's `fromWarehouse` field name — it read
+  the wrong form field for Stock Transfer entirely, always resolving `null`) so this one call site now
+  benefits DC/SI too, not just Stock Transfer. Stock Transfer's own grid gained the same
+  `lineGridColumnIsSerialPicker()`/`openSerialPicker()`/`InventorySerialPickerModalComponent` wiring
+  GRN/DC/SI/PR/SR already use (previously a plain free-text `<input>`, confirmed by this session's own
+  prior investigation) — `stockTransferItems()`'s payload builder switched from parsing a comma/space
+  free-text cell to reading `lineSerialUnitsMap()[index]` like every other screen's builder, and the
+  `case 'stockTransfer':` record-load branch gained the same `hydrateLineSerialUnitsFromRecord()` call
+  GRN/PI/DC/SI already make (previously absent, so re-opening a saved draft with captured serials would
+  have shown "0 entered" and silently wiped them back to `null` on re-save). **Batch No investigated, not
+  changed**: no screen anywhere in this codebase has a real batch picker — every one of GRN/PI/DC/SI/PR/SR
+  treats it as plain free text (confirmed via `lineColumnOptionsForKey()`'s `isPolicyLineColumn()` gate,
+  which zeroes batch's dropdown options on every policy-aware/serial-header grid) — so Stock Transfer's
+  existing free-text Batch No cell is already at parity, nothing to wire in.
+- **A concurrent-restart discovery, corrected this round**: the prior 2026-08-26 entry above recorded
+  that migration 160 (`fn_post_stock_transfer` branch support) was confirmed live only via a *different,
+  concurrent* session's restart, and this session deliberately avoided restarting the API itself to not
+  disrupt that other session's in-flight login/OTP testing. This round genuinely needed a restart anyway
+  (to pick up migration 168 and the new `branchId` controller/service parameters), so it was done here:
+  all `dotnet.exe` processes killed first (not just the `dotnet run` wrapper — the migration-restart-race
+  gotcha), relaunched, confirmed stable over 20+ seconds, boot log shows `applied idempotent migration
+  168_available_serials_branch_scope.sql` immediately before `schema check complete.` with no warning in
+  between, and `pg_get_functiondef`/`\sf` re-confirms both `fn_post_stock_transfer` (branch-aware,
+  migration 160) and `sp_get_available_serials` (branch-scoped, migration 168) live-match their migration
+  files exactly, plus the guard table (`tbl_guarded_function_defs`) still correctly excludes both (neither
+  was ever guarded) — so nothing here was silently reverted.
+- **Backend, verified live in a rolled-back `psql` transaction**: two disposable `inv_serial_units` rows
+  inserted (one `warehouse_id=4`, one `branch_id=999`, both `product_id=12/company_id=53`) — calling
+  `sp_get_available_serials` with `branch_id=999` returns only the branch row; with `warehouse_id=4`
+  returns only warehouse-4's rows (correctly excluding the branch row); with neither, returns everything
+  company-wide (unchanged default behaviour) — then `ROLLBACK`, no permanent change to the shared
+  database. Backend `dotnet build` (main API project): **0 errors**. `Kapil_Group_ERP_API.Tests` still
+  fails to **compile** for the same pre-existing, unrelated reasons recorded in the 2026-08-26 entry above
+  (`UsersControllerTests.cs` / `InventoryTransactionsControllerTests.cs`, tied to unrelated in-flight
+  `MultiTenantDataService.cs` work) — not touched by this work; `SalesTransactionsControllerTests.cs`
+  itself gained 3 new cases pinning the controller's `branchId` passthrough (code-reviewed against the
+  main API project's clean build, since the whole Tests project can't compile end-to-end right now for
+  reasons outside this item).
+- **Full unscoped `ng test`**: 68 spec files (2 new — see the two new table rows above — plus cases added
+  to `inventory-screen-shell.interbranch-sale.spec.ts` and `inventory-screen-shell.stock-transfer.spec.ts`),
+  494 tests, **486 passing**, the same 8 pre-existing `NG0201 DatePipe` failures as every entry above, 0
+  new failures. `ng build --configuration=development` succeeds.
+
+## Live-Verification Findings (Opening Inventory Balance / Opening Stock Entry merged Warehouse/Branch picker + WH badge — 2026-08-28)
+
+- **Stack**: both `OneSphere-Accounts` (4200, host) and `OneSphere-Inventory` (4203, federated remote) were already running from earlier work today; used as-is rather than restarted, since this is a frontend-only change with no backend/build-output changes to pick up (Angular's dev-server watch mode picks up template/TS edits without a manual restart).
+- **Login**: no `chromium-cli`/project run-skill exists for this repo, so drove a one-off headless-Chromium Playwright script (`playwright` package pulled via `npx` cache, browsers already installed locally). Logged in as the disposable OTP identity `testreg21358478@example.com` (`testing_no_real_otp` memory) — company `TCO21358478`, 2 branches (Head Office, Branch Two), **zero warehouses**. Hit the backend's OTP-request rate limiter ("Too many OTP requests. Please try again later.") after a few quick iterations while developing the driver script; backed off ~5-7 minutes between attempts to clear it. Worth a project run-skill for next time so this doesn't need rediscovering.
+- **Opening Inventory Balance** (`/dashboard/inventory/masters/opening-inventory-balance`): confirmed a single "Warehouse / Branch" field (not two separate Branch/Warehouse fields), pre-filled with "Head Office" on load (session-Branch default from `LOCATION_DEFAULT_CAPABILITIES`'s new `merged` entry — this screen has no session-active Warehouse to prefer since the test company has none, so it correctly fell through to the branch heuristic). The "Existing Saved Records" grid below shows a single combined "Warehouse / Branch" column with the updated static sample rows, confirming this pre-existing mock/no-backend screen (Save is a no-op — confirmed by reading `executeSaveConfigRecord()`'s `default:` case, not exercised live given no real save button that would leave dummy data behind) still renders correctly with the merged config shape.
+- **Opening Stock Entry** (`/dashboard/inventory/transactions/opening-stock-entry`): same single merged field confirmed. On a first quick screenshot (~2.5s after navigation) the field appeared to not have defaulted, unlike Purchase Invoice/Opening Inventory Balance on the same run — re-tested with a longer wait and captured the underlying `branches`/`warehouses` network calls: both endpoints 401 first (stale in-memory access token) then silently refresh and retry successfully — a normal several-second async sequence for this app (memory-only access token, cookie-based silent refresh), not a bug. After waiting for that sequence to finish, "Head Office" appears correctly, confirming the new `LOCATION_DEFAULT_CAPABILITIES` entry works. The "Existing Saved Transactions" grid legitimately shows "0 of 0" even though the config's own `columns` list is correct (single "Warehouse / Branch" column, confirmed) — this is the **pre-existing, unrelated `mapToGridRows()` gap** already known from static analysis: `openingStockEntry` (and `stockTransfer`/`stockAdjustment`/`cycleCount`) have no case in that switch, so `default: return [];` always empties the grid regardless of what's actually saved. Flagged again here since it was directly visible during this verification, not introduced by this item, and out of scope to fix (see Known Test Gaps below).
+- **Purchase Invoice** (regression check on a pre-existing merged screen, `/dashboard/inventory/transactions/purchase-invoice`): "Branch / Warehouse" field still shows as one field, pre-filled "Head Office" correctly, no regression from adding the `ng-option-tmp`/`ng-label-tmp` templates.
+- **WH badge — partially verified**: opened the merged dropdown on all three screens above; each renders the expected `groupBy="group"` "BRANCH" header with "Head Office"/"Branch Two" underneath, no badge on either (correct — badges are warehouse-only). Because the only available disposable test company has **zero warehouses**, there was no live warehouse entry to visually confirm the "WH" badge actually renders on. Not chased further — the exact data source the badge template reads (`grnReceivingLocationGroups()`'s `type: 'warehouse'` tag) already has direct unit coverage proving a warehouse entry gets `type: 'warehouse'` and a branch entry doesn't (`inventory-screen-shell.merged-location-tagging.spec.ts`, `inventory-screen-shell.opening-screens-merged-location.spec.ts`), and `ng build` compiles the `@if (item.type === 'warehouse')` template expression across all 7 screens with zero errors. Recommend a follow-up live check against a company with real warehouse data (e.g. the `COMP1`/company id 3 multi-warehouse test company used in today's earlier backend verification — no UI login email was recorded for it, only company_code/id via direct API calls) if a fully visual confirmation is wanted.
+- **No new console errors from this change**: the only console errors seen on any of the three screens were two pre-existing `500`s from unrelated HRMS dashboard payroll/attendance widgets (present before navigating into Inventory at all) and the expected transient `401`s from the access-token silent-refresh cycle described above — neither traceable to this item's edits.
+
+## Live-Verification Findings (Stock Adjustment merged Warehouse/Branch picker — 2026-08-30)
+
+- **Stack**: API restarted clean (killed all `dotnet.exe`/`Kapil_Group_ERP_API.exe` processes first per the migration-restart-race memory, relaunched via `dotnet run` in the background) to pick up migration `172_stock_adjustment_branch_stock_posting.sql`; both `OneSphere-Accounts` (4200, host) and `OneSphere-Inventory` (4203, federated remote) dev servers were already running and picked up the template/TS edits without a restart. Boot log confirmed `applied idempotent migration 172_stock_adjustment_branch_stock_posting.sql` with no `RAISE WARNING` (self-heal guard) and no error, immediately before `Now listening on:`; confirmed live via `psql` that `fn_post_stock_adjustment`'s body now contains branch logic (not silently reverted) and that `inv_stock_adjustments` still carries `branch_id`/`branch_name`.
+- **Test data**: used the existing disposable identity `testreg21358478@example.com` (company 7, `TCO21358478` — see `testing_no_real_otp` memory). That company had zero warehouses and zero Inventory-module branch configs left over from earlier sessions (its two *login-level* branches, Head Office/Branch Two, are a separate global `branches` table used only for session identity, not `inventory.inv_branch_config`), so one warehouse ("Test Warehouse 1", id 15) and one Inventory branch config ("Test Branch 1", id 17) were inserted directly for company 7/segment 23 — confined entirely to this disposable test company, not touching any real customer data.
+- **Backend, direct API calls against the running server** (`POST`/`PUT /api/inventory/transactions/stock-adjustments`, using the dev-exposed OTP from `request-otp`'s response, never a real send):
+  - Branch-only Increase (`branchId: 17`, no `warehouseId`) saved as `pending_approval` with `branchId`/`branchName` round-tripping correctly and `warehouseId`/`warehouseName` both `null`; approving it (`status: "approved"`) posted successfully with **no** "requires a Warehouse" exception — confirmed live in `inventory.inv_stock_balance` (`branch_id=17, warehouse_id=NULL, qty_on_hand=5`) and `inventory.inv_stock_cost_layers` (`branch_id=17`, `unit_cost=100` matching the product's `cost_price`, `source_doc_type='stock_adjustment'`).
+  - Branch-only Decrease of qty 2 against the same branch correctly consumed the cost layer (`remaining_qty` 5→3, `qty_on_hand` 5→3).
+  - An over-decrease (qty 999 against 3 available) was **refused**, not clamped to zero: `"Insufficient stock for Disposable Test Widget (valuation comparison demo) at Test Branch 1: available 3, required 999."` — confirms the deliberate clamp→refuse behavior change documented in migration 172 actually took effect.
+  - A warehouse-only Increase (`warehouseId: 15`, no branch) against the same product still worked exactly as before this change (unregressed).
+  - Approving with **neither** warehouse nor branch set returned `"Stock Adjustment requires a Warehouse or Branch."` (the new dual-location message from migration 172, replacing the old warehouse-only wording).
+  - `GET .../stock-adjustments` correctly round-trips `branchId`/`branchName`/`warehouseId`/`warehouseName` per record (only the warehouse-matching record was visible in this call because this session's `active_warehouse_id` JWT claim happened to be 15 — migration 170's active-location filtering, pre-existing and unrelated, working as designed, not a bug).
+- **Frontend, Playwright driving the real dev servers** (same disposable identity, dev-exposed OTP read from the network response, never a real send): logged in, confirmed the post-OTP company/location selector itself already shows "Test Warehouse 1 (TEST-WH1)" tagged with the "WH" badge alongside "Head Office"/"Branch Two" untagged (pre-existing shared login component, unaffected by but consistent with this change), then navigated to `/dashboard/inventory/transactions/stock-adjustment`:
+  - The header field now reads **"Warehouse / Branch"** (was "Warehouse"), and the "Existing Saved Transactions" grid's column header now reads **"Warehouse / Branch"** too (config-level column rename) — the grid itself legitimately shows "0 of 0" regardless of real saved data, which is the **pre-existing, unrelated `mapToGridRows()` gap** already documented below (`stockAdjustment` has no case in that switch), not something this change touched or introduced.
+  - Opening the field's dropdown renders it grouped exactly like every other merged screen — a "WAREHOUSE" section with "Test Warehouse 1" carrying the small "WH" badge, and a "BRANCH" section with "Branch Two"/"Test Branch 1", neither carrying a badge; picking "Test Branch 1" replaced the session-defaulted "Head Office" value correctly, with no badge on the new selection.
+  - Filled Adjustment Type "Increase", Status "Pending Approval", Reason, and opened the line-item "Pick Product" popup with the branch selection still intact in the header — confirms the merged field survives interaction with the rest of the form. Hit the backend's per-identity OTP-request rate limiter after several Playwright runs in the same short window ("Too many OTP requests. Please try again later.") before completing a full click-through Save; the Save path itself was already exercised end-to-end via the direct API calls above (the same endpoint the Save button calls), so this was not chased further with a cooldown wait.
+  - No new console errors traceable to this change — the only console errors seen were the two pre-existing HRMS dashboard `500`s and the transient access-token-refresh `401`s already noted in the 2026-08-28 entry above, present before this item's screens were ever visited.
+
+## Live-Verification Findings (Stock Transfer WH badge, topbar switcher real bugs, active-location refresh-token gap — 2026-08-30)
+
+Three follow-ups from the Warehouse/Branch Independence work: (1) Stock Transfer was the one merged-picker screen missed by the 7-screen WH-badge rollout; (2) "switch branch is still not working" needed a fresh, real browser click-through (a prior session in this project fixed a CSS truncation bug but never completed one end-to-end); (3) active-location transaction filtering (migration 170) needed the same live UI confirmation. Test identity: a brand-new disposable company registered through the real UI wizard (`wbtest<random>@example.com` / `Test@12345`, company "WB Test Co <random>"), using the app's own dev-mode OTP auto-fill (`ExposeOtpInDevelopment`, a sanctioned dev convenience already built into `login.component.ts` — never a real OTP send/read) for the one-time registration step, then PASSWORD login for every subsequent test action per this task's explicit instruction (to avoid the registration-OTP endpoint's fixed-window rate limiter, which did trip once from earlier registration attempts this session — confirmed via a `503` from the `.NET` rate-limiting middleware's default rejection status, not application-level). Driven with a local Playwright script (`chromium`, headless) against the live dev servers — no `chromium-cli`/project run-skill existed for this repo, so this was ad hoc; recommend `/run-skill-generator` if this becomes a recurring need.
+
+- **Item 1 fixed — Stock Transfer WH badge**: `stock-transfer.html`'s `fromWarehouse`/`toWarehouse` fields were still falling into the generic `field.type === 'select'` branch (plain `field.options`, no grouping, no badge). Added the same `field.key === 'fromWarehouse' || field.key === 'toWarehouse'` branch the other 7 merged screens use (`grnReceivingLocationGroups()` + `ng-option-tmp`/`ng-label-tmp` badge template), for both fields. No shell (`.ts`) logic needed — `grnReceivingLocationGroups()` already existed and is already covered by the base-shell specs. Live-verified: opening either dropdown on a real company with a warehouse shows a "WAREHOUSE" group with "Test Warehouse" tagged `WH`, a "BRANCH" group with "Head Office"/"Branch Two" untagged — screenshot confirms this rendering exactly (`From Warehouse / Branch` showing "Branch Two", `To Warehouse / Branch` dropdown open showing the grouped/badged options). File: `src/app/inventory/Inventory_Transactions/stock-transfer/stock-transfer.html`.
+- **Item 2 — two genuine bugs found and fixed, one severe, beyond the already-fixed CSS truncation**:
+  1. **Federation auth-token bridge gap (severe)**: `OneSphere-Accounts`' `TokenService` deliberately keeps the access token ONLY in an in-memory field (`access token integration`, Jul 2026 commit) — never `sessionStorage`/a cookie. `OneSphere-Inventory`'s own hand-duplicated `Interceptor.ts`/`auth.service.ts` still read `sessionStorage.getItem('token')`, which Accounts never writes — so when Inventory is loaded as a federated remote inside the Accounts host (the actual served path, port 4200), some of Inventory's requests raced ahead of the host's own interceptor with an effectively-empty `Authorization: Bearer` header and got instantly `401`'d (live-confirmed via a header-capturing Playwright script: first-wave requests carried a 6-character `Authorization` header — i.e. an empty token — then self-healed within ~1s once the request bearing the real 655-character JWT succeeded). Fixed with a minimal cross-remote bridge: `TokenService`'s constructor installs `window.__oneSphereGetAccessToken = () => this.accessToken` (a live getter, not a copied value — same same-page exposure as `sessionStorage` already has, so no new security regression), and Inventory's `Interceptor.ts` now tries that bridge before falling back to `sessionStorage['token']` (preserving today's behavior for Inventory running fully standalone). Live-verified: `window.__oneSphereGetAccessToken` exists and returns a token after a normal password login; `GET /api/inventory/config/warehouses` now returns `200` with real data instead of `401 Authentication required`. A small residual race remains on the very first wave of parallel Inventory calls per session (self-heals via the existing 401-retry-after-refresh path in ~1s) — not chased further given the severe, permanent-401 case is what's fixed. Files: `OneSphere-Accounts/src/app/core/services/token.service.ts`, `OneSphere-Inventory/src/app/core/Interceptor/Interceptor.ts`.
+  2. **Topbar never displayed the active Warehouse**: `currentWarehouseLabel` was a real, computed getter, but every template usage (`context-toggle-btn`'s aria-label/title/text, the avatar panel's `.ap-role`) only ever bound `currentBranchLabel` — so switching to a Warehouse via the merged picker gave no visible topbar confirmation of what actually got picked (it kept showing whatever Branch was last active instead). Added a new `currentLocationLabel` getter (shows `currentWarehouseLabel` when `sessionStorage['activeLocationKind'] === 'warehouse'`, else falls back to the pre-existing `currentBranchLabel` — so every login path that never touches the merged switcher is unaffected) and a stamp of `activeLocationKind` in `applyTenantSwitch()` (both the merged picker) and `switchBranchDirectly()` (Inventory's Branch-only quick-switch), based on `lastPickedSwitchLocationType`. Replaced all 4 template usages of `currentBranchLabel` with `currentLocationLabel` in both hand-duplicated copies. Also found and fixed a real divergence between the two copies while here: Inventory's own `applyTenantSwitch()`/`switchBranchDirectly()` used a soft `this.router.navigate(['/dashboard'])` after a switch, while Accounts' copy deliberately uses a hard `window.location.href = '/dashboard'` (with an explicit comment about route-reuse staleness) — Inventory's copy now matches Accounts' exactly, closing a real "stale already-mounted screen after switching" gap specific to whichever context actually runs Inventory's own copy. Files: both apps' `shared/main-layout/main-layout.component/main-layout.component.ts` and `.html`.
+  3. **Root cause of the merged-picker's Warehouse pick "disappearing" after the switch's own reload (backend)**: `MultiTenantDataService.RefreshTokenAsync` — which fires on every full-page reload via the auth guard's silent-refresh fallback, including the exact reload `applyTenantSwitch()` triggers to apply a new session — called `GetUserBranchesAsync`/`GetUserWarehousesAsync` WITHOUT the company-admin/super-admin bypass flag that `SwitchBranchAsync`/`SwitchCompanyAsync`/`GetMeAsync` all correctly compute and pass. Since `user_warehouse_access` (migration 171) is brand new and nothing yet backfills a row for existing admins, this silently emptied the warehouse list on every refresh, so a warehouse a switch call had just correctly resolved (confirmed in its own response) was reset to `null` on the very next automatic refresh — live-confirmed directly against `refresh_tokens`: the switch's own row correctly carried `warehouse_id=16`, the very next row (and every subsequent one) had it `NULL`, while `branch_id` stayed correct throughout (branches didn't show this symptom only because admins already have real `user_branch_access` rows from company setup — a coincidence of timing, not a working code path). Fixed by computing the same bypass in `RefreshTokenAsync` and passing it to both calls, matching the other three methods. Live-verified: `POST /auth/refresh-token`'s response now carries the correct `warehouse` object on every call after a switch, matching what the switch call itself returned, and the DB rows confirm `warehouse_id` no longer resets. File: `Kapil_Group_ERP_API/MultiTenancy/Services/MultiTenantDataService.cs` (`RefreshTokenAsync`). Not a guarded-function change (plain C#, not SQL) — no self-heal-guard dance needed; API restarted clean, migrations 161–173 reapplied with no errors, stability confirmed over 20s+ before testing.
+  - **Confirmed genuinely working, not broken**: picking a Branch from the merged picker and clicking "Switch Context" does correctly `POST /auth/switch-branch`, rotate the session, hard-reload to `/dashboard`, and update the topbar to the new Branch — screenshot-confirmed (`WB Test Co <n> / Branch Two` visible immediately post-reload, module tabs functional). The "Switch Context" button correctly disables when the merged picker's current selection already matches the active session (not a bug — this is `isContextChanged`'s intended no-op guard, briefly mistaken for a stale click during this investigation).
+  - **Not reached**: the Inventory-standalone context (port 4203, its own login/main-layout copy) — this dev server currently fails to boot at all when hit directly (`Unable to resolve specifier '@angular/platform-browser'` etc.), a pre-existing native-federation import-map limitation unrelated to Branch/Warehouse (its shared-dependency import map is only ever resolved when actually loaded as a remote inside a host). Flagged as an environment gap, not fixed here (out of scope, unrelated to this item's actual bugs).
+- **Item 3 confirmed**: with the token-bridge fix in place, Inventory transaction screens' data calls succeed (200s with real data) after a switch — the earlier appearance of "grids always empty after switching" was entirely explained by item 2's `401` storm (nothing could ever load), not a separate caching/refetch gap. `applyTenantSwitch()`'s hard `window.location.href` reload (already correct in Accounts, now also fixed in Inventory) is what actually satisfies the "no extra manual refresh needed" requirement — confirmed screenshot-side (Stock Transfer's "From/To Warehouse / Branch" dropdown correctly reflects the current session's branches/warehouse with the WH badge, immediately after a switch + reload, no extra interaction).
+- No new automated spec added for the interceptor bridge or `RefreshTokenAsync` fix — this codebase's test conventions don't cover either layer today (Inventory's `Interceptor.ts` has no existing spec to extend; `MultiTenantDataService`'s raw-SQL methods aren't unit-tested anywhere, per this project's controller-layer-only xUnit convention — there's no mocking seam for a real Postgres round-trip). Both verified live instead: full Inventory frontend spec suite re-run clean (59/59: `main-layout.component.spec.ts`, `inventory-screen-shell.stock-transfer.spec.ts`, `inventory-screen-shell.merged-location-tagging.spec.ts`), full backend xUnit suite re-run clean (421/421) after the `RefreshTokenAsync` change.
+
+## Live-Verification Findings (Stock Transfer accounting posting, 2026-08-30)
+
+Stock Transfer (`inventory.fn_post_stock_transfer`) previously had zero accounting/GL impact — it only ever posted to inventory tables. This adds the first accounting integration for it, backend-only (no frontend change), following the existing Purchase/Sales Invoice posting pattern (`091_accounts_invoice_posting.sql`: one row per debit/credit leg in `accounts.tbl_trans_total_transactions`, referencing `accounts.tbl_mst_account`, auto-balanced via the existing `trg_tbl_total_transaction` trigger).
+
+- **New migration** `Database/Migrations/inventory/174_stock_transfer_accounting_posting.sql`, registered in `DatabaseBootstrapper.cs` immediately after `173`. Adds two new nullable, additive columns to `accounts.tbl_trans_total_transactions` — `location_branch_id`/`location_warehouse_id` — three new account heads (`Stock Transfer Out`, `Stock Transfer In`, `Inter Branch` parent group), a new `accounts.fn_ensure_location_subledger()` (mirrors the existing `fn_ensure_party_subledger()` pattern exactly, but for a branch/warehouse counterparty instead of a vendor/customer), and a new `accounts.sp_post_stock_transfer(p_data jsonb, o_result jsonb)` procedure taking only `transfer_id` — every other value (source/destination location type+id+name, and the real transfer cost) is read back from `inv_stock_transfers`/`inv_stock_cost_layers` rather than passed through and possibly re-derived incorrectly.
+- **Live discovery that changed the column-naming plan**: `accounts.tbl_trans_total_transactions` already had a column literally named `branch_id` — but it's a legacy column FK'd to `global.tbl_mst_branch_configuration` (an old chit-fund-era config table, e.g. ids 1/3 for `COMP1`/`BNCH1`), completely unrelated to Inventory's `global.branches` (the real branch table the "Full Warehouse/Branch Independence" project uses, e.g. id 4 = "Hyderabad"). Reusing it would have silently conflated two unrelated id-spaces sharing a column name by coincidence — caught by inspecting the live schema (`\d accounts.tbl_trans_total_transactions`) before writing the migration, not assumed from the task description. The two new columns are named `location_branch_id`/`location_warehouse_id` instead, and the pre-existing `branch_id`/`company_code`/`branch_code` columns and every other posting procedure's behavior on them are completely untouched.
+- **Real transfer cost, not recomputed**: `fn_post_stock_transfer` calls `fn_add_stock_cost_layer(..., 'stock_transfer', p_transfer_id, ...)` at the destination side for every line — so `sp_post_stock_transfer` reads the real cost the valuation engine already computed as `SUM(received_qty * unit_cost)` from `inv_stock_cost_layers WHERE source_doc_type='stock_transfer' AND source_doc_id=<transfer id>`, rather than re-deriving it from rate/qty itself.
+- **C# wiring**: `InventoryTransactionsDataService.SaveStockTransferAsync` (`GLOBAL_ACCOUNTS_LATEST/Kapil_Group_ERP_API/MultiTenancy/Services/InventoryTransactionsDataService.cs`) now calls `accounts.sp_post_stock_transfer` right after `inventory.sp_save_stock_transfer` returns with `Status == "posted"` — the exact same convention Purchase Invoice already uses for `accounts.sp_post_purchase_invoice`. Not called on a draft save.
+- **Verified live on a disposable test company** (`Test Company COMP1`, id 3 — not a real customer; `sanam digitals`, the company holding the only pre-existing posted Stock Transfers, was deliberately left untouched) with a disposable test product seeded via the legitimate `sp_save_opening_stock_entry` path (no direct table hacking): 5 real posted transfers exercising all three location-type combinations — warehouse→branch (₹6,000, seeding branch stock), branch→branch (₹2,000, then a second ₹1,000 transfer between the same pair to prove accumulation), warehouse→warehouse (₹2,000), and branch→warehouse (₹1,000) — each produced exactly 4 correct ledger rows (right accounts, right debit/credit sides, right amount matching the cost-layer value exactly, right `location_branch_id`/`location_warehouse_id` pairing per the task's source-books/destination-books split). `Stock Transfer Out` and `Stock Transfer In` accumulated to exactly ₹12,000 each (credit/debit respectively, matching the sum of all 5 transfers) after the run. Each `Inter Branch - <location>` sub-ledger's balance reflected only that specific counterparty's net position — confirmed distinctly for `BRANCH_ONE` (2000 net debit), `Hyderabad` (-8000), `BRANCH_TWO` (3000), `Secunderabad` (2000), and `Mancherial` (1000), never netted together. The `Inter Branch` parent itself stayed at exactly 0.00 (no direct postings against it), as required. A 6th transfer saved as `draft` (not posted) produced zero ledger rows, confirming the C# `Status == "posted"` gate. Confirmed GRN/Purchase Invoice's own postings (accounts 4007/1181/1182/2151, still hardcoded `COMP1`/`BNCH1`) are completely unaffected — `sp_post_purchase_invoice`'s live function body has no reference to the new `location_*` columns.
+- **Restart verified stable**: all `dotnet.exe`/`Kapil_Group_ERP_API.exe` processes killed first (per `erp_migration_restart_race`), single clean relaunch via Bash `run_in_background`, migration 174 applied with no error in the boot log, port 5000/5001 listening and re-confirmed stable ~23s after boot. `fn_post_stock_transfer` (not touched by this migration) re-verified byte-identical (`pg_get_functiondef` `md5`) before and after restart, and the 10-object self-heal guard list (`inventory.tbl_guarded_function_defs`) unchanged — neither `sp_post_stock_transfer` nor `fn_ensure_location_subledger` is a guarded object, so no guard-bypass dance was needed for this migration.
+- **Backend tests**: `InventoryTransactionsControllerTests.cs` had zero coverage for the Stock Transfer endpoints at all before this item (not something this item broke — a pre-existing gap). Added the standard `GetStockTransfers`/`SaveStockTransfer`/`UpdateStockTransfer` coverage matching every sibling endpoint's established Get/Save/Update/InvalidModelState/ServiceThrows density in this file, plus one `SaveStockTransfer_Posted_ReturnsResponseWithPostedStatus` case pinning the controller's own contract (a "posted" response passes straight through) — the actual `accounts.sp_post_stock_transfer` call is inside the concrete `InventoryTransactionsDataService`, out of reach of a controller test against a mocked `IInventoryTransactionsDataService`, same pre-existing architectural gap Purchase Invoice's identical `sp_post_purchase_invoice` call already has in this suite (not newly introduced by this item). Full backend suite: **429/429 passing** (+8 from the new Stock Transfer controller tests).
+- **No frontend change** — this item is backend-only (new SQL objects + one new call site inside an existing service method with an unchanged public signature), so no Inventory `*.spec.ts` file needed updating.
+
 ## Known Test Gaps
 
+- **`mapToGridRows()`'s switch has no case for `openingStockEntry`, `stockTransfer`, `stockAdjustment`, or `cycleCount`** (found 2026-08-28 while merging Opening Stock Entry's location fields, confirmed live and by reading the code — not introduced by that item, and out of scope to fix there). Its `default: return [];` means every one of these four screens' "Existing Saved Records/Transactions" grid always renders empty regardless of what's actually saved, even though each screen's own `save`/`load` round-trip (via `buildXPayload()`/the `editRecordByRow()` switch) works correctly — confirmed live for Opening Stock Entry (grid shows "0 of 0" with the correct single "Warehouse / Branch" column header, no data ever populates it) and by static reading of the other three. A fix would add one `case` per screen key mapping its saved-record fields to a row array, matching the pattern every other `isApiWired()` screen already has in that same switch.
 - **`inventory-screen-shell.ts`** (the 15000+-line shared component behind every transaction screen — DC, SI, GRN, PI, SO, Purchase/Sales Return, Credit/Debit Note, etc.) has only the one reference-picker spec above; everything else (stock-hint calculation, line-item UOM/variant/attribute resolution, save/post payload building) is still uncovered.
 - No test coverage anywhere for the Postgres stored-procedure layer itself (migrations 048–134), which is where the actual stock/tax arithmetic lives — an automated regression here would need a real (or containerized) Postgres instance to run against, which doesn't exist as test infrastructure yet.
 - No coverage for the reports registry's other 12+ report definitions beyond Inventory Audit Trail.
@@ -229,6 +730,277 @@ is deliberately a no-op, verified as such before any later round changes behavio
   second API restart; both unique indexes rebuilt with `branch_id`; all 10 self-heal-guarded objects
   byte-unchanged; GRN/PI/SI/DC/Stock-Transfer each re-posted (in rolled-back transactions) onto the same
   pre-existing stock row as before.
+
+- **2026-08-26 update (Warehouse/Branch Round 2 for PI + Product-Picker rollout + Stock
+  Transfer/Adjustment UX)**: no new frontend spec files — 4 existing files gained cases (see the
+  Live-Verification Findings entry above for the exact breakdown). Full unscoped `ng test`: 63 spec
+  files, 434 tests, **426 passing**, same 8 pre-existing `NG0201 DatePipe` failures as every entry
+  above, 0 new failures. `ng build --configuration=development` succeeds. `dotnet test`
+  (`Kapil_Group_ERP_API.Tests`) currently fails to **compile** for reasons pre-existing and unrelated to
+  this session (see Live-Verification Findings above) — this work's only C# touch (one
+  `DatabaseBootstrapper.cs` registration line + comment) was instead verified via two live API boot
+  cycles and a rolled-back `psql` functional test against the real database.
+
+- **2026-08-26 update (Product-Picker rollout regression fix — duplicate Variant/Attribute sub-row)**:
+  5 new frontend spec files, one per screen the rollout above touched (see the Live-Verification
+  Findings entry above for the exact breakdown and root cause). Inventory-scoped run: 5 spec files,
+  **15/15 passing**. Full unscoped `ng test`: 68 spec files, 449 tests, **441 passing**, same 8
+  pre-existing `NG0201 DatePipe` failures as every entry above, 0 new failures — the +15 tests over the
+  prior line's 434 are exactly these 5 new files. No backend (C#/SQL) touched by this fix.
+
+- **2026-08-26 update (Inventory Fixes Round 2 — Stock Accuracy, Product-Picker Filtering, Stock
+  Transfer Branch Support)**: no new frontend spec files — 4 existing ones gained cases: +3 in
+  `inventory-line-product-picker.component.spec.ts` (branch-only row track-key/attribution, Workstream
+  A), +6 in `inventory-screen-shell.branch-warehouse-resolution.spec.ts` (+5 Workstream B product-filter
+  fail-open/narrowing cases, +1 Workstream D `warehouse_name` pin), +2 in
+  `inventory-screen-shell.interbranch-sale.spec.ts` (Workstream B's Interbranch Sale bypass), +5 in
+  `inventory-screen-shell.stock-transfer.spec.ts` (Workstream E branch-primary resolution/ambiguity —
+  the same-branch guard itself is SQL-only, verified live instead, not here). Full unscoped `ng test`:
+  68 spec files, 465 tests, **457 passing**, same 8 pre-existing `NG0201 DatePipe` failures as every
+  entry above, 0 new failures — the +16 tests over the prior line's 449 are exactly these additions.
+  `npx tsc --noEmit` clean. Backend: main API `dotnet build` **0 errors**; `Kapil_Group_ERP_API.Tests`
+  still fails to compile for the same pre-existing, unrelated reasons as the 2026-08-26 entry above (not
+  touched by this work) — verified instead via two rolled-back live `psql` scripts against the real
+  database (see Live-Verification Findings above): a real branch-to-branch Stock Transfer through
+  `sp_save_stock_transfer` (decrement/increment/cost-layer-move/insufficient-stock-refusal/same-branch-
+  refusal all confirmed), and `sp_get_available_stock` confirmed emitting the new
+  `branch_id`/`location_type`/`location_id`/`location_name` fields for a real branch-only row.
+
+- **2026-08-27 update (Full Warehouse/Branch Independence)**: `inv_warehouses.branch_id`-based
+  resolution removed entirely from every screen — GRN, Purchase Invoice, Delivery Challan, Purchase
+  Return and Sales Invoice each now post branch-only (real, direct stock at the branch) the instant a
+  Branch is picked, never collapsed onto "the one linked warehouse" and never blocked as "ambiguous"
+  regardless of how many warehouses that branch has linked. No new frontend spec files — 5 existing ones
+  substantially rewritten/extended to match: `inventory-screen-shell.branch-warehouse-resolution.spec.ts`
+  (full rewrite, 38 cases — removed every now-obsolete "ambiguous branch"/"no linked warehouse blocks the
+  save" case across GRN/PI/DC, added the now-allowed branch-only cases for GRN/PI/DC/Purchase
+  Return/Sales Invoice, added a new Purchase Return describe block since it's now wired into the merged
+  picker, and pinned Sales Return's own out-of-scope regression: a branch name no longer resolves to
+  anything there at all since it never gained a branch-aware posting path); `inventory-screen-shell.
+  merged-location-tagging.spec.ts` (1 case rewritten: branch-only replaces auto-collapse);
+  `inventory-screen-shell.stock-transfer.spec.ts` (3 cases rewritten: single-linked-warehouse
+  auto-collapse and both From/To ambiguous-branch blocks are gone, all three now post/transfer
+  branch-only); `inventory-screen-shell.interbranch-sale.spec.ts` (1 case deleted —
+  `resolveBranchDefaultWarehouse()` no longer exists — 3 rewritten to confirm picking a branch no longer
+  auto-fills the fulfillment Warehouse at all, +4 new cases covering the reworked
+  `planInterbranchAutoTransfers()`: the selected Interbranch branch is now checked as a valid transfer
+  source in its own right via its own direct stock, before falling through to the sibling-warehouse pool,
+  including the `saveStockTransfer()` call actually sending `from_branch_id`/`from_branch_name` instead
+  of a warehouse); `inventory-line-product-picker.component.spec.ts` (+7 cases net: the "Stock Across
+  Branches" panel split into two independent flat lists, see the table row above for the exact shape).
+  Two frontend spec files deleted entirely (tested only removed functionality):
+  `warehouse-location-master.spec.ts` (the global-vs-local branch id space `branchIdForName()`/
+  `branchNameForId()` methods, both deleted) and `branch-master.linked-warehouses.spec.ts`
+  (`linkedWarehouses()`, deleted). Full unscoped `ng test`: 66 spec files, 464 tests, **456 passing**,
+  same 8 pre-existing `NG0201 DatePipe` failures as every entry above (7 non-Inventory files, none
+  touched by this work), 0 new failures. `ng build --configuration production` (real AOT template
+  compilation) succeeds. A real bug was found and fixed live by this test-rewrite pass, not just review:
+  the merged-picker payload builders for Purchase Invoice/Delivery Challan (pre-existing) and Purchase
+  Return/Sales Invoice (this session's own new code, copying the same pattern) duplicated the raw
+  unresolved location string into `branch_name` as well as `warehouse_name` — harmless while an ambiguous
+  branch was always blocked first, but once a branch pick became unconditionally valid this let a
+  stale/garbage location name silently pass validation as "a branch was picked" instead of being refused
+  as "not a Warehouse in this company". Fixed at the four call sites to only populate `warehouse_name`'s
+  fallback, matching GRN's own (already-correct) pattern.
+
+  Backend: 7 new migrations (`161`–`167`), all registered in `DatabaseBootstrapper.cs`. `161`/`162` give
+  Sales Invoice and Purchase Return their own direct `branch_id`/`branch_name` (schema + save/get procs,
+  neither guarded). `163` (`fn_post_grn_stock`) and `164` (`fn_post_delivery_challan_dispatch`) and `166`
+  (`fn_post_sales_invoice_stock` + `accounts.sp_post_sales_invoice`) are guarded objects, each shipped via
+  the full `SET guard_active` → `CREATE OR REPLACE` → `tbl_guarded_function_defs` capture → `RESET`
+  checklist; `165` (`fn_post_purchase_return_stock`) is not guarded. `164`/`165`/`166` also each upgrade
+  their function's silent clamp-to-zero-on-insufficient-stock into the refuse-don't-clamp guard
+  `fn_upsert_stock_balance` already provides. `167` fixes `sp_upsert_warehouse`'s UPDATE path to stop
+  touching `branch_id` at all (previously an unconditional overwrite that would have nulled out every
+  existing warehouse's legacy branch link the moment the frontend stopped sending the field). Verified
+  live (all in rolled-back `psql` transactions except the guard/snapshot checks, which read only): all 10
+  self-heal-guarded objects byte-identical to their stored snapshot after two full API restarts 20s apart;
+  a real GRN/DC/Purchase Return/Sales Invoice each posted branch-only against a disposable company/branch
+  fixture with `branch_id` set and `warehouse_id` NULL, stock balance correctly created/decremented; the
+  DC refuse-don't-clamp guard confirmed firing (not silently clamping) on a deliberate overdraw; Sales
+  Invoice's GST split confirmed correct for the first time on a branch-only pick — IGST for a cross-state
+  customer, CGST+SGST for a same-state customer — and a pre-existing warehouse-only invoice's GST
+  calculation confirmed unaffected (the `fn_branch_gstin_state` warehouse→branch fallback, which
+  `ourBranchForRecord()` on the frontend mirrors and which this work deliberately left untouched); and the
+  `sp_upsert_warehouse` fix confirmed against the exact live scenario it protects (Sanam Digitals' real
+  Hyderabad warehouse, linked to its real Kukatpally branch) — an edit-save of an unrelated field survives
+  with the link intact. `dotnet build` on the main API: **0 errors**.
+
+- **2026-08-27 update (stock-hint mislabeling + branch-aware hints, active-branch-only merged picker,
+  stock-aware Interbranch Sale picker, Stock Transfer stock hint + real serial picker)**: 2 new frontend
+  spec files (see the two new table rows above), plus cases added to the existing
+  `inventory-screen-shell.interbranch-sale.spec.ts` (+7) and `inventory-screen-shell.stock-transfer.spec.ts`
+  (+8 net — 2 obsolete free-text-parsing cases rewritten to the new real-picker behaviour, +3 stock-hint
+  cases, +5 serial-picker-wiring cases). Full unscoped `ng test`: 68 spec files, 494 tests, **486
+  passing**, same 8 pre-existing `NG0201 DatePipe` failures as every entry above, 0 new failures. `ng
+  build --configuration=development` succeeds. Backend: 1 new migration (`168`, registered in
+  `DatabaseBootstrapper.cs`), 1 new C# test (3 cases, `SalesTransactionsControllerTests.cs`) pinning the
+  new `branchId` passthrough on `GetAvailableSerials`; main API `dotnet build` **0 errors**;
+  `Kapil_Group_ERP_API.Tests` still fails to compile for the same pre-existing, unrelated reasons as the
+  2026-08-26 entry above — verified instead via a rolled-back live `psql` script (see Live-Verification
+  Findings above) plus a full API restart confirming migrations 160 and 168 both live-match their files
+  with the guard table undisturbed.
+
+- **2026-08-27 update (Stock Transfer "Insufficient stock: available 0" investigation + From/To UX)**:
+  user-reported bug traced end-to-end with live (mostly rolled-back) `psql` calls, not code review alone.
+  **Confirmed root cause is NOT a warehouse/branch misresolution bug in Stock Transfer** — the initial
+  hypothesis. The saved draft transfer (id 13) already had `from_warehouse_id = 4` (Hyderabad) correct, and
+  `buildStockTransferPayload()`/`resolveMergedLocation()` were verified resolving correctly throughout. The
+  real cause: `inventory.inv_stock_balance` row 64 (109 real units, Hyderabad, product "Dell Computer-I7",
+  variant "Memory") has `attribute_id`/`attribute_value` both NULL, even though the GRN/PI line items that
+  fed it (8 GRNs + 7 Purchase Invoices, Aug 6–20) correctly carried a specific Speed attribute value (256 /
+  128 / 516) each. Cause: the *pre-fix* bodies of `fn_post_grn_stock` and `fn_post_pi_stock` matched/wrote
+  `inv_stock_balance` keyed on warehouse+product only (no variant/attribute at all), merging every
+  attribute-distinct receipt into one blank-attribute row; migrations `163` (GRN) and `159` (PI) fixed this
+  going forward by routing both through `inventory.fn_upsert_stock_balance` (`157`), which correctly keys
+  on variant/attribute — but fixing the function prospectively does not retroactively re-split
+  already-posted historical balances, and per this project's data-correction policy that historical stock
+  data was left untouched (not silently corrected) — quantified for the user to decide on instead. Reproduced
+  and disproved live via two rolled-back `fn_upsert_stock_balance` calls with the transfer's exact
+  parameters: attribute_value `'256'` → the user's exact reported error text, verbatim; attribute_value
+  `NULL` (matching how the row is actually stored) → succeeds, decrementing 109 → 99. The picker's own
+  "Closing Stock: Total available" panel (attribute-scoped, `currentPickStockRows`/`currentPickTotal`) was
+  already the accurate signal for this exact pick; the separate "By Warehouse" panel the user read as
+  confirming availability is, by its own existing design (`branchQuery$` calls `getAvailableStock({
+  productId })` with no `variantId`/`attributeValue`), a coarser product-level-per-warehouse total that was
+  never attribute-scoped — not a new defect, and left untouched (shared with GRN/PI/PR/DC/SI; changing its
+  aggregation would be a materially different, unrequested feature change to 5 other screens for a failure
+  whose real cause lies elsewhere). **Also discovered live, unrelated to Stock Transfer's own code**: while
+  investigating, `fn_post_pi_stock` and `fn_post_stock_transfer` were both observed flipping between
+  fixed/current and old/pre-migration bodies within minutes, independent of any action taken here (a full
+  API restart here fixed `fn_post_pi_stock` for under 90 seconds before it reverted again) —
+  `pg_stat_activity` shows a second, independent connection cycle starting its own boot-time
+  `DELETE FROM global.tbl_mst_refresh_tokens` moments before each reversion, consistent with another
+  developer's machine (or a stale checkout) running an older build against this same shared cloud Postgres
+  instance and re-applying its own older migrations. This is a live, ongoing condition wider than Stock
+  Transfer (it affects any of the ~10 self-heal-guarded objects, plus unguarded ones like
+  `fn_post_stock_transfer`, whenever that other instance's boot wins the race) — flagged for the user to
+  locate and stop, not something fixable from this session.
+
+  **No backend/SQL change was made** — `fn_upsert_stock_balance`'s exact-match refuse-don't-clamp guard is
+  correct and working as intended; the failure is historical data plus the live reversion issue above, not
+  a code defect at the point the task asked to "fix." Two narrow, explicitly-requested frontend UX changes
+  shipped instead: (1) `stockTransferConfig`'s `fromWarehouse`/`toWarehouse` field labels renamed from the
+  stale "From/To Warehouse" to "From/To Warehouse / Branch" (`inventory-screen.model.ts`), matching every
+  other merged-picker screen's existing label convention; (2) the two pickers are now live mutually
+  exclusive — `stockTransferLocationOptions()` (new, `inventory-screen-shell.ts`) filters
+  `mergedLocationEntries()` to drop whatever is resolved via `resolveMergedLocation()` on the *other* side,
+  compared by resolved `{type, id}` rather than by label text, so a Warehouse and a same-named Branch are
+  never wrongly treated as "the same" — proved with a dedicated fixture (a Warehouse and a Branch both
+  named "Kukatpally") confirming picking one leaves the other's same-named entry pickable on the other
+  side. `grnReceivingLocationOptions()` itself (shared with GRN/PI/PR/DC/SI) is untouched; only Stock
+  Transfer's own two-sided routing branch was changed. 6 new cases in the existing
+  `inventory-screen-shell.stock-transfer.spec.ts` (1 label assertion + 5 mutual-exclusion cases, including
+  the name-collision case). Full unscoped `ng test`: 68 spec files, 500 tests, **492 passing**, same 8
+  pre-existing `NG0201 DatePipe` failures as every entry above, 0 new failures. All live-data verification
+  used rolled-back `psql` transactions or read-only queries; `inv_stock_balance` rows 41/64 for company
+  53/product 12 confirmed unchanged (2 / 109) at the end of the investigation.
+
+- **2026-08-28 update (guard-revert recurrence confirmed + real fix for "hard to select" From/To pickers)**:
+  two more live-reported issues on the same screen, both traced end-to-end against the live DB/app, not
+  from code review alone.
+
+  **Issue 1 (variant/attribute closing-stock binding, Dell Computer-I7 vs. Epson)**: re-confirmed the
+  2026-08-27 finding still holds — `fn_upsert_stock_balance`, `fn_post_stock_transfer` and
+  `sp_get_available_stock` are all correctly variant/attribute/branch-keyed (verified live via
+  `pg_get_functiondef` and a rolled-back `fn_upsert_stock_balance` call), and the frontend's own
+  `resolveLineAttribute()`/`stockTransferItems()`/product-picker `getAvailableStock()` calls all pass
+  consistent, correctly-typed `variant_id`/`attribute_id`/`attribute_value` — no separate, ongoing code bug
+  in the matching logic exists anywhere in this chain. **But the 2026-08-27 write-up's "flagged, not
+  fixable from this session" guard-revert condition recurred for real this morning**: at 10:43:49 IST all
+  10 self-heal-guarded objects' stored "known-correct" snapshots in `inventory.tbl_guarded_function_defs`
+  were overwritten back to their pre-migration-159/163/164/166 bodies (confirmed live —
+  `fn_post_pi_stock`'s live body matched byte-for-byte against the old warehouse+product-only match key,
+  no `variant_id`/`attribute_id`/`attribute_value`/`branch_id` anywhere), corroborated by a burst of
+  unrelated Accounts-schema queries from a different client IP in the exact same window in
+  `pg_stat_activity` — consistent with another machine/checkout's older boot cycle winning the race, same
+  as 2026-08-27. This is a live, ongoing recurrence of that already-flagged condition, not a new code
+  defect. **Restored, not "fixed"**: killed and relaunched the local `dotnet run` (which reapplies migrations
+  139→159→163→164→166 etc. in registration order, landing on the fixed bodies), confirmed all 4
+  posting-function snapshots re-registered at 10:49:14 and held stable 20+ seconds afterward, and proved
+  the restored function is live-correct with a rolled-back transaction: `fn_upsert_stock_balance(... variant_id
+  13, attribute_id 14, attribute_value '256' ...)` now inserts a new, correctly-split row (id 74, qty 5)
+  instead of merging into the pre-existing blank-attribute row (id 64, qty 109) — then rolled back, no
+  balance changed. The historical merged rows (ids 41/64, still 2/109) were deliberately left untouched
+  per this project's data-correction policy. **No SQL/migration file changed** — the fix already exists on
+  disk and is registered; this was purely a live-state restoration plus verification. The underlying
+  cross-machine race itself remains unfixed and outside this session's reach — flagged again for the user.
+
+  **Issue 2 (From/To Warehouse/Branch pickers "hard to select")**: this is a **real, new regression**,
+  introduced by 2026-08-27's own mutual-exclusivity fix, not a duplicate of Issue 1. Root cause:
+  `stockTransferLocationOptions()` (added 2026-08-27) was a plain method that rebuilt
+  `Array.from(new Set(entries.map(...)))` — a brand-new array instance — on *every single call*, and
+  `runtimeOptions()` calls it fresh on every `displayFields()`/`bodyDisplayFields()` pass, which Angular
+  re-evaluates on every change-detection cycle. `stock-transfer.html` binds the field's ng-select directly
+  to `[items]="field.options || []"`, so the From/To Warehouse-or-Branch pickers received a *new* array
+  reference on every digest — including every keystroke inside their own search box — while every other
+  merged-picker screen (GRN/PI/DC/PR/SI) hands ng-select `grnReceivingLocationOptions()`, a real
+  `computed()` whose cached array reference is stable across repeated calls. ng-select's `[items]` input
+  treats a new reference as "the option list changed," resetting its internal open/filtered/highlighted
+  state each time — the mechanical explanation for "flickery, too hard to select," and why GRN/PI/DC/PR/SI's
+  identically-shaped pickers were never affected (they were never given an unstable `[items]` source).
+  **Fix**: replaced the single plain method with two `computed()` signals,
+  `stockTransferFromWarehouseOptions`/`stockTransferToWarehouseOptions` (each wrapping the same, unchanged
+  exclusion logic, renamed to `stockTransferLocationOptionsExcluding()`), wired into `runtimeOptions()` in
+  place of the old direct call. Identical filtering behavior, now referentially stable like every other
+  screen's picker. Verified live, not just unit-level: stood up all three federated dev servers
+  (`OneSphere-Accounts` 4200, `OneSphere-Inventory` 4203, `OneSphere-HRMS` 4202 — federation eagerly loads
+  every remote's manifest at boot, so any one missing makes in-app route navigation silently bounce to
+  `/login`), logged in with the disposable OTP test identity (`testreg21358478@example.com` / `TCO21358478`,
+  2 branches "Head Office"/"Branch Two", zero warehouses, per `testing_no_real_otp` memory), and drove the
+  real Stock Transfer screen with Playwright (SPA-internal clicks only, no hard reload — this app keeps its
+  access token in memory only, so a hard navigation drops it and needs a refresh-cookie round trip this
+  environment doesn't reliably win). Opened the From field's dropdown (options: "Head Office", "Branch
+  Two"), typed "Head" one character at a time with a real ~200ms delay between keystrokes — precisely the
+  change-detection-per-keystroke scenario the bug depended on — and confirmed the typed text stayed in the
+  box, the panel never closed, the option list correctly filtered to "Head Office", and a *single* click
+  selected it. Then opened the To field and confirmed it correctly excluded "Head Office" (mutual exclusion
+  intact). All of that would have broken under the pre-fix plain-method version (each keystroke would have
+  hit `runtimeOptions()` → a fresh array → ng-select's `[items]` setter treating the list as changed). None
+  of it did post-fix.
+  2 new cases added to `inventory-screen-shell.stock-transfer.spec.ts`
+  (`returns the SAME array instance across repeated reads when nothing changed` /
+  `returns a NEW array instance once the other side's selection actually changes`) that assert the exact
+  referential-identity property that was broken — `toBe()`, not `toEqual()` — so a future regression back
+  to a plain rebuilding method fails loudly instead of silently. `inventory-screen-shell.stock-transfer.spec.ts`:
+  36 passing (was 34); `inventory-screen-shell.merged-location-tagging.spec.ts` +
+  `inventory-screen-shell.branch-warehouse-resolution.spec.ts`: 48 passing, unaffected (that shared
+  `grnReceivingLocationOptions()` computed was never touched). Scope was kept to Stock Transfer's own two
+  fields only — `grnReceivingLocationOptions()` itself and every other screen's picker are untouched.
+  Full unscoped `ng test`: 68 spec files, 502 tests, **494 passing**, same 8 pre-existing `NG0201 DatePipe`
+  failures as every entry above (`common.service.spec.ts`, `company-details-service.spec.ts`,
+  `navigation.service.spec.ts`, `main-layout.component.spec.ts` and others — all Accounts-side DI wiring,
+  nothing under this session's control), 0 new failures.
+
+- **Required Session-Level Warehouse Selection (2026-08-28)** — Warehouse gains a required session-level selection parallel to the existing required Branch, at both the login screen and the post-login Company/Branch switcher, then flows into Inventory transaction screens' actual default field values (replacing a static Head-Office-first/oldest/alphabetical heuristic that had no relationship to who was logged in).
+  - **Backend** (`GLOBAL_ACCOUNTS_LATEST/Kapil_Group_ERP_API`): new nullable `refresh_tokens.warehouse_id` column (`Database/Migrations/20260828_refresh_token_active_warehouse.sql`, mirrors the `branch_id` precedent — same silent-revert-on-page-reload risk without it) — this top-level dated-migration folder is applied manually via `psql`, not through `DatabaseBootstrapper`'s idempotent-registration list, confirmed live. `WarehouseSummaryResponse` gains `IsDefault`/`Status`; `LoginTenantOptionResponse` gains a company-wide flat `Warehouses` list; `AuthResponse` gains `Warehouse`; `VerifyOtpRequest`/`PasswordLoginRequest`/`SwitchBranchRequest`/`SwitchCompanyRequest` gain nullable `WarehouseId`. New `GetCompanyWarehousesAsync()`/`ResolveSelectedWarehouseId()` in `MultiTenantDataService.cs`; the login round-trip endpoints (`VerifyOtpAsync`/`PasswordLoginAsync`) convert a missing-but-required warehouse into a soft `RequiresSelection` round trip (mirroring the existing ambiguous-company path) rather than a hard error, while the single-call switch endpoints (`SwitchBranchAsync`/`SwitchCompanyAsync`) enforce it as a hard 400, and `RefreshTokenAsync` never throws/blocks on a missing or stale warehouse (silent refresh must always fall back gracefully). New `active_warehouse_id` JWT claim, `TenantContext.ActiveWarehouseId`. Verified end-to-end live against a disposable multi-warehouse test company (`COMP1`/company id 3): OTP and password-login required-gate (including the company-code one-shot-bypass path now round-tripping once), zero-warehouse company completely unaffected, JWT claim + `AuthResponse.Warehouse` correctness, silent-refresh survival across a simulated reload, and both switch endpoints' 400/403/200 responses — all confirmed against live `refresh_tokens` rows via `psql`, not just HTTP response shapes. No `AuthController`/`MultiTenantDataService` test file exists to extend (raw `NpgsqlConnection`, no repository abstraction) — this live verification is the primary safety net.
+  - **Login screen + post-login switcher (both apps)** — `auth.service.ts`'s `verifyOtp()`/`passwordLogin()`/`switchBranch()`/`switchCompany()` gain a `warehouseId` parameter; `setMultiTenantSession()` writes `warehouseId`/`warehouseCode`/`warehouseName` sessionStorage keys; new `getWarehouseId()`. `login.component.ts`/`.html` gain a required-field gate on **both** the OTP path (extending its existing gate) and the password/userid path — which had **zero** pre-submit selection validation at all before this fix, the single riskiest regression surface named explicitly in the plan. `main-layout.component.ts`/`.html` gain the same required-gate before `applyTenantSwitch()`, with `isContextChanged` extended so a warehouse-only change alone enables the Switch button. **Inventory's own duplicate copies are genuinely divergent, not byte-identical to Accounts'** — its `login.component.ts` keeps two fully separate signal sets (`selectedLogin*` for OTP, `selectedUserid*` for password/userid, never shared, unlike Accounts where they're one shared set), and its `main-layout.component.ts` has an extra `switchBranchDirectly()` quick one-click switch with no warehouse picker of its own — both required matching, not copy-pasting, Accounts' edits; `switchBranchDirectly()` now carries the session's current warehouse forward so it doesn't 400 outright now that `switch-branch` is always-required on `WarehouseId` for any company with warehouses.
+  - **Inventory screen-shell defaulting** — `inventory-screen-shell.ts`'s old 4-screen `shouldDefaultBranchForCurrentScreen()` allowlist (`applyDefaultBranchToCurrentTransaction()`) is replaced by a `LOCATION_DEFAULT_CAPABILITIES` map covering all 9 location-capable screens (`purchaseRequisition`, `goodsReceipt`, `purchaseInvoice`, `purchaseReturn`, `deliveryChallan`, `salesInvoice` ×2 fields, `stockTransfer`, `salesReturn`, `purchaseOrder`), each tagged `merged`/`branchOnly`/`warehouseOnly`, resolved by new `applyDefaultLocationToCurrentTransaction()`: merged fields prefer session Warehouse → session Branch → the existing branch heuristic; branchOnly fields prefer session Branch → heuristic and never consult session Warehouse at all; warehouseOnly fields prefer session Warehouse → a new symmetric warehouse heuristic (mirrors `sp_get_warehouses`' own `is_default DESC, warehouse_name` ordering) and a session Branch is never stuffed into them; Stock Transfer applies the merged rule to `fromWarehouse` only, deliberately leaving `toWarehouse` blank so the existing mutual-exclusivity logic isn't pre-violated. A merged field's resolved value is re-dispatched through the screen's own existing manual-selection handler (`applyReceivingLocationSelection`/`applyPurchaseReturnLocationSelection`/`applyDeliveryChallanFieldDefaults`) rather than a second, independently-maintained companion-field writer. Fixed a load-order race: the branches and warehouses master-list fetches are two independent HTTP calls with no ordering guarantee, and only the branches stream used to trigger the default-apply — a warehouse-preferred default could be pre-empted by branches resolving first. Both streams now set their own `branchesMasterLoaded`/`warehousesMasterLoaded` flag and call `tryApplyDefaultLocation()`, which gates on both being true before applying.
+
+- **Opening Inventory Balance / Opening Stock Entry merged Warehouse/Branch picker + WH badge (2026-08-28)** — two follow-up items to Full Warehouse/Branch Independence, done together since they touch the same shared merged-picker mechanism.
+  - **Merge (frontend-only)**: `openingInventoryBalanceConfig`/`openingStockEntryConfig` in `inventory-screen.model.ts` collapsed their separate `branch`+`warehouse` fields into one `{ key: 'warehouse', label: 'Warehouse / Branch' }` field (no `addMaster`, matching every other genuinely-merged picker — GRN/PI/PR/SI never offer an "Add Location" button on this field since it's ambiguous once a Branch is also valid). `columns`/sample `rows` updated to a single combined column. `inventory-screen-shell.ts`: both screen keys added to `mergedLocationScreenKeys` and `runtimeOptions()`'s merged-picker gate (so the field gets the live `grnReceivingLocationGroups()` list, not the static `INVENTORY_OPTIONS.locations` mock); `LOCATION_DEFAULT_CAPABILITIES` gained `openingInventoryBalance`/`openingStockEntry` entries (`{ field: 'warehouse', kind: 'merged' }`) for session-location populate-on-open, generic and needing no screen-specific code since `configHasField()`/`applyMergedFieldSelection()` are already field-key-driven. `buildOpeningStockEntryPayload()` rewritten to resolve the merged field via `resolveMergedLocation()` (mirrors `salesInvoice`'s payload shape exactly — a branch pick sets `branch_id`/`branch_name` with `warehouse_id` null, never resolved onward to a linked warehouse) instead of two independent `findWarehouseBySelection`/`findBranchBySelection` calls; the load-into-form case for `openingStockEntry` now falls back to `branch_name`/`branchNameFromRecord()` when `warehouse_name` is null, so reopening a branch-only posted entry doesn't show a blank field (this fallback chain mirrors GRN/PI, which is more complete than Sales Invoice's own load case — SI's `warehouse: record.warehouse_name || ''` has no branch_name fallback at all, a pre-existing gap noticed but **not fixed**, out of scope for this item).
+  - **Stock-location-required-on-post decision**: `openingStockEntry` added to `stockLocationScreenKeys` + a new `postedStockLocationMessages` entry, since it genuinely posts to the stock ledger/cost layers (`isApiWired()`, real `saveOpeningStockEntry` call) and previously had zero cross-check between its two independent location fields — the same "silently lands in the Unassigned pool" failure `stockLocationScreenKeys` exists to prevent elsewhere. `openingInventoryBalance` deliberately **excluded** — despite its `outputImpact` copy claiming it seeds the stock ledger, it has no backend wiring at all (not in `isApiWired()`, no `buildPayload` switch case, no save endpoint — confirmed live: its Save button hits `executeSaveConfigRecord()`'s `default:` case, which is a pure no-op). Gating a POST that doesn't exist would be meaningless; flagged instead as a pre-existing screen-still-mocked gap, not something this item's scope covers fixing.
+  - **WH badge**: `grnReceivingLocationGroups()` (previously dead outside its own definition per a stale earlier grep — it's actually already consumed by GRN/PI/PR/SI's `groupBy="group"` binding, just never by a label/option template) is now also read by new `ng-option-tmp`/`ng-label-tmp` templates on the same `<ng-select>` in all 7 merged-picker screens, rendering a small `.inventory-location-badge` "WH" tag next to a warehouse entry's label (both in the open option list and the collapsed selected-value display) — nothing renders for a branch entry. Delivery Challan's `fromWarehouse` field was upgraded from a flat `[items]="field.options"` binding to `grnReceivingLocationGroups()` + the same templates, for consistency (it was the one merged screen not already using the grouped/tagged list). `.inventory-location-badge` CSS added identically to both `OneSphere-Inventory/src/styles.scss` and `OneSphere-Accounts/src/styles.scss` (Inventory's own copy is dead once federated into the Accounts-hosted shell — kept in sync per the existing shared-class convention anyway).
+  - **Testing**: new `inventory-screen-shell.opening-screens-merged-location.spec.ts` (9 cases — config shape, `grnReceivingLocationGroups()` tagging for both new screens, Opening Stock Entry's branch-only/warehouse payload resolution, posted-with-no-location refusal + draft allowance, branch-only reopen re-population, and Opening Inventory Balance's explicit non-gating). Along the way, found and fixed a real, pre-existing bug in `inventory-screen-shell.location-defaulting.spec.ts` (added earlier the same day by the Required Session-Level Warehouse Selection work): its own `transaction()` test helper never set a `fields` array, so `configHasField()` always returned false and 14 of its 19 cases were silently failing (not caused by this item, verified against unrelated untouched screens in that same file) — fixed with a `FIELD_KEYS_BY_SCREEN` map, now 19/19 passing, which is also what actually verifies this item's own two new `LOCATION_DEFAULT_CAPABILITIES` entries work.
+  - **Full Inventory-scoped `ng test`** (`src/app/inventory/**/*.spec.ts`, plus the two pre-existing broken `shared/login`/`shared/main-layout` Jasmine-API spec files temporarily excluded — see existing 2026-08-17 Known Test Gap note, untouched by this item): **55 spec files, 501/501 passing**. `ng build --configuration development` succeeds. No backend/SQL touched — this is a frontend-only change, the merged-picker's option data model (migration 167) already supported posting to a branch or warehouse independently.
+  - **Live verification**: logged into the running dev stack (`OneSphere-Accounts` 4200 host + `OneSphere-Inventory` 4203 remote, both already up) as the disposable OTP test identity `testreg21358478@example.com` (`testing_no_real_otp` memory) via a headless-Chromium Playwright driver script (no `chromium-cli`/project run-skill available, so built a one-off script instead — this environment hit the backend's OTP-request rate limiter more than once while iterating, worth knowing for next time). See screenshots and findings below.
+
+- **Active-location filtering of transaction grids, Phase 4 of the Warehouse/Branch plan (2026-08-28)** — every transaction screen's "Existing Saved Records" grid previously showed every record for the whole company with no filtering by the caller's active Branch/Warehouse at all; backend-only fix, no frontend change needed since `TenantContext.ActiveBranchId`/`ActiveWarehouseId` (sourced from JWT claims `active_branch_id`/`active_warehouse_id`) already arrive on every authenticated request.
+  - **Backend** (`GLOBAL_ACCOUNTS_LATEST/Kapil_Group_ERP_API`): `InventoryTransactionsDataService.cs`'s `GetGrnsAsync`/`GetStockTransfersAsync`/`GetStockAdjustmentsAsync`/`GetOpeningStockEntriesAsync`/`GetPurchaseInvoicesAsync`/`GetPurchaseReturnsAsync` and `SalesTransactionsDataService.cs`'s `GetSalesInvoicesAsync`/`GetDeliveryChallansAsync` now pass `ctx.ActiveBranchId`/`ctx.ActiveWarehouseId` as two new optional `active_branch_id`/`active_warehouse_id` fields into their `sp_get_*` calls — the C# method signatures are unchanged (still `TenantContext ctx, string? status, long? segmentId, ...`), so the existing controller-layer tests for these methods in `InventoryTransactionsControllerTests.cs`/`SalesTransactionsControllerTests.cs` needed no changes (they mock the interface and never see the SP-parameter construction). New migration `Database/Migrations/inventory/170_active_location_transaction_filtering.sql`, registered in `DatabaseBootstrapper.cs` in the same call chain as 160-169, `CREATE OR REPLACE`s all 8 procedures adding an OR-match scope: `(v_active_branch_id IS NULL AND v_active_warehouse_id IS NULL) OR (branch match) OR (warehouse match)` — a record matches if it was posted against whichever of the two active locations is set, and the company-wide list is preserved when neither is set (e.g. a super-admin session). Stock Transfer matches against **both** its `from_`/`to_` branch and warehouse columns (not just one), since a transfer has two locations; Delivery Challan matches `branch_id` + `from_warehouse_id` (it has no "to" warehouse). None of the 8 procedures are on the self-heal guard list (`inventory.tbl_guarded_function_defs`, verified live before and after), so no `SET inventory.guard_active` dance was needed.
+  - **Live verification** (real company data on the shared `UT` database, not synthetic): called each procedure directly via `psql` `CALL ... ; RAISE NOTICE` with varying `active_branch_id`/`active_warehouse_id` combinations against existing rows with known branch/warehouse values (company 1's Purchase Invoices — 25 rows, one with `branch_id=1`; company 53's Stock Transfers — 4 rows with distinct `from_`/`to_` branch/warehouse combinations) and confirmed: no active location returns all rows (regression-free fallback), a set active branch/warehouse narrows to exactly the matching subset, and a non-matching active id returns zero rows. Restarted the API (`dotnet run`, all prior `dotnet.exe`/`Kapil_Group_ERP_API.exe` processes killed first) and confirmed migration 170 applies cleanly on boot (`DatabaseBootstrapper: applied idempotent migration 170_active_location_transaction_filtering.sql`, no guard-revert warning) and stays stable (single PID listening on :5000/:5001 for 15+s). **Gotcha found**: `Tools/MigrationRunner`'s `run-file` command reads `appsettings.json` (not `appsettings.Development.json`) via a regex that matches `"DefaultConnection"` even inside a `//`-commented-out line — that line points at a different database (`GLOBAL_ERP`), so a `run-file` apply silently lands on the wrong database with no error. Applied this migration directly via `psql -f` against the real live `UT` database instead once this was caught; worth knowing before trusting a `run-file` "Applied" message alone in this project.
+  - **Backend test-suite regression fixed in passing**: `dotnet test` failed to *compile* again on `InventoryTransactionsControllerTests.cs` — the exact `S3UploadService` 5th-constructor-parameter issue already documented as fixed on 2026-08-18 above had regressed (file's own content had drifted back to the old 4-arg call at some point after that fix). Re-applied the same fix (real `S3UploadService` over mocked `IAmazonS3`/`ILogger` + the existing in-memory `IConfiguration`, via a new `BuildS3UploadService()` helper) since it was blocking every backend test in the project, including this item's own untouched-signature coverage, from compiling at all. **Left unfixed, explicitly out of scope**: `UsersControllerTests.cs` still fails to compile (`IMultiTenantDataService` has no `CreateUserAsync`) — this touches `MultiTenantDataService.cs`/`IMultiTenantDataService`, which a concurrent session was actively editing for a different phase of the same Warehouse/Branch plan at the time of this work; not touched here to avoid a merge collision, so `dotnet test` (no filter) will not fully build until that's resolved by whoever owns that file.
+
+- **Branch/Warehouse selector merge, Phase 3 of the Warehouse/Branch plan (2026-08-28)** — the Phase 2 design (Branch and Warehouse as two separate, both-effectively-mandatory fields, since Warehouse hard-errored server-side when omitted) is replaced with one merged control per flow, matching the pattern Inventory transaction screens already use.
+  - **Backend** (`MultiTenantDataService.cs`): `ResolveSelectedWarehouseId` (~line 2829) no longer hard-throws `400 "Warehouse selection is required."` — it now silently defaults exactly like `ResolveSelectedBranchId` (the warehouse flagged default, else the first one, else null). The obsolete soft-round-trip blocks this necessitated in `VerifyOtpAsync`/`PasswordLoginAsync` (`selectedWarehouses.Count > 0 && !(request.WarehouseId is > 0)` → return `RequiresSelection`) are removed — both endpoints just call `ResolveSelectedWarehouseId` directly now, same as branch. Stale "always-required, hard 400" comments on `SwitchBranchAsync`/`SwitchCompanyAsync` updated to describe the new silent-default behavior. No parameter shape changes — `branchId`/`warehouseId` are still both sent/received exactly as before.
+  - **Login screen** (Accounts only — the real served host; Inventory's own login copy, see the Known Test Gap note above, was out of scope): all 3 flow variants (legacy password step 2, OTP, userid/password) replace their separate Branch `<select>` + conditional Warehouse `<select>` with one `ng-select` (`mergedLoginLocationOptions` — warehouses first, then branches, each `{ key: 'type:id', label, type, id }`), rendered with the same `ng-option-tmp`/`ng-label-tmp` + `.inventory-location-badge` "WH" tag pattern Inventory's `receivingLocation` field already uses (copied structure, not reinvented). `selectLoginLocation(key)` sets ONLY the matching one of `selectedLoginBranchId`/`selectedLoginWarehouseId` — the untouched one keeps whatever value it already had (its own silent default, or a prior explicit pick), never nulled. The required-gate around `verifyLoginOtp()`/`onUserIdLogin()` now blocks only when NEITHER resolves, not "Warehouse specifically."
+  - **Post-login switcher** (both apps, hand-duplicated copies — edited identically): same merge (`mergedSwitchLocationOptions`/`selectedSwitchLocationKey`/`onSwitchLocationChange()`), added to a component that isn't signal-based (plain class fields/getters, unlike login's signals) but the invariant is identical. `NgSelectModule` added to both components' `imports` (previously only plain `<select>`/`FormsModule` here). New scoped `::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select` CSS block added identically to both `main-layout.component.scss` files (ng-select ships its own markup the existing plain-`<select>` CSS rule can't reach).
+  - **Resolved-value invariant for Phase 5 (warehouse-level access control, not yet started)**: in every flow (login ×3, switcher ×2), after any pick BOTH `...BranchId` and `...WarehouseId` remain populated from their own independent defaults/prior picks — picking one type never clears the other. The merged control's *displayed* value prefers the branch when both are populated and neither was just explicitly touched (`selectedLoginLocationKey`/`selectedSwitchLocationKey`'s fallback order), but that's a display-only decision; both resolved ids are always sent to the backend exactly as documented in the Required Session-Level Warehouse Selection section above.
+  - **Testing**: `login.component.spec.ts` (Accounts) — replaced the Phase 2 "warehouse required-gate" describe block with a "branch/warehouse required-gate (only one of the two needed)" block re-asserting the relaxed gate, plus a new "merged Branch/Warehouse selector" block (option ordering/tagging, display-value fallback, pick-one-leaves-other-untouched) — 28 cases total, all passing. Both `main-layout.component.spec.ts` files got the identical treatment (Accounts 28 cases, Inventory 13 — the extra one is Inventory-only `switchBranchDirectly`) — also converted their pre-existing Jasmine-style `spyOn(...).and.returnValue(...)`/`.toBeTrue()`/`.toBeFalse()` calls to vitest-native `vi.spyOn(...).mockReturnValue(...)`/`.toBe(true)`/`.toBe(false)` (these files could not otherwise compile under the configured Vitest runner — `types: ["vitest/globals"]` in `tsconfig.spec.json` provides no Jasmine globals), and added missing `MessageService`/`DatePipe`/`provideRouter([])` TestBed providers both `main-layout.component.spec.ts` files were missing (their very own pre-existing `should create` test was failing on `NG0201: No provider found for MessageService`/`ActivatedRoute` before this fix — unrelated to Branch/Warehouse logic, just a gap in the original TestBed setup). Verified via a scratch `tsconfig.spec.*.json` (`extends` the real one, narrows `include` to just these spec files; not committed) since the two unrelated pre-existing compile blockers documented in the Known Test Gap note above prevent a normal whole-project `ng test` run in either app right now: **Accounts 28/28 passing** (`login.component.spec.ts` + `main-layout.component.spec.ts`), **Inventory 13/13 passing** (`main-layout.component.spec.ts`).
+  - **Live verification**: backend rebuilt clean after the C# changes (a stale `Kapil_Group_ERP_API.exe` had the `dist\publish\net8.0` output locked — renamed to `.exe.old` per this project's documented workaround, rebuilt, then deleted).
+
+- **2026-08-30 update (Stock Adjustment merged Warehouse/Branch picker)**: one new frontend spec file, `inventory-screen-shell.stock-adjustment-branch.spec.ts` (8 cases: config label/column, `grnReceivingLocationGroups()` tagging, branch-only vs. warehouse-only `buildStockAdjustmentPayload()` resolution, the `status === 'approved'`-gated location-required refusal vs. the still-pending-approval allowance, and reopening a branch-only record). Also fixed (necessary to unblock `ng test` compiling any Inventory spec at all — see the Testing Stack note above): `src/app/shared/login/login.component.spec.ts`'s Jasmine `spyOn(...).and.returnValue(...)` syntax, rewritten to `vi.spyOn(...).mockReturnValue(...)`. Scoped run (`inventory-screen-shell/**`, the new spec, and the touched login spec): **33 spec files, 335 tests, 325 passing** — the 10 failures are that same login spec's pre-existing, separate, already-documented `NG0201 DatePipe` DI gap (unrelated to this item, unchanged by it). No C# changes on the frontend side of this item. Backend: one new migration (`172_stock_adjustment_branch_stock_posting.sql`), no existing `Kapil_Group_ERP_API.Tests` files touched (`InventoryTransactionsController`'s Stock Adjustment endpoints and DTOs were already branch-capable before this item; only the SQL posting function changed) — full backend suite not re-run for this item since nothing in `Kapil_Group_ERP_API.Tests` covers stored-procedure-level behavior (see the Testing Stack note on SQL coverage above), verification was live/manual instead (see Live-Verification Findings above).
+
+- **2026-08-30 update (Stock Transfer accounting posting)**: backend-only, no frontend spec files touched. New migration `174_stock_transfer_accounting_posting.sql` (`accounts.sp_post_stock_transfer`, `accounts.fn_ensure_location_subledger`, 3 new account heads, 2 new additive columns on `accounts.tbl_trans_total_transactions`), registered in `DatabaseBootstrapper.cs`. New C# call site in `InventoryTransactionsDataService.SaveStockTransferAsync`. Added 8 new controller tests to `InventoryTransactionsControllerTests.cs` covering the previously-uncovered Stock Transfer endpoints (Get/Save/Update/InvalidModelState/ServiceThrows/posted-status pass-through). Full backend suite: **429/429 passing** (was 421/421 per the entry above — +8 from this item's new tests). Verified live against the real Postgres stored procedures (not just the controller mock layer) on a disposable test company — see Live-Verification Findings above for the real branch-to-branch/warehouse-to-warehouse/mixed transfer numbers and account balances.
 
 ## Testing Conventions
 

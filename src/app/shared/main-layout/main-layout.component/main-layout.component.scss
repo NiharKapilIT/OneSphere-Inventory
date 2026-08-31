@@ -949,6 +949,22 @@ input {
   align-items: center;
   margin: 0;
 
+  // Merged Branch/Warehouse row (Phase 3) needs real width: "Name (CODE)"
+  // labels like "Secunderabad (SEC-002)" plus the .inventory-location-badge
+  // "WH" tag don't fit in the ~165px the 74px-label 2-column grid leaves the
+  // select -- ng-select's own baked-in styles put white-space:nowrap +
+  // text-overflow:ellipsis on every .ng-option, so anything that overflows
+  // that width gets silently clipped, taking the trailing WH badge with it
+  // (live-confirmed: a real switch panel showed "Branch Two (B2600..." cut
+  // off exactly like this). Stacking the label above the select instead of
+  // beside it gives the select the full ~262px inner width of the 290px
+  // avatar panel, which is enough for real warehouse/branch labels + badge.
+  // NOTE: kept byte-identical to OneSphere-Accounts's copy per this repo's
+  // existing convention for the hand-duplicated main-layout component.
+  &.ap-context-select-row--wide {
+    grid-template-columns: 1fr;
+  }
+
   span {
     color: var(--text-soft);
     font-size: 11px;
@@ -974,6 +990,41 @@ input {
       border-color: var(--primary);
     }
   }
+}
+
+// Merged Branch/Warehouse selector (Phase 3) — same visual weight as the
+// plain <select> above (30px height, 12px font), since ng-select ships its
+// own markup that the `.ap-context-select-row select` rule above can't reach.
+// Kept byte-identical to the Accounts copy of this stylesheet.
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select {
+  width: 100%;
+  min-width: 0;
+}
+
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select .ng-select-container {
+  min-height: 30px !important;
+  height: 30px !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  border-radius: 6px !important;
+  background: var(--clr-bg-1, #fff) !important;
+  box-shadow: none !important;
+}
+
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select .ng-value-container {
+  min-height: 30px !important;
+  padding: 0 6px !important;
+}
+
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select .ng-placeholder,
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select .ng-input input,
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select .ng-value-label {
+  font-size: 12px !important;
+  color: var(--text-strong);
+  font-weight: 500;
+}
+
+:host ::ng-deep .ap-context-select-row ng-select.ap-switch-ng-select.ng-select-focused .ng-select-container {
+  border-color: var(--primary) !important;
 }
 
 .ap-switch-btn {

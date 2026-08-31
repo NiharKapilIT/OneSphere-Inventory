@@ -151,6 +151,22 @@
             </div>
           </div>
           }
+
+          @if (selectedLoginWarehouses().length > 0) {
+          <div class="erp-form-group">
+            <label>Warehouse</label>
+            <div class="input-icon-wrap">
+              <i class="pi pi-warehouse input-icon"></i>
+              <select class="w-100 input-icon-pad auth-select"
+                [ngModel]="selectedLoginWarehouseId()"
+                (ngModelChange)="selectLoginWarehouse($event)">
+                @for (warehouse of selectedLoginWarehouses(); track warehouse.id) {
+                <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
+                }
+              </select>
+            </div>
+          </div>
+          }
           }
 
           <div class="erp-form-group">
@@ -295,6 +311,22 @@
             No branch is configured yet. You will continue to Settings to create the first branch.
           </div>
           }
+
+          @if (selectedLoginWarehouses().length > 0) {
+          <div class="erp-form-group">
+            <label>Warehouse</label>
+            <div class="input-icon-wrap">
+              <i class="pi pi-warehouse input-icon"></i>
+              <select class="w-100 input-icon-pad auth-select"
+                [ngModel]="selectedLoginWarehouseId()"
+                (ngModelChange)="selectLoginWarehouse($event)">
+                @for (warehouse of selectedLoginWarehouses(); track warehouse.id) {
+                <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
+                }
+              </select>
+            </div>
+          </div>
+          }
           }
 
           @if (!loginRequiresSelection()) {
@@ -423,6 +455,22 @@
                 (ngModelChange)="selectUseridBranch($event)">
                 @for (branch of selectedUseridBranches(); track branch.id) {
                 <option [ngValue]="branch.id">{{ branch.branchName }} ({{ branch.branchCode }})</option>
+                }
+              </select>
+            </div>
+          </div>
+          }
+
+          @if (selectedUseridWarehouses().length > 0) {
+          <div class="erp-form-group">
+            <label>Warehouse</label>
+            <div class="input-icon-wrap">
+              <i class="pi pi-warehouse input-icon"></i>
+              <select class="w-100 input-icon-pad auth-select"
+                [ngModel]="selectedUseridWarehouseId()"
+                (ngModelChange)="selectUseridWarehouse($event)">
+                @for (warehouse of selectedUseridWarehouses(); track warehouse.id) {
+                <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
                 }
               </select>
             </div>

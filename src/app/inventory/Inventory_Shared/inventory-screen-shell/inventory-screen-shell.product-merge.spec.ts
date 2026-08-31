@@ -58,6 +58,37 @@ describe('InventoryScreenShell — Product/Variant/Attribute merge (item 8)', ()
     });
   });
 
+  // Workstream 2 Step A: the join rule extracted out of
+  // grnExpandedProductSubtitle() below so InventoryLineProductPickerComponent's
+  // triggerSubtitle() (live entry grid) can call the exact same method the
+  // saved-records drilldown uses -- one subtitle rule, not two.
+  describe('productSubtitleFromParts()', () => {
+    it('combines a variant name and attribute pairs with a middle-dot separator', () => {
+      const subtitle = component.productSubtitleFromParts('256GB', [{ name: 'Color', value: 'Black' }]);
+      expect(subtitle).toBe('256GB · Color Black');
+    });
+
+    it('joins multiple attribute pairs after the variant', () => {
+      const subtitle = component.productSubtitleFromParts('256GB', [
+        { name: 'Color', value: 'Black' },
+        { name: 'Size', value: 'L' }
+      ]);
+      expect(subtitle).toBe('256GB · Color Black · Size L');
+    });
+
+    it('returns just the variant when there are no attribute pairs', () => {
+      expect(component.productSubtitleFromParts('256GB', [])).toBe('256GB');
+    });
+
+    it('returns just the attribute parts when there is no variant', () => {
+      expect(component.productSubtitleFromParts('', [{ name: 'Color', value: 'Black' }])).toBe('Color Black');
+    });
+
+    it('returns an empty string when there is neither a variant nor any attribute pairs', () => {
+      expect(component.productSubtitleFromParts('', [])).toBe('');
+    });
+  });
+
   describe('grnExpandedProductSubtitle()', () => {
     it('combines variant name and a single attribute into one subtitle', () => {
       const item = { variant_name: '256GB', attribute_value: 'Color: Black' };

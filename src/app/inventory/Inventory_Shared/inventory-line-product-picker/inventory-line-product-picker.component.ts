@@ -9,22 +9,31 @@ import { BranchInvItem, WarehouseItem } from '../inventory-config.service';
 import { AvailableStock, InventoryTransactionsService } from '../inventory-transactions.service';
 import { VariantAttrSelection } from '../inventory-screen-shell/inventory-screen-shell';
 
+interface WarehouseStockCard {
+  key: string;
+  warehouseId: number | null;
+  warehouseName: string;
+  available: number;
+  isCurrentWarehouse: boolean;
+}
+
 interface BranchStockCard {
   key: string;
   branchId: number | null;
   branchName: string;
-  total: number;
-  warehouses: { name: string; available: number }[];
+  available: number;
   isCurrentBranch: boolean;
 }
 
-// Pilot (Sales Invoice / Purchase Invoice / Stock Transfer only): replaces the
-// wide Product ng-select + nested Variant/Attribute sub-selects that every
-// other transaction grid still uses with a compact "+ Product" trigger that opens
-// a top modal popup for
-// Product -> Variant -> one-or-more Attributes, shows closing stock for the
-// current pick, and offers an informational cross-branch stock lookup for the
-// same product (no selection from those cards -- lookup only).
+// Standard product-entry control for every transaction line grid (Purchase
+// Invoice, Sales Invoice, Stock Transfer, GRN, Purchase Return, Sales Order,
+// Delivery Challan, Sales Return, Stock Adjustment -- rolled out from its
+// original 3-screen pilot). Replaces the wide Product ng-select + nested
+// Variant/Attribute sub-selects with a compact "+ Product" trigger that opens
+// a top modal popup for Product -> Variant -> one-or-more Attributes, shows
+// closing stock for the current pick, and offers an informational
+// cross-branch stock lookup for the same product (no selection from those
+// cards -- lookup only).
 //
 // Mounted once PER GRID ROW (inside the Product <td>, via @for), same
 // @Input({required:true}) host!: any convention as
@@ -313,69 +322,77 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     this.currentPickStockRows().reduce((sum, row) => sum + Number(row.available || 0), 0)
   );
 
-  // Groups the product-wide (no warehouseId) available-stock rows by branch
-  // for the informational cards: warehouse_id -> branch_id via
-  // host.loadedWarehouseObjects(), then branch_id -> branch name via
-  // host.loadedBranchObjects() -- matching both fields BranchInvItem exposes
-  // (branch_id and id) the same dual-fallback way the shell's own
-  // ourBranchForRecord()/branchWarehousePool() already do, since which one
-  // WarehouseItem.branch_id actually lines up with isn't pinned down by a
-  // single field name alone. Sorted by total available descending, mirroring
-  // the shell's own otherWarehousesWithStock() sort. Each card also carries
-  // isCurrentBranch, comparing against currentBranchId() below -- purely a
-  // label, cards stay non-clickable/non-selectable either way.
+  // Full Warehouse/Branch Independence: the product-wide (no warehouseId)
+  // available-stock rows split into two independent flat lists -- one entry
+  // per WAREHOUSE (rows with warehouse_id set) and one entry per BRANCH
+  // (rows that carry their own branch_id directly, warehouse_id NULL).
+  // Warehouse and Branch are fully independent location concepts now, so
+  // there is no more "warehouse -> its branch" grouping here at all: a
+  // warehouse's stock only ever shows up in the By Warehouse list, and a
+  // branch's own direct stock only ever shows up in the By Branch list.
+  // Each sorted by available descending, mirroring the shell's own
+  // otherWarehousesWithStock() sort.
+  protected readonly warehouseCards = computed<WarehouseStockCard[]>(() => {
+    const rows = this.branchStockRows();
+    if (!rows.length) return [];
+    const currentWarehouseId = this.currentWarehouseId();
+    const byWarehouse = new Map<string, WarehouseStockCard>();
+    for (const stockRow of rows) {
+      if (stockRow.warehouse_id == null) continue;
+      const available = Number(stockRow.available || 0);
+      const warehouseId = Number(stockRow.warehouse_id);
+      const key = String(warehouseId);
+      if (!byWarehouse.has(key)) {
+        byWarehouse.set(key, {
+          key,
+          warehouseId,
+          warehouseName: stockRow.warehouse_name || stockRow.location_name || 'Warehouse',
+          available: 0,
+          isCurrentWarehouse: currentWarehouseId != null && warehouseId === currentWarehouseId
+        });
+      }
+      byWarehouse.get(key)!.available += available;
+    }
+    return Array.from(byWarehouse.values()).sort((a, b) => b.available - a.available);
+  });
+
   protected readonly branchCards = computed<BranchStockCard[]>(() => {
     const rows = this.branchStockRows();
     if (!rows.length) return [];
-    const warehouses: WarehouseItem[] = this.host.loadedWarehouseObjects() || [];
     const branches: BranchInvItem[] = this.host.loadedBranchObjects() || [];
     const currentBranchId = this.currentBranchId();
     const byBranch = new Map<string, BranchStockCard>();
     for (const stockRow of rows) {
+      if (stockRow.branch_id == null) continue;
       const available = Number(stockRow.available || 0);
-      const warehouse = warehouses.find(w => Number(w.id) === Number(stockRow.warehouse_id));
-      const branchIdRef = warehouse?.branch_id != null ? Number(warehouse.branch_id) : null;
-      const branch = branchIdRef != null
-        ? branches.find(b => Number(b.branch_id) === branchIdRef || Number(b.id) === branchIdRef)
-        : null;
-      const resolvedBranchId = branch ? Number(branch.branch_id ?? branch.id) : null;
-      const key = branch
-        ? String(branch.branch_id ?? branch.id ?? branch.branch_name)
-        : `warehouse_${stockRow.warehouse_id ?? stockRow.warehouse_name ?? 'unknown'}`;
-      const branchName = branch?.branch_name || warehouse?.warehouse_name || stockRow.warehouse_name || 'Unassigned';
+      const branchIdRef = Number(stockRow.branch_id);
+      const branch = branches.find(b => Number(b.branch_id) === branchIdRef || Number(b.id) === branchIdRef);
+      const resolvedBranchId = branch ? Number(branch.branch_id ?? branch.id) : branchIdRef;
+      const key = String(resolvedBranchId);
+      const branchName = branch?.branch_name || stockRow.branch_name || stockRow.location_name || 'Branch';
       if (!byBranch.has(key)) {
         byBranch.set(key, {
           key,
           branchId: resolvedBranchId,
           branchName,
-          total: 0,
-          warehouses: [],
-          isCurrentBranch: resolvedBranchId != null && currentBranchId != null && resolvedBranchId === currentBranchId
+          available: 0,
+          isCurrentBranch: currentBranchId != null && resolvedBranchId === currentBranchId
         });
       }
-      const card = byBranch.get(key)!;
-      card.total += available;
-      card.warehouses.push({ name: warehouse?.warehouse_name || stockRow.warehouse_name || 'Warehouse', available });
+      byBranch.get(key)!.available += available;
     }
-    return Array.from(byBranch.values()).sort((a, b) => b.total - a.total);
+    return Array.from(byBranch.values()).sort((a, b) => b.available - a.available);
   });
 
-  // Resolves "the transaction's own branch" for the current document, so the
-  // matching card in Stock Across Branches can be labelled -- purely a
-  // label, this never changes which cards render or that they stay
-  // non-clickable. No single header field name is shared across the 3 pilot
-  // screens (Sales Invoice: 'warehouse', or 'branch' once Interbranch Sale
-  // is on; Purchase Invoice: 'receivingLocation', a combined branch-or-
-  // warehouse field; Stock Transfer: 'fromWarehouse'), so this reads the
-  // right one per host.config.key and resolves it the same
-  // warehouse-then-branch dual-lookup way InventoryScreenShell's own
-  // applyPurchaseInvoiceFieldDefaults()/applyDeliveryChallanFieldDefaults()
-  // already do for their own combined fields -- reimplemented locally
-  // (rather than promoting the shell's private findWarehouseBySelection()/
-  // findBranchBySelection()) since host.loadedWarehouseObjects()/
-  // host.loadedBranchObjects() already give this component everything the
-  // lookup needs.
-  private readonly currentBranchId = computed<number | null>(() => {
+  // Resolves "the transaction's own location" for the current document, so
+  // the matching card in the By Warehouse / By Branch lists can be
+  // labelled -- purely a label, this never changes which cards render or
+  // that they stay non-clickable. No single header field name is shared
+  // across the 3 pilot screens (Sales Invoice: 'warehouse', or 'branch' once
+  // Interbranch Sale is on; Purchase Invoice: 'receivingLocation', a merged
+  // Warehouse/Branch field; Stock Transfer: 'fromWarehouse', also merged),
+  // so this reads the right one per host.config.key.
+  private readonly currentLocationRaw = computed<string>(() => {
     const formValues = this.host.formValues?.() || {};
     const screenKey = this.host.config?.key || '';
     let raw = '';
@@ -387,19 +404,30 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     } else if (screenKey === 'purchaseInvoice') {
       raw = String(formValues['receivingLocation'] || '');
     }
-    raw = raw.trim();
-    if (!raw) return null;
+    return raw.trim();
+  });
 
+  // Warehouse and Branch are fully independent location concepts now -- a
+  // picked WAREHOUSE never resolves to "its" branch here any more (no
+  // resolution between them anywhere), and a picked BRANCH never resolves to
+  // a warehouse. Each of these two lookups only ever matches its own kind.
+  private readonly currentWarehouseId = computed<number | null>(() => {
+    const raw = this.currentLocationRaw();
+    if (!raw) return null;
     const key = raw.toLowerCase();
     const warehouses: WarehouseItem[] = this.host.loadedWarehouseObjects() || [];
     const warehouse = warehouses.find(w =>
       String(w.warehouse_name || '').trim().toLowerCase() === key
       || String(w.warehouse_code || '').trim().toLowerCase() === key
     );
-    if (warehouse) {
-      return warehouse.branch_id != null ? Number(warehouse.branch_id) : null;
-    }
+    return warehouse?.id != null ? Number(warehouse.id) : null;
+  });
 
+  private readonly currentBranchId = computed<number | null>(() => {
+    const raw = this.currentLocationRaw();
+    if (!raw) return null;
+
+    const key = raw.toLowerCase();
     const branches: BranchInvItem[] = this.host.loadedBranchObjects() || [];
     const branch = branches.find(b =>
       String(b.branch_name || '').trim().toLowerCase() === key
@@ -423,6 +451,21 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
   });
 
   protected readonly triggerTitle = computed(() => this.productValue() ? this.triggerLabel() : 'Add product');
+
+  // Workstream 2 Step A: bold product name + small Variant/Attribute
+  // subtitle underneath, matching the saved-records drilldown's own
+  // <strong>{{ product }}</strong><br><small class="inventory-grid-subtitle">
+  // pattern (grnExpandedProductSubtitle() in the shell). Goes through
+  // host.productSubtitleFromParts() -- the exact same join rule that method
+  // itself now calls -- so the live grid and the drilldown format Variant +
+  // Attribute identically. Attributes without a value yet are excluded, same
+  // filter triggerLabel() above already applies for the tooltip text.
+  protected readonly triggerSubtitle = computed(() => {
+    const attrPairs = this.attrSelections()
+      .filter(attr => String(attr.value || '').trim())
+      .map(attr => ({ name: attr.name, value: attr.value }));
+    return this.host.productSubtitleFromParts(this.variantValue(), attrPairs);
+  });
 
   protected readonly canOpenProductConfig = computed(() => {
     const host = this.host;

@@ -176,21 +176,21 @@
           @if (bodyFieldByKey('warehouse'); as field) {
             <div class="erp-form-group">
               <label class="erp-label">{{ field.label }}</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="field.options || []" [searchable]="true" [clearable]="true"
-                  [ngModel]="formFieldValue(field)"
-                  (ngModelChange)="collectFormField(field.key, $event)"
-                  [placeholder]="fieldTypingHint(field)">
-                </ng-select>
-                @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon"
-                    [title]="'Add ' + field.addMaster"
-                    (click)="openAddMaster(field.addMaster, field.key)">
-                    <i class="pi pi-plus"></i>
-                  </button>
-                }
-              </div>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
+                [searchable]="true" [clearable]="true"
+                [ngModel]="formFieldValue(field)"
+                (ngModelChange)="collectFormField(field.key, $event)"
+                placeholder="Select Warehouse or Branch">
+                <ng-template ng-option-tmp let-item="item">
+                  {{ item.label }}
+                  @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                </ng-template>
+                <ng-template ng-label-tmp let-item="item">
+                  {{ item.label }}
+                  @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                </ng-template>
+              </ng-select>
             </div>
           }
           @if (bodyFieldByKey('interbranchSale'); as swField) {

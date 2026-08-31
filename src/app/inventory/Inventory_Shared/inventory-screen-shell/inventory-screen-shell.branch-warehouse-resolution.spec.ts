@@ -1,26 +1,29 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { of } from 'rxjs';
 
 import { InventoryScreenShell } from './inventory-screen-shell';
 import { InventoryScreenConfig } from '../inventory-screen.model';
 
-// A Branch picked on a stock-moving document used to leave the payload's
-// warehouse id NULL. Every posting function matches its stock rows with
-//     COALESCE(warehouse_id, 0) = COALESCE(<doc>.warehouse_id, 0)
-// so a NULL document warehouse matched every OTHER stock row that also had a
-// NULL warehouse — company-wide. Postings therefore landed in one shared,
-// cross-document, cross-branch "Unassigned" pool instead of a real location.
-//
-// A branch selection now resolves through the existing inv_warehouses
-// .branch_id link (N:1). Exactly one linked warehouse resolves transparently;
-// zero or several is refused with a validation message rather than guessed at.
-describe('InventoryScreenShell — Branch selection resolves to a real warehouse', () => {
+// Full Warehouse/Branch Independence: Warehouse and Branch are two fully
+// independent location concepts now. A Branch pick on any merged-picker
+// screen (GRN, Purchase Invoice, Delivery Challan, Purchase Return, Sales
+// Invoice) is ALWAYS valid on its own -- posted directly against the branch
+// itself, never resolved to "the one warehouse it's linked to", regardless
+// of whether that branch has zero, one, or several linked warehouses. The
+// old inv_warehouses.branch_id link still exists in the live database
+// (decision #4: existing data is left untouched), but nothing reads it for
+// resolution purposes any more.
+describe('InventoryScreenShell — Branch selection posts branch-only (no resolution to a warehouse)', () => {
   let fixture: ComponentFixture<InventoryScreenShell>;
   let component: InventoryScreenShell;
 
   // branch_id here is the GLOBAL branch id (global.branches.id), which is what
   // inv_warehouses.branch_id actually FKs to — deliberately different numbers
-  // from the branches' own local inv_branch_config ids below.
+  // from the branches' own local inv_branch_config ids below. Kept only
+  // because loadedWarehouseObjects()/loadedBranchObjects() fixtures elsewhere
+  // in this codebase still carry it; nothing in this spec relies on the link
+  // itself resolving to anything any more.
   const SOLO_WH = { id: 6, warehouse_name: 'Secunderabad', branch_id: 37, status: 'active' } as any;
   const TWIN_WH_A = { id: 7, warehouse_name: 'Warangal Main', branch_id: 38, status: 'active' } as any;
   const TWIN_WH_B = { id: 8, warehouse_name: 'Warangal Annex', branch_id: 38, status: 'active' } as any;
@@ -65,37 +68,36 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
       (component as any).loadedVendorObjects.set([{ id: 1, vendor_name: 'Test Vendor' } as any]);
     });
 
-    it('resolves a branch with exactly one linked warehouse to that warehouse', () => {
+    it('picking a branch posts branch-only, even with exactly one linked warehouse -- no more auto-collapse', () => {
       component.formValues.set({ receivingLocation: 'Head Office', vendor: 'Test Vendor' });
       const payload = (component as any).buildPayload();
-      expect(payload['warehouse_id']).toBe(6);
-      expect(payload['warehouse_name']).toBe('Secunderabad');
-      // The document really is at that branch — only the NULL warehouse is fixed.
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['warehouse_name']).toBeFalsy();
       expect(payload['branch_id']).toBe(37);
       expect(payload['branch_name']).toBe('Head Office');
       expect((component as any).validatePayload(payload)).toBe('');
     });
 
-    it('never leaves warehouse_id NULL for a branch selection', () => {
-      component.formValues.set({ receivingLocation: 'Head Office' });
-      expect((component as any).buildPayload()['warehouse_id']).not.toBeNull();
-    });
-
-    it('blocks the save when the branch has more than one linked warehouse', () => {
-      component.formValues.set({ receivingLocation: 'Hanamkonda' });
+    // fn_post_grn_stock (migration 163) posts straight against a Branch via
+    // inventory.fn_upsert_stock_balance -- a branch with several linked
+    // warehouses used to be refused as ambiguous; there is nothing left to
+    // disambiguate now.
+    it('a branch with several linked warehouses is no longer ambiguous -- posts branch-only just the same', () => {
+      component.formValues.set({ receivingLocation: 'Hanamkonda', vendor: 'Test Vendor' });
       const payload = (component as any).buildPayload();
       expect(payload['warehouse_id']).toBeFalsy();
-      const message = (component as any).validatePayload(payload);
-      expect(message).toContain('Hanamkonda has 2 warehouses');
-      expect(message).toContain('Warangal Main');
-      expect(message).toContain('Warangal Annex');
+      expect(payload['branch_id']).toBe(38);
+      expect(payload['branch_name']).toBe('Hanamkonda');
+      expect((component as any).validatePayload(payload)).toBe('');
     });
 
-    it('blocks the save when the branch has no linked warehouse', () => {
-      component.formValues.set({ receivingLocation: 'Nizamabad' });
+    it('a branch with no linked warehouse at all is no longer blocked -- posts branch-only', () => {
+      component.formValues.set({ receivingLocation: 'Nizamabad', vendor: 'Test Vendor' });
       const payload = (component as any).buildPayload();
       expect(payload['warehouse_id']).toBeFalsy();
-      expect((component as any).validatePayload(payload)).toContain('no Warehouse linked to it');
+      expect(payload['branch_id']).toBe(39);
+      expect(payload['branch_name']).toBe('Nizamabad');
+      expect((component as any).validatePayload(payload)).toBe('');
     });
 
     it('leaves a directly picked warehouse exactly as before (branch stays null)', () => {
@@ -126,17 +128,47 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
     beforeEach(() => makeComponent(transaction('purchaseInvoice', 'Purchase Invoice',
       ['Product', 'UOM', 'Qty', 'Rate', 'Amount'])));
 
-    it('resolves a single-warehouse branch instead of writing NULL', () => {
+    it('picking a branch posts branch-only, even with exactly one linked warehouse -- no more auto-collapse', () => {
       component.formValues.set({ receivingLocation: 'Head Office' });
       const payload = (component as any).buildPayload();
-      expect(payload['warehouse_id']).toBe(6);
+      expect(payload['warehouse_id']).toBeFalsy();
       expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
     });
 
-    it('blocks an ambiguous branch', () => {
-      component.formValues.set({ receivingLocation: 'Hanamkonda' });
+    // fn_post_pi_stock (migration 159) already posts straight against a
+    // Branch via inventory.fn_upsert_stock_balance -- a branch with several
+    // linked warehouses used to be refused as ambiguous even here (the
+    // old branchOnlyStockPostingScreenKeys only ever waived the
+    // zero-linked-warehouse case, not the ambiguous one); there is nothing
+    // left to disambiguate now.
+    it('a branch with several linked warehouses is no longer ambiguous -- posts branch-only', () => {
+      component.entryLineRows.set([['Dell Desktop', 'Nos', '2', '100', '200']]);
+      component.formValues.set({
+        receivingLocation: 'Hanamkonda', vendor: 'Test Vendor', piNo: 'PI-3', piDate: '2026-08-20',
+        vendorInvoiceNo: 'VI-3', vendorInvoiceDate: '2026-08-20'
+      });
+      (component as any).loadedVendorObjects.set([{ id: 1, vendor_name: 'Test Vendor' } as any]);
       const payload = (component as any).buildPayload();
-      expect((component as any).validatePayload(payload)).toContain('has 2 warehouses');
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(38);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    // This behaviour is no longer Purchase-Invoice-specific -- every
+    // merged-picker screen works this way now.
+    it('allows posting straight against a branch with no linked warehouse', () => {
+      component.entryLineRows.set([['Dell Desktop', 'Nos', '2', '100', '200']]);
+      component.formValues.set({
+        receivingLocation: 'Nizamabad', vendor: 'Test Vendor', piNo: 'PI-2', piDate: '2026-08-20',
+        vendorInvoiceNo: 'VI-2', vendorInvoiceDate: '2026-08-20'
+      });
+      (component as any).loadedVendorObjects.set([{ id: 1, vendor_name: 'Test Vendor' } as any]);
+      const payload = (component as any).buildPayload();
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(39);
+      expect(payload['branch_name']).toBe('Nizamabad');
+      expect((component as any).validatePayload(payload)).toBe('');
     });
 
     // As with GRN, Purchase Invoice already had its own stricter rule.
@@ -156,19 +188,32 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
     beforeEach(() => makeComponent(transaction('deliveryChallan', 'Delivery Challan',
       ['Product', 'UOM', 'Dispatch Qty'])));
 
-    it('resolves a single-warehouse branch into from_warehouse_id', () => {
+    it('picking a branch dispatches branch-only, even with exactly one linked warehouse -- no more auto-collapse', () => {
       component.formValues.set({ fromWarehouse: 'Head Office' });
       const payload = (component as any).buildPayload();
-      expect(payload['from_warehouse_id']).toBe(6);
-      expect(payload['from_warehouse_name']).toBe('Secunderabad');
+      expect(payload['from_warehouse_id']).toBeFalsy();
       expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
     });
 
-    it('blocks a branch with no linked warehouse', () => {
+    // fn_post_delivery_challan_dispatch (migration 164) posts straight
+    // against a Branch now.
+    it('a branch with several linked warehouses is no longer ambiguous -- dispatches branch-only just the same', () => {
+      component.formValues.set({ fromWarehouse: 'Hanamkonda' });
+      const payload = (component as any).buildPayload();
+      payload['customer_name'] = 'Test Customer';
+      expect(payload['from_warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(38);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('a branch with no linked warehouse is no longer blocked -- dispatches branch-only', () => {
       component.formValues.set({ fromWarehouse: 'Nizamabad' });
       const payload = (component as any).buildPayload();
+      payload['customer_name'] = 'Test Customer';
       expect(payload['from_warehouse_id']).toBeFalsy();
-      expect((component as any).validatePayload(payload)).toContain('no Warehouse linked to it');
+      expect(payload['branch_id']).toBe(39);
+      expect((component as any).validatePayload(payload)).toBe('');
     });
 
     it('refuses to POST with no location at all', () => {
@@ -189,7 +234,62 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
     });
   });
 
-  describe('Sales Invoice (separate Warehouse + interbranch Branch fields)', () => {
+  describe('Purchase Return (now wired into the same merged Warehouse/Branch picker)', () => {
+    beforeEach(() => {
+      makeComponent(transaction('purchaseReturn', 'Purchase Return',
+        ['Product', 'Variant', 'Attribute', 'UOM', 'Invoice Qty', 'Return Qty', 'Rate', 'GST', 'Return Amount', 'Serial No']));
+      component.entryLineRows.set([['Dell Desktop', '', '', 'Nos', '2', '1', '100', '0%', '100', '']]);
+    });
+
+    it('picking a branch posts branch-only, even with exactly one linked warehouse -- no more auto-collapse', () => {
+      component.formValues.set({ warehouse: 'Head Office', vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    // fn_post_purchase_return_stock (migration 165) posts straight against
+    // a Branch now.
+    it('a branch with several linked warehouses is no longer ambiguous -- posts branch-only just the same', () => {
+      component.formValues.set({ warehouse: 'Hanamkonda', vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(38);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('a branch with no linked warehouse is no longer blocked -- posts branch-only', () => {
+      component.formValues.set({ warehouse: 'Nizamabad', vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(39);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('leaves a directly picked warehouse exactly as before (branch stays null)', () => {
+      component.formValues.set({ warehouse: 'Floating WH', vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect(payload['warehouse_id']).toBe(9);
+      expect(payload['branch_id']).toBeFalsy();
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('blocks a location name that matches no warehouse and no branch', () => {
+      component.formValues.set({ warehouse: 'HYD Main WH', vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect((component as any).validatePayload(payload)).toContain('is not a Warehouse in this company');
+    });
+
+    it('already refuses any save with no location at all (Purchase Return\'s own stricter rule)', () => {
+      component.formValues.set({ vendor: 'Test Vendor' });
+      const payload = (component as any).buildPayload();
+      expect((component as any).validatePayload(payload)).toBe('Warehouse / Branch is required for Purchase Return.');
+    });
+  });
+
+  describe('Sales Invoice (merged Warehouse/Branch picker + separate interbranch Branch field)', () => {
     beforeEach(() => makeComponent(transaction('salesInvoice', 'Sales Invoice',
       ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Warehouse', 'Amount'])));
 
@@ -199,20 +299,44 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
       ]);
     }
 
-    it('falls back to the interbranch branch\'s single warehouse when Warehouse is empty', () => {
+    // Full Warehouse/Branch Independence: Sales Invoice's own Warehouse
+    // field is now the same merged Warehouse/Branch picker GRN/PI/DC/
+    // Purchase Return use -- picking a branch posts stock directly against
+    // it (fn_post_sales_invoice_stock, migration 166), never resolved to
+    // "the one warehouse it's linked to". This replaces the old
+    // warehouse-autofill-from-branch-pool fallback that used to run through
+    // the separate Interbranch Sale Branch field when Warehouse was empty --
+    // that field is untouched, but no longer feeds this resolution at all.
+    it('picking a branch on the invoice\'s own field posts branch-only, even with exactly one linked warehouse', () => {
       stockLine();
-      component.formValues.set({ interbranchSale: 'Yes', branch: 'Head Office' });
-      const payload = (component as any).buildPayload();
-      expect(payload['warehouse_id']).toBe(6);
-      expect(payload['warehouse_name']).toBe('Secunderabad');
-    });
-
-    it('blocks an ambiguous branch rather than posting to Unassigned', () => {
-      stockLine();
-      component.formValues.set({ interbranchSale: 'Yes', branch: 'Hanamkonda', status: 'Posted' });
+      component.formValues.set({ warehouse: 'Head Office' });
       const payload = (component as any).buildPayload();
       expect(payload['warehouse_id']).toBeFalsy();
-      expect((component as any).validatePayload(payload)).toContain('has 2 warehouses');
+      expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
+    });
+
+    it('a branch with several linked warehouses is no longer ambiguous on Sales Invoice\'s own field either', () => {
+      stockLine();
+      component.formValues.set({ warehouse: 'Hanamkonda' });
+      const payload = (component as any).buildPayload();
+      payload['customer_name'] = 'Test Customer';
+      payload['channel_partner_name'] = 'Test Partner';
+      expect(payload['warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(38);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    // Workstream D: the grid's own per-line Warehouse column is gone from
+    // the real salesInvoiceConfig (inventory-screen.model.ts) -- it was
+    // forced read-only and always mirrored the header field anyway.
+    // salesLineItems() now reads the header 'warehouse' field directly
+    // instead of a dead per-line cell lookup.
+    it('stamps each line item\'s warehouse_name straight from the header Warehouse field', () => {
+      stockLine();
+      component.formValues.set({ warehouse: 'Secunderabad' });
+      const payload = (component as any).buildPayload();
+      expect(payload.items[0].warehouse_name).toBe('Secunderabad');
     });
 
     // The real INV-26-00002 signature: a stale warehouse name left over from
@@ -268,7 +392,7 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
     });
   });
 
-  describe('Sales Return', () => {
+  describe('Sales Return (out of scope for branch-aware posting -- fn_post_sales_return_stock untouched)', () => {
     beforeEach(() => makeComponent(transaction('salesReturn', 'Sales Return',
       ['Product', 'Variant', 'Attribute', 'Invoiced Qty', 'Return Qty', 'UOM', 'Rate', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Return Amount', 'Reason'])));
 
@@ -278,12 +402,24 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
       ]);
     }
 
-    it('resolves a branch name in Return To Warehouse to its single warehouse', () => {
+    // Full Warehouse/Branch Independence: Sales Return never gained a
+    // branch_id column or a branch-aware posting path (deliberately out of
+    // scope), and the shared branch->single-warehouse resolver it used to
+    // borrow (singleWarehouseForBranch()) is deleted entirely -- a branch
+    // name typed into Return To Warehouse no longer resolves to anything.
+    it('a branch name in Return To Warehouse no longer resolves to a warehouse', () => {
       returnLine();
       component.formValues.set({ returnToWarehouse: 'Head Office' });
       const payload = (component as any).buildPayload();
-      expect(payload['return_to_warehouse_id']).toBe(6);
-      expect(payload['return_to_warehouse_name']).toBe('Secunderabad');
+      expect(payload['return_to_warehouse_id']).toBeFalsy();
+    });
+
+    it('a directly picked warehouse still resolves exactly as before', () => {
+      returnLine();
+      component.formValues.set({ returnToWarehouse: 'Floating WH' });
+      const payload = (component as any).buildPayload();
+      expect(payload['return_to_warehouse_id']).toBe(9);
+      expect(payload['return_to_warehouse_name']).toBe('Floating WH');
     });
 
     it('refuses to POST a return with no location at all', () => {
@@ -299,6 +435,81 @@ describe('InventoryScreenShell — Branch selection resolves to a real warehouse
       component.formValues.set({ returnToWarehouse: 'HYD Main WH' });
       const payload = (component as any).buildPayload();
       expect((component as any).validatePayload(payload)).toContain('is not a Warehouse in this company');
+    });
+  });
+
+  // Workstream B: once a Branch/Warehouse is selected on one of the
+  // stockLocationScreenKeys screens, the product list narrows to what's
+  // actually in stock there -- reusing sp_get_available_stock (via
+  // getAvailableStock) with no productId, a single bulk "which products
+  // have stock here" call. Deliberately fails open (full unfiltered list)
+  // whenever the location is unresolved, the fetch is still in flight, or it
+  // resolves to genuinely zero stocked products -- a filtering bug here
+  // reads as "I can't find my product at all," worse than no filter.
+  describe('Product filtering scoped to the selected Branch/Warehouse (Workstream B)', () => {
+    beforeEach(() => {
+      makeComponent(transaction('goodsReceipt', 'Goods Receipt',
+        ['Product', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'Amount']));
+      (component as any).loadedProductObjects.set([
+        { id: 14, product_name: 'Dell Desktop', product_code: 'DD-1' } as any,
+        { id: 20, product_name: 'HP Printer', product_code: 'HP-1' } as any
+      ]);
+    });
+
+    function seedAvailableStock(rows: any[]) {
+      return vi.spyOn((component as any).txService, 'getAvailableStock')
+        .mockReturnValue(of({ success: true, message: '', data: rows }));
+    }
+
+    it('fails open (full list) before any location is selected', () => {
+      component.formValues.set({ receivingLocation: '' });
+      expect((component as any).lineColumnOptions('Item / SKU')).toEqual(['Dell Desktop', 'HP Printer']);
+    });
+
+    it('fails open on the very first read (fetch just kicked off), then narrows once the fetch resolves', () => {
+      seedAvailableStock([{ product_id: 14, available: 5 }]);
+      component.formValues.set({ receivingLocation: 'Floating WH' }); // UNLINKED_WH, id 9
+      // First call reads the pre-fetch cache state (nothing yet) and fails open.
+      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop', 'HP Printer']);
+      // The stub resolves synchronously, so a second read now sees the
+      // narrowed set -- exactly what the next render/change-detection pass
+      // would show once the real HTTP call lands.
+      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop']);
+    });
+
+    it('fails open (full list) when the location resolves to genuinely zero stocked products', () => {
+      seedAvailableStock([]);
+      component.formValues.set({ receivingLocation: 'Floating WH' });
+      (component as any).productNamesScopedToLocation('goodsReceipt'); // kick off + resolve
+      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop', 'HP Printer']);
+    });
+
+    // Full Warehouse/Branch Independence: a branch pick now resolves
+    // straight to { branchId } -- no more "try to find one linked warehouse
+    // first" -- so the underlying fetch is scoped by branchId, not warehouseId.
+    it('resolves a branch straight to a branch-scoped location -- no more auto-collapse to a linked warehouse', () => {
+      seedAvailableStock([{ product_id: 20, available: 3 }]);
+      component.formValues.set({ receivingLocation: 'Head Office' }); // SOLO_BRANCH, branch_id 37
+      (component as any).productNamesScopedToLocation('goodsReceipt');
+      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['HP Printer']);
+      const spy = (component as any).txService.getAvailableStock as any;
+      expect(spy.mock.calls[0][0]).toEqual(expect.objectContaining({ branchId: 37 }));
+    });
+
+    it('resolves a directly picked warehouse and filters by that warehouse, unchanged', () => {
+      seedAvailableStock([{ product_id: 20, available: 3 }]);
+      component.formValues.set({ receivingLocation: 'Floating WH' }); // UNLINKED_WH, id 9
+      (component as any).productNamesScopedToLocation('goodsReceipt');
+      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['HP Printer']);
+      const spy = (component as any).txService.getAvailableStock as any;
+      expect(spy.mock.calls[0][0]).toEqual(expect.objectContaining({ warehouseId: 9 }));
+    });
+
+    it('does not scope Sales Order -- out of scope for Workstream B, stays the plain unfiltered list', () => {
+      seedAvailableStock([{ product_id: 14, available: 1 }]);
+      component.config = transaction('salesOrder', 'Sales Order', ['Item / SKU']);
+      component.formValues.set({ warehouse: 'Secunderabad' });
+      expect((component as any).productNamesScopedToLocation('salesOrder')).toEqual(['Dell Desktop', 'HP Printer']);
     });
   });
 });

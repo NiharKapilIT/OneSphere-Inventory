@@ -19,13 +19,13 @@
             placeholder="Select Segment">
           </ng-select>
         }
-        <span class="product-segment-bar-hint">Branch and warehouse mapping here belongs to this segment.</span>
+        <span class="product-segment-bar-hint">Branch configuration here belongs to this segment.</span>
       </div>
 
       <div class="inventory-section-title">
         <div>
           <h3>{{ editingId() ? 'Edit Branch Config' : 'New Branch Config' }}</h3>
-          <p>Assign a Branch and mapp to the Warehouse,  for new branch click <strong>+ Add</strong>.</p>
+          <p>Assign a Branch and Business Segment, for new branch click <strong>+ Add</strong>.</p>
         </div>
         @if (editingId()) {
           <span class="erp-badge badge-warning"><i class="pi pi-pencil"></i> Editing #{{ editingId() }}</span>
@@ -93,62 +93,6 @@
 
         </div>
 
-        <!-- Default Warehouse -->
-        <div class="erp-form-group">
-          <label class="erp-label">
-            Default Warehouse
-            <span class="erp-label-hint">links this branch to a warehouse</span>
-          </label>
-          <div class="inventory-field-with-add">
-            <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-              [items]="segmentWarehouses()"
-              bindLabel="warehouse_name"
-              bindValue="id"
-              [searchable]="true"
-              [clearable]="true"
-              [ngModel]="warehouseId()"
-              (ngModelChange)="warehouseId.set($event)"
-              placeholder="Select warehouse (optional)">
-              <ng-template ng-option-tmp let-item="item">
-                <span class="erp-badge badge-info me-1">{{ item.warehouse_code }}</span>
-                {{ item.warehouse_name }}
-                @if (item.branch_id && item.branch_id !== selectedSettingsBranchId()) {
-                  <span class="erp-badge badge-warning ms-1">linked to {{ branchDisplayLabel(item.branch_id) }}</span>
-                }
-              </ng-template>
-            </ng-select>
-            <button type="button" class="erp-btn btn-white btn-icon"
-              title="Set up warehouses" routerLink="/dashboard/inventory/configuration/warehouse-location-master">
-              <i class="pi pi-plus"></i>
-            </button>
-          </div>
-          @if (!warehouses().length) {
-            <small class="erp-field-hint">No warehouses yet — add one in Warehouse Setup.</small>
-          }
-        </div>
-
-        <!-- Warehouses linked to this branch (item 13 follow-up) -->
-        @if (selectedSettingsBranchId()) {
-          <div class="erp-form-group span-2">
-            <label class="erp-label">
-              Warehouses Linked to This Branch
-              <span class="erp-label-hint">tag more from Warehouse Setup — a branch can have several</span>
-            </label>
-            @if (linkedWarehouses().length) {
-              <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                @for (wh of linkedWarehouses(); track wh.id) {
-                  <span class="erp-badge badge-info">
-                    <i class="pi pi-building"></i> {{ wh.warehouse_name }}
-                    @if (wh.is_default) { <span class="erp-badge badge-success ms-1">default</span> }
-                  </span>
-                }
-              </div>
-            } @else {
-              <small class="erp-field-hint">No warehouses tagged to this branch yet — set a warehouse's Branch field in Warehouse Setup.</small>
-            }
-          </div>
-        }
-
         <!-- Status -->
         <div class="erp-form-group">
           <label class="erp-label">Status</label>
@@ -199,7 +143,6 @@
                 <th>Branch Code</th>
                 <th>Branch Name</th>
                 <th>Segment</th>
-                <th>Warehouse</th>
                 <th>Status</th>
                 <th class="text-center">Remove</th>
               </tr>
@@ -212,7 +155,6 @@
                     @if (row._editId) { <span class="erp-badge badge-warning ms-1">edit</span> }
                   </td>
                   <td>{{ row._segment_name || '—' }}</td>
-                  <td>{{ row._warehouse_name || '—' }}</td>
                   <td>
                     <span [class]="'erp-badge ' + (row.status === 'active' ? 'badge-success' : 'badge-neutral')">
                       {{ row.status }}
@@ -263,7 +205,6 @@
                 <th>Branch Code</th>
                 <th>Branch Name</th>
                 <th>Segment</th>
-                <th>Warehouse</th>
                 <th>Status</th>
                 <th class="text-center">Actions</th>
               </tr>
@@ -274,7 +215,6 @@
                   <td><span class="erp-badge badge-info">{{ br.branch_code }}</span></td>
                   <td><strong>{{ br.branch_name }}</strong></td>
                   <td>{{ br.segment_name || segmentName(br.segment_id) || '—' }}</td>
-                  <td>{{ warehouseNameForBranch(br.branch_id) }}</td>
                   <td>
                     <span [class]="'erp-badge ' + (br.status.toLowerCase() === 'active' ? 'badge-success' : 'badge-neutral')">
                       {{ br.status }}

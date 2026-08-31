@@ -6,11 +6,27 @@ import { AuthApiResponse, AuthService } from '../services/auth.service';
 
 let refreshRequest$: Observable<AuthApiResponse> | null = null;
 
+// When this app is loaded as a Module Federation remote inside the
+// OneSphere-Accounts host, the access token deliberately lives ONLY in that
+// host's in-memory TokenService (never sessionStorage/a cookie), and this
+// app's own separately-bundled AuthService has no Angular DI path to reach
+// that exact instance. OneSphere-Accounts' TokenService installs this bridge
+// on the shared `window` (same page, same JS realm under federation) so
+// every request here can still get the live token. Falls back to
+// sessionStorage['token'] when the bridge isn't present -- i.e. this app
+// running standalone (its own login writes sessionStorage['token'] itself,
+// see auth.service.ts's setMultiTenantSession).
+function currentAccessToken(): string {
+  const bridge = (window as unknown as { __oneSphereGetAccessToken?: () => string | null }).__oneSphereGetAccessToken;
+  const bridged = bridge?.();
+  return bridged || sessionStorage.getItem('token') || '';
+}
+
 export const responseInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
   const apiUrl = sessionStorage.getItem('apiURL') || '';
-  const token = sessionStorage.getItem('token') || '';
+  const token = currentAccessToken();
   const isApiRequest = !!apiUrl && req.url.startsWith(apiUrl);
   const request = token && isApiRequest && !isAnonymousAuthEndpoint(req.url) && !req.headers.has('Authorization')
     ? req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })

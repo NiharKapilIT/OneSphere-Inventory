@@ -74,19 +74,6 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
       expect(pool.map((w: any) => w.id).sort()).toEqual([101, 102]);
     });
 
-    it('resolveBranchDefaultWarehouse() never resolves a cross-segment warehouse even if it is the only is_default match', () => {
-      (component as any).loadedWarehouseObjects.set([
-        { ...HYD_MAIN, segment_id: 1, is_default: false },
-        { ...HYD_ANNEX, segment_id: 1, is_default: false },
-        { ...HYD_ANNEX_HOTEL_SEGMENT, is_default: true }
-      ]);
-      const result = (component as any).resolveBranchDefaultWarehouse(1);
-      // Ambiguous within the Electronics segment (2 candidates, neither
-      // default) -- correctly returns null rather than falling through to
-      // the Hotel-segment warehouse's is_default flag.
-      expect(result).toBeNull();
-    });
-
     it('planInterbranchAutoTransfers() never sources a transfer from a same-branch, different-segment warehouse', () => {
       component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
       component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '10', '', '', '', '', '', '', '', '', '', '']]);
@@ -121,26 +108,19 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
     });
   });
 
-  describe('branch selection auto-fills the fulfillment Warehouse (only when unambiguous, never overwriting)', () => {
-    it('auto-fills Warehouse when exactly one warehouse is tagged with the branch', () => {
-      (component as any).loadedWarehouseObjects.set([HYD_MAIN, BLR_STORE]); // only one Hyderabad warehouse now
-      component.formValues.set({ interbranchSale: 'Yes' });
-      component.collectFormField('branch', 'Hyderabad');
-      expect(component.formValues()['warehouse']).toBe('HYD Main WH');
-      expect(component.formValues()['warehouseId']).toBe(101);
-    });
-
-    it('leaves Warehouse blank when the branch has multiple warehouses and none is the company default', () => {
+  // Full Warehouse/Branch Independence: the warehouse-autofill-from-
+  // branch-pool step that used to live in
+  // applySalesInvoiceBranchFieldDefaults() is gone -- Interbranch Sale's own
+  // Branch field no longer touches the invoice's own Warehouse/Branch picker
+  // at all any more. It still tracks its own branchId (planInterbranchAutoTransfers()
+  // needs it to resolve the source branch), just nothing downstream of that.
+  describe('branch selection no longer touches the fulfillment Warehouse', () => {
+    it('picking a branch does not auto-fill Warehouse, even when exactly one warehouse is tagged with it', () => {
+      (component as any).loadedWarehouseObjects.set([HYD_MAIN, BLR_STORE]); // only one Hyderabad warehouse
       component.formValues.set({ interbranchSale: 'Yes' });
       component.collectFormField('branch', 'Hyderabad');
       expect(component.formValues()['warehouse']).toBeUndefined();
-    });
-
-    it('uses the company-wide default warehouse when it belongs to the selected branch', () => {
-      (component as any).loadedWarehouseObjects.set([HYD_MAIN, { ...HYD_ANNEX, is_default: true }, BLR_STORE]);
-      component.formValues.set({ interbranchSale: 'Yes' });
-      component.collectFormField('branch', 'Hyderabad');
-      expect(component.formValues()['warehouse']).toBe('HYD Annex WH');
+      expect(component.formValues()['warehouseId']).toBeUndefined();
     });
 
     it('never overwrites a Warehouse the user already picked', () => {
@@ -148,6 +128,12 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
       component.collectFormField('branch', 'Hyderabad');
       expect(component.formValues()['warehouse']).toBe('BLR Store');
       expect(component.formValues()['warehouseId']).toBe(201);
+    });
+
+    it('still tracks branchId for planInterbranchAutoTransfers()\'s source-branch resolution', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.collectFormField('branch', 'Hyderabad');
+      expect(component.formValues()['branchId']).toBe(1);
     });
   });
 
@@ -169,6 +155,19 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
     it('switch on + branch selected: stock at any branch warehouse IS counted as in-stock', () => {
       component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
       (component as any).availableStockCache.set({ [(component as any).availableStockKey(14, null, 'Red')]: rows });
+      const result = (component as any).filterAttributeOptionsByWarehouseStock(14, null, ['Red'], 101);
+      expect(result).toEqual(['Red']);
+    });
+
+    // Full Warehouse/Branch Independence: the branch's own DIRECT stock
+    // (branch_id set, no warehouse) also counts as "in stock" now -- not
+    // just a pool of "its" warehouses.
+    it('switch on + branch selected: the branch\'s own direct stock (no warehouse) IS also counted as in-stock', () => {
+      component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
+      (component as any).availableStockCache.set({ [(component as any).availableStockKey(14, null, 'Red')]: [
+        { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 0 },
+        { warehouse_id: undefined, branch_id: 1, branch_name: 'Hyderabad', available: 4 }
+      ] });
       const result = (component as any).filterAttributeOptionsByWarehouseStock(14, null, ['Red'], 101);
       expect(result).toEqual(['Red']);
     });
@@ -240,6 +239,44 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
       expect(plan.transfers).toEqual([]);
       expect(plan.uncoveredLines).toEqual([]);
     });
+
+    // Full Warehouse/Branch Independence: the selected Interbranch branch is
+    // now a valid transfer source in its own right -- its own direct stock
+    // (branch_id set, warehouse_id NULL) is checked FIRST, before any
+    // sibling-warehouse pool.
+    it('sources a shortfall from the branch\'s own direct stock first, before any sibling warehouse', () => {
+      component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '10', '', '', '', '', '', '', '', '', '', '']]);
+      seedStock([
+        { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 2 },
+        // Hyderabad branch itself carries direct stock -- no warehouse_id.
+        { warehouse_id: undefined, branch_id: 1, branch_name: 'Hyderabad', available: 6 },
+        { warehouse_id: 102, warehouse_name: 'HYD Annex WH', available: 20 }
+      ]);
+      const plan = (component as any).planInterbranchAutoTransfers();
+      expect(plan.uncoveredLines).toEqual([]);
+      expect(plan.transfers.length).toBe(2);
+      const branchGroup = plan.transfers.find((g: any) => g.fromBranchId === 1);
+      const warehouseGroup = plan.transfers.find((g: any) => g.fromWarehouseId === 102);
+      expect(branchGroup.fromBranchName).toBe('Hyderabad');
+      expect(branchGroup.items[0].qty).toBe(6); // branch's own stock covers 6 of the 8 short
+      expect(warehouseGroup.items[0].qty).toBe(2); // remaining 2 from the sibling warehouse
+    });
+
+    it('sources the entire shortfall from the branch\'s own direct stock when it fully covers it, touching no warehouse at all', () => {
+      component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '10', '', '', '', '', '', '', '', '', '', '']]);
+      seedStock([
+        { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 2 },
+        { warehouse_id: undefined, branch_id: 1, branch_name: 'Hyderabad', available: 20 }
+      ]);
+      const plan = (component as any).planInterbranchAutoTransfers();
+      expect(plan.uncoveredLines).toEqual([]);
+      expect(plan.transfers.length).toBe(1);
+      expect(plan.transfers[0].fromBranchId).toBe(1);
+      expect(plan.transfers[0].fromWarehouseId).toBeUndefined();
+      expect(plan.transfers[0].items[0].qty).toBe(8);
+    });
   });
 
   describe('saveConfigRecord() interbranch save flow', () => {
@@ -278,6 +315,31 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
       expect(dialogArg.lines.some((l: string) => l.includes('HYD Annex WH') && l.includes('HYD Main WH'))).toBe(true);
       expect(transferSpy).toHaveBeenCalledTimes(1);
       expect(executeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    // Full Warehouse/Branch Independence: fn_post_stock_transfer (migration
+    // 160) already accepts a branch-sourced transfer -- this pins down that
+    // the auto-transfer save call actually sends from_branch_id/
+    // from_branch_name (not a warehouse) when the plan sourced from the
+    // branch's own direct stock.
+    it('sends from_branch_id/from_branch_name, not a warehouse, when the auto-transfer sources from the branch itself', async () => {
+      (component as any).availableStockCache.set({ [(component as any).availableStockKey(14, null)]: [
+        { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 2 },
+        { warehouse_id: undefined, branch_id: 1, branch_name: 'Hyderabad', available: 20 }
+      ] });
+      vi.spyOn(component as any, 'confirmAction').mockResolvedValue(true);
+      const transferSpy = vi.spyOn((component as any).txService, 'saveStockTransfer')
+        .mockReturnValue(of({ success: true, data: { id: 999 } }));
+      vi.spyOn(component as any, 'executeSaveConfigRecord').mockImplementation(() => {});
+
+      component.saveConfigRecord('posted');
+      await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+      expect(transferSpy).toHaveBeenCalledTimes(1);
+      const payload = transferSpy.mock.calls[0][0] as any;
+      expect(payload.from_branch_id).toBe(1);
+      expect(payload.from_branch_name).toBe('Hyderabad');
+      expect(payload.from_warehouse_id).toBeNull();
     });
 
     it('does not save the transfer or the SI when the user cancels', async () => {
@@ -320,6 +382,126 @@ describe('InventoryScreenShell — Interbranch Sale (items 13/14)', () => {
       const dialogArg = confirmSpy.mock.calls[0][0] as any;
       expect(dialogArg.title).toBe('Stock may go negative');
       expect(executeSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // Workstream B item 5: the branch-scoped product filter (item 7's general
+  // case) must stay OFF for Sales Invoice while Interbranch Sale is on --
+  // that mode's whole point is deliberately drawing on OTHER branches'
+  // stock, so narrowing the product list to "in stock at the selected
+  // branch/warehouse" would defeat it. Off, the same screen filters exactly
+  // like every other stockLocationScreenKeys screen.
+  describe('Branch-scoped product filter bypass while Interbranch Sale is on (Workstream B item 5)', () => {
+    it('stays global (unfiltered) with Interbranch Sale on, even though the selected branch does have resolvable stock', () => {
+      const stockSpy = vi.spyOn((component as any).txService, 'getAvailableStock')
+        .mockReturnValue(of({ success: true, message: '', data: [{ product_id: 14, available: 5 }] }));
+      component.formValues.set({ interbranchSale: 'Yes', branch: 'Hyderabad', branchId: 1, warehouse: 'HYD Main WH', warehouseId: 101 });
+
+      const names = (component as any).productNamesScopedToLocation('salesInvoice');
+
+      expect(names).toEqual(['LED Display 32 inch', 'Serial Laptop']);
+      // The bypass short-circuits before ever reaching the location-scoped
+      // fetch -- not just coincidentally returning the full list.
+      expect(stockSpy).not.toHaveBeenCalled();
+    });
+
+    it('narrows to the selected warehouse\'s stock once Interbranch Sale is off', () => {
+      vi.spyOn((component as any).txService, 'getAvailableStock')
+        .mockReturnValue(of({ success: true, message: '', data: [{ product_id: 14, available: 5 }] }));
+      component.formValues.set({ interbranchSale: 'No', warehouse: 'HYD Main WH', warehouseId: 101 });
+
+      (component as any).productNamesScopedToLocation('salesInvoice'); // kick off + resolve (synchronous stub)
+      const names = (component as any).productNamesScopedToLocation('salesInvoice');
+
+      expect(names).toEqual(['LED Display 32 inch']);
+    });
+  });
+
+  // Item 3: once Interbranch Sale is on, the Branch dropdown itself must
+  // narrow further to branches that can actually supply stock for the
+  // invoice's own line items -- reuses the exact getAvailableStock cache
+  // the per-line hints already populate (no new stock query).
+  describe('stock-aware Interbranch Sale branch picker (item 3)', () => {
+    const BLR_BRANCH = { id: 2, branch_id: 2, branch_name: 'Bengaluru' } as any;
+
+    beforeEach(() => {
+      (component as any).loadedBranchObjects.set([HYD_BRANCH, BLR_BRANCH]);
+    });
+
+    it('is unaffected (plain active/segment list, no stock filtering) while the switch is off', () => {
+      component.formValues.set({ interbranchSale: 'No' });
+      expect((component as any).salesInvoiceBranchOptions()).toEqual(['Hyderabad', 'Bengaluru']);
+    });
+
+    it('falls back to the full active list when no line has resolved stock data yet (never goes blank while loading)', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '5', '', '', '', '', '', '', '', '', '', '']]);
+      expect((component as any).salesInvoiceBranchOptions()).toEqual(['Hyderabad', 'Bengaluru']);
+    });
+
+    it('narrows to only the branch(es) that actually have stock for the line\'s product', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '5', '', '', '', '', '', '', '', '', '', '']]);
+      (component as any).availableStockCache.set({
+        [(component as any).availableStockKey(14, null)]: [
+          { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 10 }, // Hyderabad sibling warehouse: in stock
+          { warehouse_id: 201, warehouse_name: 'BLR Store', available: 0 }     // Bengaluru: zero stock
+        ]
+      });
+      expect((component as any).salesInvoiceBranchOptions()).toEqual(['Hyderabad']);
+    });
+
+    it('includes the branch\'s own direct stock (branch_id set, warehouse_id NULL), not just sibling warehouses', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '5', '', '', '', '', '', '', '', '', '', '']]);
+      (component as any).availableStockCache.set({
+        [(component as any).availableStockKey(14, null)]: [
+          { warehouse_id: null, branch_id: 2, branch_name: 'Bengaluru', available: 4 }
+        ]
+      });
+      expect((component as any).salesInvoiceBranchOptions()).toEqual(['Bengaluru']);
+    });
+
+    it('shows a branch if it can supply AT LEAST ONE line item, not requiring every line to be stocked there', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([
+        ['LED Display 32 inch', '', '', 'Nos', '5', '', '', '', '', '', '', '', '', '', ''],
+        ['Serial Laptop', '', '', 'Nos', '1', '', '', '', '', '', '', '', '', '', '']
+      ]);
+      (component as any).availableStockCache.set({
+        [(component as any).availableStockKey(14, null)]: [
+          { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 10 } // only Hyderabad has line 1's product
+        ],
+        [(component as any).availableStockKey(15, null)]: [
+          { warehouse_id: 201, warehouse_name: 'BLR Store', available: 3 }   // only Bengaluru has line 2's product
+        ]
+      });
+      expect([...(component as any).salesInvoiceBranchOptions()].sort()).toEqual(['Bengaluru', 'Hyderabad']);
+    });
+
+    it('excludes a branch with zero stock for every line item', () => {
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([['Serial Laptop', '', '', 'Nos', '1', '', '', '', '', '', '', '', '', '', '']]);
+      (component as any).availableStockCache.set({
+        [(component as any).availableStockKey(15, null)]: [
+          { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 0 },
+          { warehouse_id: 201, warehouse_name: 'BLR Store', available: 0 }
+        ]
+      });
+      expect((component as any).salesInvoiceBranchOptions()).toEqual([]);
+    });
+
+    it('never offers an inactive branch even if it has stock (items 2 + 3 combined)', () => {
+      (component as any).loadedBranchObjects.set([HYD_BRANCH, { ...BLR_BRANCH, status: 'inactive' }]);
+      component.formValues.set({ interbranchSale: 'Yes' });
+      component.entryLineRows.set([['LED Display 32 inch', '', '', 'Nos', '5', '', '', '', '', '', '', '', '', '', '']]);
+      (component as any).availableStockCache.set({
+        [(component as any).availableStockKey(14, null)]: [
+          { warehouse_id: 101, warehouse_name: 'HYD Main WH', available: 10 },
+          { warehouse_id: 201, warehouse_name: 'BLR Store', available: 50 }
+        ]
+      });
+      expect((component as any).salesInvoiceBranchOptions()).toEqual(['Hyderabad']);
     });
   });
 });

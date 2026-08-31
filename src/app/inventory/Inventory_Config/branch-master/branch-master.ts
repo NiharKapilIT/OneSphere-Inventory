@@ -11,7 +11,7 @@ import {
   SubscriptionPlan, SubscriptionService
 } from '../../../core/services/subscription/subscription.service';
 import {
-  BranchInvItem, InventoryConfigService, SegmentItem, WarehouseItem
+  BranchInvItem, InventoryConfigService, SegmentItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 import { branchMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
@@ -33,7 +33,6 @@ export class InventoryBranchMasterComponent implements OnInit {
   segmentId                = signal<number | null>(null);
   status                   = signal('active');
   editingId                = signal<number | null>(null);
-  warehouseId              = signal<number | null>(null);
 
   // ── Quick-add new branch ──────────────────────────────────────────────
   showQuickAdd       = signal(false);
@@ -47,33 +46,10 @@ export class InventoryBranchMasterComponent implements OnInit {
   segments         = signal<SegmentItem[]>([]);
   savedBranches    = signal<BranchInvItem[]>([]);
   pendingBranches  = signal<any[]>([]);
-  warehouses       = signal<WarehouseItem[]>([]);
 
   readonly selectedSettingsBranch = computed(() =>
     this.settingsBranches().find(b => Number(b.id) === Number(this.selectedSettingsBranchId())) ?? null
   );
-
-  // Warehouse currently linked (inv_warehouses.branch_id) to the selected branch, if any.
-  readonly linkedWarehouse = computed(() => {
-    const id = this.selectedSettingsBranchId();
-    if (!id) return null;
-    return this.warehouses().find(w => Number(w.branch_id) === Number(id)) ?? null;
-  });
-
-  // Item 13 follow-up: "Default Warehouse" above is a single, opt-in pick --
-  // it's not the whole picture once Warehouse Setup's own Branch field lets
-  // any number of warehouses point at the same branch (the real multi-
-  // warehouse-per-branch pool the interbranch sale feature relies on). This
-  // is the read-only, business-owner-facing view of that full pool: every
-  // warehouse currently tagged with this branch, however it got tagged
-  // (here or from Warehouse Setup directly), not just the one "default."
-  readonly linkedWarehouses = computed(() => {
-    const id = this.selectedSettingsBranchId();
-    if (!id) return [];
-    return this.warehouses()
-      .filter(w => Number(w.branch_id) === Number(id))
-      .sort((a, b) => (a.warehouse_name || '').localeCompare(b.warehouse_name || ''));
-  });
 
   readonly alreadyConfigured = computed(() => {
     const id = this.selectedSettingsBranchId();
@@ -96,12 +72,6 @@ export class InventoryBranchMasterComponent implements OnInit {
   readonly selectedSegment = computed(() =>
     this.segments().find(item => item.id === this.segmentId())?.segment_name ?? ''
   );
-  readonly segmentWarehouses = computed(() => {
-    const selectedSegmentId = this.segmentId();
-    return selectedSegmentId
-      ? this.warehouses().filter(item => !item.segment_id || item.segment_id === selectedSegmentId)
-      : this.warehouses();
-  });
 
   // ── Subscription quota ────────────────────────────────────────────────
   subscription = signal<SubscriptionPlan | null>(null);
@@ -130,10 +100,9 @@ export class InventoryBranchMasterComponent implements OnInit {
       segments:     this.svc.getSegments(true).pipe(catchError(() => of({ success: false, message: '', data: [] as SegmentItem[] }))),
       branches:     this.svc.getBranchesInv(true).pipe(catchError(() => of({ success: false, message: '', data: [] as BranchInvItem[] }))),
       settings:     this.access.getBranches().pipe(catchError(() => of({ success: false, message: '', data: [] as BranchResponse[] }))),
-      subscription: this.subSvc.getSubscription().pipe(catchError(() => of({ success: false, data: null as SubscriptionPlan | null }))),
-      warehouses:   this.svc.getWarehouses(true).pipe(catchError(() => of({ success: false, message: '', data: [] as WarehouseItem[] })))
+      subscription: this.subSvc.getSubscription().pipe(catchError(() => of({ success: false, data: null as SubscriptionPlan | null })))
     }).subscribe({
-      next: ({ segments, branches, settings, subscription, warehouses }) => {
+      next: ({ segments, branches, settings, subscription }) => {
         this.segments.set(segments.data       ?? []);
         this.savedBranches.set(branches.data  ?? []);
         this.settingsBranches.set(this.mergeSettingsBranches(
@@ -142,7 +111,6 @@ export class InventoryBranchMasterComponent implements OnInit {
           this.inventoryBranchesAsSettings(branches.data ?? [])
         ));
         this.subscription.set(subscription.data ?? null);
-        this.warehouses.set(warehouses.data ?? []);
         this.applyDefaultSegment();
         this.loading.set(false);
       },
@@ -182,13 +150,8 @@ export class InventoryBranchMasterComponent implements OnInit {
   onSegmentChangedByUser(segmentName: string): void {
     const segment = this.segments().find(item => item.segment_name === segmentName);
     this.segmentId.set(segment?.id ?? null);
-    const warehouse = this.warehouses().find(item => item.id === this.warehouseId());
-    if (segment?.id && warehouse?.segment_id && warehouse.segment_id !== segment.id) {
-      this.warehouseId.set(null);
-    }
   }
 
-  // Selecting a branch pre-fills whichever warehouse is already linked to it.
   onSettingsBranchSelected(id: number | null): void {
     const branchId = Number(id) || null;
     this.selectedSettingsBranchId.set(branchId);
@@ -196,11 +159,6 @@ export class InventoryBranchMasterComponent implements OnInit {
     if (configured?.segment_id || configured?.segment_name) {
       this.segmentId.set(this.resolveSegmentId(configured.segment_id, configured.segment_name));
     }
-    const linked = this.warehouses().find(w => Number(w.branch_id) === Number(branchId));
-    if (linked?.segment_id && linked.segment_id !== this.segmentId()) {
-      this.segmentId.set(linked.segment_id);
-    }
-    this.warehouseId.set(linked?.id ?? null);
   }
 
   // ── Quick-add branch ──────────────────────────────────────────────────
@@ -274,24 +232,6 @@ export class InventoryBranchMasterComponent implements OnInit {
     return this.segments().find(s => s.id === id)?.segment_name ?? '—';
   }
 
-  warehouseName(id: number | null | undefined): string {
-    if (!id) return '—';
-    return this.warehouses().find(w => w.id === id)?.warehouse_name ?? '—';
-  }
-
-  warehouseNameForBranch(branchId: number | null | undefined): string {
-    if (!branchId) return '—';
-    return this.warehouses().find(w => w.branch_id === branchId)?.warehouse_name ?? '—';
-  }
-
-  branchDisplayLabel(branchId: number | null | undefined): string {
-    if (!branchId) return '—';
-    const sb = this.settingsBranches().find(b => b.id === branchId);
-    if (sb) return `${sb.branchCode} – ${sb.branchName}`;
-    const saved = this.savedBranches().find(b => b.branch_id === branchId);
-    return saved ? `${saved.branch_code} – ${saved.branch_name}` : `Branch #${branchId}`;
-  }
-
   // ── Pending / save ────────────────────────────────────────────────────
   addToPending(): void {
     const sb = this.selectedSettingsBranch();
@@ -313,9 +253,7 @@ export class InventoryBranchMasterComponent implements OnInit {
       branch_code:      sb.branchCode,
       segment_id:       this.segmentId(),
       _segment_name:    this.segmentName(this.segmentId()),
-      status:           this.status(),
-      warehouse_id:     this.warehouseId(),
-      _warehouse_name:  this.warehouseName(this.warehouseId())
+      status:           this.status()
     }]);
     this.clearForm();
   }
@@ -328,7 +266,6 @@ export class InventoryBranchMasterComponent implements OnInit {
     this.selectedSettingsBranchId.set(null);
     this.status.set('active');
     this.editingId.set(null);
-    this.warehouseId.set(null);
     this.saveError.set('');
     this.cancelQuickAdd();
     this.applyDefaultSegment();
@@ -347,10 +284,6 @@ export class InventoryBranchMasterComponent implements OnInit {
       status:         r.status
     }));
 
-    const warehouseLinks = this.pendingBranches()
-      .filter(r => r.warehouse_id)
-      .map(r => ({ warehouseId: r.warehouse_id as number, branchId: r.branch_id as number }));
-
     this.svc.batchSaveBranchesInv(batch).subscribe({
       next: res => {
         this.pendingBranches.set([]);
@@ -364,44 +297,12 @@ export class InventoryBranchMasterComponent implements OnInit {
         this.saving.set(false);
         this.saveMsg.set(`${batch.length} branch configuration(s) saved`);
         setTimeout(() => this.saveMsg.set(''), 4000);
-        this.linkWarehousesToBranches(warehouseLinks);
       },
       error: err => {
         this.saving.set(false);
         this.saveError.set(err?.error?.title ?? err?.error?.message ?? 'Save failed');
       }
     });
-  }
-
-  // Points each selected warehouse's branch_id at the branch it was configured against
-  // (inv_warehouses.branch_id is the single source of truth for the branch<->warehouse link).
-  private linkWarehousesToBranches(links: { warehouseId: number; branchId: number }[]): void {
-    for (const { warehouseId, branchId } of links) {
-      const wh = this.warehouses().find(w => w.id === warehouseId);
-      if (!wh || wh.branch_id === branchId) continue;
-      this.svc.saveWarehouse({
-        branch_id:      branchId,
-        segment_id:     wh.segment_id,
-        warehouse_code: wh.warehouse_code,
-        warehouse_name: wh.warehouse_name,
-        address:        wh.address,
-        city:           wh.city,
-        state:          wh.state,
-        district:       wh.district,
-        pincode:        wh.pincode,
-        capacity:       wh.capacity,
-        capacity_unit:  wh.capacity_unit,
-        is_default:     wh.is_default,
-        status:         wh.status
-      }, warehouseId).subscribe({
-        next: res => {
-          if (res.data) {
-            this.warehouses.update(list => list.map(w => w.id === res.data!.id ? res.data! : w));
-          }
-        },
-        error: () => undefined
-      });
-    }
   }
 
   editBranch(br: BranchInvItem): void {
@@ -412,7 +313,6 @@ export class InventoryBranchMasterComponent implements OnInit {
     this.selectedSettingsBranchId.set(option?.id ?? br.branch_id ?? null);
     this.segmentId.set(this.resolveSegmentId(br.segment_id, br.segment_name));
     this.status.set((br.status || 'active').toLowerCase());
-    this.warehouseId.set(this.warehouses().find(w => Number(w.branch_id) === Number(option?.id ?? br.branch_id))?.id ?? null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 

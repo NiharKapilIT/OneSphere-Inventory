@@ -765,8 +765,15 @@ export const openingInventoryBalanceConfig: InventoryScreenConfig = {
   outputImpact: 'Opening balances seed stock ledger, valuation and availability reports.',
   screenMode: 'Opening balance',
   fields: [
-    { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
-    { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+    // Full Warehouse/Branch Independence: same merged Warehouse/Branch picker
+    // GRN/PI/DC/PR/SI use -- a branch pick posts stock directly against the
+    // branch itself, no longer resolved to "the one warehouse it's linked
+    // to". This screen previously showed Branch and Warehouse as two
+    // separate mandatory fields, missed by the original migration. No
+    // addMaster here, same as every other genuinely-merged picker (GRN/PI/
+    // PR/SI) -- "Add Location" is ambiguous once a Branch is also a valid
+    // pick, so those screens deliberately show no add-button on this field.
+    { key: 'warehouse', label: 'Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
     { key: 'product', label: 'Product', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
     { key: 'batchNo', label: 'Batch No' },
     { key: 'serialNo', label: 'Serial No' },
@@ -775,10 +782,10 @@ export const openingInventoryBalanceConfig: InventoryScreenConfig = {
     { key: 'totalValue', label: 'Total Value', type: 'number' },
     { key: 'openingDate', label: 'Opening Date', type: 'date' }
   ],
-  columns: ['Branch', 'Warehouse', 'Product', 'Batch No', 'Serial No', 'Quantity', 'Rate', 'Total Value', 'Opening Date'],
+  columns: ['Warehouse / Branch', 'Product', 'Batch No', 'Serial No', 'Quantity', 'Rate', 'Total Value', 'Opening Date'],
   rows: [
-    ['Head Office', 'HYD Main WH', 'LED Display', 'NA', 'SN-1001', '24', '24500', '588000', '01-Apr-2026'],
-    ['Restaurant Outlet', 'Main Kitchen Store', 'Basmati Rice', 'LOT-7781', 'NA', '340', '92', '31280', '01-Apr-2026']
+    ['HYD Main WH', 'LED Display', 'NA', 'SN-1001', '24', '24500', '588000', '01-Apr-2026'],
+    ['Main Kitchen Store', 'Basmati Rice', 'LOT-7781', 'NA', '340', '92', '31280', '01-Apr-2026']
   ]
 };
 
@@ -1323,7 +1330,7 @@ export const goodsReceiptConfig = transaction(
       { key: 'poReference', label: 'PO Reference / Direct' },
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
-      { key: 'receivingLocation', label: 'Receiving Branch / Warehouse', type: 'select', options: [] },
+      { key: 'receivingLocation', label: 'Receiving Warehouse / Branch', type: 'select', options: [] },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
@@ -1353,7 +1360,7 @@ export const purchaseInvoiceConfig = transaction(
     { name: 'GRN reference', status: 'Ready' },
     { name: 'Payment Terms Master', status: 'Ready' }
   ],
-  'Purchase Invoice stores supplier bill details in Inventory only. Accounts posting is intentionally not touched here. Posting a direct invoice (no GRN Reference) receives stock into the selected Branch / Warehouse; a GRN-linked invoice does not move stock again since the GRN already posted it.',
+  'Purchase Invoice stores supplier bill details in Inventory only. Accounts posting is intentionally not touched here. Posting a direct invoice (no GRN Reference) receives stock into the selected Warehouse / Branch; a GRN-linked invoice does not move stock again since the GRN already posted it.',
   {
     screenMode: 'Purchase invoice entry',
     fields: [
@@ -1364,7 +1371,7 @@ export const purchaseInvoiceConfig = transaction(
       { key: 'grnReference', label: 'GRN Reference / Direct' },
       { key: 'vendorInvoiceNo', label: 'Vendor Invoice No' },
       { key: 'vendorInvoiceDate', label: 'Vendor Invoice Date', type: 'date' },
-      { key: 'receivingLocation', label: 'Branch / Warehouse', type: 'select', options: [] },
+      { key: 'receivingLocation', label: 'Warehouse / Branch', type: 'select', options: [] },
       { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
       { key: 'dueDate', label: 'Due Date', type: 'date' },
       { key: 'status', label: 'Status', type: 'select', options: ['Draft', 'Posted'] },
@@ -1378,7 +1385,7 @@ export const purchaseInvoiceConfig = transaction(
     // NOT a PI column: PI always bills on Accepted Qty when GRN-linked.
     lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
     lineRows: [],
-    columns: ['PI No', 'PI Date', 'Vendor', 'Branch / Warehouse', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
+    columns: ['PI No', 'PI Date', 'Vendor', 'Warehouse / Branch', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
     rows: []
   }
 );
@@ -1408,12 +1415,17 @@ export const salesInvoiceConfig = transaction(
       { key: 'customer', label: 'Party / Customer', type: 'select', options: INVENTORY_OPTIONS.customers, addMaster: 'Customer' },
       { key: 'channelPartner', label: 'Channel Partner', type: 'select', options: [], addMaster: 'Channel Partner' },
       { key: 'placeOfSupply', label: 'Place of Supply', type: 'select', options: ['Telangana', 'Karnataka', 'Andhra Pradesh', 'Maharashtra'] },
-      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      // Full Warehouse/Branch Independence: the same merged Warehouse/Branch
+      // picker GRN/PI/DC/Purchase Return use -- a branch pick posts stock
+      // directly against the branch itself (fn_post_sales_invoice_stock,
+      // migration 166), no longer resolved to "the one warehouse it's linked
+      // to". Unrelated to the separate Interbranch Sale Branch field below.
+      { key: 'warehouse', label: 'Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
       // Item 13: multi-branch sales. Off by default (defaultFieldValue()
       // defaults every Yes/No field to 'No') so every existing invoice and
       // every new one that never touches this switch behaves byte-for-byte
       // as before. Branch only matters, and only renders, once the switch
-      // is on -- see applySalesInvoiceBranchFieldDefaults().
+      // is on.
       { key: 'interbranchSale', label: 'Interbranch Sale', type: 'select', options: ['Yes', 'No'] },
       { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
       { key: 'transportMode', label: 'Transport Mode', type: 'select', options: ['Road', 'Rail', 'Air', 'Hand Delivery', 'Not Applicable'] },
@@ -1424,7 +1436,15 @@ export const salesInvoiceConfig = transaction(
     ],
     posFields,
     lineTitle: 'Sales Items',
-    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Warehouse', 'Amount'],
+    // Workstream D: Warehouse column removed -- it was forced read-only and
+    // purely cosmetic on this screen (identical value in every real case to
+    // the header 'warehouse' field), and the picker's own Stock Across
+    // Branches panel (Workstream A) is now the natural replacement for the
+    // per-cell "also in stock at X" hint it carried. Purchase Order's own
+    // Warehouse column (line ~1290 above) is a real, independently-editable
+    // per-line field and stays untouched -- this removal is Sales Invoice
+    // only.
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
     lineRows: [
       ['LED Display 32 inch', '', '', 'Nos', '2', '24,500', '26,000', '24,500', '0', '18%', 'NA', 'SN-1042, SN-1043', 'NA', 'HYD Main WH', '57,820'],
       ['Agro Seed Premium', '', '', 'Bag', '10', '2,150', '2,300', '2,150', '1', '5%', 'LOT-AGRO-0526-A', 'NA', '18-Dec-2026', 'BLR Store', '22,349'],
@@ -1477,8 +1497,8 @@ export const stockTransferConfig = transaction(
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'transferNo', label: 'Transfer No' },
       { key: 'transferDate', label: 'Transfer Date', type: 'date' },
-      { key: 'fromWarehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
-      { key: 'toWarehouse', label: 'To Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'fromWarehouse', label: 'From Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'toWarehouse', label: 'To Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Transfer Items',
@@ -1504,8 +1524,14 @@ export const stockAdjustmentConfig = transaction(
     { name: 'Location Master', status: 'Ready' },
     { name: 'Product Master', status: 'Ready' },
     { name: 'UOM conversion', status: 'Ready' },
-    { name: 'Reason master', status: 'Ready' },
-    { name: 'Approval workflow', status: 'Ready' }
+    // Workstream 3: these two overclaimed "Ready" -- there is no dedicated
+    // Reason master (Reason is a plain free-text field on this form) and no
+    // real approval routing (Approval is just the generic Status dropdown:
+    // Pending Approval / Approved / Rejected). Copy corrected to say what
+    // actually exists today; building either feature for real is separate,
+    // unrequested scope.
+    { name: 'Reason (free text field, no dedicated master)', status: 'Pending Setup' },
+    { name: 'Approval (Status field only, no approval routing)', status: 'Pending Setup' }
   ],
   'Pending or approved adjustment. Stock impact happens only after approval -- rejecting a pending adjustment never touches stock.',
   {
@@ -1513,7 +1539,7 @@ export const stockAdjustmentConfig = transaction(
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'adjustmentNo', label: 'Adjustment No' },
       { key: 'adjustmentDate', label: 'Adjustment Date', type: 'date' },
-      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'warehouse', label: 'Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'adjustmentType', label: 'Adjustment Type', type: 'select', options: ['Increase', 'Decrease'] },
       { key: 'reason', label: 'Reason' },
       { key: 'status', label: 'Status', type: 'select', options: ['Pending Approval', 'Approved', 'Rejected'] },
@@ -1525,7 +1551,7 @@ export const stockAdjustmentConfig = transaction(
       ['LED Display 32 inch', '', '', 'Nos', '1', 'NA', ''],
       ['Basmati Rice 25KG', '', '', 'Bag', '3', 'LOT-RICE-0526-K', '']
     ],
-    columns: ['Adjustment No', 'Adjustment Date', 'Warehouse', 'Type', 'Reason', 'Items', 'Status'],
+    columns: ['Adjustment No', 'Adjustment Date', 'Warehouse / Branch', 'Type', 'Reason', 'Items', 'Status'],
     rows: [
       ['SA-EL-26-00001', '10-May-2026', 'HYD Main WH', 'Increase', 'Found stock during cycle count', '1', 'Approved'],
       ['SA-EL-26-00002', '09-May-2026', 'BLR Store', 'Decrease', 'Damaged in storage', '1', 'Pending Approval']
@@ -1728,11 +1754,13 @@ export const purchaseReturnConfig = transaction(
       { key: 'returnDate', label: 'Return Date', type: 'date' },
       { key: 'vendor', label: 'Party / Vendor', type: 'select', options: INVENTORY_OPTIONS.suppliers, addMaster: 'Vendor' },
       { key: 'piReference', label: 'PI Reference', type: 'select', options: [] },
-      // Warehouse-only despite the old "/ Branch" label: runtimeOptions()
-      // matches key.includes('warehouse') first and returns warehouseOptions,
-      // and the payload builder never consults the branch list — no branch was
-      // ever selectable here, so the label was the whole problem.
-      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations },
+      // Full Warehouse/Branch Independence: now the same merged Warehouse/
+      // Branch picker GRN/PI/DC use (runtimeOptions() returns the merged
+      // list for this key+screen, and the payload builder resolves via
+      // resolveMergedLocation()) -- a branch pick posts stock directly
+      // against the branch itself (fn_post_purchase_return_stock, migration
+      // 165), no longer resolved to "the one warehouse it's linked to".
+      { key: 'warehouse', label: 'Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
       { key: 'returnReason', label: 'Return Reason', type: 'select', options: ['Damaged in Transit', 'Quality Failure', 'Wrong Item Delivered', 'Excess Quantity', 'Expired on Arrival'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
@@ -1960,8 +1988,15 @@ export const openingStockEntryConfig = transaction(
     fields: [
       { key: 'entryNo', label: 'Entry Number' },
       { key: 'entryDate', label: 'Entry Date', type: 'date' },
-      { key: 'branch', label: 'Branch', type: 'select', options: INVENTORY_OPTIONS.branches },
-      { key: 'warehouse', label: 'Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      // Full Warehouse/Branch Independence: same merged Warehouse/Branch
+      // picker GRN/PI/DC/PR/SI use -- a branch pick posts stock directly
+      // against the branch itself, no longer resolved to "the one warehouse
+      // it's linked to". This screen previously showed Branch and Warehouse
+      // as two separate mandatory fields, missed by the original migration.
+      // No addMaster here, same as every other genuinely-merged picker
+      // (GRN/PI/PR/SI) -- "Add Location" is ambiguous once a Branch is also
+      // a valid pick, so those screens deliberately show no add-button.
+      { key: 'warehouse', label: 'Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Opening Stock Items',
@@ -1971,10 +2006,10 @@ export const openingStockEntryConfig = transaction(
       ['Basmati Rice', 'KG', '340', '92', '31,280', 'LOT-7781', 'NA'],
       ['Drone Motor', 'Set', '45', '8,500', '3,82,500', 'LOT-DRN-001', 'NA']
     ],
-    columns: ['Entry No', 'Entry Date', 'Branch', 'Warehouse', 'Items', 'Total Value', 'Status'],
+    columns: ['Entry No', 'Entry Date', 'Warehouse / Branch', 'Items', 'Total Value', 'Status'],
     rows: [
-      ['OSE-001', '01-Apr-2026', 'Head Office', 'HYD Main WH', '3', 'Rs. 10,01,780', 'Posted'],
-      ['OSE-002', '01-Apr-2026', 'Restaurant Outlet', 'Main Kitchen Store', '8', 'Rs. 1,24,600', 'Posted']
+      ['OSE-001', '01-Apr-2026', 'HYD Main WH', '3', 'Rs. 10,01,780', 'Posted'],
+      ['OSE-002', '01-Apr-2026', 'Main Kitchen Store', '8', 'Rs. 1,24,600', 'Posted']
     ]
   }
 );

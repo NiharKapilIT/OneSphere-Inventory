@@ -118,10 +118,11 @@ describe('InventoryScreenShell — merged Warehouse/Branch picker is type-tagged
     });
   });
 
-  // The whole point of Round 1 is that no posting behaviour moves. A branch
-  // still resolves onward to its single linked warehouse, and a directly
-  // picked warehouse still posts to itself with a null branch.
-  describe('payload behaviour is unchanged', () => {
+  // Full Warehouse/Branch Independence: a branch selection no longer
+  // resolves onward to a linked warehouse at all -- it posts branch-only,
+  // directly. A directly picked warehouse still posts to itself with a
+  // null branch, unchanged.
+  describe('payload behaviour', () => {
     beforeEach(() => {
       component.entryLineRows.set([['Dell Desktop', 'Nos', '2', '2', '100', '200']]);
       (component as any).loadedProductObjects.set([
@@ -130,10 +131,10 @@ describe('InventoryScreenShell — merged Warehouse/Branch picker is type-tagged
       (component as any).loadedVendorObjects.set([{ id: 1, vendor_name: 'Test Vendor' } as any]);
     });
 
-    it('a branch selection still resolves to its single linked warehouse', () => {
+    it('a branch selection posts branch-only now, no longer resolved to its linked warehouse', () => {
       component.formValues.set({ receivingLocation: 'Head Office', vendor: 'Test Vendor' });
       const payload = (component as any).buildPayload();
-      expect(payload['warehouse_id']).toBe(6);
+      expect(payload['warehouse_id']).toBeFalsy();
       expect(payload['branch_id']).toBe(37);
     });
 

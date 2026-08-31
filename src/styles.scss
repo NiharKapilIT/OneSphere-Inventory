@@ -11421,6 +11421,23 @@ body .p-connected-overlay {
   min-width: 560px;
 }
 
+// Workstream C: row-height normalization for the product-picker cell.
+// Matched to the same selector prefix as the min-width rule immediately
+// above so it beats the generic `.compact td { vertical-align: top; }`
+// default a few rules up -- narrowly scoped to the product column only,
+// doesn't touch any other column's alignment. Screens that already set
+// their own vertical-align on this cell (sales-invoice.ts / stock-
+// transfer.ts, both `middle`) render unchanged since the values agree;
+// this is what actually fixes Purchase Invoice (height floor without a
+// vertical-align override) and the screens that had no override at all.
+//
+// NOTE: this file is federation-dead when Inventory is served through the
+// Accounts shell (only the host's global styles.scss applies at runtime) --
+// this rule is mirrored byte-for-byte in OneSphere-Accounts/src/styles.scss.
+.grn-grid-compact.inventory-line-items .erp-table.compact td.inventory-line-col-product {
+  vertical-align: middle;
+}
+
 .grn-grid-compact.inventory-line-items .erp-table.compact th.inventory-line-col-qty,
 .grn-grid-compact.inventory-line-items .erp-table.compact td.inventory-line-col-qty {
   min-width: 128px;
@@ -11622,6 +11639,36 @@ body .ng-dropdown-panel.inventory-line-product-select .ng-dropdown-panel-items {
   border-color: #6ee7b7;
   background: #ffffff;
   color: #047857;
+}
+
+// Small "WH" tag next to a Warehouse entry in the merged Warehouse/Branch
+// picker (GRN, Purchase Invoice, Purchase Return, Delivery Challan, Sales
+// Invoice, Opening Inventory Balance, Opening Stock Entry) -- distinguishes
+// a warehouse option/selection from a branch one without a second column.
+// Branch entries deliberately get no badge at all (kept subtle/asymmetric on
+// purpose -- Warehouse is the "special" tag here since most of these screens
+// default to a warehouse pick).
+//
+// NOTE: this copy is dead at runtime once Inventory is federated into the
+// Accounts-hosted shell (see erp_inventory_accounts_shared_css_duplication
+// memory) -- kept byte-identical to OneSphere-Accounts/src/styles.scss's
+// copy anyway, per this repo's existing convention for shared classes.
+.inventory-location-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  padding: 0 5px;
+  height: 15px;
+  border: 1px solid #93c5fd;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 14px;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
 }
 
 .inventory-gst-mode-toggle {
@@ -13069,17 +13116,23 @@ body .ng-dropdown-panel.inventory-line-product-select .ng-dropdown-panel-items {
   position: sticky;
   top: 68px; // sits flush under .breadcrumb-bar (main-layout.component.scss), which is sticky at top: 0
   z-index: 150; // above form content, below .breadcrumb-bar (z-index 200)
-  margin: 0 0 14px;
+  margin: -20px 0 14px; // tightens the gap under the Business Segment bar above it
   padding: 10px 0;
   background: var(--page-bg, #fff);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
 
   .tabs-nav {
     flex-wrap: wrap;
+    min-width: 0; // let the row actually shrink/wrap instead of forcing the
+                  // base .tabs-nav min-width: min-content floor
   }
 
   .tab-item {
     min-height: 40px;
+
+    .tab-label {
+      font-size: 10.4px; // 20% down from the shared .tab-item base of 13px
+    }
   }
 }
 

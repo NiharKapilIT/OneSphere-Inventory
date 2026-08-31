@@ -227,7 +227,7 @@
       <app-inventory-transport-details [host]="this"></app-inventory-transport-details>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items grn-grid-compact" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
+        <div class="inventory-line-items grn-grid-compact sales-order-line-grid" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
@@ -304,6 +304,13 @@
                               <button type="button" [class.active]="lineGstIncluded(rowIndex)" (click)="setLineGstMode(rowIndex, true)">Incl</button>
                             </div>
                           </div>
+                        } @else if (lineGridColumnIsProduct(column)) {
+                          <app-inventory-line-product-picker
+                            [host]="this" [rowIndex]="rowIndex" [column]="column"
+                            [productColumnIndex]="columnIndex"
+                            [variantColumnIndex]="lineGridSourceColumnIndex('Variant')"
+                            [attributeColumnIndex]="lineGridSourceColumnIndex('Attribute')">
+                          </app-inventory-line-product-picker>
                         } @else if (cellView?.options?.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
                             [items]="cellView?.options || []"
@@ -335,37 +342,6 @@
                                 <i class="pi pi-times"></i>
                               </button>
                             </small>
-                          }
-                        }
-                        @if (lineGridColumnIsProduct(column)) {
-                          @if (lineColumnAppliesToRow(row, 'Variant')) {
-                            <div class="inventory-line-subcell">
-                              @let variantColumnIndex = lineGridSourceColumnIndex('Variant');
-                              @let variantCellView = variantColumnIndex >= 0 ? rowView?.columns?.[variantColumnIndex] : null;
-                              @if (lineGridCellReadonly(rowIndex, row, 'Variant')) {
-                                <small class="inventory-grid-subtitle">{{ lineGridReadonlyCellText(rowIndex, row, 'Variant', variantCellView, rowView) }}</small>
-                              } @else if (variantCellView?.options?.length) {
-                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm" appendTo="body"
-                                  [items]="variantCellView?.options || []" [searchable]="true" [clearable]="false"
-                                  [ngModel]="variantCellView?.controlValue"
-                                  (ngModelChange)="setEntryLineCell(rowIndex, variantColumnIndex, $event)"
-                                  placeholder="Variant">
-                                </ng-select>
-                              }
-                            </div>
-                          }
-                          @for (attr of rowView?.attrSelections || []; track attr.name) {
-                            <div class="inventory-line-subcell">
-                              @if (attr.isAuto) {
-                                <small class="inventory-grid-subtitle">{{ attr.name }}: {{ attr.value || 'â€”' }}</small>
-                              } @else {
-                                <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-grid-select-sm inventory-attr-select" appendTo="body"
-                                  [items]="attr.options" [searchable]="false" [clearable]="false"
-                                  [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
-                                  [placeholder]="attr.name">
-                                </ng-select>
-                              }
-                            </div>
                           }
                         }
                       </td>

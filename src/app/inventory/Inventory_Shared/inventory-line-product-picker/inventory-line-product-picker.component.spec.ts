@@ -76,6 +76,11 @@ describe('InventoryLineProductPickerComponent', () => {
       setLineAttrValue: (rowIndex: number, name: string, value: any) => {
         setLineAttrValueCalls.push({ rowIndex, name, value });
       },
+      // Real InventoryScreenShell.productSubtitleFromParts() logic, mirrored
+      // here (not a dummy stub) so triggerSubtitle() tests below exercise the
+      // exact same join rule the live host applies.
+      productSubtitleFromParts: (variantName: string, attrPairs: Array<{ name: string; value: string }>) =>
+        [variantName, ...(attrPairs || []).map(p => `${p.name} ${p.value}`)].filter(Boolean).join(' · '),
       // Test-only setters (host is `any`, so these don't need a real type).
       __setVariantApplies: (v: boolean) => { variantApplies = v; },
       __setVariantOptions: (v: string[]) => { variantOptions = v; },
@@ -137,6 +142,49 @@ describe('InventoryLineProductPickerComponent', () => {
     ]);
     fixture.detectChanges();
     expect((component as any).triggerLabel()).toBe('Widget A — Model A — Color: Red');
+  });
+
+  // Workstream 2 Step A: the trigger's visible text now renders as a bold
+  // product name plus a small "Variant · Attr Value" subtitle underneath --
+  // the same host.productSubtitleFromParts() join the saved-records
+  // drilldown (grnExpandedProductSubtitle) uses, so both places format
+  // identically.
+  describe('triggerSubtitle() / bold-name-small-subtitle rendering (Workstream 2 Step A)', () => {
+    it('composes the subtitle from variant and non-empty attribute values via host.productSubtitleFromParts()', () => {
+      host.entryLineRows.set([['Widget A', 'Model A', '', '']]);
+      host.__setAttrSelections([
+        { name: 'Color', value: 'Red', options: ['Red', 'Blue'], isAuto: false },
+        { name: 'Size', value: '', options: ['S', 'M'], isAuto: false } // unpicked -- excluded
+      ]);
+      fixture.detectChanges();
+      expect((component as any).triggerSubtitle()).toBe('Model A · Color Red');
+    });
+
+    it('renders <strong> product name and <small class="inventory-grid-subtitle"> in the trigger DOM once a product is picked', () => {
+      host.entryLineRows.set([['Widget A', 'Model A', '', '']]);
+      host.__setAttrSelections([{ name: 'Color', value: 'Red', options: ['Red', 'Blue'], isAuto: false }]);
+      fixture.detectChanges();
+      const strong: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text strong');
+      const small: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text small.inventory-grid-subtitle');
+      expect(strong?.textContent).toBe('Widget A');
+      expect(small?.textContent).toBe('Model A · Color Red');
+    });
+
+    it('renders plain "+ Product" text with no <strong>/<small> when nothing is picked yet', () => {
+      fixture.detectChanges();
+      const text: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text');
+      expect(text.textContent.trim()).toBe('+ Product');
+      expect(text.querySelector('strong')).toBeNull();
+      expect(text.querySelector('small')).toBeNull();
+    });
+
+    it('omits the <small> subtitle when there is no variant and no attribute to show', () => {
+      host.entryLineRows.set([['Widget A', '', '', '']]);
+      fixture.detectChanges();
+      const text: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text');
+      expect(text.querySelector('strong')?.textContent).toBe('Widget A');
+      expect(text.querySelector('small')).toBeNull();
+    });
   });
 
   it('openPopup() sets host.activeLineProductPickerRow to this row and positions the popup at the top modal layer', () => {
@@ -261,17 +309,18 @@ describe('InventoryLineProductPickerComponent', () => {
     expect(host.activeLineProductPickerRow()).toBeNull();
   });
 
-  it('fetches available stock scoped to the resolved product/variant once the popup opens, and groups cross-branch rows by branch', () => {
+  // Full Warehouse/Branch Independence: warehouse-posted rows now build their
+  // own independent "By Warehouse" list -- one card per warehouse, never
+  // grouped/rolled up under a branch (Warehouse and Branch are fully
+  // independent location concepts; loadedWarehouseObjects()/branch_id is not
+  // even consulted by warehouseCards() any more).
+  it('fetches available stock scoped to the resolved product/variant once the popup opens, and lists warehouse-posted rows one card per warehouse', () => {
     host.__setResolvedProduct({ id: 16 });
     host.entryLineRows.set([['Widget A', 'Model A', '', '']]);
     host.__setVariantOptionObjects([{ id: 5, label: 'Model A', variant_name: 'Model', aliases: ['Model A'] }]);
     host.loadedWarehouseObjects.set([
       { id: 101, company_id: 1, branch_id: 9, warehouse_name: 'HYD Main WH' },
       { id: 102, company_id: 1, branch_id: 11, warehouse_name: 'BLR Store' }
-    ]);
-    host.loadedBranchObjects.set([
-      { id: 9, branch_id: 9, company_id: 1, branch_name: 'Head Office', branch_code: 'HO', activity_types: [], is_head_office: true, status: 'active' },
-      { id: 11, branch_id: 11, company_id: 1, branch_name: 'Bangalore Branch', branch_code: 'B26001', activity_types: [], is_head_office: false, status: 'active' }
     ]);
     availableStockResult = [
       { product_id: 16, warehouse_id: 101, warehouse_name: 'HYD Main WH', on_hand: 10, pending_dc_qty: 0, available: 10 },
@@ -282,18 +331,164 @@ describe('InventoryLineProductPickerComponent', () => {
     fixture.detectChanges();
 
     expect(getAvailableStockCalls.length).toBeGreaterThan(0);
-    const cards = (component as any).branchCards();
-    expect(cards.map((c: any) => c.branchName)).toEqual(['Bangalore Branch', 'Head Office']); // sorted by total available desc
-    expect(cards[0].total).toBe(25);
-    expect(cards[1].total).toBe(10);
+    const cards = (component as any).warehouseCards();
+    expect(cards.map((c: any) => c.warehouseName)).toEqual(['BLR Store', 'HYD Main WH']); // sorted by available desc
+    expect(cards[0].available).toBe(25);
+    expect(cards[1].available).toBe(10);
+    // No branch-only rows in this fixture -- the By Branch list stays empty.
+    expect((component as any).branchCards()).toEqual([]);
   });
 
-  // "Current Branch" labeling (informational only -- cards stay
-  // non-clickable either way). Purchase Invoice's combined branch/warehouse
-  // field is 'receivingLocation'; resolving it to a branch goes through the
-  // same warehouse-then-branch dual lookup InventoryScreenShell's own
-  // applyPurchaseInvoiceFieldDefaults() already uses for that field.
-  it('labels the branch card matching the transaction\'s own current branch (Purchase Invoice: receivingLocation)', () => {
+  // Workstream A / Full Warehouse/Branch Independence: branch-only stock rows
+  // (warehouse_id NULL, branch_id set -- e.g. from a Head-Office PI via
+  // migration 159's branch-posting path) build the independent "By Branch"
+  // list -- one card per branch, built only from rows that carry their own
+  // branch_id directly (never derived via a warehouse's branch_id link). The
+  // location_type/location_id/location_name fields on AvailableStock make
+  // this possible.
+  describe('branch-only stock rows (warehouse_id NULL, branch_id set)', () => {
+    it('does not collide on track key when two branch-only rows exist for the same pick, and labels each by its own branch/location name', () => {
+      host.__setResolvedProduct({ id: 16 });
+      host.entryLineRows.set([['Widget A', '', '', '']]);
+      availableStockResult = [
+        { product_id: 16, warehouse_id: undefined, branch_id: 9, branch_name: 'Head Office', location_type: 'branch', location_id: 9, location_name: 'Head Office', on_hand: 5, pending_dc_qty: 0, available: 5 },
+        { product_id: 16, warehouse_id: undefined, branch_id: 11, branch_name: 'Bangalore Branch', location_type: 'branch', location_id: 11, location_name: 'Bangalore Branch', on_hand: 8, pending_dc_qty: 0, available: 8 }
+      ];
+
+      host.activeLineProductPickerRow.set(0);
+      // Both rows share warehouse_id undefined/null -- this used to be the
+      // literal @for track expression (track row.warehouse_id), which
+      // Angular throws NG0955 "duplicate track key" for at exactly this
+      // point once two such rows coexist.
+      expect(() => fixture.detectChanges()).not.toThrow();
+
+      const items = document.body.querySelectorAll('.inv-line-picker-stock-list li');
+      expect(items.length).toBe(2);
+      const labels = Array.from(items).map(li => li.querySelector('span')?.textContent?.trim());
+      expect(labels).toEqual(['Head Office', 'Bangalore Branch']);
+    });
+
+    it('attributes a branch-only row directly to its own branch in Stock Across Branches, instead of losing it to an Unassigned/warehouse bucket', () => {
+      host.__setResolvedProduct({ id: 16 });
+      host.entryLineRows.set([['Widget A', '', '', '']]);
+      host.loadedWarehouseObjects.set([
+        { id: 101, company_id: 1, branch_id: 9, warehouse_name: 'HYD Main WH' }
+      ]);
+      host.loadedBranchObjects.set([
+        { id: 9, branch_id: 9, company_id: 1, branch_name: 'Head Office', branch_code: 'HO', activity_types: [], is_head_office: true, status: 'active' }
+      ]);
+      availableStockResult = [
+        // Stock posted straight against Head Office itself -- no warehouse
+        // at all (fn_post_pi_stock's branch-only path, migration 159).
+        { product_id: 16, warehouse_id: undefined, branch_id: 9, branch_name: 'Head Office', location_type: 'branch', location_id: 9, location_name: 'Head Office', on_hand: 12, pending_dc_qty: 0, available: 12 }
+      ];
+
+      host.activeLineProductPickerRow.set(0);
+      fixture.detectChanges();
+
+      const cards = (component as any).branchCards();
+      expect(cards.length).toBe(1);
+      expect(cards[0].branchName).toBe('Head Office');
+      expect(cards[0].available).toBe(12);
+    });
+
+    it('excludes a legacy dual-NULL "Unassigned" row from both lists, keeping only the real branch row in By Branch', () => {
+      host.__setResolvedProduct({ id: 16 });
+      host.entryLineRows.set([['Widget A', '', '', '']]);
+      host.loadedBranchObjects.set([
+        { id: 9, branch_id: 9, company_id: 1, branch_name: 'Head Office', branch_code: 'HO', activity_types: [], is_head_office: true, status: 'active' }
+      ]);
+      availableStockResult = [
+        // Legacy row: neither warehouse nor branch ever set on it -- fits
+        // neither the By Warehouse nor the By Branch list any more.
+        { product_id: 16, warehouse_id: undefined, branch_id: undefined, branch_name: undefined, location_type: 'unassigned', location_id: undefined, location_name: 'Unassigned', on_hand: 3, pending_dc_qty: 0, available: 3 },
+        // New branch-primary row for the same product.
+        { product_id: 16, warehouse_id: undefined, branch_id: 9, branch_name: 'Head Office', location_type: 'branch', location_id: 9, location_name: 'Head Office', on_hand: 12, pending_dc_qty: 0, available: 12 }
+      ];
+
+      host.activeLineProductPickerRow.set(0);
+      expect(() => fixture.detectChanges()).not.toThrow();
+
+      expect((component as any).warehouseCards()).toEqual([]);
+      const cards = (component as any).branchCards();
+      expect(cards.length).toBe(1);
+      expect(cards[0].branchName).toBe('Head Office');
+      expect(cards[0].available).toBe(12);
+    });
+  });
+
+  // Regression for a live bug (Dell Computer-I7 / Memory / Speed): with only
+  // Product+Variant picked, "Total available" (currentPickTotal(), driven by
+  // the scoped currentPickQuery$ -- rendered together with its own
+  // per-location rows, e.g. "Hyderabad: 109, Unassigned: 2") correctly
+  // showed 111. Once the 3rd attribute (Speed=256) was ALSO picked,
+  // currentPickTotal() collapsed to 0 ("No stock recorded for this pick
+  // yet"), while the separate, always-unfiltered "By Warehouse" cards
+  // (warehouseCards(), driven by branchQuery$, which never sends variantId
+  // or attributeValue) kept showing Hyderabad = 109 -- so the same popup
+  // simultaneously claimed "no stock" and "109 in Hyderabad" for what a user
+  // reads as the same product. The actual root cause was server-side:
+  // inventory.sp_get_available_stock excluded legacy stock rows that were
+  // never tagged with any attribute_value at all once a specific
+  // attribute_value was requested, even though that untagged stock is
+  // physically available to satisfy any attribute pick. Fixed in
+  // 173_available_stock_untagged_attribute_fallback.sql so those rows count
+  // toward any attribute-scoped query instead of vanishing from it. This
+  // test pins the frontend half of the contract against the exact response
+  // shape the fixed procedure now returns (live-verified via psql for
+  // company 53 / product 12 / variant 13, with and without
+  // attribute_value='256'): currentPickTotal() must stay 111 -- and must
+  // never fall below what the informational By Warehouse card for the same
+  // location (Hyderabad, 109) reports -- once the attribute is also picked.
+  describe('Total available never disagrees with the By Warehouse breakdown', () => {
+    it('currentPickTotal() stays at the full 111 (not 0) once a specific attribute value is also picked, and is never less than a single By Warehouse card', () => {
+      host.__setResolvedProduct({ id: 12 });
+      host.__setVariantOptionObjects([{ id: 13, label: 'Memory', variant_name: 'Memory', aliases: ['Memory'] }]);
+      host.entryLineRows.set([['Dell Computer-I7', 'Memory', '', '']]);
+
+      // Same shape sp_get_available_stock now returns for company 53 /
+      // product 12 / variant 13, live-verified via psql both with and
+      // without attribute_value='256' after the fix: Hyderabad (warehouse)
+      // 109 + Unassigned 2 = 111 either way -- no attribute_value on either
+      // row because this stock was never split by attribute.
+      const fullStock: AvailableStock[] = [
+        { product_id: 12, variant_id: 13, warehouse_id: 4, warehouse_name: 'Hyderabad', location_type: 'warehouse', location_id: 4, location_name: 'Hyderabad', on_hand: 109, pending_dc_qty: 0, available: 109 },
+        { product_id: 12, variant_id: 13, warehouse_id: undefined, location_type: 'unassigned', location_id: undefined, location_name: 'Unassigned', on_hand: 2, pending_dc_qty: 0, available: 2 }
+      ];
+      const txService: any = TestBed.inject(InventoryTransactionsService);
+      txService.getAvailableStock = (params: any) => {
+        getAvailableStockCalls.push(params);
+        return of({ success: true, message: '', data: fullStock });
+      };
+
+      // Partial selection first (Variant only, attribute left unpicked) --
+      // must show the full 111, matching the reported "correct" state.
+      host.activeLineProductPickerRow.set(0);
+      fixture.detectChanges();
+      expect((component as any).currentPickTotal()).toBe(111);
+
+      // Now also pick the 3rd attribute (Speed=256) -- currentPickTotal()
+      // must still be 111, not collapse to 0, and must remain >= the
+      // Hyderabad By Warehouse card, which is unaffected by the attribute
+      // pick (branchQuery$ never sends variantId/attributeValue).
+      host.__setAttrSelections([{ name: 'Speed', value: '256', options: ['516', '256', '128'], isAuto: false }]);
+      host.entryLineRows.set([[...host.entryLineRows()[0]]]); // fresh reference, see showVariantStep() note above
+      fixture.detectChanges();
+
+      expect((component as any).currentPickTotal()).toBe(111);
+      const hyderabadCard = (component as any).warehouseCards().find((c: any) => c.warehouseName === 'Hyderabad');
+      expect(hyderabadCard.available).toBe(109);
+      expect((component as any).currentPickTotal()).toBeGreaterThanOrEqual(hyderabadCard.available);
+    });
+  });
+
+  // "Current Warehouse" / "Current Branch" labeling (informational only --
+  // cards stay non-clickable either way). Full Warehouse/Branch Independence:
+  // Warehouse and Branch are fully independent location concepts now, so a
+  // picked WAREHOUSE only ever highlights a By Warehouse card, never a
+  // By Branch one (no more "warehouse -> its branch" resolution anywhere).
+  // Purchase Invoice's merged Warehouse/Branch field is 'receivingLocation'.
+  it('labels the warehouse card matching the transaction\'s own current warehouse (Purchase Invoice: receivingLocation)', () => {
     host.__setResolvedProduct({ id: 16 });
     host.entryLineRows.set([['Widget A', '', '', '']]);
     host.config = { key: 'purchaseInvoice' };
@@ -301,10 +496,6 @@ describe('InventoryLineProductPickerComponent', () => {
     host.loadedWarehouseObjects.set([
       { id: 101, company_id: 1, branch_id: 9, warehouse_name: 'HYD Main WH' },
       { id: 102, company_id: 1, branch_id: 11, warehouse_name: 'BLR Store' }
-    ]);
-    host.loadedBranchObjects.set([
-      { id: 9, branch_id: 9, company_id: 1, branch_name: 'Head Office', branch_code: 'HO', activity_types: [], is_head_office: true, status: 'active' },
-      { id: 11, branch_id: 11, company_id: 1, branch_name: 'Bangalore Branch', branch_code: 'B26001', activity_types: [], is_head_office: false, status: 'active' }
     ]);
     availableStockResult = [
       { product_id: 16, warehouse_id: 101, warehouse_name: 'HYD Main WH', on_hand: 10, pending_dc_qty: 0, available: 10 },
@@ -314,32 +505,29 @@ describe('InventoryLineProductPickerComponent', () => {
     host.activeLineProductPickerRow.set(0);
     fixture.detectChanges();
 
-    const cards = (component as any).branchCards();
-    const headOffice = cards.find((c: any) => c.branchName === 'Head Office');
-    const bangalore = cards.find((c: any) => c.branchName === 'Bangalore Branch');
-    expect(headOffice.isCurrentBranch).toBe(true);
-    expect(bangalore.isCurrentBranch).toBe(false);
+    const cards = (component as any).warehouseCards();
+    const hyd = cards.find((c: any) => c.warehouseName === 'HYD Main WH');
+    const blr = cards.find((c: any) => c.warehouseName === 'BLR Store');
+    expect(hyd.isCurrentWarehouse).toBe(true);
+    expect(blr.isCurrentWarehouse).toBe(false);
 
     // Also confirm the actual DOM: the badge renders as a real element with
-    // the right text, attached to the Head Office card only -- not just that
+    // the right text, attached to the HYD Main WH card only -- not just that
     // the underlying signal computed the right boolean.
     const badges = document.body.querySelectorAll('.inv-line-picker-current-badge');
     expect(badges.length).toBe(1);
-    expect(badges[0].textContent.trim()).toBe('Current Branch');
+    expect(badges[0].textContent.trim()).toBe('Current Warehouse');
     const currentCard = document.body.querySelector('.inv-line-picker-branch-card--current');
-    expect(currentCard?.textContent).toContain('Head Office');
-    expect(currentCard?.textContent).not.toContain('Bangalore Branch');
+    expect(currentCard?.textContent).toContain('HYD Main WH');
+    expect(currentCard?.textContent).not.toContain('BLR Store');
   });
 
-  it('resolves the current branch from Stock Transfer\'s "fromWarehouse" field', () => {
+  it('resolves the current warehouse from Stock Transfer\'s "fromWarehouse" field', () => {
     host.__setResolvedProduct({ id: 16 });
     host.entryLineRows.set([['Widget A', '', '', '']]);
     host.config = { key: 'stockTransfer' };
     host.formValues.set({ fromWarehouse: 'BLR Store' });
     host.loadedWarehouseObjects.set([{ id: 102, company_id: 1, branch_id: 11, warehouse_name: 'BLR Store' }]);
-    host.loadedBranchObjects.set([
-      { id: 11, branch_id: 11, company_id: 1, branch_name: 'Bangalore Branch', branch_code: 'B26001', activity_types: [], is_head_office: false, status: 'active' }
-    ]);
     availableStockResult = [
       { product_id: 16, warehouse_id: 102, warehouse_name: 'BLR Store', on_hand: 25, pending_dc_qty: 0, available: 25 }
     ];
@@ -347,10 +535,15 @@ describe('InventoryLineProductPickerComponent', () => {
     host.activeLineProductPickerRow.set(0);
     fixture.detectChanges();
 
-    expect((component as any).branchCards()[0].isCurrentBranch).toBe(true);
+    expect((component as any).warehouseCards()[0].isCurrentWarehouse).toBe(true);
   });
 
-  it('resolves the current branch from Sales Invoice\'s "branch" field only when Interbranch Sale is on, else "warehouse"', () => {
+  // Sales Invoice's own Warehouse/Branch picker (formValues['warehouse']) and
+  // its separate Interbranch Sale Branch field (formValues['branch'],
+  // relevant only once Interbranch Sale is on) are two unrelated fields --
+  // each list only ever lights up for the kind of location actually picked
+  // in whichever field is currently in play, never cross-resolved.
+  it('resolves the current warehouse/branch from Sales Invoice\'s "branch" field only when Interbranch Sale is on, else "warehouse" -- each list highlights only its own kind', () => {
     host.__setResolvedProduct({ id: 16 });
     host.entryLineRows.set([['Widget A', '', '', '']]);
     host.config = { key: 'salesInvoice' };
@@ -359,20 +552,26 @@ describe('InventoryLineProductPickerComponent', () => {
       { id: 11, branch_id: 11, company_id: 1, branch_name: 'Bangalore Branch', branch_code: 'B26001', activity_types: [], is_head_office: false, status: 'active' }
     ]);
     availableStockResult = [
-      { product_id: 16, warehouse_id: 102, warehouse_name: 'BLR Store', on_hand: 25, pending_dc_qty: 0, available: 25 }
+      { product_id: 16, warehouse_id: 102, warehouse_name: 'BLR Store', on_hand: 25, pending_dc_qty: 0, available: 25 },
+      // Bangalore Branch also carries its own DIRECT stock (branch_id set,
+      // warehouse_id NULL) -- unrelated to the BLR Store warehouse row above.
+      { product_id: 16, warehouse_id: undefined, branch_id: 11, branch_name: 'Bangalore Branch', location_type: 'branch', location_id: 11, location_name: 'Bangalore Branch', on_hand: 7, pending_dc_qty: 0, available: 7 }
     ];
 
-    // Interbranch off -- resolves off the plain 'warehouse' field.
+    // Interbranch off -- resolves off the plain 'warehouse' field, which
+    // names a warehouse: only the By Warehouse card lights up.
     host.formValues.set({ interbranchSale: 'No', warehouse: 'BLR Store', branch: '' });
     host.activeLineProductPickerRow.set(0);
     fixture.detectChanges();
-    expect((component as any).branchCards()[0].isCurrentBranch).toBe(true);
-
-    // Interbranch on with a DIFFERENT branch picked than the resolved
-    // warehouse's own branch -- 'branch' now takes priority over 'warehouse'.
-    host.formValues.set({ interbranchSale: 'Yes', warehouse: 'BLR Store', branch: 'Some Other Branch' });
-    fixture.detectChanges();
+    expect((component as any).warehouseCards()[0].isCurrentWarehouse).toBe(true);
     expect((component as any).branchCards()[0].isCurrentBranch).toBe(false);
+
+    // Interbranch on -- 'branch' now takes priority and names a branch
+    // directly: only the By Branch card lights up.
+    host.formValues.set({ interbranchSale: 'Yes', warehouse: 'BLR Store', branch: 'Bangalore Branch' });
+    fixture.detectChanges();
+    expect((component as any).warehouseCards()[0].isCurrentWarehouse).toBe(false);
+    expect((component as any).branchCards()[0].isCurrentBranch).toBe(true);
   });
 
   // New behaviour: an explicit "Add Product" confirm button, instead of the

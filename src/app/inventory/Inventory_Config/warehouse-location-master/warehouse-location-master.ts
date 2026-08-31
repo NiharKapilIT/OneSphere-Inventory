@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { forkJoin } from 'rxjs';
 import {
-  BranchInvItem, InventoryConfigService, SegmentItem, WarehouseItem
+  InventoryConfigService, SegmentItem, WarehouseItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 import { warehouseLocationMasterConfig } from '../../Inventory_Shared/inventory-screen.model';
@@ -34,7 +34,6 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
 
   // ── Form state ────────────────────────────────────────────────────────
   segmentId          = signal<number | null>(null);
-  branch             = signal('');
   warehouseName      = signal('');
   warehouseCode      = signal('');
   state              = signal('');
@@ -51,31 +50,8 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
 
   // ── Reference lists / grids ───────────────────────────────────────────
   segments          = signal<SegmentItem[]>([]);
-  branches          = signal<BranchInvItem[]>([]);
   savedWarehouses   = signal<WarehouseItem[]>([]);
   pendingWarehouses = signal<any[]>([]);
-
-  // Item 13: lets a warehouse be tagged with a branch, so a branch can have
-  // more than one warehouse -- the one real gap standing in the way of
-  // multi-branch sales (Sales Invoice's interbranch stock filter/auto-
-  // transfer both depend on this pool being real). inv_warehouses.branch_id
-  // already exists and sp_upsert_warehouse already persists it -- only this
-  // form never exposed a way to set it (aside from Branch Master's own
-  // one-warehouse-per-branch "Default Warehouse" side door, untouched here).
-  // Item 13 follow-up: a branch is itself segment-tagged (same as a
-  // warehouse), so a warehouse being created under Segment A should only
-  // ever be offered Segment A's branches -- letting it pick a branch from
-  // an unrelated segment would corrupt the "warehouses under this branch"
-  // pool the interbranch sale feature relies on. Falls back to the full
-  // list only when no segment is selected yet, matching
-  // visibleSavedWarehouses()'s own fallback-to-all convention above.
-  readonly branchOptions = computed(() => {
-    const selectedSegmentId = this.segmentId();
-    const pool = selectedSegmentId
-      ? this.branches().filter(b => b.segment_id === selectedSegmentId)
-      : this.branches();
-    return pool.map(item => item.branch_name).filter(Boolean);
-  });
 
   readonly existingMatches = computed(() => {
     const q = this.warehouseName().trim().toLowerCase();
@@ -115,13 +91,11 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   ngOnInit(): void {
     forkJoin({
       segments:   this.svc.getSegments(),
-      warehouses: this.svc.getWarehouses(true),
-      branches:   this.svc.getBranchesInv(true)
+      warehouses: this.svc.getWarehouses(true)
     }).subscribe({
-      next: ({ segments, warehouses, branches }) => {
+      next: ({ segments, warehouses }) => {
         this.segments.set(segments.data          ?? []);
         this.savedWarehouses.set(warehouses.data ?? []);
-        this.branches.set(branches.data          ?? []);
         this.applyDefaultSegment();
         this.loading.set(false);
       },
@@ -129,38 +103,9 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
     });
   }
 
-  onBranchChange(value: string): void {
-    this.branch.set(value ?? '');
-  }
-
-  // inv_warehouses.branch_id is a FK to global.branches(id) -- NOT to
-  // inv_branch_config.id. A BranchInvItem carries both: branch_id is the
-  // global branch id, id is the inventory-config-local row id, and they are
-  // genuinely different numbers (e.g. local id 14 = global branch 66). Writing
-  // the local id here linked a warehouse into the wrong id space; use the same
-  // `branch_id ?? id` fallback the transaction shell already uses
-  // (branchResolvedId() in inventory-screen-shell.ts).
-  private branchIdForName(name: string): number | null {
-    if (!name?.trim()) return null;
-    const branch = this.branches().find(b => b.branch_name === name);
-    if (!branch) return null;
-    return branch.branch_id ?? branch.id ?? null;
-  }
-
-  branchNameForId(id: number | null | undefined): string {
-    if (!id) return '';
-    return this.branches().find(b => (b.branch_id ?? b.id) === id)?.branch_name ?? '';
-  }
-
   onSegmentChangedByUser(segmentName: string): void {
     const segment = this.segments().find(item => item.segment_name === segmentName);
     this.segmentId.set(segment?.id ?? null);
-    // A branch picked under the previous segment may not belong to the
-    // new one -- clear it rather than silently carry a cross-segment
-    // branch/warehouse pairing forward.
-    if (this.branch() && !this.branchOptions().includes(this.branch())) {
-      this.branch.set('');
-    }
   }
 
   onNameChange(name: string): void {
@@ -227,8 +172,6 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
       _editId:        this.editingId(),
       segment_id:     this.segmentId(),
       _segment_name:  seg?.segment_name ?? '',
-      branch_id:      this.branchIdForName(this.branch()),
-      _branch_name:   this.branch().trim(),
       warehouse_name: this.warehouseName().trim(),
       warehouse_code: this.warehouseCode(),
       state:          this.state(),
@@ -249,7 +192,6 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   }
 
   clearForm(): void {
-    this.branch.set('');
     this.warehouseName.set(''); this.warehouseCode.set('');
     this.state.set(''); this.district.set(''); this.address.set('');
     this.city.set(''); this.pincode.set(''); this.capacity.set(null);
@@ -265,7 +207,6 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
     const batch = this.pendingWarehouses().map(r => ({
       ...(r._editId ? { id: r._editId } : {}),
       segment_id:     r.segment_id    ?? undefined,
-      branch_id:      r.branch_id     ?? undefined,
       warehouse_name: r.warehouse_name,
       warehouse_code: r.warehouse_code || undefined,
       state:          r.state          || undefined,
@@ -302,7 +243,6 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   editWarehouse(wh: WarehouseItem): void {
     this.editingId.set(wh.id);
     this.segmentId.set(wh.segment_id ?? null);
-    this.branch.set(this.branchNameForId(wh.branch_id));
     this.warehouseName.set(wh.warehouse_name);
     this.warehouseCode.set(wh.warehouse_code);
     this.state.set(wh.state      ?? '');

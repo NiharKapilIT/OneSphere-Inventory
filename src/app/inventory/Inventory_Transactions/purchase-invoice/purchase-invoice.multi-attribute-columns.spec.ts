@@ -10,19 +10,28 @@ import { InventoryPurchaseInvoiceComponent } from './purchase-invoice';
 // transactionLineDisplayColumns()/lineGridRenderColumns() that never learned
 // about 'Variant'/'Attribute' the way the shared base class
 // (InventoryScreenShell) did -- so those two placeholder columns survived as
-// literal dedicated grid columns instead of being stripped so the shared
-// per-attribute-name sub-row under the Product cell (goods-receipt.html's and
-// purchase-return.html's lineGridColumnIsProduct(column) branch) could take
-// over. The "Attribute" column's cell then fell back to a single flattened
-// dropdown of every value across every attribute name mapped to the row's
-// variant (e.g. RAM's 4GB/8GB/16GB AND Screen Size's 5.5"/6.1"/6.7" all in one
-// list), with no way to set both attributes independently on one line.
+// literal dedicated grid columns instead of being stripped. The "Attribute"
+// column's cell then fell back to a single flattened dropdown of every value
+// across every attribute name mapped to the row's variant (e.g. RAM's
+// 4GB/8GB/16GB AND Screen Size's 5.5"/6.1"/6.7" all in one list), with no way
+// to set both attributes independently on one line.
 //
 // Fix: the override was deleted so PI now falls through to the base class's
 // (already purchaseInvoice-aware) transactionLineDisplayColumns() and its
 // lineGridRenderColumns(), matching GRN and Purchase Return exactly. This
 // spec pins that down at the component level -- not just the base class --
 // since the bug was specifically in this subclass's override.
+//
+// Note: at the time this comment was originally written, Variant/Attribute
+// were folded into a per-attribute-name sub-row rendered directly under the
+// Product cell (goods-receipt.html's and purchase-return.html's own
+// `lineGridColumnIsProduct(column)` branch). That sub-row markup is gone now
+// too -- InventoryLineProductPickerComponent (the "+ Product" popup) replaced
+// it everywhere, including GRN/Purchase Return/Sales Order/Delivery
+// Challan/Sales Return. See
+// purchase-return.no-duplicate-variant-subcell.spec.ts (and its siblings) for
+// the regression that shipped when those 5 templates kept the old sub-row
+// markup alongside the new picker instead of deleting it.
 describe('InventoryPurchaseInvoiceComponent — multi-attribute grid rendering (Variant + Attribute columns removed)', () => {
   let fixture: ComponentFixture<InventoryPurchaseInvoiceComponent>;
   let component: InventoryPurchaseInvoiceComponent;

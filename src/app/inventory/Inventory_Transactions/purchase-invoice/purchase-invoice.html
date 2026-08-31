@@ -153,6 +153,14 @@
                   [ngModel]="formFieldValue(field)"
                   (ngModelChange)="collectFormField(field.key, $event)"
                   placeholder="Select Warehouse or Branch">
+                  <ng-template ng-option-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
+                  <ng-template ng-label-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
                 </ng-select>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"

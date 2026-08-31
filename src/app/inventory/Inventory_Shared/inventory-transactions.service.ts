@@ -630,6 +630,14 @@ export interface AvailableStock {
   attribute_name?: string;
   attribute_value?: string;
   warehouse_name?: string;
+  // Location-generic additions (Workstream A) -- populated for branch-only
+  // stock rows (warehouse_id null) that sp_get_available_stock already
+  // emits; mutually exclusive with warehouse_id/warehouse_name per row.
+  branch_id?: number | null;
+  branch_name?: string | null;
+  location_type?: string | null;
+  location_id?: number | null;
+  location_name?: string | null;
   on_hand: number;
   pending_dc_qty: number;
   available: number;
@@ -1782,7 +1790,7 @@ export class InventoryTransactionsService {
     );
   }
 
-  getAvailableStock(params: { segmentId?: number | null; productId?: number | null; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null }): Observable<ApiResponse<AvailableStock[]>> {
+  getAvailableStock(params: { segmentId?: number | null; productId?: number | null; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null; branchId?: number | null }): Observable<ApiResponse<AvailableStock[]>> {
     let httpParams = new HttpParams();
     if (params.segmentId) httpParams = httpParams.set('segmentId', String(params.segmentId));
     if (params.productId) httpParams = httpParams.set('productId', String(params.productId));
@@ -1790,6 +1798,7 @@ export class InventoryTransactionsService {
     if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
     if (params.attributeValue) httpParams = httpParams.set('attributeValue', String(params.attributeValue));
     if (params.warehouseId) httpParams = httpParams.set('warehouseId', String(params.warehouseId));
+    if (params.branchId) httpParams = httpParams.set('branchId', String(params.branchId));
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('available-stock'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => ({
         ...res, data: (res.data ?? []).map((r: any) => ({
@@ -1800,6 +1809,11 @@ export class InventoryTransactionsService {
           attribute_name: r?.attributeName || r?.attribute_name,
           attribute_value: r?.attributeValue || r?.attribute_value,
           warehouse_name: r?.warehouseName || r?.warehouse_name,
+          branch_id: r?.branchId ?? r?.branch_id,
+          branch_name: r?.branchName || r?.branch_name,
+          location_type: r?.locationType || r?.location_type,
+          location_id: r?.locationId ?? r?.location_id,
+          location_name: r?.locationName || r?.location_name,
           on_hand: Number(r?.onHand ?? r?.on_hand ?? 0),
           pending_dc_qty: Number(r?.pendingDcQty ?? r?.pending_dc_qty ?? 0),
           available: Number(r?.available ?? 0)
@@ -1812,12 +1826,13 @@ export class InventoryTransactionsService {
     return { ...res, data: (res.data ?? []).map((r: any) => ({ id: r?.id, serial_no: r?.serialNo || r?.serial_no })) };
   }
 
-  getAvailableSerials(params: { productId: number; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
+  getAvailableSerials(params: { productId: number; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null; branchId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
     let httpParams = new HttpParams().set('productId', String(params.productId));
     if (params.variantId) httpParams = httpParams.set('variantId', String(params.variantId));
     if (params.attributeId) httpParams = httpParams.set('attributeId', String(params.attributeId));
     if (params.attributeValue) httpParams = httpParams.set('attributeValue', params.attributeValue);
     if (params.warehouseId) httpParams = httpParams.set('warehouseId', String(params.warehouseId));
+    if (params.branchId) httpParams = httpParams.set('branchId', String(params.branchId));
     return this.http.get<ApiResponse<any[]>>(this.salesUrl('serials/available'), { headers: this.headers(), params: httpParams }).pipe(
       map(res => this.normSerialUnits(res))
     );

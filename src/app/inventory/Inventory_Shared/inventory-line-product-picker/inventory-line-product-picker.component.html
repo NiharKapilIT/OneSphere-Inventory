@@ -5,7 +5,16 @@
   [attr.aria-label]="triggerTitle()"
   (click)="openPopup($event)">
   <i class="pi" [class.pi-plus]="!productValue()" [class.pi-box]="!!productValue()"></i>
-  <span class="inventory-line-product-trigger-text">{{ triggerLabel() }}</span>
+  <span class="inventory-line-product-trigger-text">
+    @if (productValue()) {
+      <strong>{{ productValue() }}</strong>
+      @if (triggerSubtitle()) {
+        <br><small class="inventory-grid-subtitle">{{ triggerSubtitle() }}</small>
+      }
+    } @else {
+      + Product
+    }
+  </span>
 </button>
 
 <ng-template #popupTemplate>
@@ -86,8 +95,8 @@
                   Total available: <strong>{{ currentPickTotal() | number:'1.0-3' }}</strong>
                 </div>
                 <ul class="inv-line-picker-stock-list">
-                  @for (row of currentPickStockRows(); track row.warehouse_id) {
-                    <li><span>{{ row.warehouse_name || 'Warehouse' }}</span><strong>{{ row.available | number:'1.0-3' }}</strong></li>
+                  @for (row of currentPickStockRows(); track (row.location_type || 'unassigned') + '_' + (row.location_id ?? 'none')) {
+                    <li><span>{{ row.location_name || row.warehouse_name || 'Warehouse' }}</span><strong>{{ row.available | number:'1.0-3' }}</strong></li>
                   }
                 </ul>
               } @else {
@@ -96,7 +105,32 @@
             </div>
 
             <div class="inv-line-picker-branches">
-              <div class="inv-line-picker-stock-title">Stock Across Branches</div>
+              <div class="inv-line-picker-stock-title">By Warehouse</div>
+              @if (branchStockLoading()) {
+                <span class="inventory-grid-empty-hint">Loading…</span>
+              } @else if (warehouseCards().length) {
+                <div class="inv-line-picker-branch-cards">
+                  @for (card of warehouseCards(); track card.key) {
+                    <div class="inv-line-picker-branch-card" [class.inv-line-picker-branch-card--current]="card.isCurrentWarehouse">
+                      <div class="inv-line-picker-branch-card-head">
+                        <span>
+                          {{ card.warehouseName }}
+                          @if (card.isCurrentWarehouse) {
+                            <span class="inv-line-picker-current-badge">Current Warehouse</span>
+                          }
+                        </span>
+                        <strong>{{ card.available | number:'1.0-3' }}</strong>
+                      </div>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <span class="inventory-grid-empty-hint">No warehouse stock recorded for this product yet.</span>
+              }
+            </div>
+
+            <div class="inv-line-picker-branches">
+              <div class="inv-line-picker-stock-title">By Branch</div>
               @if (branchStockLoading()) {
                 <span class="inventory-grid-empty-hint">Loading…</span>
               } @else if (branchCards().length) {
@@ -110,18 +144,13 @@
                             <span class="inv-line-picker-current-badge">Current Branch</span>
                           }
                         </span>
-                        <strong>{{ card.total | number:'1.0-3' }}</strong>
+                        <strong>{{ card.available | number:'1.0-3' }}</strong>
                       </div>
-                      <ul>
-                        @for (wh of card.warehouses; track wh.name) {
-                          <li><span>{{ wh.name }}</span><span>{{ wh.available | number:'1.0-3' }}</span></li>
-                        }
-                      </ul>
                     </div>
                   }
                 </div>
               } @else {
-                <span class="inventory-grid-empty-hint">No stock recorded for this product anywhere yet.</span>
+                <span class="inventory-grid-empty-hint">No branch stock recorded for this product yet.</span>
               }
             </div>
           </div>

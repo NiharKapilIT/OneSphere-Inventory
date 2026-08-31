@@ -81,6 +81,22 @@
                     <span class="switch-text switch-off">{{ fieldSwitchOffLabel(field) }}</span>
                   </span>
                 </label>
+              } @else if (field.key === 'warehouse') {
+                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
+                  [searchable]="true" [clearable]="true"
+                  [ngModel]="formFieldValue(field)"
+                  (ngModelChange)="collectFormField(field.key, $event)"
+                  placeholder="Select Warehouse or Branch">
+                  <ng-template ng-option-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
+                  <ng-template ng-label-tmp let-item="item">
+                    {{ item.label }}
+                    @if (item.type === 'warehouse') { <span class="inventory-location-badge">WH</span> }
+                  </ng-template>
+                </ng-select>
               } @else if (field.type === 'select' || field.type === 'multiselect') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
                   [items]="field.options || []" [searchable]="true" [clearable]="true"
@@ -132,22 +148,27 @@
       </div>
 
       @if (config.lineColumns?.length) {
-        <div class="inventory-line-items grn-grid-compact">
+        <div class="inventory-line-items grn-grid-compact stock-adjustment-line-grid" [class.inventory-line-items-fullscreen]="isLineGridFullscreen()">
           <div class="inventory-line-title">
             <div>
               <strong>{{ config.lineTitle || 'Line Items' }}</strong>
               <span>Add, edit or remove rows directly here before saving this document.</span>
             </div>
-            <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+            <div class="inventory-line-title-actions">
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
+              <button type="button" class="erp-btn btn-white btn-icon btn-sm" [title]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" [attr.aria-label]="isLineGridFullscreen() ? 'Exit full screen' : 'Full screen'" (click)="toggleLineGridFullscreen()"><i [class]="isLineGridFullscreen() ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"></i></button>
+            </div>
           </div>
           <div class="tbl-wrap">
+            @let renderedColumns = lineGridRenderColumns();
+            @let rowViews = entryLineRowViews();
             <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
-                  @for (column of config.lineColumns || []; track column) {
-                    <th [style.width]="lineGridColumnWidthPx(column)">
-                      {{ column }}
+                  @for (column of renderedColumns; track column) {
+                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                      {{ lineGridColumnHeader(column) }}
                       <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
                     </th>
                   }
@@ -162,27 +183,42 @@
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                       </div>
                     </td>
-                    @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
-                      <td [class.inventory-hint-anchor]="transactionStockControlHint(column, row, columnIndex, rowIndex)">
-                        @if (lineColumnOptions(column, row).length) {
+                    @let rowView = rowViews[rowIndex];
+                    @for (column of renderedColumns; track column) {
+                      @let columnIndex = lineGridSourceColumnIndex(column);
+                      @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
+                      @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
+                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint">
+                        @if (!cellApplies) {
+                          <span class="inventory-grid-na">— N/A —</span>
+                        } @else if (lineGridCellReadonly(rowIndex, row, column)) {
+                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '—' }}</span>
+                        } @else if (lineGridColumnIsProduct(column)) {
+                          <app-inventory-line-product-picker
+                            [host]="this" [rowIndex]="rowIndex" [column]="column"
+                            [productColumnIndex]="columnIndex"
+                            [variantColumnIndex]="lineGridSourceColumnIndex('Variant')"
+                            [attributeColumnIndex]="lineGridSourceColumnIndex('Attribute')">
+                          </app-inventory-line-product-picker>
+                        } @else if (cellView?.options?.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
-                            [items]="lineColumnOptions(column, row)"
+                            [items]="cellView?.options || []"
                             [searchable]="true" [clearable]="false"
-                            [multiple]="lineColumnUsesMultiSelect(column, row)"
-                            [closeOnSelect]="!lineColumnUsesMultiSelect(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [multiple]="cellView?.usesMultiSelect"
+                            [closeOnSelect]="!cellView?.usesMultiSelect"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)">
+                            [placeholder]="cellView?.placeholder || ''">
                           </ng-select>
                         } @else {
                           <input class="erp-input inventory-grid-input"
-                            [type]="lineCellInputType(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [type]="cellView?.inputType"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)" />
+                            [placeholder]="cellView?.placeholder || ''" />
                         }
-                        @if (transactionStockControlHint(column, row, columnIndex, rowIndex); as stockHint) {
-                          <small [class]="transactionStockControlHintClass(column, row, columnIndex, rowIndex)">
+                        @if (cellApplies && cellView?.stockHint; as stockHint) {
+                          <small [class]="cellView?.stockHintClass">
                             <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                           </small>
                         }
@@ -193,6 +229,27 @@
               </tbody>
             </table>
           </div>
+          @if (isLineGridFullscreen()) {
+            <div class="inventory-line-fullscreen-actions">
+              @if (saveError()) {
+                <div class="inventory-save-error">
+                  <span>{{ saveError() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveError.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              @if (saveMsg()) {
+                <div class="inventory-save-msg">
+                  <span>{{ saveMsg() }}</span>
+                  <button type="button" class="inventory-alert-close" (click)="saveMsg.set('')" aria-label="Dismiss"><i class="pi pi-times"></i></button>
+                </div>
+              }
+              <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
+              <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()">
+                <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : editingId() ? 'pi pi-check' : 'pi pi-plus'"></i>
+                {{ isSaving() ? 'Saving...' : editingId() ? 'Update' : 'Save' }}
+              </button>
+            </div>
+          }
         </div>
       }
 
@@ -322,7 +379,7 @@
                   <div class="inventory-row-actions">
                     @if (isAdmin()) {
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
-                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
+                      <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete" (click)="cancelRecordByRow(row)"><i class="pi pi-trash"></i></button>
                     }
                   </div>
                 </td>
