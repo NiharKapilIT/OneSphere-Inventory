@@ -578,6 +578,20 @@
                 </div>
                 }
 
+                @if (rawMaterialBehaviorVisible()) {
+                <div class="erp-form-group span-2">
+                  <label class="erp-label">Raw Material Sale</label>
+                  <div class="inventory-access-grid">
+                    <label class="inventory-access-option">
+                      <input type="checkbox"
+                        [checked]="rawMaterialCanSaleChecked()"
+                        (change)="setRawMaterialCanSale($any($event.target).checked)" />
+                      <span>Can sale</span>
+                    </label>
+                  </div>
+                </div>
+                }
+
                 <!-- Pricing Type (Service / Service Bundle / Digital / Subscription only) -->
                 @if (pricingTypeVisible()) {
                 <div class="erp-form-group">

@@ -758,7 +758,7 @@
             <span class="product-segment-bar-hint">{{ partyLabel() }} records here belong to this segment only.</span>
           </div>
 
-          <app-inventory-party-form [host]="this" partyKind="vendor" [partyLabel]="partyLabel()"></app-inventory-party-form>
+          <app-inventory-party-form [host]="this" [partyKind]="partyKindForForm()" [partyLabel]="partyLabel()"></app-inventory-party-form>
         } @else if (config.key === 'hsnSacMapping') {
           <div class="inventory-lookup-source">
             @for (source of hsnSourceOptions; track source) {

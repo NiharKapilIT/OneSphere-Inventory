@@ -96,7 +96,10 @@
               </p>
             }
             @if (inlineSerialError()) {
-              <p class="inventory-error-msg qac-inline-error">{{ inlineSerialError() }}</p>
+              <p class="inventory-error-msg qac-error-badge qac-inline-error">
+                <i class="pi pi-exclamation-circle"></i>
+                <span>{{ inlineSerialError() }}</span>
+              </p>
             }
             <div class="qac-inline-actions">
               <button type="button" class="erp-btn btn-white btn-sm" (click)="closeInlineSerialAdd()">
@@ -163,7 +166,10 @@
               </p>
             }
             @if (inlineBatchError()) {
-              <p class="inventory-error-msg qac-inline-error">{{ inlineBatchError() }}</p>
+              <p class="inventory-error-msg qac-error-badge qac-inline-error">
+                <i class="pi pi-exclamation-circle"></i>
+                <span>{{ inlineBatchError() }}</span>
+              </p>
             }
             <div class="qac-inline-actions">
               <button type="button" class="erp-btn btn-white btn-sm" (click)="closeInlineBatchAdd()">
@@ -187,7 +193,10 @@
 </div>
 
 @if (error()) {
-  <p class="inventory-error-msg">{{ error() }}</p>
+  <p class="inventory-error-msg qac-error-badge">
+    <i class="pi pi-exclamation-circle"></i>
+    <span>{{ error() }}</span>
+  </p>
 }
 
 <div class="inventory-form-actions">

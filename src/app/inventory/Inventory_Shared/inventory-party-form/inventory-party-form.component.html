@@ -46,6 +46,9 @@
       }
 
       <div class="erp-form-group"><label class="erp-label">PAN</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('pan')] || ''" (ngModelChange)="host.collectFormField(pfx('pan'), $event)" placeholder="Auto bind from Global Contact, editable" /></div>
+      @if (partyKind === 'channelPartner') {
+        <div class="erp-form-group"><label class="erp-label">GSTIN</label><input class="erp-input" type="text" maxlength="15" [ngModel]="host.formValues()[pfx('gstin')] || ''" (ngModelChange)="host.collectFormField(pfx('gstin'), $event)" placeholder="Auto bind from Global Contact, editable" /></div>
+      }
       <div class="erp-form-group"><label class="erp-label">Mobile No.</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('mobile')] || ''" (ngModelChange)="host.collectFormField(pfx('mobile'), $event)" placeholder="Auto bind after selection, editable" /></div>
       <div class="erp-form-group"><label class="erp-label">Mail ID</label><input class="erp-input" type="text" [ngModel]="host.formValues()[pfx('email')] || ''" (ngModelChange)="host.collectFormField(pfx('email'), $event)" placeholder="Auto bind after selection, editable" /></div>
       <div class="erp-form-group">
@@ -210,7 +213,11 @@
     </div>
   </div>
 
-  <app-inventory-gstin-list [host]="host" [keyPrefix]="keyPrefix"></app-inventory-gstin-list>
+  @if (partyKind !== 'channelPartner') {
+    <app-inventory-gstin-list [host]="host" [keyPrefix]="keyPrefix"></app-inventory-gstin-list>
+  }
 
-  <app-inventory-bank-details [host]="host" [keyPrefix]="keyPrefix"></app-inventory-bank-details>
+  @if (partyKind !== 'channelPartner') {
+    <app-inventory-bank-details [host]="host" [keyPrefix]="keyPrefix"></app-inventory-bank-details>
+  }
 </div>

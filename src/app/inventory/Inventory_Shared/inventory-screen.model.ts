@@ -351,28 +351,32 @@ const lineColumns = ['Item / SKU', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Amoun
 
 function partyMaster(key: string, title: string, subtitle: string, icon: string): InventoryScreenConfig {
   const isVendor = key === 'vendorMaster';
+  const isChannelPartner = key === 'channelPartnerMaster';
+  const partyLabel = isVendor ? 'Vendor' : isChannelPartner ? 'Channel Partner' : 'Customer';
   return {
     key,
     title,
     subtitle,
     kind: 'master',
     icon,
-    dependsOn: [{ name: 'Business Segment', status: 'Ready' }, { name: isVendor ? 'GSTIN validation rules' : 'GSTIN / mobile validation', status: 'Required' }, { name: `${isVendor ? 'Vendor' : 'Customer'} code uniqueness`, status: 'Ready' }],
+    dependsOn: [{ name: 'Business Segment', status: 'Ready' }, { name: isVendor ? 'GSTIN validation rules' : 'GSTIN / mobile validation', status: 'Required' }, { name: `${partyLabel} code uniqueness`, status: 'Ready' }],
     outputImpact: isVendor
       ? 'Vendor master used in Purchase Order, GRN reference, procurement reports and payables integration.'
-      : 'Customer master used in Estimation, Proforma Invoice, Sales Invoice, POS billing, receivables and customer reports.',
+      : isChannelPartner
+        ? 'Channel Partner master used in Sales Order, Sales Invoice, Delivery Challan and partner-wise sales reports.'
+        : 'Customer master used in Estimation, Proforma Invoice, Sales Invoice, POS billing, receivables and customer reports.',
     screenMode: 'Master setup',
     fields: [
-      { key: 'name', label: `${isVendor ? 'Vendor' : 'Customer'} Name / Company Name`, type: 'select', options: ['ElectroMart Supplies Pvt Ltd', 'Tenant Works Pvt Ltd', 'Rajesh Kumar', 'Priya Sharma', 'Fresh Foods Distributor'], addMaster: 'Contact Person' },
-      { key: 'code', label: `${isVendor ? 'Vendor' : 'Customer'} Code` },
+      { key: 'name', label: `${partyLabel} Name / Company Name`, type: 'select', options: ['ElectroMart Supplies Pvt Ltd', 'Tenant Works Pvt Ltd', 'Rajesh Kumar', 'Priya Sharma', 'Fresh Foods Distributor'], addMaster: 'Contact Person' },
+      { key: 'code', label: `${partyLabel} Code` },
       { key: 'segment', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'Business Segment' },
       { key: 'gstin', label: 'GSTIN' },
       { key: 'pan', label: 'PAN' },
       { key: 'contactPerson', label: 'Contact Person Mapping', type: 'select', options: INVENTORY_OPTIONS.contactPersons, addMaster: 'Contact Person' },
       { key: 'mobile', label: 'Mobile No. From Global Contact' },
       { key: 'email', label: 'Mail ID From Global Contact' },
-      { key: 'address', label: isVendor ? 'Address' : 'Billing Address', type: 'textarea', addMaster: 'Location Address' },
-      ...(isVendor ? [] : [{ key: 'shippingAddress', label: 'Shipping Address', type: 'textarea' as const, addMaster: 'Location Address' }]),
+      { key: 'address', label: isVendor || isChannelPartner ? 'Address' : 'Billing Address', type: 'textarea', addMaster: 'Location Address' },
+      ...(!isVendor && !isChannelPartner ? [{ key: 'shippingAddress', label: 'Shipping Address', type: 'textarea' as const, addMaster: 'Location Address' }] : []),
       { key: 'paymentTerms', label: 'Payment Terms', type: 'select', options: INVENTORY_OPTIONS.paymentTerms },
       { key: 'creditLimit', label: 'Credit Limit', type: 'number' },
       // Bank Details used to be a free-text field here (vendor only, and
@@ -381,18 +385,23 @@ function partyMaster(key: string, title: string, subtitle: string, icon: string)
       // Name/Account No./IFSC/Bank/Branch, IFSC-driven auto-populate),
       // rendered separately in vendor-master.html/customer-master.html
       // rather than through this generic field list.
-      ...(isVendor ? [] : [{ key: 'priceList', label: 'Price List', type: 'select' as const, options: ['Retail Price List', 'Dealer Price List', 'Corporate Price List'] }]),
+      ...(!isVendor && !isChannelPartner ? [{ key: 'priceList', label: 'Price List', type: 'select' as const, options: ['Retail Price List', 'Dealer Price List', 'Corporate Price List'] }] : []),
       { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
     ],
     columns: ['Code', 'Name', 'Type', 'Segment', 'GSTIN', 'Status'],
-    rows: [
-      ['V-1001', 'ElectroMart Supplies', 'Supplier', 'Electronics', '36ABCDE1234F1Z5', 'Active'],
-      ['C-204', 'Tenant Works Pvt Ltd', 'Corporate Client', 'Co-working Space', '29PQRSX2211K1Z9', 'Active'],
-      ['P-330', 'Aero Labs', 'Manufacturer', 'Drone Manufacturing', '36AEROL4421F1Z2', 'Active'],
-      isVendor
-        ? ['V-440', 'Fresh Foods Distributor', 'Food Supplier', 'Hotel / Restaurant', '36FOODX4400F1Z6', 'Active']
-        : ['C-501', 'Restaurant Walk-in Guest', 'Restaurant Guest', 'Hotel / Restaurant', 'NA', 'Active']
-    ]
+    rows: isChannelPartner
+      ? [
+          ['CP-001', 'City Sales Associates', 'Referral Partner', 'Electronics', '36CPAAA0001A1Z5', 'Active'],
+          ['CP-002', 'Broker Network', 'Broker', 'Real Estate Inventory', '29CPBBB0002B1Z8', 'Active']
+        ]
+      : [
+          ['V-1001', 'ElectroMart Supplies', 'Supplier', 'Electronics', '36ABCDE1234F1Z5', 'Active'],
+          ['C-204', 'Tenant Works Pvt Ltd', 'Corporate Client', 'Co-working Space', '29PQRSX2211K1Z9', 'Active'],
+          ['P-330', 'Aero Labs', 'Manufacturer', 'Drone Manufacturing', '36AEROL4421F1Z2', 'Active'],
+          isVendor
+            ? ['V-440', 'Fresh Foods Distributor', 'Food Supplier', 'Hotel / Restaurant', '36FOODX4400F1Z6', 'Active']
+            : ['C-501', 'Restaurant Walk-in Guest', 'Restaurant Guest', 'Hotel / Restaurant', 'NA', 'Active']
+        ]
   };
 }
 
@@ -459,35 +468,33 @@ export const inventoryDashboardConfig: InventoryScreenConfig = {
 export const businessSegmentsConfig: InventoryScreenConfig = {
   key: 'businessSegments',
   title: 'Segment-wise Configuration Examples',
-  subtitle: 'Define segment-wise categories, UOMs and related HSN/SAC codes using manual entry, ready API lookup or government-source lookup',
+  subtitle: 'Define segment-wise categories. HSN/SAC and UOM values load from system masters.',
   kind: 'master',
   icon: 'pi pi-sitemap',
   dependsOn: [
     { name: 'Segment master', status: 'Ready' },
     { name: 'Category list', status: 'Required' },
-    { name: 'UOM and HSN/SAC mapping', status: 'Ready' }
+    { name: 'System HSN/SAC and UOM masters', status: 'Ready' }
   ],
   outputImpact: 'Selected segment drives all master, transaction and report screens.',
   screenMode: 'Configuration',
   recordTitle: 'Segment-wise Configuration Examples',
-  recordSubtitle: 'Use this as the development reference for each supported business segment. HSN/SAC can later bind from government source, ready API or manual mapping.',
+  recordSubtitle: 'Use this as the development reference for each supported business segment. HSN/SAC and UOM stay in their system masters.',
   fields: [
     { key: 'segmentName', label: 'Business Segment', type: 'select', options: INVENTORY_OPTIONS.segments, addMaster: 'New Segment' },
     { key: 'category', label: 'Categories', type: 'multiselect', options: INVENTORY_OPTIONS.categories, addMaster: 'Category' },
-    { key: 'relatedHsnSac', label: 'Related HSN / SAC Codes', type: 'multiselect', options: INVENTORY_OPTIONS.hsnSac, addMaster: 'HSN / SAC' },
-    { key: 'typicalUoms', label: 'Typical UOMs', type: 'multiselect', options: INVENTORY_OPTIONS.uoms, addMaster: 'UOM' },
     { key: 'usageNote', label: 'Usage Note', type: 'textarea' }
   ],
-  columns: ['Segment', 'Categories', 'Related HSN / SAC Codes', 'Typical UOMs', 'Usage Note', 'Status'],
+  columns: ['Segment', 'Categories', 'Serial / Batch Policies', 'Usage Note', 'Status'],
   rows: [
-    ['Electronics', 'Computers & Devices, Mobile & Accessories', '8471, 8517, 8504', 'Nos, Box, Set, Year', 'Stock products, accessories, warranties, serial tracking.', 'Active'],
-    ['Agro Product', 'Agro Commodities, Fertilizers & Chemicals', '1006, 1209, 1508', 'Kg, Bag, Quintal, Ton, Litre', 'Flexible UOM, e.g., Rice can be purchased/sold in Kg or Bag = 26 Kg.', 'Active'],
-    ['Co-working Space', 'Workspace Resources, IT Services', '997212, 998599', 'Seat, Cabin, Hour, Day, Month, Sq.Ft', 'Space/seat availability, subscription and time-based billing.', 'Active'],
-    ['IT Services', 'IT Services', '998313, 998314, 997331', 'Hour, Day, Month, License, Milestone', 'Service billing, milestones, support contracts and license billing.', 'Active'],
-    ['Drone Manufacturing', 'Drone Components, Computers & Devices', '8806, 8507, 8537', 'Nos, Kit, Set, Batch, Flight Hour', 'Components, finished goods, batch/serial tracking, manufacturing stock.', 'Active'],
-    ['Precast Panels', 'Precast Materials', '6810, 2523, 7214', 'Panel, Sq.Ft, Cubic Meter, Ton, Kg', 'Project material, raw material, panel dispatch, project/site location tracking.', 'Active'],
-    ['Real Estate Inventory', 'Real Estate Units, Workspace Resources', '9954, 997212', 'Unit, Sq.Ft, Sq.Yd, Acre, Month', 'Unit inventory, saleable/leasable area, booking hold and release.', 'Active'],
-    ['Hotel / Restaurant', 'Raw Ingredients, Beverages, Menu Items, Rooms', '2106, 2202, 996331, 996332', 'KG, Litre, Bottle, Crate, Plate, Room-Night', 'Kitchen stock, recipe consumption, restaurant POS, room minibar and room-night billing.', 'Active']
+    ['Electronics', 'Computers & Devices, Mobile & Accessories', 'Serial: Device Serial', 'Stock products, accessories, warranties, serial tracking.', 'Active'],
+    ['Agro Product', 'Agro Commodities, Fertilizers & Chemicals', 'Batch: Lot Tracking', 'Flexible UOM, e.g., Rice can be purchased/sold in Kg or Bag = 26 Kg.', 'Active'],
+    ['Co-working Space', 'Workspace Resources, IT Services', '', 'Space/seat availability, subscription and time-based billing.', 'Active'],
+    ['IT Services', 'IT Services', '', 'Service billing, milestones, support contracts and license billing.', 'Active'],
+    ['Drone Manufacturing', 'Drone Components, Computers & Devices', 'Serial: Component Serial / Batch: Production Lot', 'Components, finished goods, batch/serial tracking, manufacturing stock.', 'Active'],
+    ['Precast Panels', 'Precast Materials', 'Batch: Casting Lot', 'Project material, raw material, panel dispatch, project/site location tracking.', 'Active'],
+    ['Real Estate Inventory', 'Real Estate Units, Workspace Resources', '', 'Unit inventory, saleable/leasable area, booking hold and release.', 'Active'],
+    ['Hotel / Restaurant', 'Raw Ingredients, Beverages, Menu Items, Rooms', 'Batch: Kitchen Lot', 'Kitchen stock, recipe consumption, restaurant POS, room minibar and room-night billing.', 'Active']
   ]
 };
 
@@ -645,6 +652,7 @@ export const taxCodeImportConfig: InventoryScreenConfig = {
 
 export const vendorMasterConfig = partyMaster('vendorMaster', 'Vendor Master', 'Supplier and service vendor setup', 'pi pi-truck');
 export const customerMasterConfig = partyMaster('customerMaster', 'Customer Master', 'Customer, tenant, buyer and client setup', 'pi pi-users');
+export const channelPartnerMasterConfig = partyMaster('channelPartnerMaster', 'Channel Partner Master', 'Referral, broker and channel partner setup', 'pi pi-share-alt');
 
 export const productGroupMasterConfig: InventoryScreenConfig = {
   key: 'productGroupMaster',
@@ -1059,12 +1067,12 @@ export const workCenterMasterConfig: InventoryScreenConfig = {
   outputImpact: 'Work centers support production routing, capacity planning and manufacturing costing.',
   screenMode: 'Master setup',
   fields: [
-    { key: 'workCenterCode', label: 'Work Center Code' },
     { key: 'workCenterName', label: 'Work Center Name' },
     { key: 'department', label: 'Department' },
     { key: 'capacity', label: 'Capacity' },
     { key: 'costPerHour', label: 'Cost Per Hour', type: 'number' },
-    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
+    { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status },
+    { key: 'workCenterCode', label: 'Work Center Code' }
   ],
   columns: ['Work Center Code', 'Work Center Name', 'Department', 'Capacity', 'Cost Per Hour', 'Status'],
   rows: [
@@ -1118,8 +1126,8 @@ export const productTypeMasterConfig: InventoryScreenConfig = {
     ['SERVICE', 'Service', 'Yes', 'Yes', 'No', 'Yes', 'No', 'System', 'Active'],
     ['FIXED_ASSET', 'Fixed Asset', 'Yes', 'No', 'Yes', 'No', 'Yes', 'System', 'Active'],
     ['CONSUMABLE', 'Consumable', 'Yes', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
-    ['SEMI_FINISHED', 'Semi-Finished Goods', 'No', 'No', 'Yes', 'No', 'No', 'System', 'Active'],
-    ['FINISHED', 'Finished Goods', 'No', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['SUBFIN', 'Sub-Finished Product', 'No', 'No', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['FINP', 'Finished Product', 'No', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
     ['RAW_MAT', 'Raw Material', 'Yes', 'No', 'Yes', 'No', 'No', 'System', 'Active']
   ]
 };
@@ -2075,15 +2083,15 @@ export const productionPlanningConfig = transaction(
       { key: 'plannedQty', label: 'Planned Qty', type: 'number' },
       { key: 'bomVersion', label: 'BOM Version', type: 'select', options: ['V1', 'V2', 'V3', 'Latest'], addMaster: 'BOM' },
       { key: 'workCenter', label: 'Work Center', type: 'select', options: ['Assembly Line', 'Quality Check', 'Kitchen Station'], addMaster: 'Work Center' },
-      { key: 'warehouse', label: 'Production Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'warehouse', label: 'Production Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
-    lineTitle: 'Raw Material Requirements (From BOM)',
-    lineColumns: ['Raw Material', 'UOM', 'Required Qty', 'Available Qty', 'Shortage', 'Batch Req'],
+    lineTitle: 'Raw Material Requirement Grid',
+    lineColumns: ['Raw Material', 'Variant', 'Attribute', 'UOM', 'Required Qty', 'Available Qty', 'Shortage', 'Batch Req'],
     lineRows: [
-      ['Drone Motor', 'Nos', '48', '620', '0', 'Yes'],
-      ['Flight Controller', 'Nos', '12', '86', '0', 'No'],
-      ['Battery Pack', 'Nos', '12', '55', '0', 'Yes']
+      ['Drone Motor', '', '', 'Nos', '48', '620', '0', 'Yes'],
+      ['Flight Controller', '', '', 'Nos', '12', '86', '0', 'No'],
+      ['Battery Pack', '', '', 'Nos', '12', '55', '0', 'Yes']
     ],
     columns: ['Plan No', 'Plan Date', 'Finished Product', 'Planned Qty', 'Work Center', 'Status'],
     rows: [
@@ -2109,18 +2117,19 @@ export const materialIssueProductionConfig = transaction(
     fields: [
       { key: 'issueNo', label: 'Issue Number' },
       { key: 'issueDate', label: 'Issue Date', type: 'date' },
-      { key: 'productionRef', label: 'Production Plan Ref', type: 'select', options: [] },
-      { key: 'fromWarehouse', label: 'From Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'productionRef', label: 'Production Plan Ref' },
+      { key: 'forFinishedProduct', label: 'For Finished Product', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
+      { key: 'fromWarehouse', label: 'Production Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'toWorkCenter', label: 'To Work Center', type: 'select', options: ['Assembly Line', 'Quality Check', 'Kitchen Station'], addMaster: 'Work Center' },
       { key: 'issuedBy', label: 'Issued By', type: 'select', options: INVENTORY_OPTIONS.contactPersons },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Issued Materials',
-    lineColumns: ['Raw Material', 'UOM', 'Required Qty', 'Issued Qty', 'Batch / Serial'],
+    lineColumns: ['Raw Material', 'Variant', 'Attribute', 'UOM', 'Required Qty', 'Issued Qty', 'Batch / Lot No', 'Serial No'],
     lineRows: [
-      ['Drone Motor', 'Nos', '48', '48', 'LOT-DRN-001'],
-      ['Flight Controller', 'Nos', '12', '12', 'NA'],
-      ['Basmati Rice', 'KG', '20', '20', 'LOT-7781']
+      ['Drone Motor', '', '', 'Nos', '48', '48', 'LOT-DRN-001', ''],
+      ['Flight Controller', '', '', 'Nos', '12', '12', '', ''],
+      ['Basmati Rice', '', '', 'KG', '20', '20', 'LOT-7781', '']
     ],
     columns: ['Issue No', 'Issue Date', 'Production Ref', 'From WH', 'Items', 'Status'],
     rows: [
@@ -2133,7 +2142,7 @@ export const materialIssueProductionConfig = transaction(
 export const productionEntryConfig = transaction(
   'productionEntry',
   'Production Entry',
-  'Record production output with produced, rejected and wastage quantities and cost',
+  'Record production output with produced, rejected quantities and tentative cost',
   'pi pi-cog',
   [
     { name: 'Production Plan', status: 'Required' },
@@ -2146,21 +2155,21 @@ export const productionEntryConfig = transaction(
     fields: [
       { key: 'productionNo', label: 'Production Number' },
       { key: 'productionDate', label: 'Production Date', type: 'date' },
-      { key: 'planRef', label: 'Production Plan Ref', type: 'select', options: [] },
+      { key: 'planRef', label: 'Production Plan Ref' },
       { key: 'finishedProduct', label: 'Finished Product', type: 'select', options: INVENTORY_OPTIONS.products, addMaster: 'Product / Service' },
       { key: 'producedQty', label: 'Produced Qty', type: 'number' },
       { key: 'rejectedQty', label: 'Rejected Qty', type: 'number' },
-      { key: 'wastageQty', label: 'Wastage Qty', type: 'number' },
-      { key: 'productionCost', label: 'Production Cost', type: 'number' },
-      { key: 'toWarehouse', label: 'Finished Goods Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'productionCost', label: 'Production Cost (Tentative)', type: 'number' },
+      { key: 'toWarehouse', label: 'Production Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'batchNo', label: 'Batch / Lot No' },
+      { key: 'expiryDate', label: 'Expiry Date', type: 'date' },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Production Output Summary',
-    lineColumns: ['Finished Product', 'Planned Qty', 'Produced Qty', 'Rejected Qty', 'Wastage', 'Production Cost'],
+    lineColumns: ['Finished Product', 'Variant', 'Attribute', 'UOM', 'Planned Qty', 'Produced Qty', 'Rejected Qty', 'Production Cost (Tentative)', 'Batch / Lot No', 'Expiry Date', 'Serial No'],
     lineRows: [
-      ['Drone Motor', '12 Sets', '11 Sets', '1 Set', '2 Nos motors', 'Rs. 1,10,000'],
-      ['Paneer Tikka', '50 Plates', '50 Plates', '0', '0.5 KG Paneer', 'Rs. 7,250']
+      ['Drone Motor', '', '', 'Nos', '12 Sets', '11 Sets', '1 Set', 'Rs. 1,10,000', '', '', ''],
+      ['Paneer Tikka', '', '', 'Plate', '50 Plates', '50 Plates', '0', 'Rs. 7,250', '', '', '']
     ],
     columns: ['Production No', 'Date', 'Finished Product', 'Produced', 'Rejected', 'Cost', 'Status'],
     rows: [
@@ -2185,17 +2194,17 @@ export const productionReturnConfig = transaction(
     fields: [
       { key: 'returnNo', label: 'Return Number' },
       { key: 'returnDate', label: 'Return Date', type: 'date' },
-      { key: 'issueRef', label: 'Material Issue Ref', type: 'select', options: [] },
+      { key: 'issueRef', label: 'Material Issue Ref' },
       { key: 'productionRef', label: 'Production Ref' },
-      { key: 'toWarehouse', label: 'Return To Warehouse', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
+      { key: 'toWarehouse', label: 'Production Warehouse / Branch', type: 'select', options: INVENTORY_OPTIONS.locations, addMaster: 'Location' },
       { key: 'reason', label: 'Return Reason', type: 'select', options: ['Excess Issued', 'Production Cancelled', 'Recipe Changed', 'Quality Rejected'] },
       { key: 'remarks', label: 'Remarks', type: 'textarea' }
     ],
     lineTitle: 'Returned Materials',
-    lineColumns: ['Material', 'Issued Qty', 'Consumed Qty', 'Returned Qty', 'UOM', 'Batch'],
+    lineColumns: ['Material', 'Variant', 'Attribute', 'Issued Qty', 'Consumed Qty', 'Returned Qty', 'UOM', 'Batch / Serial'],
     lineRows: [
-      ['Drone Motor', '48 Nos', '44 Nos', '4 Nos', 'Nos', 'LOT-DRN-001'],
-      ['Battery Pack', '12 Nos', '11 Nos', '1 Nos', 'Nos', 'NA']
+      ['Drone Motor', '', '', '48 Nos', '44 Nos', '4 Nos', 'Nos', 'LOT-DRN-001'],
+      ['Battery Pack', '', '', '12 Nos', '11 Nos', '1 Nos', 'Nos', 'NA']
     ],
     columns: ['Return No', 'Return Date', 'Issue Ref', 'To Warehouse', 'Items', 'Status'],
     rows: [

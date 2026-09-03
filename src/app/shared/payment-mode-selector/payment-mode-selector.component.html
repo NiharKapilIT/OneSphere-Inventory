@@ -118,7 +118,7 @@
       <div class="col-12 col-md-6">
         <div class="erp-form-group">
           <label class="erp-label">Type Of Payment <span class="required">*</span></label>
-          <ng-select appendTo="body" [items]="onlinePaymentTypes" bindLabel="label" bindValue="id"
+          <ng-select appendTo="body" [items]="onlinePaymentTypeOptions" bindLabel="label" bindValue="id"
             [ngModel]="typeOfPayment()" [ngModelOptions]="{ standalone: true }" [disabled]="disabled"
             placeholder="Select" (change)="setTypeOfPayment($event)" (close)="touch('typeOfPayment')"></ng-select>
           @if (typeOfPaymentError) { <div class="erp-field-error">{{ typeOfPaymentError }}</div> }

@@ -37,7 +37,7 @@
                   [ngModel]="transactionDateValue(dateField)"
                   (ngModelChange)="collectFormField(dateField.key, $event)"
                   [ngModelOptions]="{ standalone: true }"
-                  [maxDate]="maxTransactionDate"
+                  [maxDate]="transactionDateFieldMaxDate(dateField)"
                   dateFormat="dd-M-yy" placeholder="DD-MMM-YYYY"
                   [readonlyInput]="true" [showIcon]="false" appendTo="body"
                   styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100">
@@ -141,13 +141,15 @@
             <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Add row" aria-label="Add row" (click)="addEntryLineRow()"><i class="pi pi-plus"></i></button>
           </div>
           <div class="tbl-wrap">
+            @let renderedColumns = lineGridRenderColumns();
+            @let rowViews = entryLineRowViews();
             <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
-                  @for (column of config.lineColumns || []; track column) {
-                    <th [style.width]="lineGridColumnWidthPx(column)">
-                      {{ column }}
+                  @for (column of renderedColumns; track column) {
+                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
+                      {{ lineGridColumnHeader(column) }}
                       <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
                     </th>
                   }
@@ -162,27 +164,52 @@
                         <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Remove row" (click)="removeEntryLineRow(rowIndex)"><i class="pi pi-trash"></i></button>
                       </div>
                     </td>
-                    @for (column of config.lineColumns || []; track column; let columnIndex = $index) {
-                      <td [class.inventory-hint-anchor]="transactionStockControlHint(column, row, columnIndex, rowIndex)">
-                        @if (lineColumnOptions(column, row).length) {
+                    @let rowView = rowViews[rowIndex];
+                    @for (column of renderedColumns; track column) {
+                      @let columnIndex = lineGridSourceColumnIndex(column);
+                      @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
+                      @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
+                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint">
+                        @if (!cellApplies) {
+                          <span class="inventory-grid-na">N/A</span>
+                        } @else if (lineGridCellReadonly(rowIndex, row, column)) {
+                          <span class="inventory-grid-static-value">{{ lineGridReadonlyCellText(rowIndex, row, column, cellView, rowView) || '-' }}</span>
+                        } @else if (lineGridColumnIsSerialPicker(column) && isSerialApplicableRow(row)) {
+                          <button type="button" class="erp-btn btn-white btn-sm inventory-serial-trigger" (click)="openSerialPicker(rowIndex, row)">
+                            {{ serialPickerSummaryForRow(rowIndex, row) }}
+                          </button>
+                        } @else if (lineGridColumnIsSerialPicker(column)) {
+                          <input class="erp-input inventory-grid-input"
+                            type="text"
+                            [ngModel]="lineGridSerialValue(rowIndex, row, column)"
+                            (ngModelChange)="setLineSerialValue(rowIndex, column, $event)"
+                            [placeholder]="'Enter ' + column" />
+                        } @else if (lineGridColumnIsProduct(column)) {
+                          <app-inventory-line-product-picker
+                            [host]="this" [rowIndex]="rowIndex" [column]="column"
+                            [productColumnIndex]="columnIndex"
+                            [variantColumnIndex]="lineGridSourceColumnIndex('Variant')"
+                            [attributeColumnIndex]="lineGridSourceColumnIndex('Attribute')">
+                          </app-inventory-line-product-picker>
+                        } @else if (cellView?.options?.length) {
                           <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
-                            [items]="lineColumnOptions(column, row)"
+                            [items]="cellView?.options || []"
                             [searchable]="true" [clearable]="false"
-                            [multiple]="lineColumnUsesMultiSelect(column, row)"
-                            [closeOnSelect]="!lineColumnUsesMultiSelect(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [multiple]="cellView?.usesMultiSelect"
+                            [closeOnSelect]="!cellView?.usesMultiSelect"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)">
+                            [placeholder]="cellView?.placeholder || ''">
                           </ng-select>
                         } @else {
                           <input class="erp-input inventory-grid-input"
-                            [type]="lineCellInputType(column, row)"
-                            [ngModel]="lineCellControlValue(row[columnIndex], column, row)"
+                            [type]="cellView?.inputType"
+                            [ngModel]="cellView?.controlValue"
                             (ngModelChange)="setEntryLineCell(rowIndex, columnIndex, $event)"
-                            [placeholder]="lineColumnTypingHint(column, row)" />
+                            [placeholder]="cellView?.placeholder || ''" />
                         }
-                        @if (transactionStockControlHint(column, row, columnIndex, rowIndex); as stockHint) {
-                          <small [class]="transactionStockControlHintClass(column, row, columnIndex, rowIndex)">
+                        @if (cellApplies && cellView?.stockHint; as stockHint) {
+                          <small [class]="cellView?.stockHintClass">
                             <i class="pi pi-info-circle" style="font-size:9px"></i> {{ stockHint }}
                           </small>
                         }
@@ -211,9 +238,13 @@
 
       <div class="inventory-form-actions">
         <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Clear</button>
-        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()">
+        <button type="button" class="erp-btn btn-white" [disabled]="isSaving() || manufacturingTransactionIsPostedForm()" (click)="saveManufacturingDraft()">
           <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : editingId() ? 'pi pi-check' : 'pi pi-plus'"></i>
-          {{ isSaving() ? 'Saving...' : editingId() ? 'Update' : 'Save' }}
+          {{ isSaving() ? 'Saving...' : editingId() ? 'Update Draft' : 'Save Draft' }}
+        </button>
+        <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || manufacturingTransactionIsPostedForm()" (click)="postManufacturingForm()">
+          <i class="pi pi-check-circle"></i>
+          {{ manufacturingPostButtonLabel() }}
         </button>
       </div>
 
@@ -259,7 +290,7 @@
           </div>
           <div class="inventory-form-actions inventory-final-actions">
             <button type="button" class="erp-btn btn-white" (click)="clearConfigForm()"><i class="pi pi-times"></i> Cancel</button>
-            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="saveConfigRecord()"><i class="pi pi-check"></i> Save All</button>
+            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || manufacturingTransactionIsPostedForm()" (click)="postManufacturingForm()"><i class="pi pi-check"></i> {{ manufacturingPostButtonLabel() }}</button>
           </div>
         </div>
       }
@@ -322,6 +353,9 @@
                   <div class="inventory-row-actions">
                     @if (isAdmin()) {
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Edit" (click)="editRecordByRow(row)"><i class="pi pi-pencil"></i></button>
+                      @if (isManufacturingDraftRow(row)) {
+                        <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Post" (click)="postManufacturingRecordByRow(row)"><i class="pi pi-check-circle"></i></button>
+                      }
                       <button type="button" class="erp-btn btn-white btn-icon btn-sm" title="Delete"><i class="pi pi-trash"></i></button>
                     }
                   </div>
@@ -338,4 +372,57 @@
   </div>
 
   <app-inventory-quick-add-modal [host]="quickAddHost"></app-inventory-quick-add-modal>
+  <app-inventory-serial-picker-modal [host]="quickAddHost"></app-inventory-serial-picker-modal>
+
+  @if (refPickerOpen() && refPickerType()) {
+    <div class="inventory-modal-backdrop" (click)="closePurchaseReferencePicker()">
+      <div class="inventory-modal inventory-pr-items-modal" (click)="$event.stopPropagation()">
+        <div class="inventory-modal-header">
+          <h3>{{ transactionReferencePickerTitle(null) }}</h3>
+          <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closePurchaseReferencePicker()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+        <div class="inventory-modal-body">
+          @if (refPickerLoading()) {
+            <p>Loading references...</p>
+          } @else if (!refPickerAvailableDocs().length) {
+            <p>No posted reference documents found.</p>
+          } @else {
+            <div class="erp-form-group" style="margin-bottom:10px;">
+              <input class="erp-input" type="text" placeholder="Search number, product or date"
+                [ngModel]="refPickerSearch()" (ngModelChange)="refPickerSearch.set($event)" />
+            </div>
+            <div class="tbl-wrap">
+              <table class="erp-table compact">
+                <thead>
+                  <tr>
+                    @if (refPickerDocsHaveType()) { <th>Type</th> }
+                    <th>No</th><th>Date</th><th>Product / Reference</th><th>Status</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of refPickerDisplayDocs(); track referenceDocTrackKey(doc)) {
+                    <tr>
+                      @if (refPickerDocsHaveType()) { <td>{{ referenceDocTypeLabel(doc) }}</td> }
+                      <td>{{ doc.doc_number }}</td>
+                      <td>{{ gridDateDisplay(doc.doc_date) }}</td>
+                      <td>{{ doc.party_name }}</td>
+                      <td>{{ doc.status }}</td>
+                      <td>
+                        <button type="button" class="erp-btn btn-white btn-sm" (click)="selectPrimaryReference(doc)">Select</button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              @if (refPickerHiddenCount() > 0) {
+                <p class="inventory-field-hint">Showing first 100. Use search to narrow {{ refPickerHiddenCount() }} more reference(s).</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
 </div>

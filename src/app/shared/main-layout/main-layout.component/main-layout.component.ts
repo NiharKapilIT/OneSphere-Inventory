@@ -42,6 +42,13 @@ interface FlyoutScreenGroup {
   screens: Screen[];
 }
 
+interface SwitchLocationOption {
+  key: string;
+  label: string;
+  type: 'warehouse' | 'branch';
+  id: number;
+}
+
 @Component({
   selector: 'app-main-layout',
   standalone: true,
@@ -64,9 +71,11 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   tenantOptions: LoginTenantOption[] = [];
   selectedSwitchCompanyId: number | null = null;
   selectedSwitchBranchId: number | null = null;
-  // Independent sibling of selectedSwitchBranchId — never filtered by which
-  // branch is selected (Warehouse and Branch have no FK link to each other).
+  // Independent selection state for the merged control. Warehouses carry a
+  // linked branchId, but are still listed from their own warehouse access list.
   selectedSwitchWarehouseId: number | null = null;
+  private mergedSwitchLocationOptionsCache: SwitchLocationOption[] = [];
+  private mergedSwitchLocationOptionsCacheKey = '';
   switchingContext = false;
   switchMessage = '';
   switchError = '';
@@ -79,6 +88,24 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   passwordError = '';
   expandedSubModules: Set<string> = new Set<string>();
   expandedFlyoutGroups: Set<string> = new Set<string>();
+  private readonly enabledManufacturingTransactionIds = new Set([
+    'bom-master',
+    'work-center-master',
+    'production-planning',
+    'material-issue-production',
+    'production-entry',
+    'production-return'
+  ]);
+  private readonly enabledManufacturingScreenCompactKeys = new Set([
+    'bommaster',
+    'workcentermaster',
+    'productionplanning',
+    'materialissueproduction',
+    'productionentry',
+    'productionreturn',
+    'invmbom',
+    'invmworkcenter'
+  ]);
 
   // Snapshot of the path for the currently active screen
   breadcrumbPath = {
@@ -290,6 +317,12 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     return this.formatContextLabel(warehouseName, warehouseCode, 'No warehouse');
   }
 
+  get currentLocationLabel(): string {
+    return this.currentActiveLocationKind() === 'warehouse'
+      ? this.currentWarehouseLabel
+      : this.currentBranchLabel;
+  }
+
   get selectedSwitchBranches() {
     return this.tenantOptions.find(option => option.companyId === this.selectedSwitchCompanyId)?.branches ?? [];
   }
@@ -307,30 +340,44 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   // template can render the shared "WH" badge (.inventory-location-badge)
   // on warehouse entries only. The bound value is a composite `type:id` key
   // since branch ids and warehouse ids are independent numeric spaces.
-  // Picking an entry sets ONLY the matching one of
-  // selectedSwitchBranchId/selectedSwitchWarehouseId — the other is left
-  // exactly as it already was (previously explicit, or still its silent
-  // default), never nulled out.
-  get mergedSwitchLocationOptions(): Array<{ key: string; label: string; type: 'warehouse' | 'branch'; id: number }> {
-    const warehouses = this.selectedSwitchWarehouses.map(w => ({
-      key: `warehouse:${w.id}`,
-      label: `${w.warehouseName} (${w.warehouseCode})`,
-      type: 'warehouse' as const,
-      id: w.id,
-    }));
-    const branches = this.selectedSwitchBranches.map(b => ({
-      key: `branch:${b.id}`,
-      label: `${b.branchName} (${b.branchCode})`,
-      type: 'branch' as const,
-      id: b.id,
-    }));
-    return [...warehouses, ...branches];
+  // The picker keeps one explicit active location, so choosing a branch
+  // clears the selected warehouse and choosing a warehouse clears the
+  // selected branch.
+  get mergedSwitchLocationOptions(): SwitchLocationOption[] {
+    const warehouses = this.selectedSwitchWarehouses;
+    const branches = this.selectedSwitchBranches;
+    const cacheKey = [
+      this.selectedSwitchCompanyId ?? '',
+      ...warehouses.map(w => `w:${w.id}:${w.warehouseName}:${w.warehouseCode}`),
+      ...branches.map(b => `b:${b.id}:${b.branchName}:${b.branchCode}`)
+    ].join('|');
+
+    if (cacheKey === this.mergedSwitchLocationOptionsCacheKey) {
+      return this.mergedSwitchLocationOptionsCache;
+    }
+
+    this.mergedSwitchLocationOptionsCacheKey = cacheKey;
+    this.mergedSwitchLocationOptionsCache = [
+      ...warehouses.map(w => ({
+        key: `warehouse:${w.id}`,
+        label: `${w.warehouseName} (${w.warehouseCode})`,
+        type: 'warehouse' as const,
+        id: w.id,
+      })),
+      ...branches.map(b => ({
+        key: `branch:${b.id}`,
+        label: `${b.branchName} (${b.branchCode})`,
+        type: 'branch' as const,
+        id: b.id,
+      }))
+    ];
+
+    return this.mergedSwitchLocationOptionsCache;
   }
 
   // Which type was most recently explicitly picked in the merged control —
-  // used only to decide which of the two already-resolved ids the single
-  // control DISPLAYS when both happen to be populated (never affects which
-  // signal actually holds which value).
+  // used to decide which active location the single control displays and
+  // which context kind should be stamped after a successful switch.
   private lastPickedSwitchLocationType: 'branch' | 'warehouse' | null = null;
 
   get selectedSwitchLocationKey(): string | null {
@@ -349,11 +396,22 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     const id = Number(idPart) || null;
     if (type === 'warehouse') {
       this.selectedSwitchWarehouseId = id;
+      this.selectedSwitchBranchId = null;
       this.lastPickedSwitchLocationType = 'warehouse';
     } else if (type === 'branch') {
       this.selectedSwitchBranchId = id;
+      this.selectedSwitchWarehouseId = null;
       this.lastPickedSwitchLocationType = 'branch';
     }
+  }
+
+  onSwitchLocationPicked(item: SwitchLocationOption | string | number | null): void {
+    if (item && typeof item === 'object') {
+      this.onSwitchLocationChange(item.key);
+      return;
+    }
+
+    this.onSwitchLocationChange(item);
   }
 
   get currentWarehouseIdValue(): number {
@@ -386,8 +444,19 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
     const currentBranchId = Number(sessionStorage.getItem('branchId') || 0);
     const currentWarehouseId = Number(sessionStorage.getItem('warehouseId') || 0);
-    return this.selectedSwitchCompanyId !== currentCompanyId
-      || (!!this.selectedSwitchBranchId && this.selectedSwitchBranchId !== currentBranchId)
+    if (this.selectedSwitchCompanyId !== currentCompanyId) return true;
+
+    const currentLocationKind = this.currentActiveLocationKind();
+    if (this.lastPickedSwitchLocationType === 'warehouse') {
+      return currentLocationKind !== 'warehouse'
+        || (!!this.selectedSwitchWarehouseId && this.selectedSwitchWarehouseId !== currentWarehouseId);
+    }
+    if (this.lastPickedSwitchLocationType === 'branch') {
+      return currentLocationKind !== 'branch'
+        || (!!this.selectedSwitchBranchId && this.selectedSwitchBranchId !== currentBranchId);
+    }
+
+    return (!!this.selectedSwitchBranchId && this.selectedSwitchBranchId !== currentBranchId)
       || (!!this.selectedSwitchWarehouseId && this.selectedSwitchWarehouseId !== currentWarehouseId);
   }
 
@@ -430,9 +499,22 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.tenantOptions = options;
     this.selectedSwitchCompanyId = currentCompanyId || (this.tenantOptions[0]?.companyId ?? null);
     const branches = this.selectedSwitchBranches;
+    const currentLocationKind = this.currentActiveLocationKind();
     this.selectedSwitchBranchId = currentBranchId || branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
     const warehouses = this.selectedSwitchWarehouses;
-    this.selectedSwitchWarehouseId = currentWarehouseId || warehouses.find(w => w.isDefault)?.id || warehouses[0]?.id || null;
+    const defaultWarehouseId = warehouses.find(w => w.isDefault)?.id || warehouses[0]?.id || null;
+    this.selectedSwitchWarehouseId = currentLocationKind === 'warehouse'
+      ? currentWarehouseId || defaultWarehouseId
+      : this.selectedSwitchBranchId
+        ? null
+        : currentWarehouseId || defaultWarehouseId;
+    this.lastPickedSwitchLocationType = currentLocationKind === 'warehouse' && this.selectedSwitchWarehouseId
+      ? 'warehouse'
+      : this.selectedSwitchBranchId
+        ? 'branch'
+        : this.selectedSwitchWarehouseId
+          ? 'warehouse'
+          : null;
   }
 
   private refreshTenantOptionsFromServer(): void {
@@ -484,6 +566,10 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   trackSwitchWarehouse(_: number, warehouse: NonNullable<LoginTenantOption['warehouses']>[number]): number {
     return warehouse.id;
+  }
+
+  trackSwitchLocation(option: SwitchLocationOption): string {
+    return option.key;
   }
 
   toggleAvatarMenu(): void {
@@ -539,9 +625,10 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   onSwitchCompanyChange(companyId: number | string): void {
     this.selectedSwitchCompanyId = Number(companyId) || null;
     const branches = this.selectedSwitchBranches;
-    this.selectedSwitchBranchId = branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
+    const branchId = branches.find(branch => branch.isDefault)?.id || branches[0]?.id || null;
+    this.selectedSwitchBranchId = branchId;
     const warehouses = this.selectedSwitchWarehouses;
-    this.selectedSwitchWarehouseId = warehouses.find(w => w.isDefault)?.id || warehouses[0]?.id || null;
+    this.selectedSwitchWarehouseId = branchId ? null : warehouses.find(w => w.isDefault)?.id || warehouses[0]?.id || null;
     // Fresh company → show ITS default in the merged control, not whichever
     // type the user happened to last pick for a previous company.
     this.lastPickedSwitchLocationType = null;
@@ -549,15 +636,15 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   onSwitchWarehouseChange(warehouseId: number | string): void {
     this.selectedSwitchWarehouseId = Number(warehouseId) || null;
+    this.selectedSwitchBranchId = null;
+    this.lastPickedSwitchLocationType = 'warehouse';
   }
 
   async applyTenantSwitch(): Promise<void> {
     if (!this.selectedSwitchCompanyId) return;
-    if (this.selectedSwitchCompanyId === Number(sessionStorage.getItem('companyId') || 0) && !this.selectedSwitchBranchId) return;
-    // Backend now silently defaults whichever of Branch/Warehouse isn't
-    // picked (see ResolveSelectedBranchId/ResolveSelectedWarehouseId), so
-    // only ONE of the two needs to be explicitly resolved here — mirrors
-    // login.component.ts's verifyLoginOtp/onUserIdLogin gate.
+    // Only one location is explicit. Branch selection sends branchId only;
+    // warehouse selection sends warehouseId only and the backend derives its
+    // linked branch for legacy BranchCode lookups.
     const hasLocationOptions = this.selectedSwitchBranches.length > 0 || this.selectedSwitchWarehouses.length > 0;
     if (hasLocationOptions && !this.selectedSwitchBranchId && !this.selectedSwitchWarehouseId) {
       this.switchError = 'Please select a branch or warehouse.';
@@ -568,17 +655,20 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.switchError = '';
     try {
       const currentCompanyId = Number(sessionStorage.getItem('companyId') || 0);
-      const response = this.selectedSwitchCompanyId === currentCompanyId
-        ? await firstValueFrom(this.authService.switchBranch(this.selectedSwitchBranchId || 0, this.selectedSwitchWarehouseId))
-        : await firstValueFrom(this.authService.switchCompany(this.selectedSwitchCompanyId, this.selectedSwitchBranchId, this.selectedSwitchWarehouseId));
+      const selectedLocationKind = this.selectedSwitchActiveLocationKind();
+      const selectedBranchId = selectedLocationKind === 'branch' ? this.selectedSwitchBranchId || null : null;
+      const selectedWarehouseId = selectedLocationKind === 'warehouse' ? this.selectedSwitchWarehouseId || null : null;
+      const response = this.selectedSwitchCompanyId === currentCompanyId && selectedBranchId
+        ? await firstValueFrom(this.authService.switchBranch(selectedBranchId, selectedWarehouseId))
+        : await firstValueFrom(this.authService.switchCompany(this.selectedSwitchCompanyId, selectedBranchId, selectedWarehouseId));
       if (response?.data) {
         this.preserveTenantOptions(response.data);
         this.authService.setMultiTenantSession(response.data);
         // Record which of Branch/Warehouse was the user's actual merged-picker
         // pick so currentLocationLabel can show it after the reload below --
         // sessionStorage['branchId']/['warehouseId'] alone can't disambiguate
-        // this once the backend has silently defaulted the other one.
-        sessionStorage.setItem('activeLocationKind', this.lastPickedSwitchLocationType === 'warehouse' ? 'warehouse' : 'branch');
+        // this once a warehouse session carries both derived branch and warehouse ids.
+        sessionStorage.setItem('activeLocationKind', selectedLocationKind);
         await this.refreshLegacyCompanyDetails();
         this.modules = this.navigationService.getModules();
         this.selectedModule = null;
@@ -612,12 +702,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     this.switchMessage = '';
     this.switchError = '';
     try {
-      // switch-branch is always-required on WarehouseId once the company has any
-      // warehouses (see ResolveSelectedWarehouseId) — this quick one-click switch
-      // has no warehouse picker of its own, so it carries the currently active
-      // warehouse forward unchanged rather than forcing a re-pick for a branch-only
-      // action, or 400ing outright for any company with warehouses configured.
-      const response = await firstValueFrom(this.authService.switchBranch(branchId, this.currentWarehouseIdValue || null));
+      const response = await firstValueFrom(this.authService.switchBranch(branchId, null));
       if (response?.data) {
         this.preserveTenantOptions(response.data);
         this.authService.setMultiTenantSession(response.data);
@@ -738,6 +823,16 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     }
   }
 
+  private currentActiveLocationKind(): 'branch' | 'warehouse' {
+    return sessionStorage.getItem('activeLocationKind') === 'warehouse' ? 'warehouse' : 'branch';
+  }
+
+  private selectedSwitchActiveLocationKind(): 'branch' | 'warehouse' {
+    if (this.lastPickedSwitchLocationType === 'warehouse' && this.selectedSwitchWarehouseId) return 'warehouse';
+    if (this.lastPickedSwitchLocationType === 'branch' && this.selectedSwitchBranchId) return 'branch';
+    return this.selectedSwitchWarehouseId && !this.selectedSwitchBranchId ? 'warehouse' : 'branch';
+  }
+
   private openFirstPageOfModule(module: Module): void {
     this.expandedSubModules.clear();
 
@@ -809,8 +904,47 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     return this.expandedSubModules.has(subModuleId);
   }
 
+  isScreenDisabled(screen?: Screen | null): boolean {
+    return !!screen?.disabled && !this.isEnabledManufacturingScreen(screen);
+  }
+
+  private isEnabledManufacturingScreen(screen?: Screen | null): boolean {
+    if (!screen) return false;
+
+    const routeTail = this.getRouteTail(screen.route);
+    const identityValues = [
+      screen.id,
+      screen.name,
+      screen.route,
+      routeTail,
+      ...(screen.relatedRoutes || []),
+      ...(screen.relatedRoutes || []).map(route => this.getRouteTail(route))
+    ];
+
+    return identityValues.some(value => {
+      const normalized = this.normalizeScreenKey(value);
+      return this.enabledManufacturingTransactionIds.has(normalized)
+        || this.enabledManufacturingScreenCompactKeys.has(this.compactScreenKey(normalized));
+    });
+  }
+
+  private normalizeScreenKey(value?: string | null): string {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  private compactScreenKey(value?: string | null): string {
+    return this.normalizeScreenKey(value).replace(/[^a-z0-9]/g, '');
+  }
+
+  private getRouteTail(route?: string | null): string {
+    return String(route || '').split('/').filter(Boolean).pop() || '';
+  }
+
   selectScreen(screen: Screen): void {
     this.navigationService.selectScreen(screen);
+    if (this.selectedSubModule) {
+      this.expandActiveFlyoutGroup(this.selectedSubModule, screen);
+    }
     this.router.navigate([screen.route]);
     this.addToRecent(screen);
     this.showMegaMenu = false;
@@ -935,9 +1069,6 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
       this.expandedSubModules.add(path.subModule.id);
     }
 
-    this.initializeFlyoutGroups(path.subModule);
-    this.expandActiveFlyoutGroup(path.subModule, path.screen);
-
     if (this.selectedSubModule?.id !== path.subModule.id) {
       this.navigationService.selectSubModule(path.subModule);
     }
@@ -945,6 +1076,8 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
     if (this.selectedScreen?.id !== path.screen.id) {
       this.navigationService.selectScreen(path.screen);
     }
+
+    this.expandActiveFlyoutGroup(path.subModule, path.screen);
 
     this.breadcrumbPath = {
       module: path.module,
@@ -1140,10 +1273,12 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   toggleFlyoutGroup(groupName: string): void {
     if (this.expandedFlyoutGroups.has(groupName)) {
+      if (this.isFlyoutGroupNameActive(groupName)) return;
       this.expandedFlyoutGroups.delete(groupName);
       return;
     }
 
+    this.expandedFlyoutGroups.clear();
     this.expandedFlyoutGroups.add(groupName);
   }
 
@@ -1157,16 +1292,39 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
 
   private initializeFlyoutGroups(subModule: SubModule | null): void {
     this.expandedFlyoutGroups.clear();
+    if (!subModule) return;
+
+    const activeGroupName = this.flyoutGroupNameForScreen(subModule, this.selectedScreen);
+    const firstGroupName = this.firstFlyoutGroupName(subModule);
+    const groupName = activeGroupName || firstGroupName;
+    if (groupName) this.expandedFlyoutGroups.add(groupName);
   }
 
   private expandActiveFlyoutGroup(subModule: SubModule, screen: Screen): void {
-    if (screen.group && subModule.screens.some(item => item.group === screen.group)) {
-      this.expandedFlyoutGroups.add(screen.group);
-    }
+    this.expandedFlyoutGroups.clear();
+    const groupName = this.flyoutGroupNameForScreen(subModule, screen) || this.firstFlyoutGroupName(subModule);
+    if (groupName) this.expandedFlyoutGroups.add(groupName);
+  }
+
+  private isFlyoutGroupNameActive(groupName: string): boolean {
+    return !!this.selectedSubModule
+      && this.flyoutGroupNameForScreen(this.selectedSubModule, this.selectedScreen) === groupName;
+  }
+
+  private flyoutGroupNameForScreen(subModule: SubModule, screen?: Screen | null): string | null {
+    if (!screen?.group) return null;
+    return subModule.screens.some(item => item.id === screen.id && item.group === screen.group)
+      ? screen.group
+      : null;
+  }
+
+  private firstFlyoutGroupName(subModule: SubModule): string | null {
+    const grouped = subModule.screens.find(screen => !!screen.group);
+    return grouped?.group || null;
   }
 
   navigateToScreen(item: any): void {
-    if (item.disabled) return;
+    if (this.isScreenDisabled(item)) return;
     if (item.subModule) {
       this.navigationService.selectSubModule(item.subModule);
       this.expandedSubModules.clear();
@@ -1212,7 +1370,7 @@ export class MainLayoutComponent implements OnInit, AfterViewInit {
   }
 
   navigateFromMega(mod: Module, sub: SubModule, screen: Screen): void {
-    if (screen.disabled) return;
+    if (this.isScreenDisabled(screen)) return;
     const fullModule = this.modules.find(item => item.id === mod.id) || mod;
     const fullSubModule = fullModule.subModules.find(item => item.id === sub.id) || sub;
     const fullScreen =

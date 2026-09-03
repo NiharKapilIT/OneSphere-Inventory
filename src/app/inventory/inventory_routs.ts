@@ -143,6 +143,12 @@ export const inventoryRoutes: Routes = [
           .then(m => m.InventoryCustomerMasterComponent)
       },
       {
+        path: 'channel-partner-master',
+        canActivate: [screenPermissionGuard('INV_M_CHANNEL_PARTNER')],
+        loadComponent: () => import('./Inventory_Masters/channel-partner-master/channel-partner-master')
+          .then(m => m.InventoryChannelPartnerMasterComponent)
+      },
+      {
         path: 'price-list-master',
         canActivate: [screenPermissionGuard('INV_M_PRICELIST')],
         loadComponent: () => import('./Inventory_Masters/price-list-master/price-list-master')

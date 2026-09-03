@@ -98,6 +98,16 @@
             </div>
           }
 
+          @case ('operations') {
+            <div class="inv-stat-grid">
+              @for (card of operationsCards(); track card.label) {
+                <app-stat-card [label]="card.label" [value]="card.value" [note]="card.note" [icon]="card.icon" [tone]="card.tone" [clickable]="true" (cardClick)="openCard(card)"></app-stat-card>
+              } @empty {
+                <div class="inventory-grid-empty-hint">No stock transfer or manufacturing activity yet.</div>
+              }
+            </div>
+          }
+
           @case ('ageing') {
             <div class="inv-chart-pair">
               <div class="inv-chart-col">
@@ -134,6 +144,32 @@
                   }
                 </tbody>
               </table>
+            </div>
+          }
+
+          @case ('stockTransferFlow') {
+            <div class="inv-mini-chart-grid">
+              <div class="inv-chart-col">
+                <div class="inv-ageing-head"><strong>Route Qty</strong><span>{{ fmtQty(transferQtyTotal()) }}</span></div>
+                <app-bar-chart [labels]="transferRouteLabels()" [series]="transferRouteSeries()" [horizontal]="true" height="220px"></app-bar-chart>
+              </div>
+              <div class="inv-chart-col">
+                <div class="inv-ageing-head"><strong>Status</strong><span>{{ transferStatusTotal() }} docs</span></div>
+                <app-donut-chart [slices]="transferStatusSlices()" centerLabel="Transfers" [centerValue]="transferStatusTotalText()" height="220px"></app-donut-chart>
+              </div>
+            </div>
+          }
+
+          @case ('manufacturingFlow') {
+            <div class="inv-mini-chart-grid">
+              <div class="inv-chart-col">
+                <div class="inv-ageing-head"><strong>Production Qty</strong><span>{{ fmtQty(finishedProducedTotal()) }} finished</span></div>
+                <app-bar-chart [labels]="manufacturingQuantityLabels()" [series]="manufacturingQuantitySeries()" height="220px"></app-bar-chart>
+              </div>
+              <div class="inv-chart-col">
+                <div class="inv-ageing-head"><strong>Documents</strong><span>{{ manufacturingDocTotal() }} docs</span></div>
+                <app-donut-chart [slices]="manufacturingDocSlices()" centerLabel="MFG Docs" [centerValue]="manufacturingDocTotalText()" height="220px"></app-donut-chart>
+              </div>
             </div>
           }
 

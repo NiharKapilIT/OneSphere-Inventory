@@ -220,12 +220,12 @@
   background: #fff;
 }
 
-// Label only -- the card whose branch matches the transaction's own current
-// branch (from-warehouse/document branch) is visually distinguished, but
+// Label only -- the card matching the active session branch/warehouse is
+// visually distinguished with a green dot and border, but
 // stays exactly as non-clickable/informational as every other card here.
 .inv-line-picker-branch-card--current {
-  border-color: #93c5fd;
-  background: #eff6ff;
+  border-color: #86efac;
+  background: #f0fdf4;
 }
 
 .inv-line-picker-branch-card-head {
@@ -244,16 +244,13 @@
   gap: 6px;
 }
 
-.inv-line-picker-current-badge {
-  padding: 1px 7px;
-  border-radius: 999px;
-  background: #2563eb;
-  color: #fff;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
+.inv-line-picker-active-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
 }
 
 .inv-line-picker-branch-card ul {

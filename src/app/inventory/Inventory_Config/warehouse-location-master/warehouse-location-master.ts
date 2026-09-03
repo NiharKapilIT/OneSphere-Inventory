@@ -64,10 +64,7 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
   });
 
   readonly visibleSavedWarehouses = computed(() => {
-    const selectedSegmentId = this.segmentId();
-    return selectedSegmentId
-      ? this.savedWarehouses().filter(warehouse => warehouse.segment_id === selectedSegmentId)
-      : this.savedWarehouses();
+    return this.savedWarehouses();
   });
 
   readonly segmentOptions = computed(() =>
@@ -224,6 +221,10 @@ export class InventoryWarehouseLocationMasterComponent implements OnInit {
       next: res => {
         this.pendingWarehouses.set([]);
         this.savedWarehouses.set(res.data ?? []);
+        this.svc.getWarehouses(true).subscribe({
+          next: latest => this.savedWarehouses.set(latest.data ?? res.data ?? []),
+          error: () => {}
+        });
         this.saving.set(false);
         this.saveMsg.set(`${batch.length} warehouse(s) saved successfully`);
         setTimeout(() => this.saveMsg.set(''), 4000);

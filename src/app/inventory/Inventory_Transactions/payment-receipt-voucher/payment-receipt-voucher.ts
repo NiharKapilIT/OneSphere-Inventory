@@ -13,7 +13,7 @@ import { AvailableNote, OutstandingInvoice, PaymentVoucher, PaymentsService, Tds
 import { StickyFooterOffsetService } from '../../../core/services/Common/sticky-footer-offset.service';
 import { customerReceiptConfig, vendorPaymentConfig } from '../../Inventory_Shared/inventory-screen.model';
 import { InventoryScreenShell } from '../../Inventory_Shared/inventory-screen-shell/inventory-screen-shell';
-import { PaymentModeSelectorComponent, PaymentModeSelectorValue, defaultPaymentModeValue } from '../../../shared/payment-mode-selector/payment-mode-selector.component';
+import { PaymentModeOption, PaymentModeSelectorComponent, PaymentModeSelectorValue, defaultPaymentModeValue } from '../../../shared/payment-mode-selector/payment-mode-selector.component';
 
 type VoucherMode = 'pay' | 'receipt';
 // Item 19: mode-of-payment capture now lives in the shared
@@ -35,6 +35,9 @@ const TDS_SECTIONS_FALLBACK: { value: string; label: string; rate: number }[] = 
   { value: '194JA', label: '194JA — Professional Fees (Individual/HUF)', rate: 2 },
   { value: '194R',  label: '194R — Benefits/Perquisites', rate: 10 },
 ];
+
+const CASH_PAYMENT_LIMIT = 9999;
+const CASH_RECEIPT_LIMIT = 199000;
 
 @Component({
   selector: 'app-payment-receipt-voucher',
@@ -101,6 +104,9 @@ export class PaymentReceiptVoucherComponent {
   readonly noteApplyAmounts = signal<Record<number, number>>({});
 
   readonly modeRows = signal<ModeRow[]>([]);
+  readonly accountBankOptions = signal<PaymentModeOption[]>([]);
+  readonly accountDepositBankOptions = signal<PaymentModeOption[]>([]);
+  readonly accountOnlinePaymentTypes = signal<PaymentModeOption[]>([]);
   readonly narration = signal('');
   readonly tdsSection = signal<string>('');
   readonly voucherDate = signal<string>(new Date().toISOString().slice(0, 10));
@@ -120,6 +126,7 @@ export class PaymentReceiptVoucherComponent {
   readonly docLabel = computed(() => this.mode() === 'pay' ? 'Purchase Invoice' : 'Sales Invoice');
   readonly invoiceTypeKey = computed<'purchase_invoice' | 'sales_invoice'>(() => this.mode() === 'pay' ? 'purchase_invoice' : 'sales_invoice');
   readonly guideConfig = computed(() => this.mode() === 'pay' ? vendorPaymentConfig : customerReceiptConfig);
+  readonly cashLimit = computed(() => this.mode() === 'pay' ? CASH_PAYMENT_LIMIT : CASH_RECEIPT_LIMIT);
 
   readonly selectedParty = computed(() => {
     const id = this.selectedPartyId();
@@ -239,6 +246,13 @@ export class PaymentReceiptVoucherComponent {
   });
 
   readonly modeTotal = computed(() => this.modeRows().reduce((s, r) => s + (r.amount || 0), 0));
+  readonly cashModeTotal = computed(() => this.modeRows()
+    .filter(r => r.details.modeKey === 'cash')
+    .reduce((s, r) => s + (r.amount || 0), 0));
+  readonly cashLimitExceeded = computed(() => this.cashModeTotal() > this.cashLimit() + 0.005);
+  readonly cashLimitMessage = computed(() =>
+    `Total cash ${this.mode() === 'pay' ? 'payment against Purchase Invoice' : 'receipt against Sales Invoice'} cannot exceed ${this.fmt(this.cashLimit())}.`
+  );
 
   readonly onAccountAmount = computed(() => Math.max(0, this.modeTotal() + this.totalNotesApplied() + this.tdsAmount() + this.tcsAmount() - this.totalAllocated()));
   readonly netAmount = computed(() => Math.max(0, this.modeTotal()));
@@ -278,6 +292,8 @@ export class PaymentReceiptVoucherComponent {
       next: res => this.tdsCodes.set(res.data ?? []),
       error: () => this.tdsCodes.set([])
     });
+
+    this.loadPaymentAccountSetup();
   }
 
   today(): string { return new Date().toISOString().slice(0, 10); }
@@ -334,6 +350,23 @@ export class PaymentReceiptVoucherComponent {
       .subscribe({
         next: res => { this.vouchers.set(res.data ?? []); this.loadingVouchers.set(false); },
         error: () => { this.vouchers.set([]); this.loadingVouchers.set(false); }
+      });
+  }
+
+  private loadPaymentAccountSetup(): void {
+    this.paymentsService.getPaymentVoucherAccountSetup()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: setup => {
+          this.accountBankOptions.set(setup.banks ?? []);
+          this.accountDepositBankOptions.set(setup.depositBanks ?? []);
+          this.accountOnlinePaymentTypes.set(setup.onlinePaymentTypes ?? []);
+        },
+        error: () => {
+          this.accountBankOptions.set([]);
+          this.accountDepositBankOptions.set([]);
+          this.accountOnlinePaymentTypes.set([]);
+        }
       });
   }
 
@@ -557,6 +590,10 @@ export class PaymentReceiptVoucherComponent {
         allocatedAmount: this.noteApplyFor(n)
       }));
     const activeModeRows = this.modeRows().filter(r => r.amount > 0);
+    if (this.cashLimitExceeded()) {
+      this.saveError.set(this.cashLimitMessage());
+      return;
+    }
     const invalidRow = activeModeRows.find(r => !r.details.isValid);
     if (invalidRow) {
       this.saveError.set('Complete the required fields for each ' + (this.mode() === 'pay' ? 'payment' : 'receipt') + ' mode before saving.');

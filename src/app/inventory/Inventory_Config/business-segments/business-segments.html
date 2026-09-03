@@ -6,7 +6,7 @@
       <div class="inventory-section-title">
         <div>
           <h3>{{ editingId() ? 'Edit Business Segment' : 'New Business Segment' }}</h3>
-          <p>Map common categories, HSN/SAC codes and UOMs for this segment.</p>
+          <p>Map common categories for this segment. HSN/SAC and UOM values are loaded from system masters.</p>
         </div>
         @if (editingId()) {
           <span class="erp-badge badge-warning"><i class="pi pi-pencil"></i> Editing #{{ editingId() }}</span>
@@ -73,78 +73,6 @@
           </div>
         </div>
 
-        <div class="erp-form-group">
-          <label class="erp-label">
-            Related HSN / SAC Codes
-            @if (selectedHsnCount()) {
-              <span class="erp-label-hint">{{ selectedHsnCount() }} selected</span>
-            }
-          </label>
-          <div class="inventory-field-with-add">
-            <ng-select
-              class="erp-ng-select inventory-ng-select"
-              appendTo="body"
-              [items]="hsnSacList()"
-              bindValue="id"
-              [multiple]="true"
-              [closeOnSelect]="false"
-              [searchable]="true"
-              [clearable]="true"
-              [ngModel]="hsnSacIds()"
-              (ngModelChange)="hsnSacIds.set($event ?? [])"
-              placeholder="Select HSN / SAC">
-              <ng-template ng-label-tmp let-item="item">
-                <span>{{ item.code }}</span>
-              </ng-template>
-              <ng-template ng-option-tmp let-item="item">
-                <strong>{{ item.code }}</strong>
-                <span class="erp-badge badge-info ms-1">{{ item.hsn_type }}</span>
-                <small class="text-muted ms-1">{{ item.description || '' }} GST {{ item.gst_rate }}%</small>
-              </ng-template>
-            </ng-select>
-            <button type="button" class="erp-btn btn-white btn-icon" (click)="openHsnPopup()" title="Add HSN / SAC">
-              <i class="pi pi-plus"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="erp-form-group">
-          <label class="erp-label">
-            Typical UOMs
-            @if (selectedUomCount()) {
-              <span class="erp-label-hint">{{ selectedUomCount() }} selected</span>
-            }
-          </label>
-          <div class="inventory-field-with-add">
-            <ng-select
-              class="erp-ng-select inventory-ng-select"
-              appendTo="body"
-              [items]="uomList()"
-              bindLabel="uom_name"
-              bindValue="id"
-              [multiple]="true"
-              [closeOnSelect]="false"
-              [searchable]="true"
-              [clearable]="true"
-              [ngModel]="uomIds()"
-              (ngModelChange)="uomIds.set($event ?? [])"
-              placeholder="Select UOMs">
-              <ng-template ng-option-tmp let-item="item">
-                <strong>{{ item.uom_name }}</strong>
-                @if (item.uom_symbol) {
-                  <span class="text-muted ms-1">({{ item.uom_symbol }})</span>
-                }
-                @if (item.is_system) {
-                  <span class="erp-badge badge-info ms-1">system</span>
-                }
-              </ng-template>
-            </ng-select>
-            <button type="button" class="erp-btn btn-white btn-icon" (click)="openUomPopup()" title="Add UOM">
-              <i class="pi pi-plus"></i>
-            </button>
-          </div>
-        </div>
-
         <div class="erp-form-group span-2">
           <label class="erp-label">Usage Note</label>
           <textarea
@@ -204,8 +132,6 @@
                 <th>Code</th>
                 <th>Business Segment</th>
                 <th>Categories</th>
-                <th>Related HSN / SAC</th>
-                <th>Typical UOMs</th>
                 <th>Usage Note</th>
                 <th class="text-center">Action</th>
               </tr>
@@ -216,8 +142,6 @@
                   <td><span class="erp-badge badge-info">{{ seg.segment_code }}</span></td>
                   <td><strong>{{ seg.segment_name }}</strong></td>
                   <td>{{ categoryNames(seg) }}</td>
-                  <td>{{ hsnSacCodes(seg) }}</td>
-                  <td>{{ uomNames(seg) }}</td>
                   <td>{{ seg.usage_note || '-' }}</td>
                   <td class="text-center">
                     <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="editSegment(seg)" title="Edit">
@@ -306,113 +230,6 @@
       <button type="button" class="erp-btn btn-primary" [disabled]="savingPendingCategories() || !pendingCategories().length" (click)="savePendingCategories()">
         @if (savingPendingCategories()) { <i class="pi pi-spin pi-spinner"></i> Saving... }
         @else { <i class="pi pi-check"></i> Save All }
-      </button>
-    </div>
-  </div>
-}
-
-@if (showHsnPopup()) {
-  <div class="inv-popup-backdrop" (click)="closeHsnPopup()"></div>
-  <div class="inv-popup-box">
-    <div class="inv-popup-head">
-      <h4><i class="pi pi-barcode"></i> Add HSN / SAC Code</h4>
-      <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closeHsnPopup()">
-        <i class="pi pi-times"></i>
-      </button>
-    </div>
-    <div class="inv-popup-body">
-      <div class="inv-popup-grid">
-        <div class="erp-form-group">
-          <label class="erp-label">Code <span class="text-danger">*</span></label>
-          <input
-            class="erp-input"
-            type="text"
-            autofocus
-            [ngModel]="newHsnCode()"
-            (ngModelChange)="onNewHsnCodeChange($event)"
-            placeholder="e.g. 8471, 998313" />
-        </div>
-        <div class="erp-form-group">
-          <label class="erp-label">Type</label>
-          <select class="erp-input" [ngModel]="newHsnType()" (ngModelChange)="newHsnType.set($event)">
-            <option value="HSN">HSN</option>
-            <option value="SAC">SAC</option>
-          </select>
-        </div>
-      </div>
-      <div class="erp-form-group">
-        <label class="erp-label">Description</label>
-        <input
-          class="erp-input"
-          type="text"
-          [ngModel]="newHsnDesc()"
-          (ngModelChange)="onNewHsnDescChange($event)"
-          placeholder="Brief description of goods or service" />
-      </div>
-      <div class="inv-popup-grid">
-        <div class="erp-form-group">
-          <label class="erp-label">GST Rate (%)</label>
-          <input class="erp-input" type="number" min="0" max="100" step="0.01" [ngModel]="newHsnGst()" (ngModelChange)="newHsnGst.set(+$event)" />
-        </div>
-        <div class="erp-form-group">
-          <label class="erp-label">CGST / SGST</label>
-          <input class="erp-input" type="text" readonly [value]="cgstSgst + '% each'" />
-        </div>
-      </div>
-      @if (hsnPopupError()) {
-        <div class="inventory-save-msg save-err"><i class="pi pi-times-circle"></i> {{ hsnPopupError() }}</div>
-      }
-    </div>
-    <div class="inv-popup-foot">
-      <button type="button" class="erp-btn btn-white" (click)="closeHsnPopup()">Cancel</button>
-      <button type="button" class="erp-btn btn-primary" [disabled]="addingHsn()" (click)="submitHsn()">
-        @if (addingHsn()) { <i class="pi pi-spin pi-spinner"></i> Adding... }
-        @else { <i class="pi pi-check"></i> Add HSN/SAC }
-      </button>
-    </div>
-  </div>
-}
-
-@if (showUomPopup()) {
-  <div class="inv-popup-backdrop" (click)="closeUomPopup()"></div>
-  <div class="inv-popup-box">
-    <div class="inv-popup-head">
-      <h4><i class="pi pi-box"></i> Add Unit of Measure</h4>
-      <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="closeUomPopup()">
-        <i class="pi pi-times"></i>
-      </button>
-    </div>
-    <div class="inv-popup-body">
-      <div class="inv-popup-grid">
-        <div class="erp-form-group">
-          <label class="erp-label">UOM Name <span class="text-danger">*</span></label>
-          <input
-            class="erp-input"
-            type="text"
-            autofocus
-            [ngModel]="newUomName()"
-            (ngModelChange)="onNewUomNameChange($event)"
-            placeholder="e.g. Nos, Box, Set" />
-        </div>
-        <div class="erp-form-group">
-          <label class="erp-label">Symbol</label>
-          <input
-            class="erp-input"
-            type="text"
-            [ngModel]="newUomSymbol()"
-            (ngModelChange)="onNewUomSymbolChange($event)"
-            placeholder="e.g. NOS, BOX" />
-        </div>
-      </div>
-      @if (uomPopupError()) {
-        <div class="inventory-save-msg save-err"><i class="pi pi-times-circle"></i> {{ uomPopupError() }}</div>
-      }
-    </div>
-    <div class="inv-popup-foot">
-      <button type="button" class="erp-btn btn-white" (click)="closeUomPopup()">Cancel</button>
-      <button type="button" class="erp-btn btn-primary" [disabled]="addingUom()" (click)="submitUom()">
-        @if (addingUom()) { <i class="pi pi-spin pi-spinner"></i> Adding... }
-        @else { <i class="pi pi-check"></i> Add UOM }
       </button>
     </div>
   </div>

@@ -468,6 +468,11 @@ describe('InventoryScreenShell — Stock Transfer (item 12)', () => {
       return component.displayFields().find((f: any) => f.key === key)?.options || [];
     }
 
+    function groupedOptionsFor(key: 'fromWarehouse' | 'toWarehouse'): any[] {
+      const field = fields.find(candidate => candidate.key === key);
+      return (component as any).locationGroupsForField(field);
+    }
+
     it('offers every Warehouse and Branch on both sides when neither is picked yet', () => {
       component.formValues.set({});
       expect(optionsFor('fromWarehouse')).toEqual(['Secunderabad', 'Warangal', 'Kukatpally', 'Head Office']);
@@ -488,6 +493,14 @@ describe('InventoryScreenShell — Stock Transfer (item 12)', () => {
       component.formValues.set({ fromWarehouse: 'Head Office' });
       expect(optionsFor('toWarehouse')).not.toContain('Head Office');
       expect(optionsFor('toWarehouse')).toEqual(['Secunderabad', 'Warangal', 'Kukatpally']);
+    });
+
+    it('removes the selected location from the grouped ng-select options the template renders', () => {
+      component.formValues.set({ fromWarehouse: 'Head Office' });
+      expect(groupedOptionsFor('toWarehouse').map(option => option.label)).not.toContain('Head Office');
+
+      component.formValues.set({ toWarehouse: 'Warangal' });
+      expect(groupedOptionsFor('fromWarehouse').map(option => option.label)).not.toContain('Warangal');
     });
 
     // The crux of "compare by resolved type+id, not name": a Warehouse and a

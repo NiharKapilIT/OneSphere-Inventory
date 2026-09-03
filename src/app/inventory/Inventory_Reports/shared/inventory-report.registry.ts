@@ -268,6 +268,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['poDate', 'PO Date', 'date'],
       ['poNo', 'PO No'],
       ['supplier', 'Supplier'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['productCount', 'Product Count', 'number', true],
       ['grossAmount', 'Gross Amount', 'currency', true],
       ['taxAmount', 'Tax Amount', 'currency', true],
@@ -277,9 +279,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'supplier',
     drillDown: true,
     sampleRows: [
-      { poDate: '2026-05-04', poNo: 'PO-2241', supplier: 'ElectroMart Supplies', productCount: 5, grossAmount: 480000, taxAmount: 86400, netAmount: 566400, status: 'Pending' },
-      { poDate: '2026-05-08', poNo: 'PO-2298', supplier: 'GreenGrow Traders', productCount: 3, grossAmount: 310000, taxAmount: 15500, netAmount: 325500, status: 'Approved' },
-      { poDate: '2026-05-10', poNo: 'PO-2310', supplier: 'AeroCore Components', productCount: 8, grossAmount: 720000, taxAmount: 129600, netAmount: 849600, status: 'Open' }
+      { poDate: '2026-05-04', poNo: 'PO-2241', supplier: 'ElectroMart Supplies', variant: 'I7', attribute: 'Memory: 128', productCount: 5, grossAmount: 480000, taxAmount: 86400, netAmount: 566400, status: 'Pending' },
+      { poDate: '2026-05-08', poNo: 'PO-2298', supplier: 'GreenGrow Traders', variant: '', attribute: '', productCount: 3, grossAmount: 310000, taxAmount: 15500, netAmount: 325500, status: 'Approved' },
+      { poDate: '2026-05-10', poNo: 'PO-2310', supplier: 'AeroCore Components', variant: 'Motor Kit', attribute: 'Power: 2KW', productCount: 8, grossAmount: 720000, taxAmount: 129600, netAmount: 849600, status: 'Open' }
     ]
   }),
   phaseOneReport({
@@ -297,6 +299,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['grnNo', 'GRN No'],
       ['supplier', 'Supplier'],
       ['poNo', 'PO No'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['productCount', 'Product Count', 'number', true],
       ['receivedQty', 'Received Qty', 'number', true],
       ['acceptedQty', 'Accepted Qty', 'number', true],
@@ -306,9 +310,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'supplier',
     drillDown: true,
     sampleRows: [
-      { grnDate: '2026-05-12', grnNo: 'GRN-1104', supplier: 'ElectroMart Supplies', poNo: 'PO-2241', productCount: 4, receivedQty: 80, acceptedQty: 78, rejectedQty: 2, status: 'Posted' },
-      { grnDate: '2026-05-11', grnNo: 'GRN-1101', supplier: 'GreenGrow Traders', poNo: 'PO-2298', productCount: 2, receivedQty: 260, acceptedQty: 260, rejectedQty: 0, status: 'Posted' },
-      { grnDate: '2026-05-10', grnNo: 'GRN-1098', supplier: 'AeroCore Components', poNo: 'PO-2310', productCount: 6, receivedQty: 420, acceptedQty: 400, rejectedQty: 20, status: 'QC Pending' }
+      { grnDate: '2026-05-12', grnNo: 'GRN-1104', supplier: 'ElectroMart Supplies', poNo: 'PO-2241', variant: 'I7', attribute: 'Memory: 128', productCount: 4, receivedQty: 80, acceptedQty: 78, rejectedQty: 2, status: 'Posted' },
+      { grnDate: '2026-05-11', grnNo: 'GRN-1101', supplier: 'GreenGrow Traders', poNo: 'PO-2298', variant: '', attribute: '', productCount: 2, receivedQty: 260, acceptedQty: 260, rejectedQty: 0, status: 'Posted' },
+      { grnDate: '2026-05-10', grnNo: 'GRN-1098', supplier: 'AeroCore Components', poNo: 'PO-2310', variant: 'Motor Kit', attribute: 'Power: 2KW', productCount: 6, receivedQty: 420, acceptedQty: 400, rejectedQty: 20, status: 'QC Pending' }
     ]
   }),
   phaseOneReport({
@@ -326,6 +330,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['invoiceNo', 'Invoice No'],
       ['supplier', 'Supplier'],
       ['supplierInvoiceNo', 'Supplier Invoice No'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['taxableAmount', 'Taxable Amount', 'currency', true],
       ['cgst', 'CGST', 'currency', true],
       ['sgst', 'SGST', 'currency', true],
@@ -336,8 +342,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'supplier',
     drillDown: true,
     sampleRows: [
-      { invoiceDate: '2026-05-12', invoiceNo: 'PINV-3104', supplier: 'ElectroMart Supplies', supplierInvoiceNo: 'EMS-9881', taxableAmount: 480000, cgst: 43200, sgst: 43200, igst: 0, netAmount: 566400, status: 'Posted' },
-      { invoiceDate: '2026-05-11', invoiceNo: 'PINV-3097', supplier: 'GreenGrow Traders', supplierInvoiceNo: 'GGT-5520', taxableAmount: 310000, cgst: 7750, sgst: 7750, igst: 0, netAmount: 325500, status: 'Pending' }
+      { invoiceDate: '2026-05-12', invoiceNo: 'PINV-3104', supplier: 'ElectroMart Supplies', supplierInvoiceNo: 'EMS-9881', variant: 'I7', attribute: 'Memory: 128', taxableAmount: 480000, cgst: 43200, sgst: 43200, igst: 0, netAmount: 566400, status: 'Posted' },
+      { invoiceDate: '2026-05-11', invoiceNo: 'PINV-3097', supplier: 'GreenGrow Traders', supplierInvoiceNo: 'GGT-5520', variant: '', attribute: '', taxableAmount: 310000, cgst: 7750, sgst: 7750, igst: 0, netAmount: 325500, status: 'Pending' }
     ]
   }),
   phaseOneReport({
@@ -354,6 +360,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['soDate', 'SO Date', 'date'],
       ['soNo', 'SO No'],
       ['customer', 'Customer'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['productCount', 'Product Count', 'number', true],
       ['grossAmount', 'Gross Amount', 'currency', true],
       ['taxAmount', 'Tax Amount', 'currency', true],
@@ -363,9 +371,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'customer',
     drillDown: true,
     sampleRows: [
-      { soDate: '2026-05-12', soNo: 'SO-2218', customer: 'Tenant Works Pvt Ltd', productCount: 3, grossAmount: 420000, taxAmount: 75600, netAmount: 495600, status: 'Approved' },
-      { soDate: '2026-05-12', soNo: 'SO-2227', customer: 'Fresh Foods Distributor', productCount: 6, grossAmount: 180000, taxAmount: 9000, netAmount: 189000, status: 'Open' },
-      { soDate: '2026-05-11', soNo: 'SO-2209', customer: 'Aero Labs', productCount: 4, grossAmount: 960000, taxAmount: 172800, netAmount: 1132800, status: 'Pending' }
+      { soDate: '2026-05-12', soNo: 'SO-2218', customer: 'Tenant Works Pvt Ltd', variant: 'I7', attribute: 'Memory: 128', productCount: 3, grossAmount: 420000, taxAmount: 75600, netAmount: 495600, status: 'Approved' },
+      { soDate: '2026-05-12', soNo: 'SO-2227', customer: 'Fresh Foods Distributor', variant: '', attribute: '', productCount: 6, grossAmount: 180000, taxAmount: 9000, netAmount: 189000, status: 'Open' },
+      { soDate: '2026-05-11', soNo: 'SO-2209', customer: 'Aero Labs', variant: 'Motor Kit', attribute: 'Power: 2KW', productCount: 4, grossAmount: 960000, taxAmount: 172800, netAmount: 1132800, status: 'Pending' }
     ]
   }),
   phaseOneReport({
@@ -383,6 +391,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['dcNo', 'DC No'],
       ['customer', 'Customer'],
       ['soNo', 'SO No'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['productCount', 'Product Count', 'number', true],
       ['deliveredQty', 'Delivered Qty', 'number', true],
       ['vehicleNo', 'Vehicle No'],
@@ -392,8 +402,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'customer',
     drillDown: true,
     sampleRows: [
-      { dcDate: '2026-05-12', dcNo: 'DC-1184', customer: 'Tenant Works Pvt Ltd', soNo: 'SO-2218', productCount: 3, deliveredQty: 18, vehicleNo: 'TS09AB2211', transporter: 'SpeedLogix', status: 'Dispatched' },
-      { dcDate: '2026-05-11', dcNo: 'DC-1178', customer: 'Fresh Foods Distributor', soNo: 'SO-2227', productCount: 6, deliveredQty: 420, vehicleNo: 'KA05MG9081', transporter: 'City Transport', status: 'Pending Invoice' }
+      { dcDate: '2026-05-12', dcNo: 'DC-1184', customer: 'Tenant Works Pvt Ltd', soNo: 'SO-2218', variant: 'I7', attribute: 'Memory: 128', productCount: 3, deliveredQty: 18, vehicleNo: 'TS09AB2211', transporter: 'SpeedLogix', status: 'Dispatched' },
+      { dcDate: '2026-05-11', dcNo: 'DC-1178', customer: 'Fresh Foods Distributor', soNo: 'SO-2227', variant: '', attribute: '', productCount: 6, deliveredQty: 420, vehicleNo: 'KA05MG9081', transporter: 'City Transport', status: 'Pending Invoice' }
     ]
   }),
   phaseOneReport({
@@ -410,6 +420,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['invoiceDate', 'Invoice Date', 'date'],
       ['invoiceNo', 'Invoice No'],
       ['customer', 'Customer'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['taxableAmount', 'Taxable Amount', 'currency', true],
       ['cgst', 'CGST', 'currency', true],
       ['sgst', 'SGST', 'currency', true],
@@ -420,9 +432,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'customer',
     drillDown: true,
     sampleRows: [
-      { invoiceDate: '2026-05-12', invoiceNo: 'INV-4481', customer: 'Tenant Works Pvt Ltd', taxableAmount: 420000, cgst: 37800, sgst: 37800, igst: 0, netAmount: 495600, status: 'Posted' },
-      { invoiceDate: '2026-05-12', invoiceNo: 'INV-4488', customer: 'Fresh Foods Distributor', taxableAmount: 180000, cgst: 4500, sgst: 4500, igst: 0, netAmount: 189000, status: 'Posted' },
-      { invoiceDate: '2026-05-11', invoiceNo: 'INV-4479', customer: 'Aero Labs', taxableAmount: 960000, cgst: 86400, sgst: 86400, igst: 0, netAmount: 1132800, status: 'Draft' }
+      { invoiceDate: '2026-05-12', invoiceNo: 'INV-4481', customer: 'Tenant Works Pvt Ltd', variant: 'I7', attribute: 'Memory: 128', taxableAmount: 420000, cgst: 37800, sgst: 37800, igst: 0, netAmount: 495600, status: 'Posted' },
+      { invoiceDate: '2026-05-12', invoiceNo: 'INV-4488', customer: 'Fresh Foods Distributor', variant: '', attribute: '', taxableAmount: 180000, cgst: 4500, sgst: 4500, igst: 0, netAmount: 189000, status: 'Posted' },
+      { invoiceDate: '2026-05-11', invoiceNo: 'INV-4479', customer: 'Aero Labs', variant: 'Motor Kit', attribute: 'Power: 2KW', taxableAmount: 960000, cgst: 86400, sgst: 86400, igst: 0, netAmount: 1132800, status: 'Draft' }
     ]
   }),
   phaseOneReport({
@@ -492,6 +504,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     filters: [...baseFilters, ...productFilters, 'customerId', 'supplierId', 'status'],
     columns: cols([
       ['product', 'Product'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['batchNo', 'Batch No'],
       ['serialNo', 'Serial No'],
       ['manufacturingDate', 'Manufacturing Date', 'date'],
@@ -505,9 +519,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'status',
     drillDown: true,
     sampleRows: [
-      { product: 'Cooking Oil 1L', batchNo: 'LOT-CLN-441', serialNo: '', manufacturingDate: '2026-02-18', expiryDate: '2026-05-31', daysToExpire: 18, warehouse: 'Main Kitchen Store', quantity: 80, value: 64000, status: 'Near Expiry' },
-      { product: 'LED Display 32 inch', batchNo: 'LOT-ELE-0526', serialNo: 'SN-LED-88901', manufacturingDate: '2026-03-20', expiryDate: '', daysToExpire: 0, warehouse: 'HYD Main WH', quantity: 1, value: 24500, status: 'In Stock' },
-      { product: 'Agro Seed Premium', batchNo: 'LOT-AGRO-0526-A', serialNo: '', manufacturingDate: '2026-04-08', expiryDate: '2026-06-17', daysToExpire: 35, warehouse: 'BLR Store', quantity: 118, value: 218300, status: 'Near Expiry' }
+      { product: 'Cooking Oil 1L', variant: '', attribute: '', batchNo: 'LOT-CLN-441', serialNo: '', manufacturingDate: '2026-02-18', expiryDate: '2026-05-31', daysToExpire: 18, warehouse: 'Main Kitchen Store', quantity: 80, value: 64000, status: 'Near Expiry' },
+      { product: 'LED Display 32 inch', variant: '32 inch', attribute: 'Panel: IPS', batchNo: 'LOT-ELE-0526', serialNo: 'SN-LED-88901', manufacturingDate: '2026-03-20', expiryDate: '', daysToExpire: 0, warehouse: 'HYD Main WH', quantity: 1, value: 24500, status: 'In Stock' },
+      { product: 'Agro Seed Premium', variant: 'Premium', attribute: 'Pack: 25Kg', batchNo: 'LOT-AGRO-0526-A', serialNo: '', manufacturingDate: '2026-04-08', expiryDate: '2026-06-17', daysToExpire: 35, warehouse: 'BLR Store', quantity: 118, value: 218300, status: 'Near Expiry' }
     ]
   }),
   phaseOneReport({
@@ -523,6 +537,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     columns: cols([
       ['product', 'Product'],
       ['category', 'Category'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['salesQuantity', 'Sales Quantity', 'number', true],
       ['salesValue', 'Sales Value', 'currency', true],
       ['purchaseCost', 'Purchase Cost', 'currency', true],
@@ -532,9 +548,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'category',
     drillDown: true,
     sampleRows: [
-      { product: 'LED Display 32 inch', category: 'Electronics', salesQuantity: 48, salesValue: 1512000, purchaseCost: 1176000, grossProfit: 336000, marginPercent: 22.22 },
-      { product: 'AMC Support', category: 'IT Services', salesQuantity: 14, salesValue: 960000, purchaseCost: 556800, grossProfit: 403200, marginPercent: 42 },
-      { product: 'Drone Motor 2KW', category: 'Drone Manufacturing', salesQuantity: 220, salesValue: 1100000, purchaseCost: 869000, grossProfit: 231000, marginPercent: 21 }
+      { product: 'LED Display 32 inch', category: 'Electronics', variant: '32 inch', attribute: 'Panel: IPS', salesQuantity: 48, salesValue: 1512000, purchaseCost: 1176000, grossProfit: 336000, marginPercent: 22.22 },
+      { product: 'AMC Support', category: 'IT Services', variant: '', attribute: '', salesQuantity: 14, salesValue: 960000, purchaseCost: 556800, grossProfit: 403200, marginPercent: 42 },
+      { product: 'Drone Motor 2KW', category: 'Drone Manufacturing', variant: 'Motor Kit', attribute: 'Power: 2KW', salesQuantity: 220, salesValue: 1100000, purchaseCost: 869000, grossProfit: 231000, marginPercent: 21 }
     ]
   }),
   phaseOneReport({
@@ -552,6 +568,8 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
       ['invoiceDate', 'Invoice Date', 'date'],
       ['customer', 'Customer'],
       ['product', 'Product'],
+      ['variant', 'Variant'],
+      ['attribute', 'Attribute'],
       ['qty', 'Qty', 'number'],
       ['rate', 'Rate', 'currency'],
       ['cost', 'Cost', 'currency'],
@@ -561,9 +579,9 @@ export const INVENTORY_PHASE_1_REPORTS: InventoryReportDefinition[] = [
     defaultGroupBy: 'product',
     drillDown: true,
     sampleRows: [
-      { invoiceNumber: 'SI-2607', invoiceDate: '2026-08-05', customer: 'Metro Electronics', product: 'LED Display 32 inch', qty: 4, rate: 28000, cost: 31500, lossAmount: 14000, lossPercent: 11.11 },
-      { invoiceNumber: 'SI-2611', invoiceDate: '2026-08-10', customer: 'AeroBuild Pvt Ltd', product: 'Drone Motor 2KW', qty: 10, rate: 3800, cost: 4200, lossAmount: 4000, lossPercent: 9.52 },
-      { invoiceNumber: 'SI-2618', invoiceDate: '2026-08-14', customer: 'Spice Route Restaurant', product: 'Cooking Oil 1L', qty: 60, rate: 145, cost: 162, lossAmount: 1020, lossPercent: 10.49 }
+      { invoiceNumber: 'SI-2607', invoiceDate: '2026-08-05', customer: 'Metro Electronics', product: 'LED Display 32 inch', variant: '32 inch', attribute: 'Panel: IPS', qty: 4, rate: 28000, cost: 31500, lossAmount: 14000, lossPercent: 11.11 },
+      { invoiceNumber: 'SI-2611', invoiceDate: '2026-08-10', customer: 'AeroBuild Pvt Ltd', product: 'Drone Motor 2KW', variant: 'Motor Kit', attribute: 'Power: 2KW', qty: 10, rate: 3800, cost: 4200, lossAmount: 4000, lossPercent: 9.52 },
+      { invoiceNumber: 'SI-2618', invoiceDate: '2026-08-14', customer: 'Spice Route Restaurant', product: 'Cooking Oil 1L', variant: '', attribute: '', qty: 60, rate: 145, cost: 162, lossAmount: 1020, lossPercent: 10.49 }
     ]
   }),
   phaseOneReport({

@@ -16,7 +16,8 @@
           @if (showBranchWarehouseField()) {
             <div class="inventory-report-filter inventory-report-filter--branch">
               <label title="Branch / Warehouse"><i class="pi pi-building"></i> Branch / Warehouse</label>
-              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="branchWarehouseOptions()" groupBy="group" bindLabel="label" [multiple]="true" [searchable]="true" [clearable]="true" [closeOnSelect]="false" placeholder="Select branch / warehouse" [ngModel]="branchWarehouseSelected()" (ngModelChange)="updateBranchWarehouse($event)"></ng-select>
+              <ng-select class="erp-ng-select inventory-ng-select" appendTo="body" [items]="branchWarehouseOptions()" groupBy="group" bindLabel="label" [multiple]="true" [searchable]="true" [clearable]="!branchWarehouseLocked()" [disabled]="branchWarehouseLocked()" [closeOnSelect]="false" [placeholder]="branchWarehousePlaceholder()" [ngModel]="branchWarehouseSelected()" (ngModelChange)="updateBranchWarehouse($event)"></ng-select>
+              <div class="inventory-report-filter-caption" [class.is-locked]="branchWarehouseLocked()">{{ branchWarehouseCaption() }}</div>
             </div>
           }
         </div>
@@ -29,6 +30,7 @@
                 <p-datepicker selectionMode="range" [ngModel]="dateRangeValue()" (ngModelChange)="updateDateRange($event)" [ngModelOptions]="{ standalone: true }" dateFormat="dd-M-yy" placeholder="From - To" [readonlyInput]="true" [showIcon]="false" appendTo="body" styleClass="w-100" inputStyleClass="erp-input inventory-date-input w-100"></p-datepicker>
                 <i class="pi pi-calendar inventory-date-icon"></i>
               </div>
+              <div class="inventory-date-caption">{{ dateRangeSummary() }}</div>
             </div>
           }
           @for (filter of inlineFilterDefinitionsAfterSegment(); track filterTrack($index, filter)) {

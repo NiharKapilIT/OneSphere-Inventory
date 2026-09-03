@@ -64,6 +64,8 @@ export const CASH_MODE_LIMIT = 20000;
 export interface PaymentModeOption {
   id: any;
   label: string;
+  branchName?: string;
+  accountNumber?: string;
   /** Only used for the "Deposited Bank Name" list -- shows the Bank Book / Pass Book pills when present. */
   bankBookBalance?: number;
   passbookBalance?: number;
@@ -152,6 +154,13 @@ export class PaymentModeSelectorComponent {
   @Input() bankBalanceLabel = '';
   @Input() disabled = false;
 
+  @Input()
+  set cashLimit(v: number | null | undefined) {
+    const n = Number(v);
+    this.cashLimitValue.set(Number.isFinite(n) && n > 0 ? n : CASH_MODE_LIMIT);
+  }
+  get cashLimit(): number { return this.cashLimitValue(); }
+
   /** Item 20: the amount entered for this mode row, supplied by the host
    *  screen (this component has no amount field of its own -- amount is a
    *  sibling input per row, e.g. payment-receipt-voucher's `ModeRow.amount`).
@@ -200,14 +209,19 @@ export class PaymentModeSelectorComponent {
   readonly depositBankId = signal<any | null>(null);
   readonly depositBankName = signal('');
   readonly amountValue = signal<number>(0);
+  readonly cashLimitValue = signal<number>(CASH_MODE_LIMIT);
 
   private readonly touchedFields = signal<ReadonlySet<string>>(new Set());
   private readonly forceShowErrors = signal(false);
 
   readonly showUpi = computed(() => this.bankSubType() === 'ONLINE' && (this.typeOfPayment() || '').toUpperCase() === 'UPI');
   readonly refDateObj = computed(() => (this.refDate() ? new Date(this.refDate()!) : null));
-  readonly selectedDepositBank = computed(() => this.depositBanks.find(b => b.id === this.depositBankId()) ?? null);
+  readonly selectedDepositBank = computed(() => this.depositBanks.find(b => this.sameId(b.id, this.depositBankId())) ?? null);
   readonly chequeNoLabel = computed(() => (this.bankSubType() === 'CHEQUE' ? 'Cheque No.' : 'Reference No.'));
+
+  get onlinePaymentTypeOptions(): PaymentModeOption[] {
+    return this.onlinePaymentTypes?.length ? this.onlinePaymentTypes : DEFAULT_ONLINE_TYPES;
+  }
 
   constructor() {
     // Auto-emits the current value whenever any tracked signal changes --
@@ -250,8 +264,12 @@ export class PaymentModeSelectorComponent {
 
   // ── Field setters ──────────────────────────────────────────────────────
   setBankId(id: any): void {
-    this.bankId.set(id);
-    this.bankName.set(this.banks.find(b => b.id === id)?.label ?? '');
+    const selectedId = this.valueId(id);
+    const bank = this.findOption(this.banks, selectedId) ?? this.asPaymentOption(id);
+    this.bankId.set(selectedId);
+    this.bankName.set(bank?.label ?? '');
+    if (bank?.branchName !== undefined) this.branchName.set(String(bank.branchName || '').slice(0, 30));
+    if (bank?.accountNumber !== undefined) this.accountNumber.set(this.digitsOnly(String(bank.accountNumber)).slice(0, 20));
   }
   setBankNameFree(v: string): void {
     this.bankId.set(null);
@@ -269,14 +287,22 @@ export class PaymentModeSelectorComponent {
     const max = this.bankSubType() === 'CREDIT_CARD' ? 40 : 25;
     this.bankFinancialServices.set(this.lettersOnly(v).slice(0, max));
   }
-  setTypeOfPayment(v: string | null): void {
-    this.typeOfPayment.set(v);
+  setTypeOfPayment(v: any): void {
+    const selectedId = this.valueId(v);
+    const type = this.findOption(this.onlinePaymentTypeOptions, selectedId) ?? this.asPaymentOption(v);
+    this.typeOfPayment.set(type?.label ?? (selectedId === null || selectedId === undefined ? null : String(selectedId)));
     this.upiId.set('');
   }
-  setUpiId(v: string): void { this.upiId.set(v ?? ''); }
+  setUpiId(v: any): void {
+    const selectedId = this.valueId(v);
+    const upi = this.findOption(this.upiOptions, selectedId) ?? this.asPaymentOption(v);
+    this.upiId.set(upi?.label ?? (selectedId === null || selectedId === undefined ? '' : String(selectedId)));
+  }
   setDepositBankId(id: any): void {
-    this.depositBankId.set(id);
-    this.depositBankName.set(this.depositBanks.find(b => b.id === id)?.label ?? '');
+    const selectedId = this.valueId(id);
+    const bank = this.findOption(this.depositBanks, selectedId) ?? this.asPaymentOption(id);
+    this.depositBankId.set(selectedId);
+    this.depositBankName.set(bank?.label ?? '');
   }
   setDepositBankNameFree(v: string): void {
     this.depositBankId.set(null);
@@ -347,8 +373,9 @@ export class PaymentModeSelectorComponent {
    *  reflects immediately in `isValid`. */
   get cashLimitError(): string {
     if (this.mode() !== 'CASH') return '';
-    return this.amountValue() > CASH_MODE_LIMIT
-      ? `Cash ${this.label.toLowerCase()} cannot exceed ₹${CASH_MODE_LIMIT.toLocaleString('en-IN')} per transaction.`
+    const limit = this.cashLimitValue();
+    return this.amountValue() > limit
+      ? `Cash ${this.label.toLowerCase()} cannot exceed Rs ${limit.toLocaleString('en-IN')} per transaction.`
       : '';
   }
 
@@ -366,7 +393,7 @@ export class PaymentModeSelectorComponent {
 
   // ── Value assembly ──────────────────────────────────────────────────────
   private computeValid(mode: PaymentTopMode, sub: PaymentBankSubType | null): boolean {
-    if (mode === 'CASH') return this.amountValue() <= CASH_MODE_LIMIT;
+    if (mode === 'CASH') return this.amountValue() <= this.cashLimitValue();
     if (!sub) return false;
     const hasBankName = !!(this.bankId() || this.bankName().trim());
     const hasDepositBank = !!(this.depositBankId() || this.depositBankName().trim());
@@ -375,7 +402,7 @@ export class PaymentModeSelectorComponent {
       case 'CHEQUE':
         return hasBankName
           && !!this.branchName().trim()
-          && acct.length >= 6 && acct.length <= 20
+          && (!acct || (acct.length >= 6 && acct.length <= 20))
           && this.refNumber().trim().length > 0
           && !!this.refDate();
       case 'ONLINE': {
@@ -445,6 +472,30 @@ export class PaymentModeSelectorComponent {
 
   private digitsOnly(v: string): string { return (v || '').replace(/\D/g, ''); }
   private lettersOnly(v: string): string { return (v || '').replace(/[^a-zA-Z\s]/g, ''); }
+  private sameId(a: any, b: any): boolean {
+    return String(a ?? '') === String(b ?? '');
+  }
+  private valueId(v: any): any | null {
+    if (v === null || v === undefined || v === '') return null;
+    return typeof v === 'object'
+      ? (v.id ?? v.pbankid ?? v.pBankId ?? v.pbankId ?? v.pdepositbankid ?? v.pDepositbankid ?? null)
+      : v;
+  }
+  private findOption(options: PaymentModeOption[], id: any): PaymentModeOption | null {
+    if (id === null || id === undefined) return null;
+    return options.find(o => this.sameId(o.id, id)) ?? null;
+  }
+  private asPaymentOption(v: any): PaymentModeOption | null {
+    if (!v || typeof v !== 'object') return null;
+    const id = this.valueId(v);
+    const label = v.label ?? v.pbankname ?? v.pBankName ?? v.pdepositbankname ?? v.pDepositbankname ?? v.ptypeofpayment ?? v.pTypeofpayment;
+    return label ? {
+      id,
+      label,
+      branchName: v.branchName ?? v.pbranchname ?? v.pBranchName,
+      accountNumber: v.accountNumber ?? v.pbankaccountnumber ?? v.pBankaccountnumber
+    } : null;
+  }
   private toIsoDate(d: Date | string): string {
     const date = typeof d === 'string' ? new Date(d) : d;
     if (isNaN(date.getTime())) return '';

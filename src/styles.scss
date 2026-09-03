@@ -9150,7 +9150,7 @@ body .p-connected-overlay {
   }
 
   .inventory-report-header-controls .inventory-report-filter--date {
-    flex-basis: 172px;
+    flex-basis: 230px;
   }
 
   .inventory-report-header-controls .inventory-report-filter--group {
@@ -9380,6 +9380,22 @@ body .p-connected-overlay {
     color: #64748b;
     font-size: 10.5px;
     font-weight: 600;
+  }
+
+  .inventory-report-filter-caption,
+  .inventory-date-caption {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .inventory-report-filter-caption.is-locked {
+    color: #92400e;
   }
 
   .inventory-report-header-controls .inventory-report-group-select {
@@ -11669,6 +11685,45 @@ body .ng-dropdown-panel.inventory-line-product-select .ng-dropdown-panel-items {
   line-height: 14px;
   letter-spacing: 0.03em;
   vertical-align: middle;
+}
+
+// Profile Branch/Warehouse switcher dropdown. The ng-select panel is appended
+// to <body>, so this must live in global styles rather than the component SCSS.
+// NOTE: this copy is dead at runtime once Inventory is federated into the
+// Accounts-hosted shell, but kept byte-identical to Accounts' copy for parity.
+body .ng-dropdown-panel.ap-switch-ng-select {
+  z-index: 14000 !important;
+  min-width: 262px !important;
+  pointer-events: auto;
+}
+
+body .ng-dropdown-panel.ap-switch-ng-select .ng-dropdown-panel-items {
+  max-height: 240px;
+  padding: 6px;
+}
+
+body .ng-dropdown-panel.ap-switch-ng-select .ng-option {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 10px 12px !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  cursor: pointer;
+}
+
+body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected {
+  display: flex !important;
+  background: color-mix(in srgb, var(--primary, #0ea5e9) 12%, white) !important;
+  color: var(--primary-dark, #075985) !important;
+}
+
+body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after {
+  content: '\2713';
+  margin-left: auto;
+  font-weight: 800;
 }
 
 .inventory-gst-mode-toggle {

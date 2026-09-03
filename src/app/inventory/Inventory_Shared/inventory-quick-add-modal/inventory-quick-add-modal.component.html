@@ -247,32 +247,6 @@
                 </button>
               </div>
             </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Related HSN / SAC Codes</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="host.hsnSacOptions" [multiple]="true" [searchable]="true" [clearable]="true"
-                  [ngModel]="host.formValues()['segmentHsnCodes'] || []"
-                  (ngModelChange)="host.collectFormField('segmentHsnCodes', $event)"
-                  placeholder="Select HSN / SAC"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add HSN / SAC" (click)="host.openAddMaster('HSN / SAC')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
-            <div class="erp-form-group">
-              <label class="erp-label">Typical UOMs</label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="host.uomOptions" [multiple]="true" [searchable]="true" [clearable]="true"
-                  [ngModel]="host.formValues()['segmentUoms'] || []"
-                  (ngModelChange)="host.collectFormField('segmentUoms', $event)"
-                  placeholder="Select UOMs"></ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon" title="Add UOM" (click)="host.openAddMaster('UOM')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
-            </div>
             <div class="erp-form-group span-2">
               <label class="erp-label">Usage Note</label>
               <textarea class="erp-input" rows="2" placeholder="Enter usage note"
@@ -353,6 +327,27 @@
                 [ngModel]="host.formValues()['quickContactPincode']"
                 (ngModelChange)="host.collectFormField('quickContactPincode', $event)"
                 placeholder="6-digit pincode" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Vendor Tag</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['quickContactMarkSupplier'] === true" (change)="host.collectFormField('quickContactMarkSupplier', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Customer Tag</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['quickContactMarkCustomer'] === true" (change)="host.collectFormField('quickContactMarkCustomer', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">Channel Partner Tag</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="host.formValues()['quickContactMarkChannelPartner'] === true" (change)="host.collectFormField('quickContactMarkChannelPartner', $any($event.target).checked)" />
+                <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+              </label>
             </div>
           </div>
           @if (host.quickAddError()) {
@@ -755,6 +750,24 @@
             </div>
           </div>
           @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
+        } @else if (host.isInlineManufacturingQuickAdd(host.activeAddMaster())) {
+          <div class="inventory-form-grid">
+            <div class="erp-form-group">
+              <label class="erp-label">{{ host.activeAddMaster() }} Code</label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddCode()"
+                (ngModelChange)="host.onQuickAddCodeChange($event)"
+                placeholder="Auto-generated" />
+            </div>
+            <div class="erp-form-group">
+              <label class="erp-label">{{ host.activeAddMaster() === 'BOM' ? 'BOM Version' : 'Work Center Name' }} <span class="text-danger">*</span></label>
+              <input class="erp-input" type="text"
+                [ngModel]="host.quickAddName()"
+                (ngModelChange)="host.onQuickAddNameChange($event)"
+                [placeholder]="host.activeAddMaster() === 'BOM' ? 'V1 / V2 / Latest' : 'Assembly Line'" />
+            </div>
+          </div>
+          @if (host.quickAddError()) { <p class="inventory-error-msg">{{ host.quickAddError() }}</p> }
         } @else {
           <div class="inventory-form-grid">
             <div class="erp-form-group"><label class="erp-label">Code</label><input class="erp-input" type="text" placeholder="Auto / manual code" /></div>
@@ -789,6 +802,7 @@
                        host.activeAddMaster() === 'Serial Number Policy' ? host.saveQuickSerialPolicy() :
                        host.activeAddMaster() === 'Batch / Lot Policy' ? host.saveQuickBatchPolicy() :
                        host.activeAddMaster() === 'UOM Conversion' ? host.addUomConversionRow() :
+                       host.isInlineManufacturingQuickAdd(host.activeAddMaster()) ? host.saveQuickManufacturingInlineMaster() :
                        host.closeAddMaster()"
               [disabled]="host.isSavingQuickAdd()">
               <i [class]="host.isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>

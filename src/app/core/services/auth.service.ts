@@ -50,11 +50,11 @@ export interface OtpIssueResponse {
 
 export interface LoginBranchWarehouse {
   id: number;
+  branchId?: number | null;
   warehouseCode: string;
   warehouseName: string;
   // Populated on the company-wide list (LoginTenantOption.warehouses /
-  // AuthPayload.warehouse) — the branch-scoped BranchResponse.Warehouses list
-  // this interface also backs doesn't set these (see GetBranchWarehousesBatchAsync).
+  // AuthPayload.warehouse); branch-scoped lists may omit it.
   isDefault?: boolean;
   status?: string;
 }
@@ -91,9 +91,8 @@ export interface AuthPayload {
     branchCode: string;
     branchName: string;
   };
-  // Session-level active warehouse — directly parallel to defaultBranch, but
-  // company-wide rather than branch-scoped (Warehouse and Branch have no FK
-  // link to each other).
+  // Session-level active warehouse. Its branchId points at the linked branch
+  // used for legacy BranchCode lookups.
   warehouse?: LoginBranchWarehouse | null;
   roles: Array<{
     id: number;
@@ -190,7 +189,7 @@ export class AuthService {
     if (companyId) body['companyId'] = companyId;
     if (branchId) body['branchId'] = branchId;
     if (warehouseId) body['warehouseId'] = warehouseId;
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/verify-otp`, body);
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/verify-otp`, body, { withCredentials: true });
   }
 
   passwordLogin(loginId: string, password: string, companyCode?: string, companyId?: number | null, branchId?: number | null, warehouseId?: number | null): Observable<AuthApiResponse> {
@@ -199,7 +198,7 @@ export class AuthService {
     if (companyId) body['companyId'] = companyId;
     if (branchId) body['branchId'] = branchId;
     if (warehouseId) body['warehouseId'] = warehouseId;
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/password-login`, body);
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/password-login`, body, { withCredentials: true });
   }
 
   requestRegistrationOtp(identifier: string): Observable<OtpIssueResponse> {
@@ -227,21 +226,24 @@ export class AuthService {
     );
   }
 
-  refreshToken(refreshToken: string): Observable<AuthApiResponse> {
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/refresh-token`, { refreshToken });
+  refreshToken(_refreshToken?: string): Observable<AuthApiResponse> {
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/refresh-token`, {}, { withCredentials: true });
   }
 
   switchBranch(branchId: number, warehouseId?: number | null): Observable<AuthApiResponse> {
+    // The backend rotates the refresh cookie during a switch. Without
+    // credentials the browser drops that cookie and the next reload can
+    // silently restore the old branch/warehouse context.
     const body: Record<string, number> = { branchId };
     if (warehouseId) body['warehouseId'] = warehouseId;
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-branch`, body);
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-branch`, body, { withCredentials: true });
   }
 
   switchCompany(companyId: number, branchId?: number | null, warehouseId?: number | null): Observable<AuthApiResponse> {
     const body: Record<string, number> = { companyId };
     if (branchId) body['branchId'] = branchId;
     if (warehouseId) body['warehouseId'] = warehouseId;
-    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-company`, body);
+    return this.http.post<AuthApiResponse>(`${this.apiBaseUrl()}/auth/switch-company`, body, { withCredentials: true });
   }
 
   me(): Observable<AuthApiResponse> {
@@ -310,7 +312,10 @@ export class AuthService {
 
   ensureAuthenticated(requireTenantClaims = false): Observable<boolean> {
     const token = this.getToken();
-    if (!token) return of(false);
+    const isMultiTenantSession = sessionStorage.getItem('authSessionKind') === 'multiTenant';
+    if (!token) {
+      return isMultiTenantSession ? this.refreshMultiTenantSession(requireTenantClaims) : of(false);
+    }
 
     if (requireTenantClaims && !this.hasTenantClaims(token)) {
       return of(false);
@@ -320,12 +325,19 @@ export class AuthService {
       return of(true);
     }
 
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken || !this.apiBaseUrl()) {
+    if (!isMultiTenantSession || !this.apiBaseUrl()) {
       return of(false);
     }
 
-    return this.refreshToken(refreshToken).pipe(
+    return this.refreshMultiTenantSession(requireTenantClaims);
+  }
+
+  private refreshMultiTenantSession(requireTenantClaims: boolean): Observable<boolean> {
+    if (!this.apiBaseUrl()) {
+      return of(false);
+    }
+
+    return this.refreshToken().pipe(
       tap(response => {
         if (response.data?.accessToken) {
           this.setMultiTenantSession(response.data);

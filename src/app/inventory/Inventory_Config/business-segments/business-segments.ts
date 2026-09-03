@@ -6,10 +6,8 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { catchError, forkJoin, map, of } from 'rxjs';
 import {
   CategoryItem,
-  HsnSacItem,
   InventoryConfigService,
-  SegmentItem,
-  UomItem
+  SegmentItem
 } from '../../Inventory_Shared/inventory-config.service';
 import { applyInventoryTextCase, toInventoryTitleCase } from '../../Inventory_Shared/inventory-text-case.util';
 import { businessSegmentsConfig } from '../../Inventory_Shared/inventory-screen.model';
@@ -29,13 +27,9 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
   segmentCode = signal('');
   usageNote = signal('');
   categoryIds = signal<number[]>([]);
-  hsnSacIds = signal<number[]>([]);
-  uomIds = signal<number[]>([]);
   editingId = signal<number | null>(null);
 
   categories = signal<CategoryItem[]>([]);
-  hsnSacList = signal<HsnSacItem[]>([]);
-  uomList = signal<UomItem[]>([]);
   savedSegments = signal<SegmentItem[]>([]);
 
   readonly existingMatches = computed(() => {
@@ -71,20 +65,6 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     ...this.pendingCategories().map(item => item.category_code).filter(Boolean)
   ]);
 
-  showHsnPopup = signal(false);
-  newHsnCode = signal('');
-  newHsnType = signal('HSN');
-  newHsnDesc = signal('');
-  newHsnGst = signal(0);
-  addingHsn = signal(false);
-  hsnPopupError = signal('');
-
-  showUomPopup = signal(false);
-  newUomName = signal('');
-  newUomSymbol = signal('');
-  addingUom = signal(false);
-  uomPopupError = signal('');
-
   ngOnInit(): void {
     this.loadPageData();
   }
@@ -93,14 +73,10 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.loading.set(true);
     forkJoin({
       categories: this.svc.getCategories(),
-      hsn: this.svc.getHsnSac(),
-      uoms: this.svc.getUoms(),
       segments: this.svc.getSegments(true)
     }).subscribe({
-      next: ({ categories, hsn, uoms, segments }) => {
+      next: ({ categories, segments }) => {
         this.categories.set(this.dedupeByName(categories.data ?? [], item => item.category_name));
-        this.hsnSacList.set(this.dedupeByName(hsn.data ?? [], item => item.code));
-        this.uomList.set(this.dedupeByName(uoms.data ?? [], item => item.uom_name || item.uom_code));
         this.savedSegments.set(segments.data ?? []);
         this.loading.set(false);
       },
@@ -131,8 +107,8 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
       segment_code: this.segmentCode().trim() || undefined,
       usage_note: this.usageNote().trim() || undefined,
       category_ids: this.categoryIds(),
-      hsn_sac_ids: this.hsnSacIds(),
-      uom_ids: this.uomIds(),
+      hsn_sac_ids: [],
+      uom_ids: [],
       status: 'active'
     };
 
@@ -230,8 +206,6 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.segmentCode.set('');
     this.usageNote.set('');
     this.categoryIds.set([]);
-    this.hsnSacIds.set([]);
-    this.uomIds.set([]);
     this.editingId.set(null);
     this.saveError.set('');
   }
@@ -242,8 +216,6 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.segmentCode.set(seg.segment_code ?? '');
     this.usageNote.set(seg.usage_note ?? '');
     this.categoryIds.set((seg.categories ?? []).map(c => c.id));
-    this.hsnSacIds.set((seg.hsn_sac_codes ?? []).map(h => h.id));
-    this.uomIds.set((seg.uoms ?? []).map(u => u.id));
     this.saveError.set('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -252,24 +224,8 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     return (seg.categories ?? []).map(c => c.category_name).filter(Boolean).join(', ') || '-';
   }
 
-  hsnSacCodes(seg: SegmentItem): string {
-    return (seg.hsn_sac_codes ?? []).map(h => h.code).filter(Boolean).join(', ') || '-';
-  }
-
-  uomNames(seg: SegmentItem): string {
-    return (seg.uoms ?? []).map(u => u.uom_name).filter(Boolean).join(', ') || '-';
-  }
-
   selectedCategoryCount(): number {
     return this.categoryIds().length;
-  }
-
-  selectedHsnCount(): number {
-    return this.hsnSacIds().length;
-  }
-
-  selectedUomCount(): number {
-    return this.uomIds().length;
   }
 
   openCategoryMasterDialog(): void {
@@ -402,103 +358,5 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
       },
       error: () => undefined
     });
-  }
-
-  openHsnPopup(): void {
-    this.newHsnCode.set('');
-    this.newHsnType.set('HSN');
-    this.newHsnDesc.set('');
-    this.newHsnGst.set(0);
-    this.hsnPopupError.set('');
-    this.showHsnPopup.set(true);
-  }
-
-  closeHsnPopup(): void {
-    this.showHsnPopup.set(false);
-  }
-
-  submitHsn(): void {
-    const code = this.newHsnCode().trim();
-    if (!code) {
-      this.hsnPopupError.set('HSN/SAC code is required.');
-      return;
-    }
-    if (this.hsnSacList().some(item => this.normalizeKey(item.code) === this.normalizeKey(code))) {
-      this.hsnPopupError.set('HSN/SAC code already exists. Select it from the list instead.');
-      return;
-    }
-
-    this.addingHsn.set(true);
-    this.hsnPopupError.set('');
-    this.svc.quickAddHsnSac(code, this.newHsnType(), this.newHsnDesc().trim(), this.newHsnGst()).subscribe({
-      next: res => {
-        if (res.data) {
-          this.hsnSacList.update(list => {
-            const withoutDuplicate = list.filter(item => item.id !== res.data!.id);
-            return [...withoutDuplicate, res.data!];
-          });
-          this.hsnSacIds.update(ids => [...new Set([...ids, res.data!.id])]);
-        }
-        this.addingHsn.set(false);
-        this.showHsnPopup.set(false);
-      },
-      error: err => {
-        this.addingHsn.set(false);
-        this.hsnPopupError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to add HSN/SAC.');
-      }
-    });
-  }
-
-  openUomPopup(): void {
-    this.newUomName.set('');
-    this.newUomSymbol.set('');
-    this.uomPopupError.set('');
-    this.showUomPopup.set(true);
-  }
-
-  closeUomPopup(): void {
-    this.showUomPopup.set(false);
-  }
-
-  submitUom(): void {
-    const uomName = this.newUomName().trim();
-    if (!uomName) {
-      this.uomPopupError.set('UOM name is required.');
-      return;
-    }
-    const symbol = this.newUomSymbol().trim();
-    const segmentId = this.editingId();
-    if (this.uomList().some(item =>
-      !item.is_system
-      && (segmentId ? Number(item.segment_id) === segmentId || this.uomIds().includes(item.id) : !item.segment_id)
-      && (
-        this.normalizeKey(item.uom_name) === this.normalizeKey(uomName)
-        || (!!symbol && this.normalizeKey(item.uom_symbol) === this.normalizeKey(symbol))
-      )
-    )) {
-      this.uomPopupError.set('UOM already exists in this segment. Select it from the list instead.');
-      return;
-    }
-
-    this.addingUom.set(true);
-    this.uomPopupError.set('');
-    this.svc.quickAddUom(uomName, this.newUomSymbol().trim() || undefined, segmentId).subscribe({
-      next: res => {
-        if (res.data) {
-          this.uomList.update(list => [...list, res.data!]);
-          this.uomIds.update(ids => [...new Set([...ids, res.data!.id])]);
-        }
-        this.addingUom.set(false);
-        this.showUomPopup.set(false);
-      },
-      error: err => {
-        this.addingUom.set(false);
-        this.uomPopupError.set(err?.error?.title ?? err?.error?.message ?? 'Failed to add UOM.');
-      }
-    });
-  }
-
-  get cgstSgst(): number {
-    return this.newHsnGst() / 2;
   }
 }

@@ -199,8 +199,8 @@
                 <button
                   *ngFor="let screen of sub.screens"
                   class="mm-screen-item"
-                  [class.disabled]="screen.disabled"
-                  [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
+                  [class.disabled]="isScreenDisabled(screen)"
+                  [attr.title]="isScreenDisabled(screen) ? screen.name + ' (coming soon)' : screen.name"
                   (click)="navigateFromMega(mod, sub, screen)">
                   <i [class]="getScreenIcon(screen.name)"></i>
                   <span>{{ screen.name }}</span>
@@ -224,14 +224,14 @@
           <i class="pi av-chevron" [ngClass]="showAvatarMenu ? 'pi-angle-up' : 'pi-angle-down'"></i>
         </button>
 
-        <div class="dropdown-panel avatar-panel" *ngIf="showAvatarMenu" (click)="$event.stopPropagation()">
+        <div class="dropdown-panel avatar-panel" *ngIf="showAvatarMenu" (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()">
           <div class="ap-user-header" data-tour="ap-user-header">
             <div class="ap-avatar-lg">{{ username.charAt(0).toUpperCase() }}</div>
 
             <div class="ap-user-info">
               <div class="ap-title">Profile Settings</div>
               <div class="ap-username">{{ username }}</div>
-              <div class="ap-role">{{ currentCompanyLabel }} / {{ currentBranchLabel }}</div>
+              <div class="ap-role">{{ currentCompanyLabel }} / {{ currentLocationLabel }}</div>
             </div>
           </div>
 
@@ -252,7 +252,9 @@
               <ng-select class="ap-switch-ng-select" appendTo="body"
                 [items]="mergedSwitchLocationOptions" bindLabel="label" bindValue="key"
                 [ngModel]="selectedSwitchLocationKey" (ngModelChange)="onSwitchLocationChange($event)"
-                [searchable]="true" [clearable]="false" placeholder="Select Branch or Warehouse">
+                (change)="onSwitchLocationPicked($event)" [trackByFn]="trackSwitchLocation"
+                [searchable]="true" [clearable]="false" [hideSelected]="false" [outsideClickEvent]="'mousedown'"
+                placeholder="Select Branch or Warehouse">
                 <ng-template ng-option-tmp let-item="item">
                   {{ item.label }}
                   <span class="inventory-location-badge" *ngIf="item.type === 'warehouse'">WH</span>
@@ -472,8 +474,8 @@
                 *ngFor="let screen of group.screens"
                 class="fp-item"
                 [class.active]="selectedScreen?.id === screen.id"
-                [class.disabled]="screen.disabled"
-                [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
+                [class.disabled]="isScreenDisabled(screen)"
+                [attr.title]="isScreenDisabled(screen) ? screen.name + ' (coming soon)' : screen.name"
                 (click)="navigateToScreen(screen); $event.stopPropagation()">
                 <span class="fp-screen-icon">
                   <i [class]="getScreenIcon(screen.name)"></i>
@@ -494,8 +496,8 @@
             *ngFor="let screen of filteredFlyoutScreens"
             class="fp-item"
             [class.active]="selectedScreen?.id === screen.id"
-            [class.disabled]="screen.disabled"
-            [attr.title]="screen.disabled ? screen.name + ' (coming soon)' : screen.name"
+            [class.disabled]="isScreenDisabled(screen)"
+            [attr.title]="isScreenDisabled(screen) ? screen.name + ' (coming soon)' : screen.name"
             (click)="navigateToScreen(screen); $event.stopPropagation()">
             <span class="fp-screen-icon">
               <i [class]="getScreenIcon(screen.name)"></i>

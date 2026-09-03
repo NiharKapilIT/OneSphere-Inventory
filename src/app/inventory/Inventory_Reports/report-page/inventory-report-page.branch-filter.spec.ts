@@ -81,6 +81,45 @@ describe('InventoryReportPageComponent — Branch filter actually filters', () =
       expect(matches({ warehouse: 'Secunderabad' }, ['Head Office'])).toBe(true);
     });
   });
+
+  describe('apiFilters', () => {
+    const apiFilters = (): Record<string, unknown> => (component as any).apiFilters();
+
+    beforeEach(() => {
+      (component as any).masterOptionIds.set({
+        branchId: { 'Head Office': 37, Hanamkonda: 38 },
+        warehouseId: { Secunderabad: 20 },
+        segmentId: { Electronics: 10 }
+      });
+    });
+
+    it('sends a single selected branch label as its backend branch id', () => {
+      component.updateFilter('branchId', ['Head Office']);
+
+      expect(apiFilters()['branchId']).toBe('37');
+      expect(component.filters()['branchId']).toEqual(['Head Office']);
+    });
+
+    it('does not send a comma-list when more than one branch is selected', () => {
+      component.updateFilter('branchId', ['Head Office', 'Hanamkonda']);
+
+      expect(apiFilters()['branchId']).toBe('');
+      expect(component.filters()['branchId']).toEqual(['Head Office', 'Hanamkonda']);
+    });
+
+    it('keeps mixed branch and warehouse selections on the client side only', () => {
+      component.updateBranchWarehouse([
+        { label: 'Head Office', key: 'branchId', group: 'Branch' },
+        { label: 'Secunderabad', key: 'warehouseId', group: 'Warehouse' }
+      ]);
+
+      const filters = apiFilters();
+      expect(filters['branchId']).toBe('');
+      expect(filters['warehouseId']).toBe('');
+      expect(component.filters()['branchId']).toEqual(['Head Office']);
+      expect(component.filters()['warehouseId']).toEqual(['Secunderabad']);
+    });
+  });
 });
 
 describe('Inventory report registry — location column reads for both kinds of location', () => {

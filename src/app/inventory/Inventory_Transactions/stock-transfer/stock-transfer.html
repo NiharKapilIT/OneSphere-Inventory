@@ -83,7 +83,7 @@
                 </label>
               } @else if (field.key === 'fromWarehouse' || field.key === 'toWarehouse') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
+                  [items]="locationGroupsForField(field)" bindLabel="label" bindValue="label" groupBy="group"
                   [searchable]="true" [clearable]="true"
                   [ngModel]="formFieldValue(field)"
                   (ngModelChange)="collectFormField(field.key, $event)"

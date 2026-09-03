@@ -15,12 +15,20 @@ import {
   LossSaleFlagRow,
   SalesPiPendingFlagRow
 } from '../Inventory_Shared/inventory-dashboard.service';
+import {
+  InventoryTransactionsService,
+  MaterialIssueProduction,
+  ProductionEntry,
+  ProductionPlan,
+  ProductionReturn,
+  StockTransfer
+} from '../Inventory_Shared/inventory-transactions.service';
 import { StatCardComponent, StatCardTone } from '../Inventory_Shared/stat-card/stat-card.component';
 import { BarChartComponent, ChartSeries } from '../Inventory_Shared/charts/bar-chart.component';
 import { LineChartComponent } from '../Inventory_Shared/charts/line-chart.component';
 import { DonutChartComponent, DonutSlice } from '../Inventory_Shared/charts/donut-chart.component';
 
-const SECTION_LAYOUT_KEY = 'inv-dashboard-section-layout-v3';
+const SECTION_LAYOUT_KEY = 'inv-dashboard-section-layout-v4';
 const WIDTH_OPTIONS = [4, 6, 8, 12] as const;
 
 interface SectionLayoutItem {
@@ -36,9 +44,12 @@ const DEFAULT_SECTION_LAYOUT: SectionLayoutItem[] = [
   { id: 'kpis', width: 12 },
   { id: 'financials', width: 12 },
   { id: 'documents', width: 12 },
+  { id: 'operations', width: 12 },
   { id: 'ageing', width: 12 },
   { id: 'movement', width: 8 },
   { id: 'warehouseStock', width: 4 },
+  { id: 'stockTransferFlow', width: 6 },
+  { id: 'manufacturingFlow', width: 6 },
   { id: 'salesReturnsTrend', width: 8 },
   { id: 'payablesReceivablesDonut', width: 4 },
   { id: 'topReturnedProducts', width: 12 },
@@ -52,9 +63,12 @@ const SECTION_TITLES: Record<string, { title: string; subtitle: string }> = {
   kpis: { title: 'Key Metrics', subtitle: 'Stock value, pending documents, and today’s activity.' },
   financials: { title: 'Payables & Receivables', subtitle: 'Outstanding balances (today) and cash movement.' },
   documents: { title: 'Purchase, Sales & Returns', subtitle: 'Posted documents for the selected period.' },
+  operations: { title: 'Stock Transfer & Manufacturing', subtitle: 'Current-period transfer movement and production execution.' },
   ageing: { title: 'Ageing', subtitle: 'Outstanding balances as of today, by invoice age.' },
   movement: { title: 'Movement', subtitle: 'Inward (GRN accepted qty) vs. outward (Sales Invoice qty), by day.' },
   warehouseStock: { title: 'Warehouse Stock', subtitle: 'Real qty and value per warehouse.' },
+  stockTransferFlow: { title: 'Stock Transfer Flow', subtitle: 'Transfer routes and posted/draft split for the selected period.' },
+  manufacturingFlow: { title: 'Manufacturing Flow', subtitle: 'Raw material issued, finished output, wastage, and returns.' },
   salesReturnsTrend: { title: 'Sales & Returns', subtitle: 'Posted Sales Invoices vs. Sales Returns, by day.' },
   payablesReceivablesDonut: { title: 'Payables vs Receivables', subtitle: 'Share of total outstanding, as of today.' },
   topReturnedProducts: { title: 'Top Selling & Returned Products', subtitle: 'Ranked by value, for the selected period.' },
@@ -107,12 +121,18 @@ interface GridPayload {
 })
 export class InventoryDashboard {
   private readonly dashboardService = inject(InventoryDashboardService);
+  private readonly transactionsService = inject(InventoryTransactionsService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedPeriod = signal<DashboardPeriod>('week');
   readonly loading = signal(false);
   readonly loadError = signal('');
   readonly summary = signal<DashboardSummary | null>(null);
+  readonly stockTransfers = signal<StockTransfer[]>([]);
+  readonly productionPlans = signal<ProductionPlan[]>([]);
+  readonly materialIssues = signal<MaterialIssueProduction[]>([]);
+  readonly productionEntries = signal<ProductionEntry[]>([]);
+  readonly productionReturns = signal<ProductionReturn[]>([]);
   readonly salesPiPendingFlags = signal<SalesPiPendingFlagRow[]>([]);
   readonly dcPendingInvoiceLines = signal<DcPendingInvoiceLineRow[]>([]);
   readonly lossSalesFlags = signal<LossSaleFlagRow[]>([]);
@@ -166,6 +186,39 @@ export class InventoryDashboard {
       { label: 'Sales', value: this.fmt(k.sales), note: `${period}, posted Sales Invoices`, icon: 'pi pi-arrow-circle-up', tone: 'green', key: 'sales' },
       { label: 'Purchase Returns', value: this.fmt(k.purchase_returns), note: `${period}, posted Purchase Returns`, icon: 'pi pi-replay', tone: 'rose', key: 'purchase_returns' },
       { label: 'Sales Returns', value: this.fmt(k.sales_returns), note: `${period}, posted Sales Returns`, icon: 'pi pi-replay', tone: 'amber', key: 'sales_returns' }
+    ];
+  });
+
+  readonly periodStockTransfers = computed(() =>
+    this.stockTransfers().filter(row => this.inSelectedPeriod(row.transfer_date))
+  );
+  readonly periodProductionPlans = computed(() =>
+    this.productionPlans().filter(row => this.inSelectedPeriod(row.plan_date))
+  );
+  readonly periodMaterialIssues = computed(() =>
+    this.materialIssues().filter(row => this.inSelectedPeriod(row.issue_date))
+  );
+  readonly periodProductionEntries = computed(() =>
+    this.productionEntries().filter(row => this.inSelectedPeriod(row.production_date))
+  );
+  readonly periodProductionReturns = computed(() =>
+    this.productionReturns().filter(row => this.inSelectedPeriod(row.return_date))
+  );
+
+  readonly operationsCards = computed<KpiTile[]>(() => {
+    const period = this.selectedPeriod();
+    const transfers = this.periodStockTransfers();
+    const plans = this.periodProductionPlans();
+    const issues = this.periodMaterialIssues();
+    const entries = this.periodProductionEntries();
+    const returns = this.periodProductionReturns();
+    return [
+      { label: 'Stock Transfers', value: String(transfers.length), note: `${period}, all statuses`, icon: 'pi pi-sync', tone: 'blue', key: 'stock_transfers' },
+      { label: 'Transferred Qty', value: this.fmtQty(this.totalTransferQty(transfers)), note: `${period}, moved between locations`, icon: 'pi pi-truck', tone: 'green', key: 'stock_transfer_qty' },
+      { label: 'Production Plans', value: String(plans.length), note: `${period}, planned finished output`, icon: 'pi pi-calendar-plus', tone: 'blue', key: 'production_plans' },
+      { label: 'Raw Issued', value: this.fmtQty(this.sumBy(issues, row => row.total_qty)), note: `${period}, material issued to production`, icon: 'pi pi-arrow-circle-up', tone: 'amber', key: 'material_issued' },
+      { label: 'Finished Produced', value: this.fmtQty(this.sumBy(entries, row => row.produced_qty)), note: `${period}, physical stock added`, icon: 'pi pi-check-circle', tone: 'green', key: 'finished_production' },
+      { label: 'Manufacturing Cost', value: this.fmt(this.sumBy(entries, row => row.production_cost)), note: `${period}, posted production cost`, icon: 'pi pi-wallet', tone: 'rose', key: 'manufacturing_cost' }
     ];
   });
 
@@ -248,12 +301,59 @@ export class InventoryDashboard {
     { label: 'Payables', value: this.summary()?.payables?.total ?? 0 },
     { label: 'Receivables', value: this.summary()?.receivables?.total ?? 0 }
   ]);
+
+  readonly transferRouteRows = computed(() => {
+    const routes = new Map<string, number>();
+    this.periodStockTransfers().forEach(row => {
+      const label = `${this.transferLocation(row, 'from')} to ${this.transferLocation(row, 'to')}`;
+      routes.set(label, (routes.get(label) ?? 0) + this.stockTransferQty(row));
+    });
+    return Array.from(routes.entries())
+      .map(([label, qty]) => ({ label, qty }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 6);
+  });
+  readonly transferRouteLabels = computed(() => this.transferRouteRows().map(row => row.label));
+  readonly transferRouteSeries = computed<ChartSeries[]>(() => [{ label: 'Qty', data: this.transferRouteRows().map(row => row.qty) }]);
+  readonly transferStatusSlices = computed<DonutSlice[]>(() => this.statusSlices(this.periodStockTransfers()));
+  readonly transferStatusTotal = computed(() => this.periodStockTransfers().length);
+  readonly transferQtyTotal = computed(() => this.totalTransferQty(this.periodStockTransfers()));
+  readonly transferStatusTotalText = computed(() => String(this.transferStatusTotal()));
+
+  readonly manufacturingQuantityLabels = computed(() => ['Planned', 'Raw Issued', 'Finished', 'Rejected', 'Wastage', 'Returned']);
+  readonly manufacturingQuantitySeries = computed<ChartSeries[]>(() => [{
+    label: 'Qty',
+    data: [
+      this.sumBy(this.periodProductionPlans(), row => row.planned_qty),
+      this.sumBy(this.periodMaterialIssues(), row => row.total_qty),
+      this.sumBy(this.periodProductionEntries(), row => row.produced_qty),
+      this.sumBy(this.periodProductionEntries(), row => row.rejected_qty),
+      this.sumBy(this.periodProductionEntries(), row => row.wastage_qty),
+      this.sumBy(this.periodProductionReturns(), row => row.total_qty)
+    ]
+  }]);
+  readonly manufacturingDocSlices = computed<DonutSlice[]>(() => [
+    { label: 'Plans', value: this.periodProductionPlans().length },
+    { label: 'Issues', value: this.periodMaterialIssues().length },
+    { label: 'Entries', value: this.periodProductionEntries().length },
+    { label: 'Returns', value: this.periodProductionReturns().length }
+  ]);
+  readonly manufacturingDocTotal = computed(() =>
+    this.periodProductionPlans().length +
+    this.periodMaterialIssues().length +
+    this.periodProductionEntries().length +
+    this.periodProductionReturns().length
+  );
+  readonly finishedProducedTotal = computed(() => this.sumBy(this.periodProductionEntries(), row => row.produced_qty));
+  readonly manufacturingDocTotalText = computed(() => String(this.manufacturingDocTotal()));
+
   readonly filteredStockRows = computed<DashboardStockRow[]>(() => this.summary()?.stock_by_product ?? []);
 
   readonly filteredTransactions = computed<DashboardTransactionRow[]>(() => this.summary()?.recent_transactions ?? []);
 
   constructor() {
     this.loadSummary();
+    this.loadOperationalRows();
     this.loadSalesPiPendingFlags();
     this.loadDcPendingInvoiceLines();
     this.loadLossSalesFlags();
@@ -267,6 +367,7 @@ export class InventoryDashboard {
   refresh(): void {
     this.dashboardTime.set(this.nowLabel());
     this.loadSummary();
+    this.loadOperationalRows();
     this.loadSalesPiPendingFlags();
     this.loadDcPendingInvoiceLines();
     this.loadLossSalesFlags();
@@ -413,6 +514,10 @@ export class InventoryDashboard {
     return '₹ ' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
   }
 
+  fmtQty(n: number | undefined): string {
+    return Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+  }
+
   fmtDate(d?: string): string {
     return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—';
   }
@@ -462,6 +567,73 @@ export class InventoryDashboard {
         rows: rows.map(r => [
           r.doc_number || '—', this.fmtDate(r.doc_date), r.customer_name || '—', r.product_name || '—',
           String(r.qty), this.fmt(r.rate), this.fmt(r.cost_price), this.fmt(r.loss_amount), `${r.loss_percent}%`
+        ])
+      };
+    }
+
+    if (card.key === 'stock_transfers' || card.key === 'stock_transfer_qty') {
+      const rows = this.periodStockTransfers();
+      return {
+        title: card.label,
+        headers: ['Transfer No', 'Date', 'From', 'To', 'Qty', 'Status'],
+        rows: rows.map(r => [
+          r.transfer_number || '—',
+          this.fmtDate(r.transfer_date),
+          this.transferLocation(r, 'from'),
+          this.transferLocation(r, 'to'),
+          this.fmtQty(this.stockTransferQty(r)),
+          r.status || '—'
+        ])
+      };
+    }
+
+    if (card.key === 'production_plans') {
+      const rows = this.periodProductionPlans();
+      return {
+        title: card.label,
+        headers: ['Plan No', 'Date', 'Finished Product', 'Planned Qty', 'Location', 'Status'],
+        rows: rows.map(r => [
+          r.plan_number || '—',
+          this.fmtDate(r.plan_date),
+          r.finished_product_name || '—',
+          this.fmtQty(r.planned_qty),
+          r.warehouse_name || r.branch_name || '—',
+          r.status || '—'
+        ])
+      };
+    }
+
+    if (card.key === 'material_issued') {
+      const rows = this.periodMaterialIssues();
+      return {
+        title: card.label,
+        headers: ['Issue No', 'Date', 'Plan', 'From', 'Issued Qty', 'Status'],
+        rows: rows.map(r => [
+          r.issue_number || '—',
+          this.fmtDate(r.issue_date),
+          r.production_plan_number || '—',
+          r.from_warehouse_name || r.from_branch_name || '—',
+          this.fmtQty(r.total_qty),
+          r.status || '—'
+        ])
+      };
+    }
+
+    if (card.key === 'finished_production' || card.key === 'manufacturing_cost') {
+      const rows = this.periodProductionEntries();
+      return {
+        title: card.label,
+        headers: ['Production No', 'Date', 'Finished Product', 'Produced', 'Rejected', 'Wastage', 'Cost', 'To', 'Status'],
+        rows: rows.map(r => [
+          r.production_number || '—',
+          this.fmtDate(r.production_date),
+          r.finished_product_name || '—',
+          this.fmtQty(r.produced_qty),
+          this.fmtQty(r.rejected_qty),
+          this.fmtQty(r.wastage_qty),
+          this.fmt(r.production_cost),
+          r.to_warehouse_name || r.to_branch_name || '—',
+          r.status || '—'
         ])
       };
     }
@@ -532,6 +704,43 @@ export class InventoryDashboard {
       });
   }
 
+  private loadOperationalRows(): void {
+    this.transactionsService.getStockTransfers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.stockTransfers.set(res.data); },
+        error: () => {}
+      });
+
+    this.transactionsService.getProductionPlans()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.productionPlans.set(res.data); },
+        error: () => {}
+      });
+
+    this.transactionsService.getMaterialIssueProductions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.materialIssues.set(res.data); },
+        error: () => {}
+      });
+
+    this.transactionsService.getProductionEntries()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.productionEntries.set(res.data); },
+        error: () => {}
+      });
+
+    this.transactionsService.getProductionReturns()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => { if (res.success && res.data) this.productionReturns.set(res.data); },
+        error: () => {}
+      });
+  }
+
   private dateRangeFor(period: DashboardPeriod): { from: string; to: string } {
     const to = new Date();
     const from = new Date();
@@ -542,6 +751,51 @@ export class InventoryDashboard {
   }
 
   private isoDate(d: Date): string { return d.toISOString().slice(0, 10); }
+
+  private inSelectedPeriod(value?: string): boolean {
+    if (!value) return false;
+    const docTime = new Date(value).getTime();
+    if (Number.isNaN(docTime)) return false;
+    const { from, to } = this.dateRangeFor(this.selectedPeriod());
+    const fromTime = new Date(`${from}T00:00:00`).getTime();
+    const toTime = new Date(`${to}T23:59:59`).getTime();
+    return docTime >= fromTime && docTime <= toTime;
+  }
+
+  private sumBy<T>(rows: T[], pick: (row: T) => number | null | undefined): number {
+    return rows.reduce((sum, row) => sum + Number(pick(row) || 0), 0);
+  }
+
+  private totalTransferQty(rows: StockTransfer[]): number {
+    return this.sumBy(rows, row => this.stockTransferQty(row));
+  }
+
+  private stockTransferQty(row: StockTransfer): number {
+    const headerQty = Number(row.total_qty || 0);
+    if (headerQty > 0) return headerQty;
+    return this.sumBy(row.items ?? [], item => item.qty);
+  }
+
+  private transferLocation(row: StockTransfer, side: 'from' | 'to'): string {
+    if (side === 'from') return row.from_warehouse_name || row.from_branch_name || 'Unassigned';
+    return row.to_warehouse_name || row.to_branch_name || 'Unassigned';
+  }
+
+  private statusSlices(rows: Array<{ status?: string }>): DonutSlice[] {
+    const map = new Map<string, number>();
+    rows.forEach(row => {
+      const label = this.titleCase(row.status || 'draft');
+      map.set(label, (map.get(label) ?? 0) + 1);
+    });
+    return Array.from(map.entries()).map(([label, value]) => ({ label, value }));
+  }
+
+  private titleCase(value: string): string {
+    return value
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .replace(/\w\S*/g, part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()) || 'Draft';
+  }
 
   private nowLabel(): string {
     return new Date().toLocaleString('en-IN', {

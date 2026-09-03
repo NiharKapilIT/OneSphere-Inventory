@@ -56,8 +56,34 @@
 }
 
 .qac-inline-error {
-  font-size: 11px;
-  margin: 4px 0 0;
+  margin-top: 4px;
+}
+
+.qac-error-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  border-radius: 999px;
+  background: #fff1f2;
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  box-sizing: border-box;
+
+  i {
+    flex: 0 0 auto;
+    font-size: 12px;
+  }
+
+  span {
+    min-width: 0;
+  }
 }
 
 .qac-inline-actions {

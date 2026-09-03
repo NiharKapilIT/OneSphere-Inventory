@@ -144,6 +144,10 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
         impact = 'Normal stock item. GRN/opening stock increases stock, sales/dispatch/issue reduces stock, valuation and reorder controls apply.';
       } else if (key === 'raw material') {
         impact = 'Purchased input for production. Stock and cost are tracked, BOM/production can consume it, and it is normally not sold directly.';
+      } else if (key === 'finished product' || key === 'finished goods') {
+        impact = 'Manufactured output. Production Entry adds it into physical stock, and it becomes available for Sales when sale is allowed.';
+      } else if (key === 'sub-finished product' || key === 'semi-finished goods' || key === 'semi-finished / wip') {
+        impact = 'Intermediate manufactured stock. Production Entry can create it, and a later BOM or Material Issue can consume it for another finished product.';
       } else if (key === 'consumable') {
         impact = 'Internal-use stock item. Purchased into inventory, issued/consumed by departments or operations, usually not treated as a sales item.';
       } else if (key === 'fixed asset') {
@@ -181,8 +185,8 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
       .filter(row => row.id === nature.id)
       .map(row => row.impact);
     if (nature.tracks_inventory === false) hints.push('Not tracked as stock for this nature.');
-    if (nature.allows_production) hints.push('Can be linked to a Bill of Materials as a component.');
-    if (nature.allows_sale === false) hints.push('Not directly sellable — excluded from Sales product pickers.');
+    if (nature.allows_production) hints.push('Can be used by manufacturing BOM, planning, issue or output screens depending on the product nature.');
+    if (nature.allows_sale === false) hints.push('Not directly sellable - excluded from Sales product pickers.');
     return hints;
   });
 

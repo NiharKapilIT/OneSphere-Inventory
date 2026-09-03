@@ -117,7 +117,6 @@
                     </td>
                     <td class="text-right">
                       {{ fmt(inv.total_amount) }}
-                      @if (inv.tax_amount) { <div class="pay-inv-ref">incl. GST {{ fmt(inv.tax_amount) }}</div> }
                     </td>
                     <td class="text-right">{{ inv.paid_amount ? fmt(inv.paid_amount) : '—' }}</td>
                     <td class="text-right" style="font-weight:600">{{ fmt(inv.outstanding) }}</td>
@@ -220,6 +219,10 @@
                 [label]="mode() === 'pay' ? 'Payment' : 'Receipt'"
                 [value]="row.details"
                 [amount]="row.amount"
+                [cashLimit]="cashLimit()"
+                [banks]="accountBankOptions()"
+                [depositBanks]="accountDepositBankOptions()"
+                [onlinePaymentTypes]="accountOnlinePaymentTypes()"
                 (valueChange)="setModeDetails(idx, $event)">
               </app-payment-mode-selector>
             </div>
@@ -228,6 +231,9 @@
         <div class="pay-mode-total">
           <span>{{ selectedInvoiceIds().size > 0 ? 'Allocated to invoices' : 'Amount to ' + (mode() === 'pay' ? 'pay' : 'receive') }}: <b>{{ fmt(referenceTotal()) }}</b></span>
           <span>Mode total: <b>{{ fmt(modeTotal()) }}</b></span>
+          @if (cashLimitExceeded()) {
+            <span class="pay-warn">{{ cashLimitMessage() }}</span>
+          }
           @if (referenceTotal() || modeTotal()) {
             @if (Math.abs(modeDiff()) < 0.01) {
               <span class="pay-ok">✓ Fully matched</span>
@@ -355,9 +361,6 @@
       <div class="pay-f-item">
         <div class="pay-f-k">Allocated</div>
         <div class="pay-f-v hl">{{ fmt(totalAllocated()) }}</div>
-        @if (totalAllocated() > 0) {
-          <div class="pay-f-sub">Taxable {{ fmt(taxableInAllocated()) }} · GST {{ fmt(gstInAllocated()) }}</div>
-        }
       </div>
       @if (totalNotesApplied() > 0) {
         <div class="pay-f-item"><div class="pay-f-k">Notes Applied</div><div class="pay-f-v n">{{ fmt(totalNotesApplied()) }}</div></div>
@@ -396,8 +399,6 @@
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-calendar"></i></span><div><small>Invoice Date</small><strong>{{ fmtDate(inv.invoice_date) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-calendar-times"></i></span><div><small>Due Date</small><strong>{{ fmtDate(inv.due_date) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-info-circle"></i></span><div><small>Status</small><span class="erp-badge" [class]="agingLabel(inv).cls">{{ agingLabel(inv).text }}</span></div></article>
-        <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-file"></i></span><div><small>Taxable Value</small><strong>{{ fmt(inv.subtotal_amount) }}</strong></div></article>
-        <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-percentage"></i></span><div><small>GST</small><strong>{{ fmt(inv.tax_amount) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-file"></i></span><div><small>Invoice Value</small><strong>{{ fmt(inv.total_amount) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-check"></i></span><div><small>Paid Till Date</small><strong>{{ fmt(inv.paid_amount) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-exclamation-triangle"></i></span><div><small>Outstanding</small><strong>{{ fmt(inv.outstanding) }}</strong></div></article>

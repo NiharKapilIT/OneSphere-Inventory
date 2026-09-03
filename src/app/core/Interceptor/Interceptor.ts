@@ -56,8 +56,8 @@ export const responseInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
 
-      const refreshToken = authService.getRefreshToken();
-      if (!refreshToken || !authService.hasTenantClaims()) {
+      const isMultiTenantSession = sessionStorage.getItem('authSessionKind') === 'multiTenant';
+      if (!isMultiTenantSession || !authService.hasTenantClaims(token)) {
         if (sessionStorage.getItem('authSessionKind') === 'legacy') {
           return throwError(() => error);
         }
@@ -67,7 +67,7 @@ export const responseInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       if (!refreshRequest$) {
-        refreshRequest$ = authService.refreshToken(refreshToken).pipe(
+        refreshRequest$ = authService.refreshToken().pipe(
           tap(response => {
             if (!response.data?.accessToken) {
               throw new Error('Refresh token response did not include an access token.');
