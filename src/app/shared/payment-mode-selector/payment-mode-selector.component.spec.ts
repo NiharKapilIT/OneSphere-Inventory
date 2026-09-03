@@ -199,7 +199,7 @@ describe('PaymentModeSelectorComponent (item 19)', () => {
       component.amount = 20000.01;
       const v = latest();
       expect(v.isValid).toBe(false);
-      expect(component.cashLimitError).toContain('cannot exceed ₹20,000');
+      expect(component.cashLimitError).toContain('cannot exceed Rs 20,000');
     });
 
     it('the cap is Cash-only -- Bank mode is unaffected by any amount, including well over ₹20,000', () => {
@@ -232,6 +232,14 @@ describe('PaymentModeSelectorComponent (item 19)', () => {
       expect(latest().isValid).toBe(true);
       component.amount = undefined as any;
       expect(latest().isValid).toBe(true);
+    });
+
+    it('honors a host-provided Cash cap instead of always using the default', () => {
+      component.cashLimit = 9999;
+      component.amount = 10000;
+      const v = latest();
+      expect(v.isValid).toBe(false);
+      expect(component.cashLimitError).toContain('Rs 9,999');
     });
   });
 });

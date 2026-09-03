@@ -1,4 +1,5 @@
 ﻿import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { DatePipe } from '@angular/common';
 import { of } from 'rxjs';
 
 import { LoginComponent } from './login.component';
@@ -11,6 +12,7 @@ describe('LoginComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
+      providers: [DatePipe],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoginComponent);
@@ -22,13 +24,9 @@ describe('LoginComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // Required Session-Level Warehouse Selection (Phase 2): unlike Accounts,
-  // this app's login screen keeps two INDEPENDENT signal sets â€” selectedLogin*
-  // for the OTP path and selectedUserid* for the password/userid path (they
-  // are not shared here) â€” so the warehouse gate had to be wired into both
-  // separately. Both previously mirrored Branch's gate; the userid path had
-  // NO gate at all before this fix.
-  describe('warehouse required-gate', () => {
+  // Branch/Warehouse selection: this app keeps separate selectedLogin* and
+  // selectedUserid* signals, so both paths must enforce one active location.
+  describe('branch/warehouse required-gate', () => {
     const tenantOption = {
       userId: 1, companyId: 10, companyCode: 'C1', companyName: 'Company One',
       username: 'u1', fullName: 'User One',
@@ -38,6 +36,10 @@ describe('LoginComponent', () => {
         { id: 101, warehouseCode: 'WH2', warehouseName: 'Warehouse Two', isDefault: false }
       ]
     };
+
+    afterEach(() => {
+      sessionStorage.clear();
+    });
 
     describe('OTP path (selectedLogin* signals)', () => {
       beforeEach(() => {
@@ -54,24 +56,36 @@ describe('LoginComponent', () => {
         expect(component.selectedLoginWarehouses()).toEqual(tenantOption.warehouses as any);
       });
 
-      it('verifyLoginOtp blocks submission with "Please select a warehouse." when none is picked', async () => {
+      it('verifyLoginOtp proceeds with only a branch picked', async () => {
+        const authService = TestBed.inject(AuthService);
+        const verifySpy = vi.spyOn(authService, 'verifyOtp').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
+
+        await component.verifyLoginOtp();
+
+        expect(verifySpy).toHaveBeenCalledWith('', '123456', undefined, 10, 5, null);
+      });
+
+      it('verifyLoginOtp blocks submission when neither branch nor warehouse is picked', async () => {
+        component.selectedLoginBranchId.set(null);
         const authService = TestBed.inject(AuthService);
         const verifySpy = vi.spyOn(authService, 'verifyOtp').mockReturnValue(of({ success: true, message: '' } as any));
 
         await component.verifyLoginOtp();
 
-        expect(component.errorMessage()).toBe('Please select a warehouse.');
+        expect(component.errorMessage()).toBe('Please select a branch or warehouse.');
         expect(verifySpy).not.toHaveBeenCalled();
       });
 
-      it('selectLoginCompany defaults the warehouse to the option\'s default (or first) warehouse', () => {
+      it('selectLoginCompany defaults to branch-only when a branch is available', () => {
         component.selectLoginCompany(10);
-        expect(component.selectedLoginWarehouseId()).toBe(100);
+        expect(component.selectedLoginBranchId()).toBe(5);
+        expect(component.selectedLoginWarehouseId()).toBeNull();
       });
 
-      it('selectLoginWarehouse sets the signal directly', () => {
+      it('selectLoginWarehouse sets warehouse and clears branch', () => {
         component.selectLoginWarehouse(101);
         expect(component.selectedLoginWarehouseId()).toBe(101);
+        expect(component.selectedLoginBranchId()).toBeNull();
       });
     });
 
@@ -79,6 +93,7 @@ describe('LoginComponent', () => {
     // pre-submit validation at all before this fix, unlike verifyLoginOtp.
     describe('userid/password path (selectedUserid* signals)', () => {
       beforeEach(() => {
+        sessionStorage.setItem('apiURL', 'http://test.local/api');
         component.useridIdentifier.set('user@example.com');
         component.useridPassword.set('Password@123');
         component.useridRequiresSelection.set(true);
@@ -92,34 +107,46 @@ describe('LoginComponent', () => {
         expect(component.selectedUseridWarehouses()).toEqual(tenantOption.warehouses as any);
       });
 
-      it('onUserIdLogin blocks submission with "Please select a warehouse." when none is picked', async () => {
-        const authService = TestBed.inject(AuthService);
-        const loginSpy = vi.spyOn(authService, 'passwordLogin').mockReturnValue(of({ success: true, message: '' } as any));
-
-        await component.onUserIdLogin();
-
-        expect(component.errorMessage()).toBe('Please select a warehouse.');
-        expect(loginSpy).not.toHaveBeenCalled();
-      });
-
-      it('onUserIdLogin proceeds and passes the warehouseId through once one is picked', async () => {
-        component.selectedUseridWarehouseId.set(101);
+      it('onUserIdLogin proceeds with only a branch picked', async () => {
         const authService = TestBed.inject(AuthService);
         const loginSpy = vi.spyOn(authService, 'passwordLogin').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
 
         await component.onUserIdLogin();
 
-        expect(loginSpy).toHaveBeenCalledWith('user@example.com', 'Password@123', undefined, 10, 5, 101);
+        expect(loginSpy).toHaveBeenCalledWith('user@example.com', 'Password@123', undefined, 10, 5, null);
       });
 
-      it('selectUseridCompany defaults the warehouse to the option\'s default (or first) warehouse', () => {
+      it('onUserIdLogin blocks submission when neither branch nor warehouse is picked', async () => {
+        component.selectedUseridBranchId.set(null);
+        const authService = TestBed.inject(AuthService);
+        const loginSpy = vi.spyOn(authService, 'passwordLogin').mockReturnValue(of({ success: true, message: '' } as any));
+
+        await component.onUserIdLogin();
+
+        expect(component.errorMessage()).toBe('Please select a branch or warehouse.');
+        expect(loginSpy).not.toHaveBeenCalled();
+      });
+
+      it('onUserIdLogin passes warehouseId with branch null once warehouse is picked', async () => {
+        component.selectUseridWarehouse(101);
+        const authService = TestBed.inject(AuthService);
+        const loginSpy = vi.spyOn(authService, 'passwordLogin').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
+
+        await component.onUserIdLogin();
+
+        expect(loginSpy).toHaveBeenCalledWith('user@example.com', 'Password@123', undefined, 10, null, 101);
+      });
+
+      it('selectUseridCompany defaults to branch-only when a branch is available', () => {
         component.selectUseridCompany(10);
-        expect(component.selectedUseridWarehouseId()).toBe(100);
+        expect(component.selectedUseridBranchId()).toBe(5);
+        expect(component.selectedUseridWarehouseId()).toBeNull();
       });
 
-      it('selectUseridWarehouse sets the signal directly', () => {
+      it('selectUseridWarehouse sets warehouse and clears branch', () => {
         component.selectUseridWarehouse(101);
         expect(component.selectedUseridWarehouseId()).toBe(101);
+        expect(component.selectedUseridBranchId()).toBeNull();
       });
     });
   });

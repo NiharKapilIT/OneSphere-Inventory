@@ -15,7 +15,17 @@ export interface SegmentItem {
   segment_name: string;
   usage_note?: string;
   status: string;
-  categories: { id: number; category_code: string; category_name: string }[];
+  categories: {
+    id: number;
+    category_code: string;
+    category_name: string;
+    serial_applicable?: boolean;
+    serial_policy_id?: number | null;
+    serial_policy_name?: string | null;
+    batch_applicable?: boolean;
+    batch_policy_id?: number | null;
+    batch_policy_name?: string | null;
+  }[];
   hsn_sac_codes: { id: number; code: string; description?: string; hsn_type: string; category?: string; remarks?: string; gst_rate: number }[];
   uoms: { id: number; uom_code: string; uom_name: string; uom_symbol?: string }[];
 }
@@ -451,6 +461,17 @@ export interface ConsumptionTypeItem {
   status: string;
 }
 
+export interface PartyGstinItem {
+  id?: number;
+  stateName?: string;
+  state_name?: string;
+  stateCode?: string | number | null;
+  state_code?: string | number | null;
+  gstin?: string;
+  isPrimary?: boolean;
+  is_primary?: boolean;
+}
+
 export interface VendorItem {
   id: number;
   segment_id?: number;
@@ -462,6 +483,7 @@ export interface VendorItem {
   vendor_type: string;
   vendor_category?: string;
   gstin?: string;
+  gstins?: PartyGstinItem[];
   pan?: string;
   mobile?: string;
   email?: string;
@@ -527,6 +549,11 @@ export interface ContactItem {
   state?: string;
   pincode?: string;
   is_supplier?: boolean;
+  is_customer?: boolean;
+  is_channel_partner?: boolean;
+  vendor_exists?: boolean;
+  customer_exists?: boolean;
+  channel_partner_exists?: boolean;
   status: string;
 }
 
@@ -541,6 +568,7 @@ export interface CustomerItem {
   customer_type: string;
   customer_category?: string;
   gstin?: string;
+  gstins?: PartyGstinItem[];
   pan?: string;
   mobile?: string;
   email?: string;
@@ -759,7 +787,13 @@ export class InventoryConfigService {
       categories: (this.value<any[]>(item, 'categories', 'categories', []) ?? []).map(c => ({
         id: c?.id,
         category_code: this.value(c, 'category_code', 'categoryCode', ''),
-        category_name: this.value(c, 'category_name', 'categoryName', '')
+        category_name: this.value(c, 'category_name', 'categoryName', ''),
+        serial_applicable: !!this.value(c, 'serial_applicable', 'serialApplicable', false),
+        serial_policy_id: this.value(c, 'serial_policy_id', 'serialPolicyId', null),
+        serial_policy_name: this.value(c, 'serial_policy_name', 'serialPolicyName', null),
+        batch_applicable: !!this.value(c, 'batch_applicable', 'batchApplicable', false),
+        batch_policy_id: this.value(c, 'batch_policy_id', 'batchPolicyId', null),
+        batch_policy_name: this.value(c, 'batch_policy_name', 'batchPolicyName', null)
       })),
       hsn_sac_codes: (this.value<any[]>(item, 'hsn_sac_codes', 'hsnSacCodes', []) ?? []).map(h => ({
         id: h?.id,
@@ -1496,6 +1530,7 @@ export class InventoryConfigService {
       vendor_type: this.value(item, 'vendor_type', 'vendorType', 'Company'),
       vendor_category: this.value(item, 'vendor_category', 'vendorCategory'),
       gstin: this.value(item, 'gstin', 'gstin'),
+      gstins: this.value(item, 'gstins', 'gstins', []),
       pan: this.value(item, 'pan', 'pan'),
       mobile: this.value(item, 'mobile', 'mobile'),
       email: this.value(item, 'email', 'email'),
@@ -1565,6 +1600,11 @@ export class InventoryConfigService {
       state: this.value(item, 'state', 'state'),
       pincode: this.value(item, 'pincode', 'pincode'),
       is_supplier: this.value(item, 'is_supplier', 'isSupplier', false),
+      is_customer: this.value(item, 'is_customer', 'isCustomer', false),
+      is_channel_partner: this.value(item, 'is_channel_partner', 'isChannelPartner', false),
+      vendor_exists: this.value(item, 'vendor_exists', 'vendorExists', false),
+      customer_exists: this.value(item, 'customer_exists', 'customerExists', false),
+      channel_partner_exists: this.value(item, 'channel_partner_exists', 'channelPartnerExists', false),
       status: this.value(item, 'status', 'status', 'active')
     };
   }
@@ -1581,6 +1621,7 @@ export class InventoryConfigService {
       customer_type: this.value(item, 'customer_type', 'customerType', 'Company'),
       customer_category: this.value(item, 'customer_category', 'customerCategory'),
       gstin: this.value(item, 'gstin', 'gstin'),
+      gstins: this.value(item, 'gstins', 'gstins', []),
       pan: this.value(item, 'pan', 'pan'),
       mobile: this.value(item, 'mobile', 'mobile'),
       email: this.value(item, 'email', 'email'),

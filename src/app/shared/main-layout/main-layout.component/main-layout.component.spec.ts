@@ -31,12 +31,41 @@ describe('MainLayoutComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  // Branch/Warehouse merged-selector gate (Phase 3): Warehouse used to be
-  // hard-required alongside Branch (Phase 2's "warehouse switch context").
-  // Now the backend silently defaults whichever of Branch/Warehouse is
-  // omitted (see ResolveSelectedBranchId/ResolveSelectedWarehouseId on the
-  // API), so this gate only needs to confirm at least ONE of the two
-  // resolved — not both.
+  describe('flyout accordion state', () => {
+    const transactions = {
+      id: 'inventory-transactions',
+      name: 'Transactions',
+      screens: [
+        { id: 'goods-receipt', name: 'Goods Receipt Note (GRN)', route: '/dashboard/inventory/transactions/goods-receipt', group: 'Procurement' },
+        { id: 'production-entry', name: 'Production Entry', route: '/dashboard/inventory/transactions/production-entry', group: 'Manufacturing' },
+        { id: 'stock-transfer', name: 'Stock Transfer', route: '/dashboard/inventory/transactions/stock-transfer', group: 'Inventory' }
+      ]
+    };
+
+    it('opens the active group and collapses the remaining flyout groups', () => {
+      component.selectedSubModule = transactions as any;
+      component.selectedScreen = transactions.screens[1] as any;
+
+      (component as any).initializeFlyoutGroups(transactions);
+
+      expect(component.isFlyoutGroupExpanded('Manufacturing')).toBe(true);
+      expect(component.isFlyoutGroupExpanded('Procurement')).toBe(false);
+
+      component.toggleFlyoutGroup('Inventory');
+
+      expect(component.isFlyoutGroupExpanded('Inventory')).toBe(true);
+      expect(component.isFlyoutGroupExpanded('Manufacturing')).toBe(false);
+
+      (component as any).expandActiveFlyoutGroup(transactions, transactions.screens[1]);
+
+      expect(component.isFlyoutGroupExpanded('Manufacturing')).toBe(true);
+      expect(component.isFlyoutGroupExpanded('Inventory')).toBe(false);
+    });
+  });
+
+  // Branch/Warehouse merged-selector gate: only one active location is
+  // required. A warehouse choice is validated as warehouse access and then
+  // supplies its linked branch for legacy BranchCode context.
   describe('branch/warehouse required-gate (only one of the two needed)', () => {
     const tenantOption = {
       userId: 1, companyId: 10, companyCode: 'C1', companyName: 'Company One',
@@ -71,6 +100,24 @@ describe('MainLayoutComponent', () => {
       expect(component.isContextChanged).toBe(false);
     });
 
+    it('isContextChanged is true when explicitly picking a warehouse whose id already equals the branch-context warehouseId', () => {
+      sessionStorage.setItem('activeLocationKind', 'branch');
+      component.onSwitchLocationChange('warehouse:100');
+      expect(component.isContextChanged).toBe(true);
+    });
+
+    it('isContextChanged is true when explicitly picking a branch whose id already equals the warehouse-context branchId', () => {
+      sessionStorage.setItem('activeLocationKind', 'warehouse');
+      component.onSwitchLocationChange('branch:5');
+      expect(component.isContextChanged).toBe(true);
+    });
+
+    it('isContextChanged is false when re-picking the same warehouse that is already the active warehouse context', () => {
+      sessionStorage.setItem('activeLocationKind', 'warehouse');
+      component.onSwitchLocationChange('warehouse:100');
+      expect(component.isContextChanged).toBe(false);
+    });
+
     it('applyTenantSwitch proceeds with only a branch selected — warehouse stays null and is sent as such for the backend to silently default', async () => {
       component.selectedSwitchWarehouseId = null;
       const authService = TestBed.inject(AuthService);
@@ -83,11 +130,6 @@ describe('MainLayoutComponent', () => {
     });
 
     it('applyTenantSwitch blocks with "Please select a branch or warehouse." when NEITHER is selected', async () => {
-      // Must target a DIFFERENT company than the session's current one —
-      // applyTenantSwitch's very first guard silently no-ops (no switchError
-      // at all) for "same company, no branch picked", which isn't the case
-      // this test means to exercise.
-      sessionStorage.setItem('companyId', '999');
       component.selectedSwitchBranchId = null;
       component.selectedSwitchWarehouseId = null;
       const authService = TestBed.inject(AuthService);
@@ -99,19 +141,32 @@ describe('MainLayoutComponent', () => {
       expect(switchSpy).not.toHaveBeenCalled();
     });
 
-    it('applyTenantSwitch passes the selected warehouseId through to switchBranch', async () => {
+    it('applyTenantSwitch omits a stale warehouseId when branch is the active pick', async () => {
       component.selectedSwitchWarehouseId = 101;
       const authService = TestBed.inject(AuthService);
       const switchSpy = vi.spyOn(authService, 'switchBranch').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
 
       await component.applyTenantSwitch();
 
-      expect(switchSpy).toHaveBeenCalledWith(5, 101);
+      expect(switchSpy).toHaveBeenCalledWith(5, null);
     });
 
-    it('onSwitchCompanyChange defaults the warehouse to the option\'s default (or first) warehouse', () => {
+    it('applyTenantSwitch sends same-company warehouse-only picks through switchCompany', async () => {
+      component.onSwitchLocationChange('warehouse:101');
+      const authService = TestBed.inject(AuthService);
+      const switchBranchSpy = vi.spyOn(authService, 'switchBranch').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
+      const switchCompanySpy = vi.spyOn(authService, 'switchCompany').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
+
+      await component.applyTenantSwitch();
+
+      expect(switchBranchSpy).not.toHaveBeenCalled();
+      expect(switchCompanySpy).toHaveBeenCalledWith(10, null, 101);
+    });
+
+    it('onSwitchCompanyChange defaults to branch-only when a branch is available', () => {
       component.onSwitchCompanyChange(10);
-      expect(component.selectedSwitchWarehouseId).toBe(100);
+      expect(component.selectedSwitchBranchId).toBe(5);
+      expect(component.selectedSwitchWarehouseId).toBeNull();
     });
 
     it('onSwitchWarehouseChange sets the field directly', () => {
@@ -123,7 +178,7 @@ describe('MainLayoutComponent', () => {
     // switch with no warehouse picker of its own — it must carry the
     // currently active session warehouse forward rather than 400ing outright
     // now that switch-branch is always-required on WarehouseId.
-    it('switchBranchDirectly carries the current session warehouse forward', async () => {
+    it('switchBranchDirectly switches to branch-only context', async () => {
       const authService = TestBed.inject(AuthService);
       const switchSpy = vi.spyOn(authService, 'switchBranch').mockReturnValue(of({ success: true, message: '', data: undefined } as any));
 
@@ -131,18 +186,15 @@ describe('MainLayoutComponent', () => {
       // when asked to "switch" to the branch that's already active.
       await component.switchBranchDirectly(7);
 
-      expect(switchSpy).toHaveBeenCalledWith(7, 100);
+      expect(switchSpy).toHaveBeenCalledWith(7, null);
     });
   });
 
   // Merged Branch/Warehouse single-select control (Phase 3): one ng-select
   // replacing the two separate Branch and Warehouse dropdowns in the topbar
   // switcher, mirroring login.component.ts's merged selector exactly.
-  // Picking an entry must set ONLY the matching field and leave the other
-  // one exactly as it was — this is the invariant Phase 5 (warehouse-level
-  // access control) will build on. Kept byte-identical to the Accounts copy
-  // of this spec (these two components are hand-duplicated, not
-  // federation-shared).
+  // Picking an entry must set the matching field and clear the other one so
+  // stale branch/warehouse context cannot ride along with the visible choice.
   describe('merged Branch/Warehouse selector (Phase 3)', () => {
     const tenantOption = {
       userId: 1, companyId: 10, companyCode: 'C1', companyName: 'Company One',
@@ -168,23 +220,41 @@ describe('MainLayoutComponent', () => {
       expect(entries.find(e => e.key === 'branch:5')?.type).toBe('branch');
     });
 
+    it('keeps the option array stable between reads while the dropdown is open', () => {
+      const firstRead = component.mergedSwitchLocationOptions;
+      const secondRead = component.mergedSwitchLocationOptions;
+      expect(secondRead).toBe(firstRead);
+    });
+
     it('defaults the displayed value to the branch when both branch and warehouse are already populated', () => {
       expect(component.selectedSwitchLocationKey).toBe('branch:5');
     });
 
-    it('picking a warehouse entry sets ONLY selectedSwitchWarehouseId, leaving selectedSwitchBranchId untouched', () => {
+    it('picking a warehouse entry sets selectedSwitchWarehouseId and clears selectedSwitchBranchId', () => {
       component.onSwitchLocationChange('warehouse:101');
       expect(component.selectedSwitchWarehouseId).toBe(101);
-      expect(component.selectedSwitchBranchId).toBe(5);
+      expect(component.selectedSwitchBranchId).toBeNull();
       expect(component.selectedSwitchLocationKey).toBe('warehouse:101');
     });
 
-    it('picking a branch entry sets ONLY selectedSwitchBranchId, leaving selectedSwitchWarehouseId untouched', () => {
+    it('picking a branch entry sets selectedSwitchBranchId and clears selectedSwitchWarehouseId', () => {
       component.selectedSwitchWarehouseId = 101;
       component.onSwitchLocationChange('branch:5');
       expect(component.selectedSwitchBranchId).toBe(5);
-      expect(component.selectedSwitchWarehouseId).toBe(101);
+      expect(component.selectedSwitchWarehouseId).toBeNull();
       expect(component.selectedSwitchLocationKey).toBe('branch:5');
+    });
+
+    it('handles the full ng-select item object emitted from mouse selection', () => {
+      component.onSwitchLocationPicked({
+        key: 'warehouse:101',
+        label: 'Warehouse Two (WH2)',
+        type: 'warehouse',
+        id: 101
+      });
+
+      expect(component.selectedSwitchWarehouseId).toBe(101);
+      expect(component.selectedSwitchBranchId).toBeNull();
     });
   });
 });

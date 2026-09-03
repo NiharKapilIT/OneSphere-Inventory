@@ -335,7 +335,6 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
   protected readonly warehouseCards = computed<WarehouseStockCard[]>(() => {
     const rows = this.branchStockRows();
     if (!rows.length) return [];
-    const currentWarehouseId = this.currentWarehouseId();
     const byWarehouse = new Map<string, WarehouseStockCard>();
     for (const stockRow of rows) {
       if (stockRow.warehouse_id == null) continue;
@@ -348,7 +347,7 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
           warehouseId,
           warehouseName: stockRow.warehouse_name || stockRow.location_name || 'Warehouse',
           available: 0,
-          isCurrentWarehouse: currentWarehouseId != null && warehouseId === currentWarehouseId
+          isCurrentWarehouse: this.isActiveSessionWarehouse(warehouseId)
         });
       }
       byWarehouse.get(key)!.available += available;
@@ -360,7 +359,6 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     const rows = this.branchStockRows();
     if (!rows.length) return [];
     const branches: BranchInvItem[] = this.host.loadedBranchObjects() || [];
-    const currentBranchId = this.currentBranchId();
     const byBranch = new Map<string, BranchStockCard>();
     for (const stockRow of rows) {
       if (stockRow.branch_id == null) continue;
@@ -376,7 +374,7 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
           branchId: resolvedBranchId,
           branchName,
           available: 0,
-          isCurrentBranch: currentBranchId != null && resolvedBranchId === currentBranchId
+          isCurrentBranch: this.isActiveSessionBranch(resolvedBranchId)
         });
       }
       byBranch.get(key)!.available += available;
@@ -384,57 +382,26 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     return Array.from(byBranch.values()).sort((a, b) => b.available - a.available);
   });
 
-  // Resolves "the transaction's own location" for the current document, so
-  // the matching card in the By Warehouse / By Branch lists can be
-  // labelled -- purely a label, this never changes which cards render or
-  // that they stay non-clickable. No single header field name is shared
-  // across the 3 pilot screens (Sales Invoice: 'warehouse', or 'branch' once
-  // Interbranch Sale is on; Purchase Invoice: 'receivingLocation', a merged
-  // Warehouse/Branch field; Stock Transfer: 'fromWarehouse', also merged),
-  // so this reads the right one per host.config.key.
-  private readonly currentLocationRaw = computed<string>(() => {
-    const formValues = this.host.formValues?.() || {};
-    const screenKey = this.host.config?.key || '';
-    let raw = '';
-    if (screenKey === 'salesInvoice') {
-      const interbranch = String(formValues['interbranchSale'] || '').trim().toLowerCase() === 'yes';
-      raw = interbranch ? String(formValues['branch'] || '') : String(formValues['warehouse'] || '');
-    } else if (screenKey === 'stockTransfer') {
-      raw = String(formValues['fromWarehouse'] || '');
-    } else if (screenKey === 'purchaseInvoice') {
-      raw = String(formValues['receivingLocation'] || '');
-    }
-    return raw.trim();
-  });
+  private activeLocationKind(): 'warehouse' | 'branch' | '' {
+    const kind = String(sessionStorage.getItem('activeLocationKind') || '').trim().toLowerCase();
+    return kind === 'warehouse' || kind === 'branch' ? kind : '';
+  }
 
-  // Warehouse and Branch are fully independent location concepts now -- a
-  // picked WAREHOUSE never resolves to "its" branch here any more (no
-  // resolution between them anywhere), and a picked BRANCH never resolves to
-  // a warehouse. Each of these two lookups only ever matches its own kind.
-  private readonly currentWarehouseId = computed<number | null>(() => {
-    const raw = this.currentLocationRaw();
-    if (!raw) return null;
-    const key = raw.toLowerCase();
-    const warehouses: WarehouseItem[] = this.host.loadedWarehouseObjects() || [];
-    const warehouse = warehouses.find(w =>
-      String(w.warehouse_name || '').trim().toLowerCase() === key
-      || String(w.warehouse_code || '').trim().toLowerCase() === key
-    );
-    return warehouse?.id != null ? Number(warehouse.id) : null;
-  });
+  private isActiveSessionWarehouse(warehouseId: number | null): boolean {
+    if (warehouseId == null) return false;
+    const kind = this.activeLocationKind();
+    if (kind === 'branch') return false;
+    const activeId = Number(sessionStorage.getItem('warehouseId') || 0);
+    return activeId > 0 && warehouseId === activeId;
+  }
 
-  private readonly currentBranchId = computed<number | null>(() => {
-    const raw = this.currentLocationRaw();
-    if (!raw) return null;
-
-    const key = raw.toLowerCase();
-    const branches: BranchInvItem[] = this.host.loadedBranchObjects() || [];
-    const branch = branches.find(b =>
-      String(b.branch_name || '').trim().toLowerCase() === key
-      || String(b.branch_code || '').trim().toLowerCase() === key
-    );
-    return branch ? Number(branch.branch_id ?? branch.id) : null;
-  });
+  private isActiveSessionBranch(branchId: number | null): boolean {
+    if (branchId == null) return false;
+    const kind = this.activeLocationKind();
+    if (kind === 'warehouse') return false;
+    const activeId = Number(sessionStorage.getItem('branchId') || 0);
+    return activeId > 0 && branchId === activeId;
+  }
 
   protected readonly triggerLabel = computed(() => {
     const product = this.productValue();

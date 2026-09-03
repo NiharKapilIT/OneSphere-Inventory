@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { ApiResponse } from './inventory-config.service';
 
 export interface OutstandingInvoice {
@@ -68,6 +68,21 @@ export interface PaymentVoucherMode {
   ref_json?: Record<string, string>;
 }
 
+export interface PaymentVoucherAccountOption {
+  id: any;
+  label: string;
+  branchName?: string;
+  accountNumber?: string;
+  bankBookBalance?: number;
+  passbookBalance?: number;
+}
+
+export interface PaymentVoucherAccountSetup {
+  banks: PaymentVoucherAccountOption[];
+  depositBanks: PaymentVoucherAccountOption[];
+  onlinePaymentTypes: PaymentVoucherAccountOption[];
+}
+
 export interface PaymentVoucher {
   id: number;
   voucher_number: string;
@@ -100,6 +115,70 @@ export class PaymentsService {
     return new HttpHeaders({ Authorization: `Bearer ${sessionStorage.getItem('token') || ''}` });
   }
   private url(path: string): string { return `${this.base()}/inventory/payments/${path}`; }
+  private accountsUrl(path: string): string { return `${this.base()}/Accounts/${path}`; }
+
+  private accountsParams(): HttpParams {
+    return new HttpParams()
+      .set('BranchSchema', sessionStorage.getItem('accountsSchema') || sessionStorage.getItem('AccountsSchema') || 'accounts')
+      .set('GlobalSchema', sessionStorage.getItem('globalSchema') || sessionStorage.getItem('GlobalSchema') || 'global')
+      .set('CompanyCode', sessionStorage.getItem('companyCode') || '')
+      .set('BranchCode', sessionStorage.getItem('branchCode') || '');
+  }
+
+  private readAny(r: any, keys: string[]): any {
+    for (const key of keys) {
+      if (r?.[key] !== undefined && r?.[key] !== null) return r[key];
+    }
+    return undefined;
+  }
+
+  private readString(r: any, keys: string[]): string {
+    const value = this.readAny(r, keys);
+    return value === undefined || value === null ? '' : String(value).trim();
+  }
+
+  private readNumber(r: any, keys: string[]): number | undefined {
+    const value = this.readAny(r, keys);
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  }
+
+  private normBankOption(r: any): PaymentVoucherAccountOption | null {
+    const id = this.readAny(r, ['id', 'pbankid', 'pbankId', 'pBankId', 'pdepositbankid', 'pdepositbankId', 'pDepositbankid']);
+    const label = this.readString(r, ['label', 'pbankname', 'pbankName', 'pBankName', 'pdepositbankname', 'pDepositbankname']);
+    if (id === undefined || id === null || !label) return null;
+    return {
+      id,
+      label,
+      branchName: this.readString(r, ['branchName', 'pbranchname', 'pBranchName']) || undefined,
+      accountNumber: this.readString(r, ['accountNumber', 'pbankaccountnumber', 'pBankaccountnumber']) || undefined,
+      bankBookBalance: this.readNumber(r, ['bankBookBalance', 'pbankbalance', 'pBankBalance']),
+      passbookBalance: this.readNumber(r, ['passbookBalance', 'pbankpassbookbalance', 'pBankPassbookBalance'])
+    };
+  }
+
+  private normBankOptions(rows: any): PaymentVoucherAccountOption[] {
+    const source = Array.isArray(rows) ? rows : [];
+    const result: PaymentVoucherAccountOption[] = [];
+    for (const row of source) {
+      const option = this.normBankOption(row);
+      if (option) result.push(option);
+    }
+    return result;
+  }
+
+  private normOnlinePaymentTypes(rows: any): PaymentVoucherAccountOption[] {
+    const source = Array.isArray(rows) ? rows : [];
+    const byLabel = new Map<string, PaymentVoucherAccountOption>();
+    for (const row of source) {
+      const transType = this.readString(row, ['ptranstype', 'pTransType', 'transType']);
+      const subType = this.readString(row, ['ptypeofpayment', 'pTypeofpayment', 'pTypeOfPayment', 'subTypeOfReceiptspayments']);
+      if (!subType || (transType && transType.toUpperCase() === subType.toUpperCase())) continue;
+      const key = subType.toUpperCase();
+      if (!byLabel.has(key)) byLabel.set(key, { id: subType, label: subType });
+    }
+    return [...byLabel.values()];
+  }
 
   private normOutstanding(r: any): OutstandingInvoice {
     return {
@@ -220,6 +299,21 @@ export class PaymentsService {
     return this.http.get<ApiResponse<any[]>>(this.url('vouchers'), { headers: this.headers(), params }).pipe(
       map(res => ({ ...res, data: (res.data ?? []).map(r => this.normVoucher(r)) }))
     );
+  }
+
+  getPaymentVoucherAccountSetup(): Observable<PaymentVoucherAccountSetup> {
+    const params = this.accountsParams();
+    return forkJoin({
+      bankRes: this.http.get<any>(this.accountsUrl('GetBankntList'), { headers: this.headers(), params }).pipe(catchError(() => of({ banklist: [] }))),
+      modeRes: this.http.get<any>(this.accountsUrl('GetModeoftransactions'), { headers: this.headers(), params }).pipe(catchError(() => of({ modeofTransactionslist: [] })))
+    }).pipe(map(({ bankRes, modeRes }) => {
+      const banks = this.normBankOptions(bankRes?.banklist ?? bankRes?.bankList ?? bankRes);
+      return {
+        banks,
+        depositBanks: banks,
+        onlinePaymentTypes: this.normOnlinePaymentTypes(modeRes?.modeofTransactionslist ?? modeRes?.modeOfTransactionsList ?? modeRes)
+      };
+    }));
   }
 
   savePaymentVoucher(payload: {

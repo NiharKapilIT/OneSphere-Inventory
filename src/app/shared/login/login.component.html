@@ -144,6 +144,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedLoginBranchId()"
                 (ngModelChange)="selectLoginBranch($event)">
+                <option [ngValue]="null">Select branch</option>
                 @for (branch of selectedLoginBranches(); track branch.id) {
                 <option [ngValue]="branch.id">{{ branch.branchName }} ({{ branch.branchCode }})</option>
                 }
@@ -160,6 +161,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedLoginWarehouseId()"
                 (ngModelChange)="selectLoginWarehouse($event)">
+                <option [ngValue]="null">Select warehouse</option>
                 @for (warehouse of selectedLoginWarehouses(); track warehouse.id) {
                 <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
                 }
@@ -275,7 +277,7 @@
           @if (loginTenantOptions().length > 0) {
           <div class="auth-info-box" style="margin-bottom:12px;">
             <i class="pi pi-info-circle"></i>
-            <span>OTP verified. Select company and branch, then click <strong>Confirm & Sign In</strong>.</span>
+            <span>OTP verified. Select company and branch or warehouse, then click <strong>Confirm & Sign In</strong>.</span>
           </div>
           <div class="erp-form-group">
             <label>Company</label>
@@ -299,6 +301,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedLoginBranchId()"
                 (ngModelChange)="selectLoginBranch($event)">
+                <option [ngValue]="null">Select branch</option>
                 @for (branch of selectedLoginBranches(); track branch.id) {
                 <option [ngValue]="branch.id">{{ branch.branchName }} ({{ branch.branchCode }})</option>
                 }
@@ -320,6 +323,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedLoginWarehouseId()"
                 (ngModelChange)="selectLoginWarehouse($event)">
+                <option [ngValue]="null">Select warehouse</option>
                 @for (warehouse of selectedLoginWarehouses(); track warehouse.id) {
                 <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
                 }
@@ -453,6 +457,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedUseridBranchId()"
                 (ngModelChange)="selectUseridBranch($event)">
+                <option [ngValue]="null">Select branch</option>
                 @for (branch of selectedUseridBranches(); track branch.id) {
                 <option [ngValue]="branch.id">{{ branch.branchName }} ({{ branch.branchCode }})</option>
                 }
@@ -469,6 +474,7 @@
               <select class="w-100 input-icon-pad auth-select"
                 [ngModel]="selectedUseridWarehouseId()"
                 (ngModelChange)="selectUseridWarehouse($event)">
+                <option [ngValue]="null">Select warehouse</option>
                 @for (warehouse of selectedUseridWarehouses(); track warehouse.id) {
                 <option [ngValue]="warehouse.id">{{ warehouse.warehouseName }} ({{ warehouse.warehouseCode }})</option>
                 }

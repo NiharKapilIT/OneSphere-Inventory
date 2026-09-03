@@ -4,7 +4,6 @@
   [title]="triggerTitle()"
   [attr.aria-label]="triggerTitle()"
   (click)="openPopup($event)">
-  <i class="pi" [class.pi-plus]="!productValue()" [class.pi-box]="!!productValue()"></i>
   <span class="inventory-line-product-trigger-text">
     @if (productValue()) {
       <strong>{{ productValue() }}</strong>
@@ -114,10 +113,10 @@
                     <div class="inv-line-picker-branch-card" [class.inv-line-picker-branch-card--current]="card.isCurrentWarehouse">
                       <div class="inv-line-picker-branch-card-head">
                         <span>
-                          {{ card.warehouseName }}
                           @if (card.isCurrentWarehouse) {
-                            <span class="inv-line-picker-current-badge">Current Warehouse</span>
+                            <span class="inv-line-picker-active-dot" title="Active location" aria-label="Active location"></span>
                           }
+                          {{ card.warehouseName }}
                         </span>
                         <strong>{{ card.available | number:'1.0-3' }}</strong>
                       </div>
@@ -139,10 +138,10 @@
                     <div class="inv-line-picker-branch-card" [class.inv-line-picker-branch-card--current]="card.isCurrentBranch">
                       <div class="inv-line-picker-branch-card-head">
                         <span>
-                          {{ card.branchName }}
                           @if (card.isCurrentBranch) {
-                            <span class="inv-line-picker-current-badge">Current Branch</span>
+                            <span class="inv-line-picker-active-dot" title="Active location" aria-label="Active location"></span>
                           }
+                          {{ card.branchName }}
                         </span>
                         <strong>{{ card.available | number:'1.0-3' }}</strong>
                       </div>

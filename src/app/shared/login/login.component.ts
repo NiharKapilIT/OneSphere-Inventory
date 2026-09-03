@@ -117,8 +117,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   loginTenantOptions = signal<LoginTenantOption[]>([]);
   selectedLoginCompanyId = signal<number | null>(null);
   selectedLoginBranchId = signal<number | null>(null);
-  // Independent sibling of selectedLoginBranchId — never filtered by which
-  // branch is selected (Warehouse and Branch have no FK link to each other).
+  // Independent selection state for the merged control. Warehouses carry a
+  // linked branchId, but are still listed from their own warehouse access list.
   selectedLoginWarehouseId = signal<number | null>(null);
 
   // ── Login with User ID (direct password, no company pre-select) ───
@@ -170,6 +170,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   biometricAvailable    = signal(false);
   biometricNotEnrolled  = signal(false);   // required but not enrolled on this device
   private pendingPayload: AuthPayload | null = null;
+  private pendingLoginLocationKind: 'branch' | 'warehouse' | null = null;
 
   // ── Biometric signals (company setup enrollment) ─────────────────
   setupBioStep      = signal(false);
@@ -608,15 +609,15 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.errorMessage.set('Please select a company.');
         return;
       }
-      if (this.selectedLoginBranches().length > 0 && !this.selectedLoginBranchId()) {
-        this.errorMessage.set('Please select a branch.');
-        return;
-      }
-      if (this.selectedLoginWarehouses().length > 0 && !this.selectedLoginWarehouseId()) {
-        this.errorMessage.set('Please select a warehouse.');
+      const hasLocationOptions = this.selectedLoginBranches().length > 0 || this.selectedLoginWarehouses().length > 0;
+      if (hasLocationOptions && !this.selectedLoginBranchId() && !this.selectedLoginWarehouseId()) {
+        this.errorMessage.set('Please select a branch or warehouse.');
         return;
       }
     }
+    const selectedLocationKind = this.selectedLoginActiveLocationKind();
+    const selectedBranchId = selectedLocationKind === 'branch' ? this.selectedLoginBranchId() : null;
+    const selectedWarehouseId = selectedLocationKind === 'warehouse' ? this.selectedLoginWarehouseId() : null;
     this.loading.set(true);
     try {
       const response = await firstValueFrom(
@@ -625,8 +626,8 @@ export class LoginComponent implements OnInit, OnDestroy {
           this.loginOtp().trim(),
           this.loginOtpCompanyCode().trim() || undefined,
           this.selectedLoginCompanyId(),
-          this.selectedLoginBranchId(),
-          this.selectedLoginWarehouseId()
+          selectedBranchId,
+          selectedWarehouseId
         ).pipe(timeout(10000))
       );
 
@@ -641,7 +642,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.prepareTenantSelection(options);
         this.loginRequiresSelection.set(true);
 
-        this.showToast('success', 'OTP verified', 'Select company and branch to continue.');
+        this.showToast('success', 'OTP verified', 'Select company and branch or warehouse to continue.');
         return;
       }
 
@@ -650,7 +651,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (!response.data.tenantOptions?.length && this.loginTenantOptions().length) {
         response.data = { ...response.data, tenantOptions: this.loginTenantOptions() };
       }
-      this.completeLogin(response.data);
+      this.completeLogin(response.data, selectedLocationKind);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || err?.message || 'Invalid or expired OTP.');
     } finally {
@@ -665,15 +666,17 @@ export class LoginComponent implements OnInit, OnDestroy {
     const branch = option?.branches?.find(item => item.isDefault) ?? option?.branches?.[0] ?? null;
     this.selectedLoginBranchId.set(branch?.id ?? null);
     const warehouse = option?.warehouses?.find(item => item.isDefault) ?? option?.warehouses?.[0] ?? null;
-    this.selectedLoginWarehouseId.set(warehouse?.id ?? null);
+    this.selectedLoginWarehouseId.set(branch?.id ? null : warehouse?.id ?? null);
   }
 
   selectLoginBranch(branchId: number | string): void {
     this.selectedLoginBranchId.set(Number(branchId) || null);
+    this.selectedLoginWarehouseId.set(null);
   }
 
   selectLoginWarehouse(warehouseId: number | string): void {
     this.selectedLoginWarehouseId.set(Number(warehouseId) || null);
+    this.selectedLoginBranchId.set(null);
   }
 
   // ── Login with User ID ────────────────────────────────────────────
@@ -697,16 +700,16 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.errorMessage.set('Please select a company.');
         return;
       }
-      if (this.selectedUseridBranches().length > 0 && !this.selectedUseridBranchId()) {
-        this.errorMessage.set('Please select a branch.');
-        return;
-      }
-      if (this.selectedUseridWarehouses().length > 0 && !this.selectedUseridWarehouseId()) {
-        this.errorMessage.set('Please select a warehouse.');
+      const hasLocationOptions = this.selectedUseridBranches().length > 0 || this.selectedUseridWarehouses().length > 0;
+      if (hasLocationOptions && !this.selectedUseridBranchId() && !this.selectedUseridWarehouseId()) {
+        this.errorMessage.set('Please select a branch or warehouse.');
         return;
       }
     }
 
+    const selectedLocationKind = this.selectedUseridActiveLocationKind();
+    const selectedBranchId = selectedLocationKind === 'branch' ? this.selectedUseridBranchId() : null;
+    const selectedWarehouseId = selectedLocationKind === 'warehouse' ? this.selectedUseridWarehouseId() : null;
     this.loading.set(true);
     try {
       const response = await firstValueFrom(
@@ -715,8 +718,8 @@ export class LoginComponent implements OnInit, OnDestroy {
           pw,
           undefined,
           this.useridRequiresSelection() ? this.selectedUseridCompanyId() : null,
-          this.useridRequiresSelection() ? this.selectedUseridBranchId() : null,
-          this.useridRequiresSelection() ? this.selectedUseridWarehouseId() : null
+          this.useridRequiresSelection() ? selectedBranchId : null,
+          this.useridRequiresSelection() ? selectedWarehouseId : null
         ).pipe(timeout(10000))
       );
 
@@ -730,13 +733,11 @@ export class LoginComponent implements OnInit, OnDestroy {
         if (options.length) sessionStorage.setItem('authTenantOptions', JSON.stringify(options));
         this.useridTenantOptions.set(options);
         const first = options[0] ?? null;
+        const branch = first?.branches?.find(item => item.isDefault) ?? first?.branches?.[0] ?? null;
+        const warehouse = first?.warehouses?.find(item => item.isDefault) ?? first?.warehouses?.[0] ?? null;
         this.selectedUseridCompanyId.set(first?.companyId ?? null);
-        this.selectedUseridBranchId.set(
-          first?.branches?.find(b => b.isDefault)?.id ?? first?.branches?.[0]?.id ?? null
-        );
-        this.selectedUseridWarehouseId.set(
-          first?.warehouses?.find(w => w.isDefault)?.id ?? first?.warehouses?.[0]?.id ?? null
-        );
+        this.selectedUseridBranchId.set(branch?.id ?? null);
+        this.selectedUseridWarehouseId.set(branch?.id ? null : warehouse?.id ?? null);
         this.useridRequiresSelection.set(true);
         this.showToast('info', 'Select company', 'Your credentials are linked to multiple companies. Pick one to continue.');
         return;
@@ -747,7 +748,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       if (!response.data.tenantOptions?.length && this.useridTenantOptions().length) {
         response.data = { ...response.data, tenantOptions: this.useridTenantOptions() };
       }
-      this.completeLogin(response.data);
+      this.completeLogin(response.data, selectedLocationKind);
     } catch (err: any) {
       this.errorMessage.set(err?.error?.message || err?.message || 'Invalid credentials or account not found.');
     } finally {
@@ -762,33 +763,46 @@ export class LoginComponent implements OnInit, OnDestroy {
     const branch = option?.branches?.find(b => b.isDefault) ?? option?.branches?.[0] ?? null;
     this.selectedUseridBranchId.set(branch?.id ?? null);
     const warehouse = option?.warehouses?.find(w => w.isDefault) ?? option?.warehouses?.[0] ?? null;
-    this.selectedUseridWarehouseId.set(warehouse?.id ?? null);
+    this.selectedUseridWarehouseId.set(branch?.id ? null : warehouse?.id ?? null);
   }
 
   selectUseridBranch(branchId: number | string): void {
     this.selectedUseridBranchId.set(Number(branchId) || null);
+    this.selectedUseridWarehouseId.set(null);
   }
 
   selectUseridWarehouse(warehouseId: number | string): void {
     this.selectedUseridWarehouseId.set(Number(warehouseId) || null);
+    this.selectedUseridBranchId.set(null);
+  }
+
+  private selectedLoginActiveLocationKind(): 'branch' | 'warehouse' {
+    return this.selectedLoginWarehouseId() && !this.selectedLoginBranchId() ? 'warehouse' : 'branch';
+  }
+
+  private selectedUseridActiveLocationKind(): 'branch' | 'warehouse' {
+    return this.selectedUseridWarehouseId() && !this.selectedUseridBranchId() ? 'warehouse' : 'branch';
   }
 
   private prepareTenantSelection(options: LoginTenantOption[]): void {
     this.loginTenantOptions.set(options);
     const first = options[0] ?? null;
     this.selectedLoginCompanyId.set(first?.companyId ?? null);
-    this.selectedLoginBranchId.set(first?.branches?.find(branch => branch.isDefault)?.id ?? first?.branches?.[0]?.id ?? null);
-    this.selectedLoginWarehouseId.set(first?.warehouses?.find(warehouse => warehouse.isDefault)?.id ?? first?.warehouses?.[0]?.id ?? null);
+    const branch = first?.branches?.find(item => item.isDefault) ?? first?.branches?.[0] ?? null;
+    const warehouse = first?.warehouses?.find(item => item.isDefault) ?? first?.warehouses?.[0] ?? null;
+    this.selectedLoginBranchId.set(branch?.id ?? null);
+    this.selectedLoginWarehouseId.set(branch?.id ? null : warehouse?.id ?? null);
   }
 
   // ── Login completion (biometric gate) ───────────────────────────
-  private completeLogin(payload: AuthPayload): void {
+  private completeLogin(payload: AuthPayload, activeLocationKind: 'branch' | 'warehouse' = 'branch'): void {
     const userId = payload.user?.id;
     if (userId) {
       const enrolled = this.biometric.hasCredential(userId);
       const required = this.biometric.isRequired(userId);
       if (enrolled || required) {
         this.pendingPayload = payload;
+        this.pendingLoginLocationKind = activeLocationKind;
         this.biometricNotEnrolled.set(!enrolled);
         this.biometricStep.set(true);
         this.biometricError.set('');
@@ -796,23 +810,32 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.finishLogin(payload);
+    this.finishLogin(payload, activeLocationKind);
   }
 
   async onBiometricVerify(): Promise<void> {
     if (!this.pendingPayload) return;
     const userId = this.pendingPayload.user?.id;
-    if (!userId) { this.finishLogin(this.pendingPayload!); return; }
+    if (!userId) {
+      const payload = this.pendingPayload;
+      const activeLocationKind = this.pendingLoginLocationKind ?? 'branch';
+      this.pendingPayload = null;
+      this.pendingLoginLocationKind = null;
+      this.finishLogin(payload!, activeLocationKind);
+      return;
+    }
 
     // Required but not enrolled on this device — warn and proceed
     if (this.biometricNotEnrolled()) {
       const payload = this.pendingPayload;
+      const activeLocationKind = this.pendingLoginLocationKind ?? 'branch';
       this.pendingPayload = null;
+      this.pendingLoginLocationKind = null;
       this.biometricStep.set(false);
       this.biometricNotEnrolled.set(false);
       this.showToast('warn', 'Fingerprint not enrolled',
         'Ask your admin to enroll fingerprint on this device for secure login.');
-      this.finishLogin(payload!);
+      this.finishLogin(payload!, activeLocationKind);
       return;
     }
 
@@ -823,10 +846,12 @@ export class LoginComponent implements OnInit, OnDestroy {
 
     if (result === 'success') {
       const payload = this.pendingPayload;
+      const activeLocationKind = this.pendingLoginLocationKind ?? 'branch';
       this.pendingPayload = null;
+      this.pendingLoginLocationKind = null;
       this.biometricStep.set(false);
       this.biometricNotEnrolled.set(false);
-      this.finishLogin(payload!);
+      this.finishLogin(payload!, activeLocationKind);
     } else if (result === 'cancelled') {
       this.biometricError.set('Scan cancelled or timed out. Place your finger on the sensor and try again.');
     } else if (result === 'unsupported') {
@@ -844,12 +869,14 @@ export class LoginComponent implements OnInit, OnDestroy {
     this.biometricStep.set(false);
     this.biometricNotEnrolled.set(false);
     this.pendingPayload = null;
+    this.pendingLoginLocationKind = null;
     this.biometricError.set('');
     this.errorMessage.set('Login cancelled. Please sign in again.');
   }
 
-  private async finishLogin(payload: AuthPayload): Promise<void> {
+  private async finishLogin(payload: AuthPayload, activeLocationKind: 'branch' | 'warehouse' = 'branch'): Promise<void> {
     this.authService.setMultiTenantSession(payload);
+    sessionStorage.setItem('activeLocationKind', activeLocationKind);
     await this.refreshLegacyCompanyDetails();
     this.showToast('success', 'Welcome!', `Signed in as ${payload.user?.fullName || payload.user?.username}.`);
 

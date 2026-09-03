@@ -1059,7 +1059,7 @@
                   }
                 }
                 @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
+                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openFieldAddMaster(field)">
                     <i class="pi pi-plus"></i>
                   </button>
                 }

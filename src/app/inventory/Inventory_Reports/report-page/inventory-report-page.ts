@@ -33,6 +33,19 @@ interface BranchWarehouseOption {
   group: string;
 }
 
+interface MasterReportOption {
+  label: string;
+  id?: number | null;
+}
+
+interface ReportLocationScope {
+  isCompanyAdmin: boolean;
+  branchId: number | null;
+  branchName: string;
+  warehouseId: number | null;
+  warehouseName: string;
+}
+
 @Component({
   selector: 'app-inventory-report-page',
   standalone: true,
@@ -74,6 +87,7 @@ export class InventoryReportPageComponent implements OnInit {
   // read-only badge instead of the old Company filter, which only ever
   // offered a hardcoded list of demo companies unrelated to who's signed in.
   readonly currentCompanyName = signal(this.readCurrentCompanyName());
+  readonly reportLocationScope = signal<ReportLocationScope>(this.readReportLocationScope());
 
   private readCurrentCompanyName(): string {
     try {
@@ -86,6 +100,41 @@ export class InventoryReportPageComponent implements OnInit {
     }
   }
 
+  private readReportLocationScope(): ReportLocationScope {
+    const user = this.readStorageObject<{ isSuperAdmin?: boolean }>('authUser', {});
+    const roles = this.readStorageObject<Array<{ roleType?: string }>>('authRoles', []);
+    const companyDetails = this.readStorageObject<{ branchName?: string }>('CompanyDetails', {});
+    const branches = this.readStorageObject<Array<{ id?: number; branchName?: string }>>('authBranches', []);
+    const branchId = this.positiveNumber(sessionStorage.getItem('branchId'));
+    const warehouseId = this.positiveNumber(sessionStorage.getItem('warehouseId'));
+    const branchName = companyDetails.branchName ||
+      branches.find(branch => Number(branch.id || 0) === branchId)?.branchName ||
+      '';
+
+    return {
+      isCompanyAdmin: user.isSuperAdmin === true ||
+        roles.some(role => String(role.roleType ?? '').toLowerCase() === 'company_admin'),
+      branchId,
+      branchName,
+      warehouseId,
+      warehouseName: sessionStorage.getItem('warehouseName') || ''
+    };
+  }
+
+  private readStorageObject<T>(key: string, fallback: T): T {
+    try {
+      const raw = sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) as T : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private positiveNumber(value: string | null): number | null {
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
   // Real, company-scoped master data (branches/segments/warehouses/etc. that
   // actually belong to the signed-in company) to replace the static demo
   // name lists in INVENTORY_COMMON_REPORT_FILTERS, which mixed in branches
@@ -93,35 +142,55 @@ export class InventoryReportPageComponent implements OnInit {
   // estate...). Populated once; filterDefinitions() overrides options with
   // these when available.
   readonly masterOptions = signal<Partial<Record<InventoryReportFilterKey, string[]>>>({});
+  private readonly masterOptionIds = signal<Partial<Record<InventoryReportFilterKey, Record<string, number>>>>({});
 
   constructor() {
     this.loadMasterOptions();
   }
 
   private loadMasterOptions(): void {
-    const set = (key: InventoryReportFilterKey, names: (string | undefined)[]): void => {
-      const unique = Array.from(new Set(names.filter((name): name is string => !!name))).sort((a, b) => a.localeCompare(b));
-      this.masterOptions.update(current => ({ ...current, [key]: unique }));
-      if (key === 'segmentId') this.applySingleSegmentDefault(unique);
+    const set = (key: InventoryReportFilterKey, options: MasterReportOption[]): void => {
+      const byLabel = new Map<string, MasterReportOption>();
+      options.forEach(option => {
+        const label = option.label?.trim();
+        if (!label || byLabel.has(label)) return;
+        byLabel.set(label, { ...option, label });
+      });
+
+      const unique = Array.from(byLabel.values()).sort((a, b) => a.label.localeCompare(b.label));
+      const labels = unique.map(option => option.label);
+      const ids = unique.reduce<Record<string, number>>((acc, option) => {
+        if (typeof option.id === 'number' && Number.isFinite(option.id)) acc[option.label] = option.id;
+        return acc;
+      }, {});
+
+      this.masterOptions.update(current => ({ ...current, [key]: labels }));
+      this.masterOptionIds.update(current => ({ ...current, [key]: ids }));
+      if (key === 'segmentId') this.applySingleSegmentDefault(labels);
     };
 
-    const load = <T>(key: InventoryReportFilterKey, source: Observable<{ data?: T[] }>, pick: (item: T) => string | undefined): void => {
+    const load = <T>(
+      key: InventoryReportFilterKey,
+      source: Observable<{ data?: T[] }>,
+      pickLabel: (item: T) => string | undefined,
+      pickId: (item: T) => number | null | undefined
+    ): void => {
       source.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: res => set(key, (res.data ?? []).map(pick)),
+        next: res => set(key, (res.data ?? []).map(item => ({ label: pickLabel(item) ?? '', id: pickId(item) }))),
         error: () => set(key, [])
       });
     };
 
-    load('branchId', this.configService.getBranchesInv(), item => item.branch_name);
-    load('segmentId', this.configService.getSegments(), item => item.segment_name);
-    load('warehouseId', this.configService.getWarehouses(), item => item.warehouse_name);
-    load('productId', this.configService.getProducts(), item => item.product_name);
-    load('productCategory', this.configService.getCategories(), item => item.category_name);
-    load('brand', this.configService.getBrands(), item => item.brand_name);
-    load('hsnSac', this.configService.getHsnSac(), item => item.code);
-    load('customerId', this.configService.getCustomers(), item => item.customer_name);
-    load('supplierId', this.configService.getVendors(), item => item.vendor_name);
-    load('uom', this.configService.getUoms(), item => item.uom_symbol || item.uom_name);
+    load('branchId', this.configService.getBranchesInv(), item => item.branch_name, item => item.branch_id ?? item.id);
+    load('segmentId', this.configService.getSegments(), item => item.segment_name, item => item.id);
+    load('warehouseId', this.configService.getWarehouses(), item => item.warehouse_name, item => item.id);
+    load('productId', this.configService.getProducts(), item => item.product_name, item => item.id);
+    load('productCategory', this.configService.getCategories(), item => item.category_name, item => item.id);
+    load('brand', this.configService.getBrands(), item => item.brand_name, item => item.id);
+    load('hsnSac', this.configService.getHsnSac(), item => item.code, item => item.id);
+    load('customerId', this.configService.getCustomers(), item => item.customer_name, item => item.id);
+    load('supplierId', this.configService.getVendors(), item => item.vendor_name, item => item.id);
+    load('uom', this.configService.getUoms(), item => item.uom_symbol || item.uom_name, item => item.id);
   }
 
   readonly groupTitle = computed(() => inventoryReportGroupTitle(this.report().groupId));
@@ -218,6 +287,37 @@ export class InventoryReportPageComponent implements OnInit {
     return allowed.has('fromDate') || allowed.has('toDate');
   });
 
+  readonly activeLocationOption = computed<BranchWarehouseOption | null>(() => {
+    const scope = this.reportLocationScope();
+    if (scope.warehouseId) {
+      return {
+        label: scope.warehouseName || `Warehouse ${scope.warehouseId}`,
+        key: 'warehouseId',
+        group: 'Warehouse'
+      };
+    }
+    if (scope.branchId) {
+      return {
+        label: scope.branchName || `Branch ${scope.branchId}`,
+        key: 'branchId',
+        group: 'Branch'
+      };
+    }
+    return null;
+  });
+
+  readonly branchWarehouseLocked = computed(() => !this.reportLocationScope().isCompanyAdmin && !!this.activeLocationOption());
+  readonly branchWarehousePlaceholder = computed(() =>
+    this.branchWarehouseLocked() ? 'Current branch / warehouse' : 'All branches / warehouses'
+  );
+
+  readonly branchWarehouseCaption = computed(() => {
+    const active = this.activeLocationOption();
+    if (this.branchWarehouseLocked() && active) return `${active.group}: ${active.label}`;
+    const selected = this.branchWarehouseSelected().length;
+    return selected ? `${selected} selected` : 'All branches and warehouses';
+  });
+
   // Branch and Warehouse are both "where" filters, so they're offered as one
   // grouped multiselect instead of two separate dropdowns — pick branches,
   // warehouses, or both, individually.
@@ -225,10 +325,18 @@ export class InventoryReportPageComponent implements OnInit {
     const dynamic = this.masterOptions();
     const branches = (dynamic.branchId ?? []).map(label => ({ label, key: 'branchId' as const, group: 'Branch' }));
     const warehouses = (dynamic.warehouseId ?? []).map(label => ({ label, key: 'warehouseId' as const, group: 'Warehouse' }));
-    return [...branches, ...warehouses];
+    const options = [...branches, ...warehouses];
+    const active = this.activeLocationOption();
+    if (active && !options.some(option => option.key === active.key && option.label === active.label)) {
+      return [active, ...options];
+    }
+    return options;
   });
 
   readonly branchWarehouseSelected = computed<BranchWarehouseOption[]>(() => {
+    const active = this.activeLocationOption();
+    if (this.branchWarehouseLocked() && active) return [active];
+
     const values = this.filterMultiValues();
     const branchSet = new Set(values.branchId ?? []);
     const warehouseSet = new Set(values.warehouseId ?? []);
@@ -242,6 +350,15 @@ export class InventoryReportPageComponent implements OnInit {
     const from = this.filterDateValue('fromDate');
     const to = this.filterDateValue('toDate');
     return from || to ? [from as Date, to as Date] : null;
+  });
+
+  readonly dateRangeSummary = computed(() => {
+    const from = this.filterDateValue('fromDate');
+    const to = this.filterDateValue('toDate');
+    if (from && to) return `${this.shortDate(from)} to ${this.shortDate(to)}`;
+    if (from) return `From ${this.shortDate(from)}`;
+    if (to) return `Until ${this.shortDate(to)}`;
+    return 'All dates';
   });
 
   readonly visibleColumns = computed(() => {
@@ -371,6 +488,8 @@ export class InventoryReportPageComponent implements OnInit {
   }
 
   updateBranchWarehouse(selected: BranchWarehouseOption[] | null): void {
+    if (this.branchWarehouseLocked()) return;
+
     const items = selected ?? [];
     const branchNames = items.filter(item => item.key === 'branchId').map(item => item.label);
     const warehouseNames = items.filter(item => item.key === 'warehouseId').map(item => item.label);
@@ -425,7 +544,7 @@ export class InventoryReportPageComponent implements OnInit {
     this.errorMessage.set('');
     this.infoMessage.set('');
 
-    this.reportsService.getReport(this.report(), this.filters(), this.page(), this.pageSize()).subscribe({
+    this.reportsService.getReport(this.report(), this.apiFilters(), this.page(), this.pageSize()).subscribe({
       next: response => {
         this.rows.set(response.data);
         this.summary.set(response.summary ?? {});
@@ -664,6 +783,50 @@ export class InventoryReportPageComponent implements OnInit {
     };
   }
 
+  private apiFilters(): InventoryReportFilters {
+    const filters: InventoryReportFilters = { ...this.filters() };
+    const idKeys: InventoryReportFilterKey[] = ['segmentId', 'branchId', 'warehouseId', 'productId', 'customerId', 'supplierId'];
+    const whereSelectionCount = this.filterValues(filters.branchId).length + this.filterValues(filters.warehouseId).length;
+
+    idKeys.forEach(key => {
+      if ((key === 'branchId' || key === 'warehouseId') && whereSelectionCount > 1) {
+        filters[key] = '';
+        return;
+      }
+      filters[key] = this.singleApiIdValue(key, filters[key]);
+    });
+
+    this.applyLockedLocationScope(filters);
+    return filters;
+  }
+
+  private applyLockedLocationScope(filters: InventoryReportFilters): void {
+    const scope = this.reportLocationScope();
+    if (scope.isCompanyAdmin) return;
+
+    if (scope.warehouseId) {
+      filters.warehouseId = String(scope.warehouseId);
+      filters.branchId = '';
+      return;
+    }
+
+    if (scope.branchId) {
+      filters.branchId = String(scope.branchId);
+      filters.warehouseId = '';
+    }
+  }
+
+  private singleApiIdValue(key: InventoryReportFilterKey, value: InventoryReportFilterValue): string {
+    const values = this.filterValues(value);
+    if (values.length !== 1) return '';
+
+    const [label] = values;
+    const mappedId = this.masterOptionIds()[key]?.[label];
+    if (typeof mappedId === 'number' && Number.isFinite(mappedId)) return String(mappedId);
+
+    return /^\d+$/.test(label) ? label : '';
+  }
+
   private applySingleSegmentDefault(segmentOptions: string[]): void {
     if (segmentOptions.length !== 1) return;
     const [segment] = segmentOptions;
@@ -719,6 +882,10 @@ export class InventoryReportPageComponent implements OnInit {
     const month = String(value.getMonth() + 1).padStart(2, '0');
     const day = String(value.getDate()).padStart(2, '0');
     return `${value.getFullYear()}-${month}-${day}`;
+  }
+
+  private shortDate(value: Date): string {
+    return value.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   }
 
   private escapeHtml(value: string): string {

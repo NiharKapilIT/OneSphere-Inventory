@@ -16,9 +16,11 @@ import {
   INVENTORY_SEGMENT_DASHBOARDS,
   INVENTORY_SEGMENTS,
   INVENTORY_UOM_CONVERSIONS,
+  bomMasterConfig,
   InventoryField,
   InventoryScreenConfig,
-  InventorySegment
+  InventorySegment,
+  workCenterMasterConfig
 } from '../inventory-screen.model';
 
 export interface VariantAttrSelection {
@@ -75,6 +77,17 @@ export interface EntryLineRowView {
   serialNames: string[];
 }
 
+interface ManufacturingBomRecord {
+  bomCode: string;
+  finishedProduct: string;
+  version: string;
+  rawMaterials: string[];
+  quantityPerUnit: number;
+  wastagePercent: number;
+  productionCost: number;
+  status: string;
+}
+
 interface GlobalContactOption {
   id?: number;
   name: string;
@@ -84,6 +97,9 @@ interface GlobalContactOption {
   gstin: string;
   pan: string;
   address: string;
+  isSupplier?: boolean;
+  isCustomer?: boolean;
+  isChannelPartner?: boolean;
   // Which backing table `id` points into — 'inv_contacts' for the
   // "+Add Global Contact" quick-add store, 'global_contact' for legacy
   // Accounts contacts (tbl_mst_contact). Undefined for the static demo array.
@@ -392,6 +408,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly isSavingQuickAdd   = signal(false);
   readonly quickAddError      = signal('');
   readonly addMasterSourceFieldKey = signal<string | null>(null);
+  private readonly inlineManufacturingFieldOptions = signal<Record<string, string[]>>({});
+  private readonly inlineManufacturingOptionsCache = new Map<string, { signature: string; options: string[] }>();
 
   // Scratch fields for the "+ Add HSN / SAC" quick-add popup — kept separate
   // from hsnSacCode/gstRate (the product form's own tax fields) so opening
@@ -472,6 +490,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // resolveLineAttribute() only for manually-added rows with no entry here.
   readonly lineRefItemIdMap = signal<Record<number, {
     soItemId?: number; dcItemId?: number; siItemId?: number;
+    productionPlanItemId?: number | null; materialIssueItemId?: number | null;
     attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null;
   }>>({});
   // Serial number tracking (per-unit picker) — finalized list of serial
@@ -1137,6 +1156,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       raw = String(this.formValues()['warehouse'] || this.formValues()['warehouseId'] || '').trim();
     } else if (key === 'salesReturn') {
       raw = String(this.formValues()['returnToWarehouse'] || this.formValues()['warehouse'] || '').trim();
+    } else if (key === 'productionPlanning') {
+      raw = String(this.formValues()['warehouse'] || this.formValues()['warehouseId'] || '').trim();
+    } else if (key === 'materialIssueProduction') {
+      raw = String(this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'] || '').trim();
+    } else if (key === 'productionEntry' || key === 'productionReturn') {
+      raw = String(this.formValues()['toWarehouse'] || this.formValues()['toWarehouseId'] || '').trim();
     }
     if (!raw) return null;
 
@@ -1192,7 +1217,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
    */
   protected productNamesScopedToLocation(key = this.config?.key || ''): string[] {
     const allNames = this.productNamesForTransaction(key);
-    if (!this.stockLocationScreenKeys.has(key)) return allNames;
+    if (!this.availableStockProductOptionScopeKeys.has(this.compactKey(key))) return allNames;
     if (key === 'salesInvoice' && this.interbranchSaleEnabled()) return allNames;
 
     const location = this.resolvedProductFilterLocation(key);
@@ -1298,6 +1323,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       gstin: c.gstin || '',
       pan: c.pan || '',
       address: c.address || '',
+      isSupplier: !!c.is_supplier,
+      isCustomer: !!c.is_customer,
+      isChannelPartner: !!c.is_channel_partner,
       source
     });
     return [
@@ -1768,12 +1796,98 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private static readonly PRICING_TYPE_NATURES = new Set(['Service', 'Service Bundle', 'Digital / Subscription']);
+  private static readonly MANUFACTURING_RAW_NATURE_KEYS = new Set([
+    'rawmaterial',
+    'subfinishedproduct',
+    'semifinishedgoods',
+    'semifinishedwip',
+    'wip'
+  ]);
+  private static readonly MANUFACTURING_OUTPUT_NATURE_KEYS = new Set([
+    'finishedproduct',
+    'finishedgoods',
+    'subfinishedproduct',
+    'semifinishedgoods',
+    'semifinishedwip',
+    'physicalstock',
+    'product'
+  ]);
+
+  private isRawMaterialNatureName(value: any): boolean {
+    return this.compactKey(value) === 'rawmaterial';
+  }
+
+  private isFinishedProductNatureName(value: any): boolean {
+    return this.compactKey(value) === 'finishedproduct';
+  }
+
+  private isSubFinishedNatureKey(value: any): boolean {
+    const key = this.compactKey(value);
+    return key === 'subfinishedproduct' || key === 'semifinishedgoods' || key === 'semifinishedwip' || key === 'wip';
+  }
+
+  private rawMaterialAllowsSaleFromValues(values: Record<string, any>): boolean {
+    const raw = values['rawMaterialCanSale'] ?? values['allowsSale'];
+    if (typeof raw === 'boolean') return raw;
+    const normalized = this.normalizeKey(raw);
+    return normalized === 'yes' || normalized === 'true' || normalized === '1';
+  }
+
+  rawMaterialBehaviorVisible(): boolean {
+    const values = this.formValues();
+    return this.config?.key === 'productServiceMaster'
+      && this.isRawMaterialNatureName(values['productNatureName'] || values['productType']);
+  }
+
+  rawMaterialCanSaleChecked(): boolean {
+    return this.rawMaterialAllowsSaleFromValues(this.formValues());
+  }
+
+  rawMaterialProductionOnlyChecked(): boolean {
+    return !this.rawMaterialCanSaleChecked();
+  }
+
+  private applyRawMaterialBehavior(canSale: boolean): void {
+    this.formValues.update(values => ({
+      ...values,
+      rawMaterialCanSale: canSale ? 'Yes' : 'No',
+      rawMaterialProductionOnly: null,
+      allowsPurchase: 'Yes',
+      allowsSale: canSale ? 'Yes' : 'No',
+      allowsProduction: 'Yes'
+    }));
+  }
+
+  setRawMaterialCanSale(checked: boolean): void {
+    this.applyRawMaterialBehavior(checked);
+  }
+
+  setRawMaterialProductionOnly(checked: boolean): void {
+    this.applyRawMaterialBehavior(!checked);
+  }
+
+  private syncRawMaterialBehaviorForNature(natureName: string | null | undefined): void {
+    if (this.config?.key !== 'productServiceMaster') return;
+    if (this.isRawMaterialNatureName(natureName)) {
+      this.applyRawMaterialBehavior(this.rawMaterialAllowsSaleFromValues(this.formValues()));
+      return;
+    }
+    this.formValues.update(values => ({
+      ...values,
+      rawMaterialCanSale: null,
+      rawMaterialProductionOnly: null,
+      allowsPurchase: null,
+      allowsSale: null,
+      allowsProduction: null
+    }));
+  }
 
   onProductNatureChange(natureId: number | null): void {
     const nature = this.productNatureObjects.find(n => n.id === natureId) ?? null;
     this.collectFormField('productNatureId', natureId);
     this.collectFormField('productNatureName', nature?.type_name ?? null);
     this.collectFormField('productType', nature?.type_name ?? null);
+    this.syncRawMaterialBehaviorForNature(nature?.type_name);
     if (nature && nature.tracks_inventory === false) {
       this.productStockControlsRequired.set(false);
       this.productTrackingRequired.set(false);
@@ -2340,6 +2454,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return 'stock';
   }
 
+  private isManufacturingTransactionKey(key = this.config?.key || ''): boolean {
+    return new Set(['productionplanning', 'materialissueproduction', 'productionentry', 'productionreturn'])
+      .has(this.compactKey(key));
+  }
+
   private productBaseUomLabel(product: ProductItem | null | undefined): string {
     return String(product?.base_uom_name || product?.base_uom_symbol || '').trim();
   }
@@ -2511,6 +2630,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private productAllowedForTransaction(product: ProductItem, key = this.config?.key || ''): boolean {
     if (this.normalizeKey(product.item_status || product.status || 'active') === 'inactive') return false;
+    if (this.isManufacturingTransactionKey(key)) {
+      return key === 'productionEntry'
+        ? this.productIsManufacturingFinished(product)
+        : this.productIsManufacturingRawMaterial(product);
+    }
     const usage = this.transactionUomUsageForKey(key);
     if (usage === 'purchase') return product.allows_purchase !== false;
     if (usage === 'sales') return product.allows_sale !== false;
@@ -2789,6 +2913,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   /** Screens whose location field is one merged Warehouse/Branch picker. */
   private readonly mergedLocationScreenKeys = new Set([
     'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'purchaseReturn', 'salesInvoice',
+    'productionPlanning', 'materialIssueProduction', 'productionEntry', 'productionReturn',
     // Opening Inventory Balance and Opening Stock Entry were missed by the
     // original Full Warehouse/Branch Independence migration.
     'openingInventoryBalance', 'openingStockEntry',
@@ -2829,7 +2954,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
    */
   private readonly stockLocationScreenKeys = new Set([
     'goodsReceipt', 'purchaseInvoice', 'deliveryChallan', 'purchaseReturn', 'salesInvoice', 'salesReturn',
-    'openingStockEntry', 'stockAdjustment'
+    'openingStockEntry', 'stockAdjustment',
+    'productionPlanning', 'materialIssueProduction', 'productionEntry', 'productionReturn'
+  ]);
+
+  private readonly availableStockProductOptionScopeKeys = new Set([
+    'deliverychallan',
+    'salesinvoice',
+    'stocktransfer',
+    'materialissueproduction'
   ]);
 
   /**
@@ -2849,7 +2982,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     deliveryChallan: 'Select the From Warehouse / Branch — a posted Delivery Challan has to dispatch the stock from a real location.',
     salesInvoice: 'Select the Warehouse this invoice ships from — a posted Sales Invoice has to draw stock from a real location.',
     salesReturn: 'Select the Return To Warehouse — a posted Sales Return has to put the stock back somewhere real.',
-    openingStockEntry: 'Select the Warehouse / Branch — a posted Opening Stock Entry has to seed a real location.'
+    openingStockEntry: 'Select the Warehouse / Branch — a posted Opening Stock Entry has to seed a real location.',
+    productionPlanning: 'Select the Production Warehouse / Branch before posting the Production Plan.',
+    materialIssueProduction: 'Select the From Warehouse / Branch before posting Material Issue for Production.',
+    productionEntry: 'Select the Finished Goods Warehouse / Branch before posting Production Entry.',
+    productionReturn: 'Select the Return To Warehouse / Branch before posting Production Return.'
   };
 
   /**
@@ -2924,9 +3061,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     const warehouseId = this.optionalNumber(payload['warehouse_id'])
       ?? this.optionalNumber(payload['from_warehouse_id'])
+      ?? this.optionalNumber(payload['to_warehouse_id'])
       ?? this.optionalNumber(payload['return_to_warehouse_id']);
-    const branchName = String(payload['branch_name'] || '').trim();
-    const branchId = this.optionalNumber(payload['branch_id']);
+    const branchName = String(payload['branch_name'] || payload['from_branch_name'] || payload['to_branch_name'] || '').trim();
+    const branchId = this.optionalNumber(payload['branch_id'])
+      ?? this.optionalNumber(payload['from_branch_id'])
+      ?? this.optionalNumber(payload['to_branch_id']);
     const formBranchName = this.mergedLocationScreenKeys.has(key)
       ? ''
       : String(this.formValues()['branch'] || '').trim();
@@ -2935,6 +3075,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const locationName = String(
       payload['warehouse_name']
       || payload['from_warehouse_name']
+      || payload['to_warehouse_name']
       || payload['return_to_warehouse_name']
       || ''
     ).trim();
@@ -2947,7 +3088,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       locationName,
       postedMessage: this.postedStockLocationMessages[key] || '',
       isPosted: String(payload['status'] || '').toLowerCase() === 'posted',
-      hasStockTrackingLine: () => this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))
+      hasStockTrackingLine: () => this.isManufacturingTransactionKey(key)
+        ? this.manufacturingHasStockTrackingLine()
+        : this.activeSalesLineRows().some(row => this.productTracksStock(this.lineRowProduct(row)))
     });
   }
 
@@ -3031,6 +3174,50 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return product.tracks_inventory ?? !typeIsService;
   }
 
+  private productNatureKey(product: ProductItem | null | undefined): string {
+    return this.compactKey(product?.product_nature_name || product?.product_type || '');
+  }
+
+  private productIsManufacturingRawMaterial(product: ProductItem | null | undefined): boolean {
+    if (!product || !this.productTracksStock(product)) return false;
+    const nature = this.productNatureKey(product);
+    if (!InventoryScreenShell.MANUFACTURING_RAW_NATURE_KEYS.has(nature)) return false;
+    if (nature === 'rawmaterial') return product.allows_purchase !== false && product.allows_production !== false;
+    return product.allows_production !== false;
+  }
+
+  private productIsManufacturingFinished(product: ProductItem | null | undefined): boolean {
+    if (!product || !this.productTracksStock(product)) return false;
+    const nature = this.productNatureKey(product);
+    if (!InventoryScreenShell.MANUFACTURING_OUTPUT_NATURE_KEYS.has(nature)) return false;
+    if (this.isSubFinishedNatureKey(nature)) return product.allows_production !== false;
+    if (nature === 'physicalstock' || nature === 'product') return product.allows_sale !== false;
+    if (nature === 'finishedgoods' || nature === 'finishedproduct') return product.allows_sale !== false;
+    return false;
+  }
+
+  private readonly rawMaterialProductOptionList = computed(() =>
+    this.loadedProductObjects()
+      .filter(product => this.productIsManufacturingRawMaterial(product))
+      .map(product => product.product_name)
+      .filter(Boolean) as string[]
+  );
+
+  private readonly finishedManufacturingProductOptionList = computed(() =>
+    this.loadedProductObjects()
+      .filter(product => this.productIsManufacturingFinished(product))
+      .map(product => product.product_name)
+      .filter(Boolean) as string[]
+  );
+
+  private rawMaterialProductOptions(): string[] {
+    return this.rawMaterialProductOptionList();
+  }
+
+  private finishedManufacturingProductOptions(): string[] {
+    return this.finishedManufacturingProductOptionList();
+  }
+
   private branchCreatedTime(branch: BranchInvItem): number {
     const parsed = Date.parse(String(branch.created_at || ''));
     return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER;
@@ -3074,10 +3261,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private static readonly LOCATION_DEFAULT_CAPABILITIES: Record<string, Array<{
     field: string;
     kind: 'merged' | 'branchOnly' | 'warehouseOnly';
+    preferBranch?: boolean;
   }>> = {
     purchaseRequisition: [{ field: 'branch', kind: 'branchOnly' }],
     goodsReceipt:        [{ field: 'receivingLocation', kind: 'merged' }],
-    purchaseInvoice:     [{ field: 'receivingLocation', kind: 'merged' }],
+    purchaseInvoice:     [{ field: 'receivingLocation', kind: 'merged', preferBranch: true }],
     purchaseReturn:      [{ field: 'warehouse', kind: 'merged' }],
     deliveryChallan:     [{ field: 'fromWarehouse', kind: 'merged' }],
     // Sales Invoice's own merged Warehouse/Branch picker, plus its separate
@@ -3095,7 +3283,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     openingInventoryBalance: [{ field: 'warehouse', kind: 'merged' }],
     openingStockEntry:   [{ field: 'warehouse', kind: 'merged' }],
     // "in stock adjustment should add even branches too".
-    stockAdjustment:     [{ field: 'warehouse', kind: 'merged' }]
+    stockAdjustment:     [{ field: 'warehouse', kind: 'merged' }],
+    productionPlanning:  [{ field: 'warehouse', kind: 'merged' }],
+    materialIssueProduction: [{ field: 'fromWarehouse', kind: 'merged' }],
+    productionEntry:     [{ field: 'toWarehouse', kind: 'merged' }],
+    productionReturn:    [{ field: 'toWarehouse', kind: 'merged' }]
   };
 
   private shouldDefaultLocationForCurrentScreen(): boolean {
@@ -3218,8 +3410,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           continue;
         }
 
-        // merged: prefer session Warehouse (if active) -> session Branch (if
-        // active) -> today's branch heuristic.
+        // merged: PI prefers the active Branch for accounting/location clarity;
+        // other screens keep the established Warehouse-first behavior.
+        if (capability.preferBranch) {
+          const branch = this.sessionActiveBranch();
+          const branchName = this.branchDisplayName(branch);
+          if (branch && branchName) {
+            this.applyMergedFieldSelection(next, capability.field, branch.branch_name || branchName);
+            changed = true;
+            continue;
+          }
+        }
         const warehouse = this.sessionActiveWarehouse();
         if (warehouse?.warehouse_name) {
           this.applyMergedFieldSelection(next, capability.field, warehouse.warehouse_name);
@@ -3924,8 +4125,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private selectedProductCategoryObject(): CategoryItem | null {
     const category = this.selectedProductCategory();
+    const values = this.formValues();
+    const categoryId = this.optionalNumber(values['categoryId'] ?? values['category_id']);
+    if (categoryId) {
+      const byId = this.loadedCategoryObjects().find(item => Number(item.id) === categoryId);
+      if (byId) return byId;
+    }
     if (!category) return null;
-    return this.loadedCategoryObjects().find(item => this.optionEquals(item.category_name, category)) ?? null;
+    return this.loadedCategoryObjects().find(item =>
+      this.optionEquals(item.category_name, category)
+      || this.optionEquals(item.category_code, category)
+      || Number(item.id) === Number(category)
+    ) ?? null;
   }
 
   // Base UOM choices for Product Master: Category's curated list first, falling
@@ -4146,6 +4357,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           this.loadedProductTypeObjects.set(types);
           const names = [...new Set(types.map(item => item.type_name).filter(Boolean) as string[])];
           this._productTypeOptions.set(names.length ? names : [...INVENTORY_OPTIONS.productTypes]);
+          this.applyProductMasterReturnDefaults();
         },
         error: () => {
           this._productTypeOptions.set([...INVENTORY_OPTIONS.productTypes]);
@@ -4340,6 +4552,98 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       });
   }
 
+  private isLocalManufacturingMasterKey(key = this.config?.key || ''): key is 'bomMaster' | 'workCenterMaster' {
+    return key === 'bomMaster' || key === 'workCenterMaster';
+  }
+
+  private localManufacturingMasterStorageKey(masterKey: 'bomMaster' | 'workCenterMaster'): string {
+    const companyId = sessionStorage.getItem('companyId') || '0';
+    return `inv_manufacturing_master::${companyId}::${masterKey}`;
+  }
+
+  private normalizeManufacturingMasterRow(masterKey: 'bomMaster' | 'workCenterMaster', row: any): string[] {
+    const columns = masterKey === 'bomMaster'
+      ? (bomMasterConfig.columns || [])
+      : (workCenterMasterConfig.columns || []);
+    const source = Array.isArray(row) ? row : [];
+    return Array.from({ length: columns.length }, (_, index) => String(source[index] ?? '').trim());
+  }
+
+  private storedManufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
+    try {
+      const raw = localStorage.getItem(this.localManufacturingMasterStorageKey(masterKey));
+      const rows = raw ? JSON.parse(raw) : [];
+      return Array.isArray(rows)
+        ? rows.map(row => this.normalizeManufacturingMasterRow(masterKey, row)).filter(row => row.some(cell => cell))
+        : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private manufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
+    const configRows = masterKey === 'bomMaster'
+      ? (bomMasterConfig.rows || [])
+      : (workCenterMasterConfig.rows || []);
+    const seen = new Set<string>();
+    return [
+      ...this.storedManufacturingMasterRows(masterKey),
+      ...configRows.map(row => this.normalizeManufacturingMasterRow(masterKey, row))
+    ].filter(row => {
+      const key = this.normalizeKey(row[0] || row[1]);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private saveLocalManufacturingMaster(payload: Record<string, any>): ApiResponse<any> {
+    const masterKey = this.config?.key as 'bomMaster' | 'workCenterMaster';
+    if (!this.isLocalManufacturingMasterKey(masterKey)) {
+      return { success: false, message: 'Unknown screen', data: null };
+    }
+    const display = this.mapToGridRows([payload])[0] || [];
+    const normalizedDisplay = this.normalizeManufacturingMasterRow(masterKey, display);
+    if (!normalizedDisplay.some(cell => cell)) {
+      return { success: false, message: 'Enter the required master details.', data: null };
+    }
+
+    const rowKey = this.normalizeKey(normalizedDisplay[0] || normalizedDisplay[1]);
+    const existing = this.storedManufacturingMasterRows(masterKey)
+      .filter(row => this.normalizeKey(row[0] || row[1]) !== rowKey);
+    const nextRows = [normalizedDisplay, ...existing];
+    try {
+      localStorage.setItem(this.localManufacturingMasterStorageKey(masterKey), JSON.stringify(nextRows));
+      return { success: true, message: 'Record saved.', data: payload };
+    } catch {
+      return { success: false, message: 'Unable to save Manufacturing master locally.', data: null };
+    }
+  }
+
+  private rawMaterialNamesFromBomValue(value: any): string[] {
+    const values = Array.isArray(value) ? value : String(value || '').split(/[,;]+/);
+    return values
+      .map(item => String(item || '').trim())
+      .filter(Boolean);
+  }
+
+  private productionPlanningBomRecords(): ManufacturingBomRecord[] {
+    return this.manufacturingMasterRows('bomMaster').map(row => ({
+      bomCode: row[0] || '',
+      finishedProduct: row[1] || '',
+      version: row[2] || '',
+      rawMaterials: this.rawMaterialNamesFromBomValue(row[3]),
+      quantityPerUnit: this.parseCurrency(row[4]) || 1,
+      wastagePercent: this.parseCurrency(row[5]) || 0,
+      productionCost: this.parseCurrency(row[6]) || 0,
+      status: row[7] || 'Active'
+    })).filter(record =>
+      !!record.finishedProduct
+      && record.rawMaterials.length > 0
+      && this.normalizeKey(record.status || 'Active') !== 'inactive'
+    );
+  }
+
   private formatDateLabel(value: string): string {
     return this.gridDateDisplay(value);
   }
@@ -4367,7 +4671,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'dashboard':
         return ['Select or review the business segment.', 'Check KPI cards, workflow status and monitoring grid.', 'Open the related master, transaction or report when a stock issue needs action.'];
       case 'businessSegments':
-        return ['Create the business segment first.', 'Map common categories, UOMs and tax codes for that segment.', 'Use the segment in product, warehouse, transaction and report screens.'];
+        return ['Create the business segment first.', 'Map common categories for that segment.', 'Use the segment in product, warehouse, transaction and report screens.'];
       case 'branchMaster':
         return ['Create branch or store details.', 'Map GST, address and optional contact person from Global Contact.', 'Use the branch for access control, warehouse mapping and branch-wise reporting.'];
       case 'warehouseMaster':
@@ -4382,6 +4686,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return ['Enter the HSN/SAC code and map it to a Product Category.', 'Fill GST, CGST, SGST, IGST and Cess rates.', 'When this category is selected in Product Master, HSN/SAC and tax rates auto-bind to the product.'];
       case 'vendorMaster':
       case 'customerMaster':
+      case 'channelPartnerMaster':
         return ['Search and select company or individual from Global Contact.', 'Mobile, email, GSTIN, PAN and address bind from the contact.', 'Enable Contact Person only when the party is a company and a separate person must be mapped.'];
       case 'paymentTermsMaster':
         return ['Create terms such as Immediate, 15 Days, 30 Days or Advance.', 'Map terms to customer/vendor or transaction.', 'ERP uses it to calculate due dates, receivable ageing and payable schedules.'];
@@ -4461,6 +4766,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return 'Example: Physical Stock tracks inventory and allows purchase and sale. Fixed Asset allows only purchase — it is allotted to employees and cannot be sold from a transaction screen.';
       case 'vendorMaster':
       case 'customerMaster':
+      case 'channelPartnerMaster':
         return 'Example: Customer can be Tenant Works Pvt Ltd as a company, or Rajesh Kumar as an individual. Contact Person is needed only when a separate person is mapped under a company.';
       case 'uomMaster':
         return 'Example: Stock is kept in KG, purchase happens in Bag, and conversion is 1 Bag = 25 KG.';
@@ -4675,6 +4981,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       .replace(/\b\w/g, match => match.toUpperCase());
   }
 
+  openFieldAddMaster(field: InventoryField): void {
+    if (!field.addMaster) return;
+    const key = field.key.toLowerCase();
+    if (
+      this.config?.key === 'bomMaster'
+      && field.addMaster === 'Product / Service'
+      && (key === 'finishedproduct' || key === 'rawmaterials')
+    ) {
+      this.addProductFromProcurementGrid(field.key);
+      return;
+    }
+    this.openAddMaster(field.addMaster, field.key);
+  }
+
   openAddMaster(master: string, sourceFieldKey?: string): void {
     const current = this.activeAddMaster();
     const currentName = this.quickAddName();
@@ -4703,7 +5023,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.quickAddVariantRows.set([{name: '', value: ''}]);
     }
 
-    if (master === 'Vendor' || master === 'Customer') {
+    if (this.isInlineManufacturingQuickAdd(master)) {
+      const currentValue = sourceFieldKey ? String(this.formValues()[sourceFieldKey] || '').trim() : '';
+      if (currentValue) {
+        this.quickAddName.set(currentValue);
+        this.quickAddCode.set(this.generateCodeFromName(currentValue));
+      }
+    }
+
+    if (master === 'Vendor' || master === 'Customer' || master === 'Channel Partner') {
       // Items 24/25: the Contact Person Mapping fieldset (secondary
       // contact, embedded in app-inventory-party-form) shares these two
       // unprefixed host signals across every mount point (Vendor Master,
@@ -4724,6 +5052,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     if (master === 'Channel Partner') {
       this.quickChannelPartnerLinkedContact.set(null);
+    }
+
+    if (master === 'Contact Person') {
+      const primaryPartyQuickAdd = sourceFieldKey === 'partyIdentity';
+      this.formValues.update(fv => ({
+        ...fv,
+        quickContactMarkSupplier: current === 'Vendor' || (primaryPartyQuickAdd && this.config?.key === 'vendorMaster'),
+        quickContactMarkCustomer: current === 'Customer' || (primaryPartyQuickAdd && this.config?.key === 'customerMaster'),
+        quickContactMarkChannelPartner: current === 'Channel Partner' || (primaryPartyQuickAdd && this.config?.key === 'channelPartnerMaster')
+      }));
     }
 
     if (master === 'Attribute') {
@@ -4824,7 +5162,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private static readonly QUICK_ADD_MASTERS_WITH_AUTO_CODE = new Set([
-    'Variant', 'UOM', 'Serial Number Policy', 'Batch / Lot Policy', 'Brand', 'Product Type', 'Vendor', 'Customer', 'Channel Partner', 'Manufacturer'
+    'Variant', 'UOM', 'Serial Number Policy', 'Batch / Lot Policy', 'Brand', 'Product Type', 'Vendor', 'Customer', 'Channel Partner', 'Manufacturer', 'BOM', 'Work Center'
   ]);
 
   onQuickAddNameChange(name: string): void {
@@ -4844,32 +5182,91 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.quickAddUomSymbol.set(String(applyInventoryTextCase(symbol ?? '', 'upper')));
   }
 
+  isInlineManufacturingQuickAdd(master = this.activeAddMaster()): boolean {
+    return master === 'BOM' || master === 'Work Center';
+  }
+
+  saveQuickManufacturingInlineMaster(): void {
+    const master = this.activeAddMaster();
+    if (!this.isInlineManufacturingQuickAdd(master)) {
+      this.closeAddMaster();
+      return;
+    }
+
+    const name = this.quickAddName().trim();
+    if (!name) {
+      this.quickAddError.set(`Enter ${master} name.`);
+      return;
+    }
+
+    const sourceKey = this.addMasterSourceFieldKey();
+    const code = this.quickAddCode().trim() || this.generateCodeFromName(name);
+    if (!this.quickAddCode().trim()) this.quickAddCode.set(code);
+    if (sourceKey) {
+      this.collectFormField(sourceKey, name);
+      this.inlineManufacturingFieldOptions.update(options => ({
+        ...options,
+        [sourceKey]: this.mergeOptions(options[sourceKey] || [], [name])
+      }));
+    }
+    this.quickAddError.set('');
+    this.closeAddMaster();
+  }
+
   onQuickCategorySaved(item: CategoryItem): void {
-    const name = item.category_name;
+    const normalized = this.normalizeQuickCategoryItem(item);
+    const name = normalized.category_name;
+    if (!name) {
+      this.quickAddError.set('Category saved, but category name was not returned.');
+      return;
+    }
     if (!this.categoryOptionList().includes(name)) {
       this.categoryOptionList.update(opts => [...opts, name]);
     }
-    if (item?.id) {
+    if (normalized?.id) {
       this.loadedCategoryObjects.update(items =>
-        items.some(existing => existing.id === item.id)
-          ? items.map(existing => existing.id === item.id ? item : existing)
-          : [...items, item]
+        items.some(existing => existing.id === normalized.id)
+          ? items.map(existing => existing.id === normalized.id ? normalized : existing)
+          : [...items, normalized]
       );
     }
     const sourceKey = this.addMasterSourceFieldKey();
     if (sourceKey) this.collectFormField(sourceKey, name);
     if (this.config?.key === 'productServiceMaster') {
       this.selectedProductCategory.set(name);
+      if (normalized.id) this.collectFormField('categoryId', normalized.id);
       this.queueTaxCodeSearch(true);
     }
     if (this.quickAddParentMaster() === 'Business Segment') {
       const cur: string[] = Array.isArray(this.formValues()['segmentCategories']) ? this.formValues()['segmentCategories'] : [];
       if (!cur.includes(name)) this.collectFormField('segmentCategories', [...cur, name]);
     }
-    this.completeQuickGlobalMasterSave(item, 'categoryMaster', () => {
+    this.completeQuickGlobalMasterSave(normalized, 'categoryMaster', () => {
       this.restoreParentModal();
       this.loadLookupOptions();
     });
+  }
+
+  private normalizeQuickCategoryItem(item: any): CategoryItem {
+    return {
+      ...item,
+      id: Number(item?.id ?? 0) || 0,
+      segment_id: item?.segment_id ?? item?.segmentId ?? undefined,
+      segment_name: item?.segment_name ?? item?.segmentName ?? undefined,
+      category_code: item?.category_code ?? item?.categoryCode ?? '',
+      category_name: item?.category_name ?? item?.categoryName ?? item?.name ?? '',
+      parent_id: item?.parent_id ?? item?.parentId ?? undefined,
+      parent_name: item?.parent_name ?? item?.parentName ?? undefined,
+      description: item?.description ?? '',
+      serial_applicable: !!(item?.serial_applicable ?? item?.serialApplicable ?? false),
+      serial_policy_id: item?.serial_policy_id ?? item?.serialPolicyId ?? null,
+      serial_policy_name: item?.serial_policy_name ?? item?.serialPolicyName ?? null,
+      batch_applicable: !!(item?.batch_applicable ?? item?.batchApplicable ?? false),
+      batch_policy_id: item?.batch_policy_id ?? item?.batchPolicyId ?? null,
+      batch_policy_name: item?.batch_policy_name ?? item?.batchPolicyName ?? null,
+      uoms: item?.uoms ?? [],
+      status: item?.status ?? 'active'
+    };
   }
 
   saveQuickUom(): void {
@@ -4942,10 +5339,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             } else if (sourceKey) {
               this.collectFormField(sourceKey, label);
             }
-            if (parentBeforeSave === 'Business Segment') {
-              const cur: string[] = Array.isArray(this.formValues()['segmentUoms']) ? this.formValues()['segmentUoms'] : [];
-              if (!cur.includes(label)) this.collectFormField('segmentUoms', [...cur, label]);
-            }
             this.completeQuickGlobalMasterSave(res.data, 'uomMaster', () => {
               if (isQuickProductMapping) {
                 this.collectFormField('convAltUom', label);
@@ -5003,10 +5396,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               this.gstRate.set(saved.gst_rate ?? gstRate);
               this.collectFormField('hsnSacCode', saved.code);
               this.collectFormField('gstRate', saved.gst_rate ?? gstRate);
-            }
-            if (parentBeforeSave === 'Business Segment') {
-              const cur: string[] = Array.isArray(this.formValues()['segmentHsnCodes']) ? this.formValues()['segmentHsnCodes'] : [];
-              if (!cur.includes(saved.code)) this.collectFormField('segmentHsnCodes', [...cur, saved.code]);
             }
             this.completeQuickGlobalMasterSave(saved, 'hsnSacMapping', () => {
               this.restoreParentModal();
@@ -5237,6 +5626,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!name) { this.quickAddError.set('Contact name is required.'); return; }
     if (this.isSavingQuickAdd()) return;
     const v = this.formValues();
+    const primaryPartyQuickAdd = this.addMasterSourceFieldKey() === 'partyIdentity';
+    const parentMaster = this.quickAddParentMaster();
+    const markSupplier = !!v['quickContactMarkSupplier'] || parentMaster === 'Vendor' || (primaryPartyQuickAdd && this.config?.key === 'vendorMaster');
+    const markCustomer = !!v['quickContactMarkCustomer'] || parentMaster === 'Customer' || (primaryPartyQuickAdd && this.config?.key === 'customerMaster');
+    const markChannelPartner = !!v['quickContactMarkChannelPartner'] || parentMaster === 'Channel Partner' || (primaryPartyQuickAdd && this.config?.key === 'channelPartnerMaster');
     this.isSavingQuickAdd.set(true);
     this.quickAddError.set('');
     this.inventoryConfigService.saveGlobalContact({
@@ -5247,7 +5641,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       pan: v['quickContactPan'] || null,
       address: v['quickContactAddress'] || null,
       city: v['quickContactCity'] || null,
-      pincode: v['quickContactPincode'] || null
+      pincode: v['quickContactPincode'] || null,
+      mark_supplier: markSupplier,
+      mark_customer: markCustomer,
+      mark_channel_partner: markChannelPartner,
+      segment_id: this.selectedSegmentId(),
+      segment_name: this.selectedSegment() || null
     }, null).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: ApiResponse<any>) => {
         this.isSavingQuickAdd.set(false);
@@ -5263,6 +5662,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             gstin: saved.gstin || '',
             pan: saved.pan || '',
             address: saved.address || '',
+            isSupplier: !!saved.is_supplier || markSupplier,
+            isCustomer: !!saved.is_customer || markCustomer,
+            isChannelPartner: !!saved.is_channel_partner || markChannelPartner,
             source: 'global_contact'
           };
           // Opened from the Contact Person Mapping fieldset's own "+" (a
@@ -5326,6 +5728,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             gstin: matched.gstin || '',
             pan: matched.pan || '',
             address: matched.address || '',
+            isSupplier: !!matched.is_supplier,
+            isCustomer: !!matched.is_customer,
+            isChannelPartner: !!matched.is_channel_partner,
             source: 'global_contact'
           } : null;
 
@@ -5839,7 +6244,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   isPartyMaster(): boolean {
-    return this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster';
+    return this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster' || this.config?.key === 'channelPartnerMaster';
   }
 
   // After a Vendor/Customer save succeeds, push any edits made to the
@@ -5865,7 +6270,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         // Keyed off the payload shape (not config.key) so this stays correct
         // when the vendor save comes through the quick-add modal opened from
         // a non-Vendor-Master screen, e.g. GRN/Purchase Order/etc.
-        mark_supplier: !!payload['vendor_name']
+        mark_supplier: !!payload['vendor_name'],
+        mark_customer: !!payload['customer_name'],
+        mark_channel_partner: !!payload['partner_name']
       }, contactId).pipe(catchError(() => of(null)));
     }
     if (contactSource === 'inv_contacts') {
@@ -5901,7 +6308,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   partyLabel(): string {
-    return this.config?.key === 'vendorMaster' ? 'Party / Vendor' : 'Party / Customer';
+    if (this.config?.key === 'vendorMaster') return 'Party / Vendor';
+    if (this.config?.key === 'channelPartnerMaster') return 'Party / Channel Partner';
+    return 'Party / Customer';
+  }
+
+  partyKindForForm(): 'vendor' | 'customer' | 'channelPartner' {
+    if (this.config?.key === 'vendorMaster') return 'vendor';
+    if (this.config?.key === 'channelPartnerMaster') return 'channelPartner';
+    return 'customer';
   }
 
   setUomConversionRequired(required: boolean): void {
@@ -6401,9 +6816,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     const vendor = this.vendorForRecord(record);
     const branch = this.ourBranchForRecord(record);
+    const vendorGstin = record?.vendor_gstin || record?.vendorGstin || this.partyPrimaryGstin(vendor);
+    const vendorState = this.partyPrimaryState(vendor);
     const isInterstate = !!this.isInterstateTransaction(
       branch?.gstin, branch?.state,
-      record?.vendor_gstin || record?.vendorGstin || vendor?.gstin, vendor?.state
+      vendorGstin, vendorState
     );
 
     return {
@@ -6428,9 +6845,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     const customer = this.customerForRecord(record);
     const branch = this.ourBranchForRecord(record);
+    const customerGstin = record?.customer_gstin || record?.customerGstin || this.partyPrimaryGstin(customer);
+    const customerState = this.partyPrimaryState(customer);
     const isInterstate = !!this.isInterstateTransaction(
       branch?.gstin, branch?.state,
-      record?.customer_gstin || record?.customerGstin || customer?.gstin, customer?.state,
+      customerGstin, customerState,
       record?.place_of_supply || record?.placeOfSupply || null
     );
 
@@ -6473,7 +6892,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   ): GridExportPayload {
     const vendor = this.vendorForRecord(record);
     const vendorName = String(record.vendor_name || record.vendorName || vendor?.vendor_name || '');
-    const vendorGstin = String(record.vendor_gstin || record.vendorGstin || vendor?.gstin || '');
+    const vendorGstin = String(record.vendor_gstin || record.vendorGstin || this.partyPrimaryGstin(vendor) || '');
     const branchName = String(record.branch_name || record.branchName || this.branchNameFromRecord(record) || '');
     const warehouseName = String(record.warehouse_name || record.warehouseName || '');
     const locationName = warehouseName || branchName;
@@ -6611,7 +7030,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   ): GridExportPayload {
     const customer = this.customerForRecord(record);
     const customerName = String(record.customer_name || record.customerName || customer?.customer_name || '');
-    const customerGstin = String(record.customer_gstin || record.customerGstin || customer?.gstin || '');
+    const customerGstin = String(record.customer_gstin || record.customerGstin || this.partyPrimaryGstin(customer) || '');
     const warehouseName = String(record.warehouse_name || record.warehouseName || '');
     const columns = ['#', 'Product / Service', 'HSN', 'Qty', 'UOM', 'Rate (Rs.)', 'MRP', 'Selling Price', 'Disc %', 'GST %', 'Amount (Rs.)'];
     const rows = this.salesInvoiceDocumentRows(record);
@@ -7093,10 +7512,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   transactionReferencePickerButtonVisible(_field: InventoryField | null | undefined): boolean {
-    return !!(this.purchaseReferenceType() || this.salesReferenceType());
+    return !!(this.purchaseReferenceType() || this.salesReferenceType() || this.manufacturingReferenceType());
   }
 
   transactionReferencePickerTitle(_field: InventoryField | null | undefined): string {
+    const manufacturingLabel = this.manufacturingReferenceButtonLabel();
+    if (manufacturingLabel) return manufacturingLabel;
     return this.purchaseReferenceButtonLabel();
   }
 
@@ -7169,6 +7590,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.pastOrTodayBodyDateFieldKeys.has(field.key) ? this.maxTransactionDate : null;
   }
 
+  transactionDateFieldMaxDate(field: InventoryField): Date | null {
+    if (this.config?.key === 'productionEntry' && field.key === 'productionDate') return null;
+    return this.maxTransactionDate;
+  }
+
   transactionDateValue(field: InventoryField): any {
     return this.datePickerValue(this.formValues()[field.key]) || this._todayDateValue;
   }
@@ -7196,6 +7622,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   transactionReferenceUsesSelect(field: InventoryField): boolean {
     return !!this.purchaseReferenceType()
       || !!this.salesReferenceType()
+      || !!this.manufacturingReferenceType()
       || field.type === 'select'
       || this.transactionReferenceOptions(field).length > 0;
   }
@@ -7234,6 +7661,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.applyDirectGoodsReceiptReference();
       return;
     }
+    if (this.manufacturingReferenceType() && !selected) {
+      this.clearManufacturingReference(field);
+      return;
+    }
 
     const doc = this.transactionReferenceDocsForField(field).find(item => item.doc_number === selected)
       || this.transactionReferenceDocs().find(item => item.doc_number === selected);
@@ -7242,6 +7673,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // DC picked out of Sales Invoice's merged SO+DC dropdown routes to the
       // DC-append/replace path instead of being force-fit through the SO
       // header-patch logic.
+      if (this.manufacturingReferenceType()) {
+        this.selectManufacturingReference(doc);
+        return;
+      }
       this.selectPrimaryReference(doc);
       return;
     }
@@ -7806,6 +8241,33 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.isoDateValue(date);
   }
 
+  private manufacturingHeaderOptionsForField(field: InventoryField, extraOptions: string[] = []): string[] | undefined {
+    const base = field.options || [];
+    const inline = this.inlineManufacturingFieldOptions()[field.key] || [];
+    if (!extraOptions.length && !inline.length) return field.options;
+
+    const signature = JSON.stringify([base, extraOptions, inline]);
+    const cached = this.inlineManufacturingOptionsCache.get(field.key);
+    if (cached?.signature === signature) return cached.options;
+
+    const options = this.mergeOptions(this.mergeOptions(base, extraOptions), inline);
+    this.inlineManufacturingOptionsCache.set(field.key, { signature, options });
+    return options;
+  }
+
+  private bomVersionOptionsFromMaster(): string[] {
+    return this.productionPlanningBomRecords()
+      .map(record => record.version)
+      .filter(Boolean);
+  }
+
+  private workCenterOptionsFromMaster(): string[] {
+    return this.manufacturingMasterRows('workCenterMaster')
+      .filter(row => this.normalizeKey(row[5] || row[4] || 'Active') !== 'inactive')
+      .map(row => String(row[1] || row[0] || '').trim())
+      .filter(Boolean);
+  }
+
   private runtimeOptions(field: InventoryField): string[] | undefined {
     if (field.type !== 'select' && field.type !== 'multiselect') return field.options;
 
@@ -7827,6 +8289,30 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     if (key.includes('hsnsac') || label.includes('hsn') || addMaster.includes('hsn')) {
       return this.hsnSacOptions;
+    }
+
+    if (this.config?.key === 'bomMaster') {
+      if (key === 'finishedproduct') {
+        return this.finishedManufacturingProductOptions();
+      }
+      if (key === 'rawmaterials') {
+        return this.rawMaterialProductOptions();
+      }
+    }
+
+    if (this.isManufacturingTransactionKey()) {
+      if (key === 'finishedproduct' || key === 'forfinishedproduct') {
+        return this.optionFallback(this.finishedManufacturingProductOptions(), field.options);
+      }
+      if (key === 'rawmaterials') {
+        return this.optionFallback(this.rawMaterialProductOptions(), field.options);
+      }
+      if (key === 'bomversion') {
+        return this.manufacturingHeaderOptionsForField(field, this.bomVersionOptionsFromMaster());
+      }
+      if (key === 'workcenter') {
+        return this.manufacturingHeaderOptionsForField(field, this.workCenterOptionsFromMaster());
+      }
     }
 
     if (['product', 'parentproduct', 'substituteproduct', 'finishedproduct', 'rawmaterials', 'applicableproducts'].includes(key) || addMaster === 'product / service') {
@@ -7870,6 +8356,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'deliveryChallan' && key === 'fromwarehouse') {
+      return this.grnReceivingLocationOptions();
+    }
+
+    if (this.isManufacturingTransactionKey() && ['warehouse', 'fromwarehouse', 'towarehouse'].includes(key)) {
       return this.grnReceivingLocationOptions();
     }
 
@@ -8083,6 +8573,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   );
 
   private stockTransferLocationOptionsExcluding(otherFormKey: 'fromWarehouse' | 'toWarehouse'): string[] {
+    return Array.from(new Set(this.stockTransferLocationEntriesExcluding(otherFormKey).map(entry => entry.label)));
+  }
+
+  private stockTransferLocationEntriesExcluding(otherFormKey: 'fromWarehouse' | 'toWarehouse'): MergedLocationEntry[] {
     const otherResolved = this.resolveMergedLocation(this.formValues()[otherFormKey]);
     const excludeType = otherResolved.type;
     const excludeId = excludeType === 'warehouse'
@@ -8091,25 +8585,43 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         ? this.branchResolvedId(otherResolved.branch)
         : null;
 
-    const entries = (excludeType && excludeId !== null)
+    return (excludeType && excludeId !== null)
       ? this.mergedLocationEntries().filter(entry => !(entry.type === excludeType && entry.id === excludeId))
       : this.mergedLocationEntries();
-
-    return Array.from(new Set(entries.map(entry => entry.label)));
   }
+
+  private readonly stockTransferFromWarehouseGroups = computed((): MergedLocationOption[] =>
+    this.stockTransferLocationEntriesExcluding('toWarehouse').map(entry => this.mergedLocationGroupOption(entry))
+  );
+
+  private readonly stockTransferToWarehouseGroups = computed((): MergedLocationOption[] =>
+    this.stockTransferLocationEntriesExcluding('fromWarehouse').map(entry => this.mergedLocationGroupOption(entry))
+  );
 
   // Same picker as above but grouped by master, so the dropdown visibly labels
   // which entries are Warehouses vs Branches instead of one flat list. The
   // extra type/id properties are inert for the control (bindLabel/bindValue
   // both point at 'label') and exist so resolution can be tag-driven.
   readonly grnReceivingLocationGroups = computed((): MergedLocationOption[] =>
-    this.mergedLocationEntries().map(entry => ({
+    this.mergedLocationEntries().map(entry => this.mergedLocationGroupOption(entry))
+  );
+
+  locationGroupsForField(field: InventoryField): MergedLocationOption[] {
+    if (this.config?.key !== 'stockTransfer') return this.grnReceivingLocationGroups();
+    const key = field.key.toLowerCase();
+    if (key === 'fromwarehouse') return this.stockTransferFromWarehouseGroups();
+    if (key === 'towarehouse') return this.stockTransferToWarehouseGroups();
+    return this.grnReceivingLocationGroups();
+  }
+
+  private mergedLocationGroupOption(entry: MergedLocationEntry): MergedLocationOption {
+    return {
       label: entry.label,
       group: entry.type === 'warehouse' ? 'Warehouse' : 'Branch',
       type: entry.type,
       id: entry.id
-    }))
-  );
+    };
+  }
 
   /**
    * Resolves a merged-picker selection through the type-tagged list above,
@@ -8567,6 +9079,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   lineGridColumnIsProduct(column: string): boolean {
     const key = this.compactKey(column);
+    if (key.includes('productioncost')) return false;
     return key.includes('product')
       || key.includes('item')
       || key.includes('sku')
@@ -8755,6 +9268,27 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (this.lineGridColumnIsSerialPicker(column)) return false;
       return true;
     }
+    if (this.config?.key === 'productionPlanning' && this.normalizeKey(column) === 'batch req') {
+      return true;
+    }
+    if (this.isManufacturingTransactionKey() && this.lineRefItemIdMap()[rowIndex]) {
+      const refCellKey = this.normalizeKey(column);
+      if (this.config?.key === 'materialIssueProduction') {
+        if (refCellKey.includes('issued') && refCellKey.includes('qty')) return false;
+        if (this.lineGridColumnIsSerialPicker(column)) return false;
+        return true;
+      }
+      if (this.config?.key === 'productionEntry') {
+        if (refCellKey.includes('produced') || refCellKey.includes('rejected')) return false;
+        if (this.lineGridColumnIsSerialPicker(column)) return false;
+        return true;
+      }
+      if (this.config?.key === 'productionReturn') {
+        if (refCellKey.includes('consumed') || refCellKey.includes('returned')) return false;
+        if (this.lineGridColumnIsSerialPicker(column)) return false;
+        return true;
+      }
+    }
     if (this.config?.key !== 'purchaseInvoice' || !this.optionalNumber(this.formValues()['grnId'])) return false;
     if (this.lineGridColumnIsAttributeValue(column) || this.lineGridColumnIsSerialValue(column)) return true;
     const key = this.normalizeKey(column);
@@ -8871,7 +9405,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.directEntryLineRows();
     const colName = this.config?.lineColumns?.[columnIndex] || '';
     const colKey = colName.toLowerCase();
-    const resetsAttr = this.config?.kind === 'transaction' && (
+    const productionCostColumn = this.compactKey(colName).includes('productioncost');
+    const resetsAttr = this.config?.kind === 'transaction' && !productionCostColumn && (
       colKey.includes('product') || colKey.includes('item') || colKey.includes('sku') ||
       colKey.includes('material') || colKey.includes('variant')
     );
@@ -8882,7 +9417,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return next;
       });
     }
-    if (this.config?.kind === 'transaction' && (
+    if (this.config?.kind === 'transaction' && !productionCostColumn && (
       colKey.includes('product') || colKey.includes('item') || colKey.includes('sku') || colKey.includes('material')
     )) {
       this.lineSerialValueMap.update(map => {
@@ -8937,7 +9472,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
       if (this.config?.kind === 'transaction') {
         const col = column.toLowerCase();
-        const isProductCol = col.includes('product') || col.includes('item') || col.includes('sku') || col.includes('material');
+        const productionCostColumn = this.compactKey(column).includes('productioncost');
+        const isProductCol = !productionCostColumn && (col.includes('product') || col.includes('item') || col.includes('sku') || col.includes('material'));
         const isVariantCol = col.includes('variant');
         // Clear the Attribute column when product changes — a different product
         // invalidates whatever was picked. On GRN specifically, Variant and
@@ -8966,6 +9502,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               if (!currentVariant || !variantOptions.some(option => this.optionEquals(option, currentVariant))) {
                 nextRow[variantIdx] = variantOptions.length === 1 ? variantOptions[0] : '';
               }
+            }
+            if (this.config?.key === 'productionPlanning') {
+              const batchReqIdx = (this.config?.lineColumns || []).findIndex(c => this.normalizeKey(c) === 'batch req');
+              if (batchReqIdx >= 0) nextRow[batchReqIdx] = product.batch_applicable ? 'Yes' : 'No';
             }
             if (this.isGstAutoFillLineGrid() && product.gst_rate != null) {
               // Auto-bind GST from the product's own mapped rate (Product Master /
@@ -9416,11 +9956,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.setLineColumnDefault(row, ['selling'], selling, true);
       this.setLineColumnDefault(row, ['rate'], mrp > 0 ? mrp : selling, true);
     } else if (this.config?.key === 'salesOrder' || this.config?.key === 'purchaseInvoice') {
-      this.setLineColumnDefault(row, ['mrp'], this.productMrp(product), true);
-      this.setLineColumnDefault(row, ['selling'], this.productSellingPrice(product, row), true);
+      const mrp = this.productSalesPriceForLineUom(product, row, this.productMrp(product));
+      const selling = this.productSalesPriceForLineUom(product, row, this.productSellingPrice(product, row));
+      this.setLineColumnDefault(row, ['mrp'], mrp, true);
+      this.setLineColumnDefault(row, ['selling'], selling, true);
     }
     if (this.config?.key === 'salesOrder') {
-      this.setLineColumnDefault(row, ['rate'], this.productSellingPrice(product, row), true);
+      this.setLineColumnDefault(row, ['rate'], this.productSalesPriceForLineUom(product, row, this.productSellingPrice(product, row)), true);
     }
   }
 
@@ -9697,6 +10239,34 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const productName = this.lineValue(row, ['product', 'item', 'sku']) || 'Line item';
       if (mrp > 0 && rate > mrp) {
         return `Note: ${productName} — Rate ₹${fmt(rate)} exceeds MRP ₹${fmt(mrp)}. Please check the product's MRP.`;
+      }
+    }
+    return '';
+  }
+
+  private transactionMrpCeilingValidationMessage(): string {
+    const key = this.config?.key || '';
+    if (!['salesInvoice', 'salesOrder', 'purchaseInvoice'].includes(key)) return '';
+    const rows = key === 'purchaseInvoice' ? this.activePurchaseLineRows() : this.activeSalesLineRows();
+    const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+    for (const row of rows) {
+      const product = this.lineRowProduct(row);
+      const productName = this.lineValue(row, ['product', 'item', 'sku']) || 'Line item';
+      const productMrpForLineUom = this.productSalesPriceForLineUom(product, row, this.productMrp(product));
+      const mrp = this.firstPositiveCurrencyValue(String(this.lineValue(row, ['mrp'])), productMrpForLineUom);
+      if (!Number.isFinite(mrp) || mrp <= 0) continue;
+
+      const selling = this.lineNumber(row, ['selling price']);
+      if (Number.isFinite(selling) && selling > mrp) {
+        return `${productName}: Selling Price Rs. ${fmt(selling)} cannot exceed MRP Rs. ${fmt(mrp)}.`;
+      }
+
+      if (key !== 'purchaseInvoice') {
+        const rate = this.lineNumber(row, ['rate']);
+        if (Number.isFinite(rate) && rate > mrp) {
+          return `${productName}: Rate Rs. ${fmt(rate)} cannot exceed MRP Rs. ${fmt(mrp)}.`;
+        }
       }
     }
     return '';
@@ -10428,8 +10998,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   lineColumnOptions(column: string, row?: string[]): string[] {
     const key = column.toLowerCase();
+    const compact = this.compactKey(column);
+    const productionCostColumn = compact.includes('productioncost');
     if (this.config?.key === 'attributeMaster' && key === 'status') return ['Active', 'Inactive'];
-    if (key.includes('item') || key.includes('product') || key.includes('sku') || key.includes('material')) {
+    if (this.isManufacturingTransactionKey() && !productionCostColumn && (key.includes('item') || key.includes('product') || key.includes('sku') || key.includes('material'))) {
+      if (key.includes('finished')) return this.finishedManufacturingProductOptions();
+      if (key.includes('material')) return this.rawMaterialProductOptions();
+      return this.productNamesScopedToLocation(this.config?.key ?? '');
+    }
+    if (!productionCostColumn && (key.includes('item') || key.includes('product') || key.includes('sku') || key.includes('material'))) {
       // productNamesScopedToLocation() itself falls straight back to
       // productNamesForTransaction() unchanged on every screen outside the
       // 5 stockLocationScreenKeys screens, so this is safe to call
@@ -10456,6 +11033,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const currentUom = row ? this.lineValue(row, ['uom']) : '';
       return this.mergeOptions(this.uomOptions, currentUom ? [currentUom] : []);
     }
+    if (this.config?.key === 'productionPlanning' && key.includes('batch req')) return ['Yes', 'No'];
     if (key.includes('rounding')) return ['Exact', '2 Decimals', 'Whole Number', 'Commercial Rounding'];
     if (key.includes('is purchase') || key.includes('is sales') || key === 'active') return ['Yes', 'No'];
     if (key.includes('gst') || key.includes('tax')) return this.config?.kind === 'transaction' ? [] : ['0%', '5%', '12%', '18%', '28%'];
@@ -10543,7 +11121,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.entryLineRows().some(row => {
       const normalized = this.normalizeLineRow(row);
       if (this.lineCellValue(normalized, column)) return true;
-      const productName = this.lineValue(normalized, ['product', 'item', 'sku']);
+      const productName = this.lineValue(normalized, ['product', 'item', 'sku', 'material']);
       const product = this.findProductBySelection(productName);
       return !!product && this.productSupportsLinePolicy(product, column);
     });
@@ -10590,6 +11168,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.config?.key === 'variantMaster' && key.includes('attribute value')) {
       return this.variantAttributeValueInputType(this.variantLineAttributeName(row));
     }
+    if (this.config?.key === 'productionEntry' && key.includes('expiry')) return 'date';
     if (this.config?.key === 'attributeMaster' && key.includes('sort order')) return 'number';
     return 'text';
   }
@@ -10814,6 +11393,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (key === 'salesInvoice') return 'SO';
     if (key === 'salesReturn') return 'SI';
     if (key === 'creditNote') return 'SALESRETURN';
+    return '';
+  }
+
+  private manufacturingReferenceType(key = this.config?.key || ''): 'PRODUCTIONPLAN' | 'MATERIALISSUE' | '' {
+    if (key === 'materialIssueProduction' || key === 'productionEntry') return 'PRODUCTIONPLAN';
+    if (key === 'productionReturn') return 'MATERIALISSUE';
+    return '';
+  }
+
+  private manufacturingReferenceButtonLabel(key = this.config?.key || ''): string {
+    if (key === 'materialIssueProduction') return 'Pick Production Plan';
+    if (key === 'productionEntry') return 'Pick Production Plan';
+    if (key === 'productionReturn') return 'Pick Material Issue';
     return '';
   }
 
@@ -11222,6 +11814,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.loadCreditNoteReferenceDocs(force, allowAutoOpen);
       return;
     }
+    if (this.manufacturingReferenceType()) {
+      this.loadManufacturingReferenceDocs(force, allowAutoOpen);
+      return;
+    }
 
     const type = this.purchaseReferenceType() || this.salesReferenceType();
     if (!this.showTransactionHeader() || !type) {
@@ -11257,6 +11853,143 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         error: () => {
           this.transactionReferenceLoading.set(false);
           this.transactionReferenceDocs.set([]);
+        }
+      });
+  }
+
+  private manufacturingReferenceRequest(type: 'PRODUCTIONPLAN' | 'MATERIALISSUE'): Observable<ApiResponse<any[]>> {
+    return type === 'PRODUCTIONPLAN'
+      ? this.txService.getProductionPlans('posted', this.selectedSegmentId())
+      : this.txService.getMaterialIssueProductions('posted', this.selectedSegmentId());
+  }
+
+  private manufacturingReferenceDocsForType(
+    type: 'PRODUCTIONPLAN' | 'MATERIALISSUE',
+    records: any[]
+  ): PurchaseRefDoc[] {
+    const source = Array.isArray(records) ? records : [];
+    return source
+      .filter(record => this.normalizeKey(record?.status || 'posted') === 'posted')
+      .map(record => type === 'PRODUCTIONPLAN'
+        ? this.productionPlanReferenceDoc(record)
+        : this.materialIssueReferenceDoc(record));
+  }
+
+  private productionPlanReferenceDoc(plan: any): PurchaseRefDoc {
+    const doc: any = {
+      id: Number(plan?.id) || 0,
+      doc_type: 'PRODUCTIONPLAN',
+      doc_number: plan?.plan_number || plan?.planNumber || '',
+      doc_date: plan?.plan_date || plan?.planDate || plan?.production_date || plan?.productionDate || '',
+      segment_id: plan?.segment_id ?? plan?.segmentId,
+      segment_name: plan?.segment_name || plan?.segmentName || '',
+      branch_id: plan?.branch_id ?? plan?.branchId,
+      branch_name: plan?.branch_name || plan?.branchName || '',
+      warehouse_id: plan?.warehouse_id ?? plan?.warehouseId,
+      warehouse_name: plan?.warehouse_name || plan?.warehouseName || '',
+      vendor_id: plan?.finished_product_id ?? plan?.finishedProductId,
+      party_name: plan?.finished_product_name || plan?.finishedProductName || '',
+      status: plan?.status || 'posted',
+      remarks: plan?.remarks || '',
+      items: Array.isArray(plan?.items) ? plan.items : [],
+      production_date: plan?.production_date || plan?.productionDate || '',
+      finished_product_id: plan?.finished_product_id ?? plan?.finishedProductId,
+      finished_product_name: plan?.finished_product_name || plan?.finishedProductName || '',
+      planned_qty: plan?.planned_qty ?? plan?.plannedQty,
+      bom_version: plan?.bom_version || plan?.bomVersion || '',
+      work_center: plan?.work_center || plan?.workCenter || ''
+    };
+    return doc as PurchaseRefDoc;
+  }
+
+  private materialIssueReferenceDoc(issue: any): PurchaseRefDoc {
+    const doc: any = {
+      id: Number(issue?.id) || 0,
+      doc_type: 'MATERIALISSUE',
+      doc_number: issue?.issue_number || issue?.issueNumber || '',
+      doc_date: issue?.issue_date || issue?.issueDate || '',
+      segment_id: issue?.segment_id ?? issue?.segmentId,
+      segment_name: issue?.segment_name || issue?.segmentName || '',
+      branch_id: issue?.from_branch_id ?? issue?.fromBranchId,
+      branch_name: issue?.from_branch_name || issue?.fromBranchName || '',
+      warehouse_id: issue?.from_warehouse_id ?? issue?.fromWarehouseId,
+      warehouse_name: issue?.from_warehouse_name || issue?.fromWarehouseName || '',
+      vendor_id: issue?.production_plan_id ?? issue?.productionPlanId,
+      party_name: issue?.production_plan_number || issue?.productionPlanNumber || '',
+      status: issue?.status || 'posted',
+      remarks: issue?.remarks || '',
+      items: Array.isArray(issue?.items) ? issue.items : [],
+      production_plan_id: issue?.production_plan_id ?? issue?.productionPlanId,
+      production_plan_number: issue?.production_plan_number || issue?.productionPlanNumber || '',
+      to_work_center: issue?.to_work_center || issue?.toWorkCenter || ''
+    };
+    return doc as PurchaseRefDoc;
+  }
+
+  private loadManufacturingReferenceDocs(force = false, _allowAutoOpen = true): void {
+    const type = this.manufacturingReferenceType();
+    if (!this.showTransactionHeader() || !type) {
+      this.transactionReferenceDocs.set([]);
+      this.transactionReferenceLoading.set(false);
+      this.invalidateTransactionReferenceDocs();
+      return;
+    }
+
+    const requestKey = `${this.config?.key || ''}:${type}:${this.selectedSegmentId() || 'all'}`;
+    if (!force && this.transactionReferenceRequestKey === requestKey) return;
+
+    this.transactionReferenceRequestKey = requestKey;
+    this.transactionReferenceOptionsCacheKey = '';
+    this.transactionReferenceOptionsCache = [];
+    this.transactionReferenceLoading.set(true);
+    this.manufacturingReferenceRequest(type)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          this.transactionReferenceLoading.set(false);
+          const docs = res.success ? this.manufacturingReferenceDocsForType(type, res.data || []) : [];
+          this.transactionReferenceDocs.set(docs);
+        },
+        error: () => {
+          this.transactionReferenceLoading.set(false);
+          this.transactionReferenceDocs.set([]);
+        }
+      });
+  }
+
+  private openManufacturingReferencePicker(): void {
+    const type = this.manufacturingReferenceType();
+    if (!type) return;
+    this.refPickerType.set(type);
+    this.refPickerOpen.set(false);
+    this.refPickerLoading.set(true);
+    this.refPickerSearch.set('');
+    this.refPickerDocs.set([]);
+    this.txSaveError.set('');
+    this.manufacturingReferenceRequest(type)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          this.refPickerLoading.set(false);
+          const docs = res.success ? this.manufacturingReferenceDocsForType(type, res.data || []) : [];
+          this.refPickerDocs.set(docs);
+          this.transactionReferenceDocs.set(docs);
+          this.transactionReferenceOptionsCacheKey = '';
+          this.transactionReferenceOptionsCache = [];
+          if (!res.success) {
+            this.txSaveError.set(res.message || 'Reference documents could not be loaded.');
+            return;
+          }
+          if (!this.availableReferenceDocsForCurrentTransaction(docs).length) {
+            this.txSaveError.set(`${this.manufacturingReferenceButtonLabel().replace('Pick ', '') || 'Reference'} not found.`);
+            return;
+          }
+          this.refPickerOpen.set(true);
+        },
+        error: err => {
+          this.refPickerLoading.set(false);
+          this.refPickerDocs.set([]);
+          this.txSaveError.set(this.apiErrorMessage(err, 'Reference documents could not be loaded.'));
         }
       });
   }
@@ -11712,6 +12445,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.openCreditNoteReferencePicker();
       return;
     }
+    if (this.manufacturingReferenceType()) {
+      this.openManufacturingReferencePicker();
+      return;
+    }
 
     const type = this.purchaseReferenceType() || this.salesReferenceType();
     if (!type) return;
@@ -11886,13 +12623,330 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.refPickerDocs().some(doc => !!doc.doc_type);
   }
 
+  referenceDocTypeLabel(doc: PurchaseRefDoc): string {
+    const type = String((doc as any).doc_type || (doc as any).docType || this.refPickerType() || '').toUpperCase();
+    if (type === 'PRODUCTIONPLAN') return 'Production Plan';
+    if (type === 'MATERIALISSUE') return 'Material Issue';
+    if (type === 'PURCHASERETURN') return 'Purchase Return';
+    if (type === 'SALESRETURN') return 'Sales Return';
+    return type || 'Reference';
+  }
+
   referenceDocTrackKey(doc: PurchaseRefDoc): string {
     const anyDoc = doc as any;
-    const type = String(anyDoc.doc_type || anyDoc.docType || this.refPickerType() || this.purchaseReferenceType() || this.salesReferenceType() || 'REF').toUpperCase();
+    const type = String(anyDoc.doc_type || anyDoc.docType || this.refPickerType() || this.purchaseReferenceType() || this.salesReferenceType() || this.manufacturingReferenceType() || 'REF').toUpperCase();
     return `${type}:${doc.id ?? ''}:${doc.doc_number || ''}`;
   }
 
+  private clearManufacturingReference(field: InventoryField): void {
+    const key = this.config?.key || '';
+    const patch: Record<string, any> = {
+      [field.key]: '',
+      productionPlanId: null,
+      productionRef: '',
+      planRef: '',
+      materialIssueId: null,
+      issueRef: ''
+    };
+    if (key === 'productionEntry') {
+      Object.assign(patch, {
+        finishedProduct: '',
+        finishedProductId: null,
+        producedQty: '',
+        rejectedQty: '',
+        productionCost: ''
+      });
+    }
+    this.formValues.update(values => ({ ...values, ...patch }));
+    this.boundReferenceLabels.set([]);
+    this.boundReferenceFields.set({});
+    this.lineRefItemIdMap.set({});
+    this.lineSerialUnitsMap.set({});
+    this.entryLineRowsKey.set(key);
+    this.entryLineRows.set([this.blankLineRow()]);
+  }
+
+  private setManufacturingLineCell(row: string[], labels: string[], value: any): void {
+    const normalizedLabels = labels.map(label => this.normalizeKey(label)).filter(Boolean);
+    const idx = (this.config?.lineColumns || []).findIndex(column => {
+      const key = this.normalizeKey(column);
+      return normalizedLabels.some(label => key === label || key.includes(label));
+    });
+    if (idx >= 0) row[idx] = value === undefined || value === null ? '' : String(value);
+  }
+
+  private shouldSyncProductionPlanningBomRows(fieldKey: string): boolean {
+    return this.config?.key === 'productionPlanning'
+      && ['finishedProduct', 'plannedQty', 'bomVersion'].includes(fieldKey);
+  }
+
+  private selectedProductionPlanningBom(values = this.formValues()): ManufacturingBomRecord | null {
+    const finishedProduct = String(values['finishedProduct'] || '').trim();
+    if (!finishedProduct) return null;
+    const finishedKey = this.normalizeKey(finishedProduct);
+    const versionKey = this.normalizeKey(values['bomVersion'] || '');
+    const candidates = this.productionPlanningBomRecords()
+      .filter(record => this.normalizeKey(record.finishedProduct) === finishedKey);
+    if (!candidates.length) return null;
+    if (versionKey && versionKey !== 'latest') {
+      return candidates.find(record => this.normalizeKey(record.version) === versionKey) || null;
+    }
+    return candidates[0] || null;
+  }
+
+  private formatBomRequirementQty(value: number): string {
+    const rounded = Math.round((Number(value) || 0) * 1000) / 1000;
+    return Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  private productionPlanningBomRequirementRow(rawMaterial: string, requiredQty: number): string[] {
+    const product = this.findProductBySelection(rawMaterial);
+    const row = this.blankLineRow();
+    this.setManufacturingLineCell(row, ['Raw Material', 'Material'], product?.product_name || rawMaterial);
+    this.setManufacturingLineCell(row, ['Variant'], product?.variant_name || '');
+    this.setManufacturingLineCell(row, ['Attribute'], product?.variant_label || '');
+    this.setManufacturingLineCell(row, ['UOM'], this.productBaseUomLabel(product));
+    this.setManufacturingLineCell(row, ['Required Qty'], this.formatBomRequirementQty(requiredQty));
+    this.setManufacturingLineCell(row, ['Available Qty'], '');
+    this.setManufacturingLineCell(row, ['Shortage'], '');
+    this.setManufacturingLineCell(row, ['Batch Req'], product?.batch_applicable ? 'Yes' : 'No');
+    return this.normalizeLineRow(row);
+  }
+
+  private syncProductionPlanningBomRequirementRows(force = true): void {
+    if (this.config?.key !== 'productionPlanning') return;
+    if (!force && this.activeManufacturingLineRows().length) return;
+
+    const values = this.formValues();
+    const plannedQty = Number(values['plannedQty']) || 0;
+    if (plannedQty <= 0) return;
+
+    const bom = this.selectedProductionPlanningBom(values);
+    if (!bom) return;
+
+    const rows = bom.rawMaterials
+      .map(rawMaterial => this.productionPlanningBomRequirementRow(rawMaterial, bom.quantityPerUnit * plannedQty))
+      .filter(row => row.some(cell => String(cell || '').trim()));
+    if (!rows.length) return;
+
+    if (!String(values['bomVersion'] || '').trim() && bom.version) {
+      this.formValues.update(current => ({ ...current, bomVersion: bom.version }));
+    }
+    this.entryLineRowsKey.set('productionPlanning');
+    this.entryLineRows.set(rows);
+    this.lineRefItemIdMap.set({});
+    this.lineSerialUnitsMap.set({});
+  }
+
+  private manufacturingLineRefMapFromItems(
+    items: any[],
+    idKey: 'productionPlanItemId' | 'materialIssueItemId'
+  ): Record<number, {
+    productionPlanItemId?: number | null; materialIssueItemId?: number | null;
+    attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null;
+  }> {
+    const map: Record<number, {
+      productionPlanItemId?: number | null; materialIssueItemId?: number | null;
+      attributeId?: number | null; attributeName?: string | null; attributeValue?: string | null;
+    }> = {};
+    (items || []).forEach((item: any, index: number) => {
+      map[index] = {
+        [idKey]: item?.id ?? null,
+        attributeId: item?.attribute_id ?? item?.attributeId ?? null,
+        attributeName: item?.attribute_name || item?.attributeName || null,
+        attributeValue: item?.attribute_value || item?.attributeValue || null
+      };
+    });
+    return map;
+  }
+
+  private productionPlanMaterialToIssueLineRow(item: any): string[] {
+    const row = this.blankLineRow();
+    this.setManufacturingLineCell(row, ['Raw Material', 'Material'], item.product_name || item.productName || '');
+    this.setManufacturingLineCell(row, ['Variant'], item.variant_name || item.variantName || '');
+    this.setManufacturingLineCell(row, ['Attribute'], item.attribute_value || item.attributeValue || item.attribute_name || item.attributeName || '');
+    this.setManufacturingLineCell(row, ['UOM'], item.uom_name || item.uomName || '');
+    this.setManufacturingLineCell(row, ['Required Qty'], item.required_qty ?? item.requiredQty ?? '');
+    this.setManufacturingLineCell(row, ['Issued Qty'], item.required_qty ?? item.requiredQty ?? '');
+    this.setManufacturingLineCell(row, ['Batch / Lot No', 'Batch / Serial'], item.batch_no || item.batchNo || '');
+    this.setManufacturingLineCell(row, ['Serial No'], item.serial_no || item.serialNo || '');
+    return this.normalizeLineRow(row);
+  }
+
+  private materialIssueToReturnLineRow(item: any): string[] {
+    const row = this.blankLineRow();
+    const issuedQty = item.issued_qty ?? item.issuedQty ?? '';
+    this.setManufacturingLineCell(row, ['Material', 'Raw Material'], item.product_name || item.productName || '');
+    this.setManufacturingLineCell(row, ['Variant'], item.variant_name || item.variantName || '');
+    this.setManufacturingLineCell(row, ['Attribute'], item.attribute_value || item.attributeValue || item.attribute_name || item.attributeName || '');
+    this.setManufacturingLineCell(row, ['UOM'], item.uom_name || item.uomName || '');
+    this.setManufacturingLineCell(row, ['Issued Qty'], issuedQty);
+    this.setManufacturingLineCell(row, ['Consumed Qty'], issuedQty);
+    this.setManufacturingLineCell(row, ['Returned Qty'], '');
+    this.setManufacturingLineCell(row, ['Batch / Serial'], item.batch_no || item.batchNo || item.serial_no || item.serialNo || '');
+    return this.normalizeLineRow(row);
+  }
+
+  private productionPlanOutputLineRow(doc: PurchaseRefDoc, productionCost = 0): string[] {
+    const anyDoc = doc as any;
+    const row = this.blankLineRow();
+    const productName = anyDoc.finished_product_name || anyDoc.finishedProductName || doc.party_name || '';
+    const product = this.findProductBySelection(productName);
+    const plannedQty = anyDoc.planned_qty ?? anyDoc.plannedQty ?? '';
+    this.setManufacturingLineCell(row, ['Finished Product', 'Product'], productName);
+    this.setManufacturingLineCell(row, ['Variant'], product?.variant_name || '');
+    this.setManufacturingLineCell(row, ['Attribute'], product?.variant_label || '');
+    this.setManufacturingLineCell(row, ['UOM'], this.productBaseUomLabel(product));
+    this.setManufacturingLineCell(row, ['Planned Qty'], plannedQty);
+    this.setManufacturingLineCell(row, ['Produced Qty'], plannedQty);
+    this.setManufacturingLineCell(row, ['Rejected Qty'], '0');
+    this.setManufacturingLineCell(row, ['Production Cost', 'Cost'], productionCost ? this.formatProductionCostValue(productionCost) : '');
+    return this.normalizeLineRow(row);
+  }
+
+  private productUnitCost(product: ProductItem | null | undefined): number {
+    if (!product) return 0;
+    return this.firstPositiveCurrencyValue(
+      (product as any).cost_price,
+      (product as any).costPrice,
+      (product as any).standard_cost,
+      (product as any).standardCost,
+      (product as any).last_purchase_rate,
+      (product as any).lastPurchaseRate,
+      (product as any).cost
+    );
+  }
+
+  private productionPlanEstimatedMaterialCost(doc: PurchaseRefDoc): number {
+    return (doc.items || []).reduce((sum, item: any) => {
+      const product = this.findProductBySelection(item?.product_name || item?.productName || item?.product_code || item?.productCode || '');
+      const qty = Number(item?.required_qty ?? item?.requiredQty ?? 0) || 0;
+      return sum + qty * this.productUnitCost(product);
+    }, 0);
+  }
+
+  private formatProductionCostValue(value: number): string {
+    if (!Number.isFinite(value) || value <= 0) return '';
+    return String(Math.round(value * 100) / 100);
+  }
+
+  private materialIssueMatchesPlan(issue: any, plan: PurchaseRefDoc): boolean {
+    const issuePlanId = this.optionalNumber(issue?.production_plan_id ?? issue?.productionPlanId);
+    const planId = this.optionalNumber(plan.id);
+    if (issuePlanId && planId && issuePlanId === planId) return true;
+    const issuePlanNo = issue?.production_plan_number || issue?.productionPlanNumber || '';
+    return !!issuePlanNo && this.optionEquals(issuePlanNo, plan.doc_number);
+  }
+
+  private materialIssueTentativeCostForPlan(plan: PurchaseRefDoc, issues: any[]): number {
+    return (issues || [])
+      .filter(issue => this.materialIssueMatchesPlan(issue, plan))
+      .flatMap(issue => Array.isArray(issue?.items) ? issue.items : [])
+      .reduce((sum, item: any) => {
+        const product = this.findProductBySelection(item?.product_name || item?.productName || item?.product_code || item?.productCode || '');
+        const qty = Number(item?.issued_qty ?? item?.issuedQty ?? item?.required_qty ?? item?.requiredQty ?? 0) || 0;
+        return sum + qty * this.productUnitCost(product);
+      }, 0);
+  }
+
+  private applyProductionEntryTentativeCost(cost: number): void {
+    const formatted = this.formatProductionCostValue(cost);
+    if (!formatted) return;
+    this.formValues.update(values => ({ ...values, productionCost: formatted }));
+    this.entryLineRows.update(rows => rows.map((row, index) => {
+      if (index !== 0) return row;
+      const next = this.normalizeLineRow(row);
+      this.setManufacturingLineCell(next, ['Production Cost', 'Cost'], formatted);
+      return next;
+    }));
+  }
+
+  private refreshProductionEntryTentativeCostFromIssues(plan: PurchaseRefDoc, fallbackCost: number): void {
+    if (this.config?.key !== 'productionEntry') return;
+    this.applyProductionEntryTentativeCost(fallbackCost);
+    this.txService.getMaterialIssueProductions('posted', this.selectedSegmentId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => {
+          if (!res.success) return;
+          const issuedCost = this.materialIssueTentativeCostForPlan(plan, res.data || []);
+          if (issuedCost > 0) this.applyProductionEntryTentativeCost(issuedCost);
+        },
+        error: () => { /* keep the plan-estimated cost when issue cost lookup is unavailable */ }
+      });
+  }
+
+  private selectManufacturingReference(doc: PurchaseRefDoc): void {
+    const key = this.config?.key || '';
+    const anyDoc = doc as any;
+    const locationName = doc.warehouse_name || doc.branch_name || '';
+    const patch: Record<string, any> = {
+      segmentId: doc.segment_id ?? null,
+      segment: doc.segment_name || this.formValues()['segment'] || this.selectedSegment()
+    };
+    let rows: string[][] = [];
+    let refMap: Record<number, any> = {};
+
+    if (key === 'materialIssueProduction') {
+      patch['productionPlanId'] = doc.id;
+      patch['productionRef'] = doc.doc_number;
+      patch['forFinishedProduct'] = anyDoc.finished_product_name || anyDoc.finishedProductName || doc.party_name || this.formValues()['forFinishedProduct'] || '';
+      patch['forFinishedProductId'] = anyDoc.finished_product_id ?? anyDoc.finishedProductId ?? doc.vendor_id ?? this.formValues()['forFinishedProductId'] ?? null;
+      patch['fromWarehouse'] = locationName || this.formValues()['fromWarehouse'] || '';
+      patch['fromWarehouseId'] = doc.warehouse_id ?? null;
+      patch['fromBranchId'] = doc.branch_id ?? null;
+      patch['toWorkCenter'] = anyDoc.work_center || this.formValues()['toWorkCenter'] || '';
+      patch['issueDate'] = this.isoDateValue(this.formValues()['issueDate']) || this.todayIso();
+      rows = (doc.items || []).map((item: any) => this.productionPlanMaterialToIssueLineRow(item));
+      refMap = this.manufacturingLineRefMapFromItems(doc.items || [], 'productionPlanItemId');
+    } else if (key === 'productionEntry') {
+      const cost = this.productionPlanEstimatedMaterialCost(doc);
+      const plannedQty = anyDoc.planned_qty ?? anyDoc.plannedQty ?? '';
+      patch['productionPlanId'] = doc.id;
+      patch['planRef'] = doc.doc_number;
+      patch['productionDate'] = this.isoDateValue(this.formValues()['productionDate']) || anyDoc.production_date || this.todayIso();
+      patch['finishedProduct'] = anyDoc.finished_product_name || anyDoc.finishedProductName || doc.party_name || '';
+      patch['finishedProductId'] = anyDoc.finished_product_id ?? anyDoc.finishedProductId ?? doc.vendor_id ?? null;
+      patch['producedQty'] = plannedQty;
+      patch['rejectedQty'] = this.formValues()['rejectedQty'] || '0';
+      patch['productionCost'] = this.formatProductionCostValue(cost);
+      patch['toWarehouse'] = locationName || this.formValues()['toWarehouse'] || '';
+      patch['toWarehouseId'] = doc.warehouse_id ?? null;
+      patch['toBranchId'] = doc.branch_id ?? null;
+      rows = [this.productionPlanOutputLineRow(doc, cost)];
+      refMap = { 0: { productionPlanItemId: null } };
+    } else if (key === 'productionReturn') {
+      patch['materialIssueId'] = doc.id;
+      patch['issueRef'] = doc.doc_number;
+      patch['productionPlanId'] = anyDoc.production_plan_id ?? anyDoc.productionPlanId ?? null;
+      patch['productionRef'] = anyDoc.production_plan_number || anyDoc.productionPlanNumber || doc.party_name || '';
+      patch['toWarehouse'] = locationName || this.formValues()['toWarehouse'] || '';
+      patch['toWarehouseId'] = doc.warehouse_id ?? null;
+      patch['toBranchId'] = doc.branch_id ?? null;
+      rows = (doc.items || []).map((item: any) => this.materialIssueToReturnLineRow(item));
+      refMap = this.manufacturingLineRefMapFromItems(doc.items || [], 'materialIssueItemId');
+    } else {
+      return;
+    }
+
+    this.closePurchaseReferencePicker();
+    this.formValues.update(values => ({ ...values, ...patch }));
+    this.entryLineRowsKey.set(key);
+    this.entryLineRows.set(rows.length ? rows : [this.blankLineRow()]);
+    this.lineRefItemIdMap.set(refMap);
+    this.lineSerialUnitsMap.set({});
+    this.boundReferenceLabels.set([doc.doc_number]);
+    this.boundReferenceFields.set(patch);
+    if (key === 'productionEntry') {
+      this.refreshProductionEntryTentativeCostFromIssues(doc, this.productionPlanEstimatedMaterialCost(doc));
+    }
+  }
+
   selectPrimaryReference(doc: PurchaseRefDoc): void {
+    if (this.manufacturingReferenceType()) {
+      this.selectManufacturingReference(doc);
+      return;
+    }
     if (this.purchaseReferenceType()) {
       this.selectPurchaseReference(doc);
       return;
@@ -12251,7 +13305,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // carries no double-counting risk.
 
   private referenceDocType(doc: PurchaseRefDoc): string {
-    return String((doc as any).doc_type || (doc as any).docType || this.refPickerType() || this.salesReferenceType()).toUpperCase();
+    return String((doc as any).doc_type || (doc as any).docType || this.refPickerType() || this.salesReferenceType() || this.manufacturingReferenceType()).toUpperCase();
   }
 
   private referenceDocHasUsableItems(doc: PurchaseRefDoc): boolean {
@@ -12531,13 +13585,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     if (screenKey === 'requestForQuotation') {
       // columns: Product, Variant, Attribute, Qty, UOM, Target Rate, Vendor Rate, Lead Time
-      return this.normalizeLineRow([product, '', '', requiredQty, uom, rate, '', '']);
+      return this.normalizeLineRow([product, this.referenceItemVariantText(item), this.referenceItemAttributeText(item), requiredQty, uom, rate, '', '']);
     }
 
     if (screenKey === 'purchaseOrder') {
       // columns: Item/SKU, Variant, Attribute, UOM, Qty, Rate, Disc%, GST, Warehouse, Amount
       const warehouse = this.formValues()['receivingWarehouse'] || this.warehouseOptions?.[0] || '';
-      const row = this.normalizeLineRow([product, '', '', uom, requiredQty, rate, '0', gst, warehouse, '']);
+      const row = this.normalizeLineRow([product, this.referenceItemVariantText(item), this.referenceItemAttributeText(item), uom, requiredQty, rate, '0', gst, warehouse, '']);
       this.recalculateLineRow(row);
       return row;
     }
@@ -12842,7 +13896,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private serialPickerModeForKey(): 'capture' | 'select' {
     const key = this.config?.key || '';
-    return (key === 'goodsReceipt' || key === 'purchaseInvoice') ? 'capture' : 'select';
+    return (key === 'goodsReceipt' || key === 'purchaseInvoice' || key === 'productionEntry') ? 'capture' : 'select';
   }
 
   // Shared by purchasePiItems() (save payload) and serialPickerQtyForRow()
@@ -12875,12 +13929,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
     if (key === 'purchaseInvoice') return this.purchaseInvoiceQtyForRow(row);
     if (key === 'deliveryChallan') return this.lineNumber(row, ['dispatch']);
+    if (key === 'materialIssueProduction') return this.lineNumber(row, ['issued']);
+    if (key === 'productionEntry') return this.lineNumber(row, ['produced']);
+    if (key === 'productionReturn') return this.lineNumber(row, ['returned', 'return']);
     if (key === 'purchaseReturn' || key === 'salesReturn') return this.lineNumber(row, ['return']);
     return this.lineNumber(row, ['qty']);
   }
 
   isSerialApplicableRow(row: string[]): boolean {
-    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
     const product = this.findProductBySelection(productName);
     return !!product?.serial_applicable;
   }
@@ -12913,7 +13970,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const rows = this.directEntryLineRows();
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       const row = rows[rowIndex];
-      const productName = this.lineValue(row, ['product', 'item', 'sku']);
+      const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
       if (!productName || !this.isSerialApplicableRow(row)) continue;
 
       // Inherited rows (Sales Invoice billing a Delivery Challan) get their
@@ -12925,7 +13982,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const qtyNeeded = this.serialPickerBaseQtyForRow(row, product);
       if (qtyNeeded <= 0) continue;
 
-      const captured = (this.lineSerialUnitsMap()[rowIndex] || []).length;
+      const captured = (this.lineSerialUnitsMap()[rowIndex] || this.serialNumbersForLine(row, rowIndex)).length;
       if (captured === 0) {
         return `Enter Serial / IMEI numbers for "${productName}" (row ${rowIndex + 1}) before posting — ${qtyNeeded} required.`;
       }
@@ -12963,7 +14020,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   serialPickerSummaryForRow(rowIndex: number, row: string[]): string {
     const count = (this.lineSerialUnitsMap()[rowIndex] || []).length;
-    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
     const product = this.findProductBySelection(productName);
     const qty = this.serialPickerBaseQtyForRow(row, product);
     const inheritedSource = this.inheritedSalesSerialSource(rowIndex);
@@ -12984,7 +14041,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // captured) so the caller can fall through to the normal readonly-text
   // rendering instead of showing a misleading "· 0" badge.
   serialViewBadgeTextForRow(rowIndex: number, row: string[]): string {
-    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
     const product = this.findProductBySelection(productName);
     if (!product?.serial_applicable) return '';
     const count = (this.lineSerialUnitsMap()[rowIndex] || []).length;
@@ -13003,7 +14060,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // closeSerialPicker(false) just clears state, never writes back) stays
   // identical to the existing picker.
   openSerialPickerReadOnly(rowIndex: number, row: string[]): void {
-    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
     const product = this.findProductBySelection(productName);
     const serials = this.lineSerialUnitsMap()[rowIndex] || [];
     this.activeSerialPicker.set({
@@ -13030,9 +14087,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // just the ones at the actual source. Stock Transfer's own field is named
   // 'fromWarehouse', same as Delivery Challan's, hence the shared branch here.
   private resolveHeaderLocationForSerialPicker(): { warehouseId: number | null; branchId: number | null } {
-    const headerField = (this.config?.key === 'deliveryChallan' || this.config?.key === 'stockTransfer')
+    const key = this.config?.key || '';
+    const headerField = (key === 'deliveryChallan' || key === 'stockTransfer' || key === 'materialIssueProduction')
       ? (this.formValues()['fromWarehouse'] || this.formValues()['fromWarehouseId'])
-      : (this.formValues()['warehouse'] || this.formValues()['warehouseId']);
+      : (key === 'productionEntry' || key === 'productionReturn')
+        ? (this.formValues()['toWarehouse'] || this.formValues()['toWarehouseId'])
+        : (this.formValues()['warehouse'] || this.formValues()['warehouseId']);
     return this.resolveHeaderStockLocation(headerField);
   }
 
@@ -13053,7 +14113,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   openSerialPicker(rowIndex: number, row: string[]): void {
-    const productName = this.lineValue(row, ['product', 'item', 'sku']);
+    const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
     const product = this.findProductBySelection(productName);
     if (!product?.serial_applicable) return;
 
@@ -13413,7 +14473,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return;
     }
 
-    if (this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster') {
+    if (this.isManufacturingTransactionKey()) {
+      this.entryLineRowsKey.set(this.config.key);
+      this.entryLineRows.set([this.blankLineRow()]);
+      this.lineAttrValueMap.set({});
+      this.lineSerialValueMap.set({});
+      this.lineRefItemIdMap.set({});
+      this.lineSerialUnitsMap.set({});
+      this.applyDefaultLocationToCurrentTransaction(true);
+      return;
+    }
+
+    if (this.config?.key === 'vendorMaster' || this.config?.key === 'customerMaster' || this.config?.key === 'channelPartnerMaster') {
       this.selectedPartyContact.set(null);
       this.selectedPartyContactPerson.set(null);
     }
@@ -13485,11 +14556,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || key === 'productGroupMaster' || key === 'variantMaster' || key === 'serialNumberPolicy'
       || key === 'batchLotPolicy' || key === 'barcodeConfiguration' || key === 'substituteProducts'
       || key === 'consumptionTypeMaster' || key === 'productTypeMaster'
-      || key === 'vendorMaster' || key === 'customerMaster' || key === 'productServiceMaster'
+      || key === 'vendorMaster' || key === 'customerMaster' || key === 'channelPartnerMaster' || key === 'productServiceMaster'
       || key === 'stockTransfer' || key === 'stockAdjustment'
       || key === 'openingStockEntry' || key === 'cycleCount'
       || this.isPurchaseTransactionKey(key || '')
-      || this.isSalesTransactionKey(key || '');
+      || this.isSalesTransactionKey(key || '')
+      || this.isManufacturingTransactionKey(key || '');
   }
 
   collectFormField(key: string, value: any): void {
@@ -13540,6 +14612,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
       return next;
     });
+    if (this.shouldSyncProductionPlanningBomRows(key)) {
+      this.syncProductionPlanningBomRequirementRows(true);
+    }
     if (key === 'segment' && normalizedValue && !this.optionEquals(this.selectedSegment(), normalizedValue)) {
       this.selectedSegment.set(normalizedValue);
     }
@@ -14056,6 +15131,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const live = this.formValues()[field.key];
     const value = live !== undefined ? live : this.defaultFieldValue(field);
     if (field.type === 'date') {
+      if (!value && this.isManufacturingTransactionKey() && field.key === 'productionDate') {
+        return this._todayDateValue;
+      }
       return this.datePickerValue(value);
     }
     if (this.config?.key === 'variantMaster' && field.key.toLowerCase() === 'attributevalue') {
@@ -14116,7 +15194,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || key === 'variantMaster' || key === 'serialNumberPolicy' || key === 'batchLotPolicy'
       || key === 'barcodeConfiguration' || key === 'substituteProducts'
       || key === 'consumptionTypeMaster'
-      || key === 'vendorMaster' || key === 'customerMaster' || key === 'productServiceMaster';
+      || key === 'vendorMaster' || key === 'customerMaster' || key === 'channelPartnerMaster' || key === 'productServiceMaster';
   }
 
   private segmentMappedIds(kind: 'categories' | 'hsn_sac_codes' | 'uoms'): Set<number> {
@@ -14166,6 +15244,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     const recordSegmentName = record.segment_name ?? record.segmentName;
+    if ((key === 'vendorMaster' || key === 'customerMaster' || key === 'channelPartnerMaster')
+      && (!Number.isFinite(recordSegmentId) || recordSegmentId <= 0)
+      && !recordSegmentName) {
+      return true;
+    }
     return !!recordSegmentName && this.optionEquals(recordSegmentName, selected);
   }
 
@@ -14174,6 +15257,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   liveRows(): string[][] {
+    if (this.config?.key === 'bomMaster') {
+      return this.manufacturingMasterRows('bomMaster');
+    }
+    if (this.config?.key === 'workCenterMaster') {
+      return this.manufacturingMasterRows('workCenterMaster');
+    }
     if (this.isApiWired()) {
       return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
     }
@@ -14238,8 +15327,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'substituteProducts':    obs$ = this.inventoryConfigService.getSubstituteProducts(true);        break;
       case 'consumptionTypeMaster': obs$ = this.inventoryConfigService.getConsumptionTypes(segmentId, true);   break;
       case 'productTypeMaster':     obs$ = this.inventoryConfigService.getProductTypes(true);                  break;
-      case 'vendorMaster':         obs$ = this.inventoryConfigService.getVendors(segmentId, true);       break;
-      case 'customerMaster':       obs$ = this.inventoryConfigService.getCustomers(segmentId, true);     break;
+      case 'vendorMaster':         obs$ = this.inventoryConfigService.getVendors(null, true);            break;
+      case 'customerMaster':       obs$ = this.inventoryConfigService.getCustomers(null, true);          break;
+      case 'channelPartnerMaster': obs$ = this.inventoryConfigService.getChannelPartners(null, true);    break;
       case 'productServiceMaster': obs$ = this.inventoryConfigService.getProducts(segmentId, null, true); break;
       case 'purchaseRequisition':  obs$ = this.txService.getPurchaseRequisitions(undefined, segmentId); break;
       case 'requestForQuotation':  obs$ = this.txService.getRfqs(undefined, segmentId); break;
@@ -14252,6 +15342,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'purchaseInvoice':      obs$ = this.txService.getPurchaseInvoices(undefined, segmentId); break;
       case 'purchaseReturn':       obs$ = this.txService.getPurchaseReturns(undefined, segmentId); break;
       case 'debitNote':            obs$ = this.txService.getDebitNotes(undefined, segmentId); break;
+      case 'productionPlanning':    obs$ = this.txService.getProductionPlans(undefined, segmentId); break;
+      case 'materialIssueProduction': obs$ = this.txService.getMaterialIssueProductions(undefined, segmentId); break;
+      case 'productionEntry':       obs$ = this.txService.getProductionEntries(undefined, segmentId); break;
+      case 'productionReturn':      obs$ = this.txService.getProductionReturns(undefined, segmentId); break;
       case 'estimation':           obs$ = this.txService.getEstimations(undefined, segmentId); break;
       case 'proformaInvoice':      obs$ = this.txService.getProformaInvoices(undefined, segmentId); break;
       case 'salesInvoice':         obs$ = this.txService.getSalesInvoices(undefined, segmentId); break;
@@ -14351,6 +15445,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return forceDocumentStatus === 'posted' ? 'Delivery Challan posted.' : draftMessage('Delivery Challan');
       case 'salesReturn':
         return forceDocumentStatus === 'posted' ? 'Sales Return posted.' : draftMessage('Sales Return');
+      case 'productionPlanning':
+        return forceDocumentStatus === 'posted' ? 'Production Plan posted.' : draftMessage('Production Plan');
+      case 'materialIssueProduction':
+        return forceDocumentStatus === 'posted' ? 'Material Issue posted.' : draftMessage('Material Issue');
+      case 'productionEntry':
+        return forceDocumentStatus === 'posted' ? 'Production Entry posted.' : draftMessage('Production Entry');
+      case 'productionReturn':
+        return forceDocumentStatus === 'posted' ? 'Production Return posted.' : draftMessage('Production Return');
       default:
         return '';
     }
@@ -14570,7 +15672,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       'salesInvoice',
       'deliveryChallan',
       'salesReturn',
-      'stockTransfer'
+      'stockTransfer',
+      'productionPlanning',
+      'materialIssueProduction',
+      'productionEntry',
+      'productionReturn'
     ].includes(this.config?.key || '') && !!forceDocumentStatus;
     // Snapshotted so a failed/cancelled Post can put the record back to how
     // it was — otherwise isCurrentRecordPosted() (read by the [attr.inert]
@@ -14764,6 +15870,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'productTypeMaster':     obs$ = this.inventoryConfigService.saveProductType(payload, id);       break;
       case 'vendorMaster':          obs$ = this.saveVendorWithContactWriteback(payload, id);              break;
       case 'customerMaster':        obs$ = this.saveCustomerWithContactWriteback(payload, id);            break;
+      case 'channelPartnerMaster':  obs$ = this.saveChannelPartnerWithContactWriteback(payload, id);      break;
       case 'productServiceMaster':  obs$ = this.inventoryConfigService.saveProduct(payload, id);          break;
       case 'purchaseRequisition':   obs$ = this.txService.savePurchaseRequisition(payload, id);           break;
       case 'requestForQuotation':   obs$ = this.txService.saveRfq(payload, id);                           break;
@@ -14776,6 +15883,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'purchaseInvoice':       obs$ = this.txService.savePurchaseInvoice(payload, id);                break;
       case 'purchaseReturn':        obs$ = this.txService.savePurchaseReturn(payload, id);                 break;
       case 'debitNote':             obs$ = this.txService.saveDebitNote(payload, id);                      break;
+      case 'productionPlanning':     obs$ = this.txService.saveProductionPlan(payload, id);                 break;
+      case 'materialIssueProduction': obs$ = this.txService.saveMaterialIssueProduction(payload, id);       break;
+      case 'productionEntry':        obs$ = this.txService.saveProductionEntry(payload, id);                break;
+      case 'productionReturn':       obs$ = this.txService.saveProductionReturn(payload, id);               break;
       case 'estimation':            obs$ = this.txService.saveEstimation(payload, id);                     break;
       case 'proformaInvoice':       obs$ = this.txService.saveProformaInvoice(payload, id);                break;
       case 'salesInvoice':          obs$ = this.txService.saveSalesInvoice(payload, id);                   break;
@@ -14845,7 +15956,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               this.refPickerDocs.update(docs => this.filterDocumentNoteAvailableReturnDocs(docs));
               this.invalidateTransactionReferenceDocs();
             }
-            if (['goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'deliveryChallan', 'salesInvoice', 'salesReturn'].includes(this.config?.key || '')) {
+            if (['goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'deliveryChallan', 'salesInvoice', 'salesReturn', 'materialIssueProduction', 'productionEntry', 'productionReturn'].includes(this.config?.key || '')) {
               // fetchAvailableStockForLine() only ever fetches a given
               // product/variant/attribute key once and caches it for the
               // life of this component instance (see its own early-return
@@ -15081,7 +16192,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     goodsReceipt: '/dashboard/inventory/transactions/goods-receipt',
     purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice',
     salesInvoice: '/dashboard/inventory/transactions/sales-invoice',
-    stockTransfer: '/dashboard/inventory/transactions/stock-transfer'
+    stockTransfer: '/dashboard/inventory/transactions/stock-transfer',
+    bomMaster: '/dashboard/inventory/masters/bom-master'
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
   private static readonly PAYMENT_TERMS_MASTER_ROUTE = '/dashboard/inventory/masters/payment-terms-master';
@@ -15101,7 +16213,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return `inv_procurement_resume::${screenKey}`;
   }
 
-  addProductFromProcurementGrid(): void {
+  addProductFromProcurementGrid(sourceFieldKey?: string): void {
     const key = this.config?.key;
     const returnRoute = key ? InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key] : undefined;
     if (!returnRoute || !this.router) return;
@@ -15120,6 +16232,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         lineSerialUnitsMap: this.lineSerialUnitsMap(),
         lineGstIncludedMap: this.lineGstIncludedMap(),
         transportDetailsForm: this.transportDetailsForm(),
+        pendingRows: this.pendingRows(),
+        sourceFieldKey: sourceFieldKey || null,
         savedAt: Date.now()
       }));
     } catch {
@@ -15127,13 +16241,30 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // navigate, just without the resume snapshot.
     }
 
-    this.router.navigate([InventoryScreenShell.PRODUCT_MASTER_ROUTE], {
-      queryParams: { returnTo: key, returnRoute }
-    });
+    const queryParams: Record<string, string> = { returnTo: key!, returnRoute };
+    if (sourceFieldKey) queryParams['sourceField'] = sourceFieldKey;
+
+    this.router.navigate([InventoryScreenShell.PRODUCT_MASTER_ROUTE], { queryParams });
   }
 
   addProductFromLineProductPicker(): void {
     this.addProductFromProcurementGrid();
+  }
+
+  private applyProductMasterReturnDefaults(): void {
+    if (this.config?.key !== 'productServiceMaster') return;
+    const params = this.activatedRoute?.snapshot.queryParamMap;
+    if (params?.get('returnTo') !== 'bomMaster') return;
+    const sourceField = params?.get('sourceField');
+    if (sourceField !== 'rawMaterials' && sourceField !== 'finishedProduct') return;
+    const values = this.formValues();
+    if (values['productNatureId'] || values['productNatureName']) return;
+    const defaultNature = this.productNatureObjects.find(nature =>
+      sourceField === 'rawMaterials'
+        ? this.isRawMaterialNatureName(nature.type_name)
+        : this.isFinishedProductNatureName(nature.type_name)
+    );
+    if (defaultNature) this.onProductNatureChange(defaultNature.id);
   }
 
   private restoreProcurementResumeIfReturning(): void {
@@ -15165,6 +16296,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       lineSerialUnitsMap?: Record<number, string[]>;
       lineGstIncludedMap?: Record<number, boolean>;
       transportDetailsForm?: Record<string, any>;
+      pendingRows?: Array<{ payload: Record<string, any>; formSnapshot: Record<string, any>; display: string[] }>;
       savedAt?: number;
     } | null = null;
     try {
@@ -15187,6 +16319,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.lineSerialUnitsMap.set(snap.lineSerialUnitsMap || {});
     this.lineGstIncludedMap.set(snap.lineGstIncludedMap || {});
     this.transportDetailsForm.set(snap.transportDetailsForm || {});
+    if (Array.isArray(snap.pendingRows)) this.pendingRows.set(snap.pendingRows);
   }
 
   private navigateBackAfterProductMasterSave(): void {
@@ -15252,6 +16385,55 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return status === 'posted' || status === 'sent' || status === 'confirmed';
   }
 
+  private manufacturingTransactionCurrentStatusKey(): string {
+    if (!this.isManufacturingTransactionKey()) return '';
+    return this.normalizeKey(this.formValues()['status'] || this.txDocStatus() || 'draft');
+  }
+
+  manufacturingTransactionIsPostedForm(): boolean {
+    return this.manufacturingTransactionCurrentStatusKey() === 'posted';
+  }
+
+  manufacturingPostButtonLabel(): string {
+    switch (this.config?.key) {
+      case 'productionPlanning': return 'Post Plan';
+      case 'materialIssueProduction': return 'Post Issue';
+      case 'productionEntry': return 'Post Production';
+      case 'productionReturn': return 'Post Return';
+      default: return 'Post';
+    }
+  }
+
+  saveManufacturingDraft(): void {
+    if (this.manufacturingTransactionIsPostedForm()) {
+      this.saveMsg.set('');
+      this.saveError.set(`This ${this.config?.title || 'manufacturing document'} is already posted and cannot be moved back to Draft.`);
+      return;
+    }
+    this.saveConfigRecord('draft');
+  }
+
+  postManufacturingForm(): void {
+    if (this.manufacturingTransactionIsPostedForm()) {
+      this.saveMsg.set('');
+      this.saveError.set(`This ${this.config?.title || 'manufacturing document'} is already posted.`);
+      return;
+    }
+    this.saveConfigRecord('posted');
+  }
+
+  isManufacturingDraftRow(row: string[]): boolean {
+    if (!this.isManufacturingTransactionKey()) return false;
+    const record = this.findRecordByRow(row);
+    return !!record && this.normalizeKey(record.status || 'draft') === 'draft';
+  }
+
+  postManufacturingRecordByRow(row: string[]): void {
+    if (!this.isManufacturingDraftRow(row)) return;
+    this.editRecordByRow(row);
+    this.saveConfigRecord('posted');
+  }
+
   // Single entry point transaction screens use to lock header fields and the
   // line grid (via [attr.inert]) and to disable Save Draft/Post once a
   // record has moved past Draft — dispatches to the per-family posted checks
@@ -15289,6 +16471,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'estimation':
       case 'proformaInvoice':
       case 'salesQuotation': return this.salesTransactionIsPostedForm();
+      case 'productionPlanning':
+      case 'materialIssueProduction':
+      case 'productionEntry':
+      case 'productionReturn': return this.manufacturingTransactionIsPostedForm();
       default: return false;
     }
   }
@@ -15358,6 +16544,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     let codeKey: string | null = null;
     if (fieldKey.endsWith('Name')) {
       codeKey = fieldKey.replace(/Name$/, 'Code');
+    } else if (this.config?.key === 'bomMaster' && (fieldKey === 'finishedProduct' || fieldKey === 'version')) {
+      codeKey = 'bomCode';
     } else if (fieldKey === 'consumptionType') {
       codeKey = 'typeCode';
     } else if (fieldKey === 'name' &&
@@ -15379,7 +16567,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const current = this.formValues()[codeKey!];
     // Only skip auto-generation if the code was typed manually (not auto-generated by us).
     if (current && String(current).trim() && !this._autoCodeFields.has(codeKey)) return;
-    const generated = this.generateCodeFromName(value);
+    const sourceText = this.config?.key === 'bomMaster'
+      ? [fieldKey === 'finishedProduct' ? value : this.formValues()['finishedProduct'], fieldKey === 'version' ? value : this.formValues()['version']]
+          .map(part => String(part || '').trim())
+          .filter(Boolean)
+          .join(' ')
+      : value;
+    const generated = this.generateCodeFromName(sourceText);
     if (!generated) return;
     this.collectFormField(codeKey, generated);
     this._autoCodeFields.add(codeKey);
@@ -15498,8 +16692,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         case 'consumptionTypeMaster':return this.inventoryConfigService.saveConsumptionType(payload, null);
         case 'vendorMaster':         return this.saveVendorWithContactWriteback(payload, null);
         case 'customerMaster':       return this.saveCustomerWithContactWriteback(payload, null);
+        case 'channelPartnerMaster': return this.saveChannelPartnerWithContactWriteback(payload, null);
         case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
         case 'productTypeMaster':    return this.inventoryConfigService.saveProductType(payload, null);
+        case 'bomMaster':
+        case 'workCenterMaster':     return of(this.saveLocalManufacturingMaster(payload));
         default: return of({ success: false, message: 'Unknown screen', data: null });
       }
     };
@@ -16251,6 +17448,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'productTypeMaster':   return records.find(r => r.type_code === row[0]);
       case 'vendorMaster':       return records.find(r => r.vendor_code === row[0]);
       case 'customerMaster':     return records.find(r => r.customer_code === row[0]);
+      case 'channelPartnerMaster': return records.find(r => r.partner_code === row[0]);
       case 'productServiceMaster': return records.find(r => r.product_code === row[0]);
       case 'purchaseRequisition': return records.find(r => r.pr_number === row[0] || r.prNumber === row[0]);
       case 'requestForQuotation': return records.find(r => r.rfq_number === row[0] || r.rfqNumber === row[0]);
@@ -16263,6 +17461,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'purchaseInvoice': return records.find(r => r.pi_number === row[0] || r.piNumber === row[0]);
       case 'purchaseReturn': return records.find(r => r.return_number === row[0] || r.returnNumber === row[0]);
       case 'debitNote': return records.find(r => r.debit_note_number === row[0] || r.debitNoteNumber === row[0]);
+      case 'productionPlanning': return records.find(r => r.plan_number === row[0] || r.planNumber === row[0]);
+      case 'materialIssueProduction': return records.find(r => r.issue_number === row[0] || r.issueNumber === row[0]);
+      case 'productionEntry': return records.find(r => r.production_number === row[0] || r.productionNumber === row[0]);
+      case 'productionReturn': return records.find(r => r.return_number === row[0] || r.returnNumber === row[0]);
       case 'estimation':
       case 'proformaInvoice':
       case 'salesInvoice':
@@ -16324,7 +17526,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private readonly draftLockTransactionKeys = new Set([
     'goodsReceipt', 'purchaseInvoice', 'purchaseReturn', 'debitNote', 'creditNote',
-    'salesOrder', 'salesInvoice', 'salesReturn', 'deliveryChallan', 'estimation', 'proformaInvoice', 'salesQuotation'
+    'salesOrder', 'salesInvoice', 'salesReturn', 'deliveryChallan', 'estimation', 'proformaInvoice', 'salesQuotation',
+    'productionPlanning', 'materialIssueProduction', 'productionEntry', 'productionReturn'
   ]);
 
   isDraftLockedScreen(): boolean {
@@ -16416,6 +17619,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'purchaseReturn':
       case 'debitNote':
         this.applyPurchaseRecordToForm(record);
+        break;
+      case 'productionPlanning':
+      case 'materialIssueProduction':
+      case 'productionEntry':
+      case 'productionReturn':
+        this.applyManufacturingRecordToForm(record);
         break;
       case 'stockTransfer':
         this.txDocId.set(record.id ?? null);
@@ -16524,8 +17733,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.formValues.set({
           segmentName: record.segment_name || '',
           category: (record.categories || []).map((c: any) => c.category_name),
-          relatedHsnSac: (record.hsn_sac_codes || []).map((h: any) => h.code),
-          typicalUoms: (record.uoms || []).map((u: any) => u.uom_symbol || u.uom_name),
           usageNote: record.usage_note || '',
           status: cap(record.status || 'active')
         });
@@ -16710,6 +17917,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           source: record.contact_source === 'global_contact' ? 'global_contact' : record.contact_source === 'inv_contacts' ? 'inv_contacts' : undefined
         });
         break;
+      case 'channelPartnerMaster':
+        this.formValues.set({ name: record.partner_name || '', code: record.partner_code || '', segment: record.segment_name || '', partnerCategory: record.partner_category || '', contactId: record.contact_id ?? null, contactSource: record.contact_source ?? null, gstin: record.gstin || '', pan: record.pan || '', mobile: record.mobile || '', email: record.email || '', address: record.address || '', city: record.city || '', state: record.state || '', district: record.district || '', pincode: record.pincode || '', paymentTerms: record.payment_term_name || '', creditLimit: record.credit_limit ?? 0, status: cap(record.status || 'active') });
+        this.selectedPartyContact.set({
+          id: record.contact_id ?? undefined,
+          name: record.partner_name || '',
+          type: record.partner_type === 'Individual' ? 'Individual' : 'Company',
+          mobile: record.mobile || '',
+          email: record.email || '',
+          gstin: record.gstin || '',
+          pan: record.pan || '',
+          address: record.address || '',
+          source: record.contact_source === 'global_contact' ? 'global_contact' : record.contact_source === 'inv_contacts' ? 'inv_contacts' : undefined
+        });
+        break;
       case 'productServiceMaster':
         this.genericNameValue.set(record.product_name || '');
         this.productName.set(record.product_name || '');
@@ -16730,12 +17951,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         const savedBundleItems: ProductBundleItem[] = Array.isArray(record.bundle_composition) ? record.bundle_composition : [];
         this.bundleCompositionItems.set(savedBundleItems);
         this.bundleCompositionRequired.set(record.product_nature_name === 'Service Bundle' || savedBundleItems.length > 0);
+        const recordAllowsPurchase = record.allows_purchase ?? record.allowsPurchase;
+        const recordAllowsSale = record.allows_sale ?? record.allowsSale;
+        const recordAllowsProduction = record.allows_production ?? record.allowsProduction;
+        const rawMaterialAllowsSale = recordAllowsSale === true;
         this.formValues.set({
           productCode: record.product_code || '',
           sku: record.sku || '',
           productType: record.product_type || 'Physical Stock',
           productNatureId: record.product_nature_id ?? null,
           productNatureName: record.product_nature_name || '',
+          rawMaterialCanSale: rawMaterialAllowsSale ? 'Yes' : 'No',
+          rawMaterialProductionOnly: rawMaterialAllowsSale ? 'No' : 'Yes',
+          allowsPurchase: recordAllowsPurchase === false ? 'No' : 'Yes',
+          allowsSale: rawMaterialAllowsSale ? 'Yes' : 'No',
+          allowsProduction: recordAllowsProduction === false ? 'No' : 'Yes',
           pricingType: record.pricing_type || null,
           rentalUnit: record.rental_unit || null,
           baseUom: record.base_uom_symbol || record.base_uom_name || '',
@@ -16840,7 +18070,167 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           },
           error: () => { /* leave the row's summary on its existing fallback text */ }
         });
-    });
+      });
+  }
+
+  private manufacturingMaterialItemToLineRow(item: any): string[] {
+    const row = this.blankLineRow();
+    const set = (column: string, value: string) => {
+      const idx = this.lineColumnIndex(column);
+      if (idx >= 0) row[idx] = value;
+    };
+    set('Raw Material', item.product_name || item.productName || '');
+    set('Material', item.product_name || item.productName || '');
+    set('Variant', item.variant_name || item.variantName || '');
+    set('Attribute', item.attribute_value || item.attributeValue || item.attribute_name || item.attributeName || '');
+    set('UOM', item.uom_name || item.uomName || '');
+    set('Required Qty', String(item.required_qty ?? item.requiredQty ?? ''));
+    set('Issued Qty', String(item.issued_qty ?? item.issuedQty ?? ''));
+    set('Consumed Qty', String(item.consumed_qty ?? item.consumedQty ?? ''));
+    set('Returned Qty', String(item.returned_qty ?? item.returnedQty ?? ''));
+    set('Batch / Serial', item.batch_no || item.batchNo || item.serial_no || item.serialNo || '');
+    set('Batch', item.batch_no || item.batchNo || '');
+    return this.normalizeLineRow(row);
+  }
+
+  private productionPlanItemToLineRow(item: any): string[] {
+    const row = this.blankLineRow();
+    const set = (column: string, value: string) => {
+      const idx = this.lineColumnIndex(column);
+      if (idx >= 0) row[idx] = value;
+    };
+    set('Raw Material', item.product_name || item.productName || '');
+    set('Variant', item.variant_name || item.variantName || '');
+    set('Attribute', item.attribute_value || item.attributeValue || item.attribute_name || item.attributeName || '');
+    set('UOM', item.uom_name || item.uomName || '');
+    set('Required Qty', String(item.required_qty ?? item.requiredQty ?? ''));
+    set('Available Qty', String(item.available_qty ?? item.availableQty ?? ''));
+    set('Shortage', String(item.shortage_qty ?? item.shortageQty ?? ''));
+    set('Batch Req', (item.batch_required ?? item.batchRequired) ? 'Yes' : 'No');
+    return this.normalizeLineRow(row);
+  }
+
+  private productionEntryItemToLineRow(item: any): string[] {
+    const row = this.blankLineRow();
+    const set = (column: string, value: string) => {
+      const idx = this.lineColumnIndex(column);
+      if (idx >= 0) row[idx] = value;
+    };
+    set('Finished Product', item.product_name || item.productName || '');
+    set('Variant', item.variant_name || item.variantName || '');
+    set('Attribute', item.attribute_value || item.attributeValue || item.attribute_name || item.attributeName || '');
+    set('UOM', item.uom_name || item.uomName || '');
+    set('Planned Qty', String(item.planned_qty ?? item.plannedQty ?? ''));
+    set('Produced Qty', String(item.produced_qty ?? item.producedQty ?? ''));
+    set('Rejected Qty', String(item.rejected_qty ?? item.rejectedQty ?? ''));
+    set('Production Cost', String(item.production_cost ?? item.productionCost ?? ''));
+    set('Production Cost (Tentative)', String(item.production_cost ?? item.productionCost ?? ''));
+    set('Batch / Lot No', item.batch_no || item.batchNo || '');
+    set('Expiry Date', item.expiry_date || item.expiryDate || '');
+    set('Serial No', item.serial_no || item.serialNo || '');
+    return this.normalizeLineRow(row);
+  }
+
+  private applyManufacturingRecordToForm(record: any): void {
+    const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, ' ') : 'Draft';
+    const status = cap(record.status || 'draft');
+    const items = Array.isArray(record.items) ? record.items : [];
+    this.txDocId.set(record.id ?? null);
+    this.txDocStatus.set(record.status || 'draft');
+    this.hydrateLineSerialUnitsFromRecord(record);
+
+    switch (this.config?.key) {
+      case 'productionPlanning':
+        this.txDocNumber.set(record.plan_number || record.planNumber || '');
+        this.formValues.set({
+          segment: record.segment_name || record.segmentName || this.selectedSegment(),
+          segmentId: record.segment_id ?? record.segmentId ?? null,
+          planNo: record.plan_number || record.planNumber || '',
+          planDate: record.plan_date || record.planDate || null,
+          productionDate: record.production_date || record.productionDate || null,
+          finishedProduct: record.finished_product_name || record.finishedProductName || '',
+          finishedProductId: record.finished_product_id ?? record.finishedProductId ?? null,
+          plannedQty: record.planned_qty ?? record.plannedQty ?? '',
+          bomVersion: record.bom_version || record.bomVersion || '',
+          workCenter: record.work_center || record.workCenter || '',
+          warehouse: record.warehouse_name || record.warehouseName || record.branch_name || record.branchName || '',
+          warehouseId: record.warehouse_id ?? record.warehouseId ?? null,
+          branchId: record.branch_id ?? record.branchId ?? null,
+          remarks: record.remarks || '',
+          status
+        });
+        this.entryLineRowsKey.set('productionPlanning');
+        this.entryLineRows.set(items.length ? items.map((item: any) => this.productionPlanItemToLineRow(item)) : [this.blankLineRow()]);
+        break;
+      case 'materialIssueProduction':
+        this.txDocNumber.set(record.issue_number || record.issueNumber || '');
+        this.formValues.set({
+          segment: record.segment_name || record.segmentName || this.selectedSegment(),
+          segmentId: record.segment_id ?? record.segmentId ?? null,
+          issueNo: record.issue_number || record.issueNumber || '',
+          issueDate: record.issue_date || record.issueDate || null,
+          productionRef: record.production_plan_number || record.productionPlanNumber || '',
+          productionPlanId: record.production_plan_id ?? record.productionPlanId ?? null,
+          forFinishedProduct: record.for_finished_product_name || record.forFinishedProductName || '',
+          forFinishedProductId: record.for_finished_product_id ?? record.forFinishedProductId ?? null,
+          fromWarehouse: record.from_warehouse_name || record.fromWarehouseName || record.from_branch_name || record.fromBranchName || '',
+          fromWarehouseId: record.from_warehouse_id ?? record.fromWarehouseId ?? null,
+          fromBranchId: record.from_branch_id ?? record.fromBranchId ?? null,
+          toWorkCenter: record.to_work_center || record.toWorkCenter || '',
+          issuedBy: record.issued_by_name || record.issuedByName || '',
+          remarks: record.remarks || '',
+          status
+        });
+        this.entryLineRowsKey.set('materialIssueProduction');
+        this.entryLineRows.set(items.length ? items.map((item: any) => this.manufacturingMaterialItemToLineRow(item)) : [this.blankLineRow()]);
+        break;
+      case 'productionEntry':
+        this.txDocNumber.set(record.production_number || record.productionNumber || '');
+        this.formValues.set({
+          segment: record.segment_name || record.segmentName || this.selectedSegment(),
+          segmentId: record.segment_id ?? record.segmentId ?? null,
+          productionNo: record.production_number || record.productionNumber || '',
+          productionDate: record.production_date || record.productionDate || null,
+          planRef: record.production_plan_number || record.productionPlanNumber || '',
+          productionPlanId: record.production_plan_id ?? record.productionPlanId ?? null,
+          finishedProduct: record.finished_product_name || record.finishedProductName || '',
+          finishedProductId: record.finished_product_id ?? record.finishedProductId ?? null,
+          producedQty: record.produced_qty ?? record.producedQty ?? '',
+          rejectedQty: record.rejected_qty ?? record.rejectedQty ?? '',
+          productionCost: record.production_cost ?? record.productionCost ?? '',
+          toWarehouse: record.to_warehouse_name || record.toWarehouseName || record.to_branch_name || record.toBranchName || '',
+          toWarehouseId: record.to_warehouse_id ?? record.toWarehouseId ?? null,
+          toBranchId: record.to_branch_id ?? record.toBranchId ?? null,
+          batchNo: record.batch_no || record.batchNo || '',
+          expiryDate: record.expiry_date || record.expiryDate || null,
+          remarks: record.remarks || '',
+          status
+        });
+        this.entryLineRowsKey.set('productionEntry');
+        this.entryLineRows.set(items.length ? items.map((item: any) => this.productionEntryItemToLineRow(item)) : [this.blankLineRow()]);
+        break;
+      case 'productionReturn':
+        this.txDocNumber.set(record.return_number || record.returnNumber || '');
+        this.formValues.set({
+          segment: record.segment_name || record.segmentName || this.selectedSegment(),
+          segmentId: record.segment_id ?? record.segmentId ?? null,
+          returnNo: record.return_number || record.returnNumber || '',
+          returnDate: record.return_date || record.returnDate || null,
+          issueRef: record.material_issue_number || record.materialIssueNumber || '',
+          materialIssueId: record.material_issue_id ?? record.materialIssueId ?? null,
+          productionRef: record.production_plan_number || record.productionPlanNumber || '',
+          productionPlanId: record.production_plan_id ?? record.productionPlanId ?? null,
+          toWarehouse: record.to_warehouse_name || record.toWarehouseName || record.to_branch_name || record.toBranchName || '',
+          toWarehouseId: record.to_warehouse_id ?? record.toWarehouseId ?? null,
+          toBranchId: record.to_branch_id ?? record.toBranchId ?? null,
+          reason: record.reason || '',
+          remarks: record.remarks || '',
+          status
+        });
+        this.entryLineRowsKey.set('productionReturn');
+        this.entryLineRows.set(items.length ? items.map((item: any) => this.manufacturingMaterialItemToLineRow(item)) : [this.blankLineRow()]);
+        break;
+    }
   }
 
   private applyPurchaseRecordToForm(record: any): void {
@@ -17401,15 +18791,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (this.isSalesTransactionKey()) {
       return this.buildSalesTransactionPayload(v, selectedSegmentId, selectedSegmentName);
     }
+    if (this.isManufacturingTransactionKey()) {
+      return this.buildManufacturingTransactionPayload(v, selectedSegmentId, selectedSegmentName);
+    }
     switch (this.config?.key) {
       case 'businessSegments':
         return {
           segment_name: v['segmentName'] || '',
           category_ids: idsFromSelection(v['category'], this.loadedCategoryObjects(), (item, selected) => this.optionEquals(item.category_name, selected)),
-          hsn_sac_ids: idsFromSelection(v['relatedHsnSac'], this.loadedHsnSacObjects(), (item, selected) => this.optionEquals(item.code, selected)),
-          uom_ids: idsFromSelection(v['typicalUoms'], this.loadedUomObjects(), (item, selected) =>
-            this.optionEquals(item.uom_name, selected) || this.optionEquals(item.uom_symbol, selected) || this.optionEquals(item.uom_code, selected)
-          ),
+          hsn_sac_ids: [],
+          uom_ids: [],
           usage_note: v['usageNote'] || null,
           status: lc(v['status'] || 'active')
         };
@@ -17642,6 +19033,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return { segment_id: selectedSegmentId, vendor_code: v['code'] || v['vendorCode'] || null, vendor_name: v['name'] || v['vendorName'] || '', segment_name: selectedSegmentName, vendor_category: v['vendorCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, payment_term_id: this.paymentTermBySelection(v['paymentTerms'])?.id ?? null, credit_limit: Number(v['creditLimit']) || 0, bank_payee_name: v['bankPayeeName'] || null, bank_account_no: v['bankAccountNo'] || null, bank_ifsc_code: v['bankIfscCode'] || null, bank_name: v['bankName'] || null, bank_branch_name: v['bankBranchName'] || null, gstins: v['gstins'] || [], status: lc(v['status']) };
       case 'customerMaster':
         return { segment_id: selectedSegmentId, customer_code: v['code'] || v['customerCode'] || null, customer_name: v['name'] || v['customerName'] || '', segment_name: selectedSegmentName, customer_category: v['customerCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, shipping_address: v['shippingAddress'] || null, payment_term_id: this.paymentTermBySelection(v['paymentTerms'])?.id ?? null, credit_limit: Number(v['creditLimit']) || 0, bank_payee_name: v['bankPayeeName'] || null, bank_account_no: v['bankAccountNo'] || null, bank_ifsc_code: v['bankIfscCode'] || null, bank_name: v['bankName'] || null, bank_branch_name: v['bankBranchName'] || null, gstins: v['gstins'] || [], status: lc(v['status']) };
+      case 'channelPartnerMaster':
+        return { segment_id: selectedSegmentId, partner_code: v['code'] || v['partnerCode'] || null, partner_name: v['name'] || v['partnerName'] || '', segment_name: selectedSegmentName, partner_category: v['partnerCategory'] || null, contact_id: v['contactId'] ?? null, contact_source: v['contactSource'] ?? null, gstin: v['gstin'] || null, pan: v['pan'] || null, mobile: v['mobile'] || null, email: v['email'] || null, address: v['address'] || null, city: v['city'] || null, state: v['state'] || null, district: v['district'] || null, pincode: v['pincode'] || null, payment_term_id: this.paymentTermBySelection(v['paymentTerms'])?.id ?? null, credit_limit: Number(v['creditLimit']) || 0, status: lc(v['status']) };
       case 'productServiceMaster': {
         const baseUomSelection = v['baseUom'] || null;
         const baseUom = this.findUomBySelection(baseUomSelection);
@@ -17668,6 +19061,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
               };
             })
           : [];
+        const isRawMaterialProduct = this.isRawMaterialNatureName(v['productNatureName'] || v['productType']);
+        const rawMaterialAllowsSale = this.rawMaterialAllowsSaleFromValues(v);
         return {
           segment_id: selectedSegmentId,
           segment_name: selectedSegmentName,
@@ -17677,6 +19072,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           product_type: productType(v['productType']),
           product_nature_id: v['productNatureId'] ?? null,
           product_nature_name: v['productNatureName'] || v['productType'] || null,
+          allows_purchase: isRawMaterialProduct ? true : null,
+          allows_sale: isRawMaterialProduct ? rawMaterialAllowsSale : null,
+          allows_production: isRawMaterialProduct ? true : null,
           item_status: lc(v['status'] || 'active'),
           status: lc(v['status'] || 'active'),
           category_name: this.selectedProductCategory() || v['category'] || v['categoryName'] || null,
@@ -18049,7 +19447,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         pr_number: v['prReference'] || null,
         vendor_id: vendorId,
         vendor_name: vendor?.vendor_name || v['vendor'] || null,
-        vendor_gstin: vendor?.gstin || null,
+        vendor_gstin: this.partyPrimaryGstin(vendor) || null,
         delivery_location: v['deliveryLocation'] || null,
         payment_terms: v['paymentTerms'] || null,
         currency: v['currency'] || 'INR',
@@ -18070,7 +19468,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         segment_name: selectedSegmentName,
         vendor_id: poVendorId,
         vendor_name: poVendor?.vendor_name || v['supplier'] || v['vendor'] || null,
-        vendor_gstin: poVendor?.gstin || null,
+        vendor_gstin: this.partyPrimaryGstin(poVendor) || null,
         rfq_id: this.optionalNumber(v['rfqId']),
         rfq_number: v['rfqReference'] || v['linkedPr'] || null,
         warehouse_id: poWarehouseId,
@@ -18113,7 +19511,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         warehouse_name: grnWarehouse?.warehouse_name || (grnBranch ? null : (grnLocation || v['warehouse'] || null)),
         vendor_id: vendorId,
         vendor_name: vendor?.vendor_name || v['vendor'] || null,
-        vendor_gstin: vendor?.gstin || null,
+        vendor_gstin: this.partyPrimaryGstin(vendor) || null,
         po_id: this.optionalNumber(v['poId']),
         po_number: v['poReference'] || null,
         grn_number: docNo('grnNo', 'GRN Number'),
@@ -18147,7 +19545,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         segment_name: selectedSegmentName,
         vendor_id: vendorId,
         vendor_name: vendor?.vendor_name || v['vendor'] || null,
-        vendor_gstin: vendor?.gstin || null,
+        vendor_gstin: this.partyPrimaryGstin(vendor) || null,
         grn_id: this.optionalNumber(v['grnId']),
         grn_number: v['grnReference'] || null,
         branch_id: piBranchId,
@@ -18198,7 +19596,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         segment_name: selectedSegmentName,
         vendor_id: vendorId,
         vendor_name: vendor?.vendor_name || v['vendor'] || null,
-        vendor_gstin: vendor?.gstin || null,
+        vendor_gstin: this.partyPrimaryGstin(vendor) || null,
         pi_id: this.optionalNumber(v['piId']),
         pi_number: this.normalizeKey(v['piReference']).includes('directpurchasereturn') ? null : (v['piReference'] || null),
         return_number: docNo('returnNo', 'Return Number'),
@@ -18257,7 +19655,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const customer = this.findCustomerBySelection(v[customerField]);
     const customerId = customer?.id ?? this.optionalNumber(v['customerId']);
     const customerName = customer?.customer_name || v[customerField] || null;
-    const customerGstin = customer?.gstin || null;
+    const customerGstin = this.partyPrimaryGstin(customer) || null;
     const channelPartner = this.findChannelPartnerBySelection(v['channelPartner']);
     const channelPartnerId = channelPartner?.id ?? this.optionalNumber(v['channelPartnerId']);
     const channelPartnerName = channelPartner?.partner_name || v['channelPartner'] || null;
@@ -18490,6 +19888,283 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     return v;
+  }
+
+  private resolveManufacturingLocation(value: any, warehouseIdValue?: any, branchIdValue?: any): {
+    warehouse_id: number | null;
+    warehouse_name: string | null;
+    branch_id: number | null;
+    branch_name: string | null;
+  } {
+    const raw = String(value || '').trim();
+    const warehouseId = this.optionalNumber(warehouseIdValue);
+    const branchId = this.optionalNumber(branchIdValue);
+    const warehouse = (raw ? this.findWarehouseBySelection(raw) : null)
+      ?? (warehouseId ? this.loadedWarehouseObjects().find(item => Number(item.id) === warehouseId) ?? null : null);
+    if (warehouse) {
+      return {
+        warehouse_id: Number(warehouse.id),
+        warehouse_name: warehouse.warehouse_name || raw || null,
+        branch_id: null,
+        branch_name: null
+      };
+    }
+
+    const branch = (raw ? this.findBranchBySelection(raw) : null)
+      ?? (branchId ? this.loadedBranchObjects().find(item => this.branchResolvedId(item) === branchId) ?? null : null);
+    if (branch) {
+      return {
+        warehouse_id: null,
+        warehouse_name: null,
+        branch_id: this.branchResolvedId(branch),
+        branch_name: this.branchDisplayName(branch) || raw || null
+      };
+    }
+
+    return {
+      warehouse_id: warehouseId,
+      warehouse_name: warehouseId ? raw || null : null,
+      branch_id: branchId,
+      branch_name: branchId ? raw || null : null
+    };
+  }
+
+  private activeManufacturingLineRows(): string[][] {
+    this.directEntryLineRows();
+    return this.entryLineRows()
+      .map(row => this.normalizeLineRow(row))
+      .filter(row => row.some(cell => String(cell ?? '').trim()))
+      .filter(row => !!this.lineValue(row, ['product', 'item', 'sku', 'material']));
+  }
+
+  private manufacturingHasStockTrackingLine(): boolean {
+    return this.activeManufacturingLineRows()
+      .some(row => this.productTracksStock(this.lineRowProduct(row)));
+  }
+
+  private serialNumbersForLine(row: string[], rowIndex: number): string[] {
+    const captured = this.lineSerialUnitsMap()[rowIndex] || [];
+    if (captured.length) return captured;
+    const raw = this.lineValue(row, ['serial']);
+    return String(raw || '')
+      .split(/[,;\n]+/)
+      .map(value => value.trim())
+      .filter(Boolean);
+  }
+
+  private manufacturingMaterialItems(mode: 'plan' | 'issue' | 'return'): any[] {
+    const refMap = this.lineRefItemIdMap();
+    return this.activeManufacturingLineRows().map((row, index) => {
+      const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']);
+      const product = this.findProductBySelection(productName);
+      const variantText = this.lineValue(row, ['variant']);
+      const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), true);
+      const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
+      const ref = refMap[index];
+      const resolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = ref?.attributeId !== undefined ? ref.attributeId : resolvedAttr.attribute_id;
+      const attribute_name = ref?.attributeName !== undefined ? ref.attributeName : resolvedAttr.attribute_name;
+      const attribute_value = ref?.attributeValue !== undefined ? ref.attributeValue : resolvedAttr.attribute_value;
+      const batchNo = this.lineValue(row, ['batch', 'lot']);
+      const serialNo = this.lineValue(row, ['serial']);
+      const serialNumbers = product?.serial_applicable ? this.serialNumbersForLine(row, index) : [];
+      const item: any = {
+        sno: index + 1,
+        product_id: product?.id ?? null,
+        product_name: product?.product_name || productName,
+        product_code: product?.product_code || null,
+        variant_id,
+        variant_name,
+        attribute_id,
+        attribute_name,
+        attribute_value,
+        uom_id,
+        uom_name,
+        batch_no: batchNo || null,
+        serial_no: serialNo || null,
+        serial_numbers: serialNumbers.length ? serialNumbers : null,
+        remarks: this.lineValue(row, ['remarks']) || null
+      };
+
+      if (mode === 'plan') {
+        item.required_qty = this.lineNumber(row, ['required']);
+        item.available_qty = this.lineNumber(row, ['available']);
+        item.shortage_qty = this.lineNumber(row, ['shortage']);
+        item.batch_required = product ? !!product.batch_applicable : this.normalizeKey(this.lineValue(row, ['batch'])) === 'yes';
+      } else if (mode === 'issue') {
+        item.required_qty = this.lineNumber(row, ['required']);
+        item.issued_qty = this.lineNumber(row, ['issued']);
+      } else {
+        item.issued_qty = this.lineNumber(row, ['issued']);
+        item.consumed_qty = this.lineNumber(row, ['consumed']);
+        item.returned_qty = this.lineNumber(row, ['returned', 'return']);
+      }
+      return item;
+    });
+  }
+
+  private productionEntryItems(v: Record<string, any>): any[] {
+    const refMap = this.lineRefItemIdMap();
+    const rows = this.activeManufacturingLineRows();
+    const sourceRows = rows.length
+      ? rows
+      : (String(v['finishedProduct'] || '').trim()
+        ? [this.normalizeLineRow([String(v['finishedProduct']), '', '', '', String(v['plannedQty'] ?? ''), String(v['producedQty'] ?? ''), String(v['rejectedQty'] ?? ''), String(v['productionCost'] ?? '')])]
+        : []);
+    return sourceRows.map((row, index) => {
+      const productName = this.lineValue(row, ['product', 'item', 'sku', 'material']) || String(v['finishedProduct'] || '').trim();
+      const product = this.findProductBySelection(productName);
+      const variantText = this.lineValue(row, ['variant']);
+      const { uom_name, uom_id } = this.resolveLineUom(product, this.lineValue(row, ['uom']), false);
+      const { variant_id, variant_name } = this.resolveLineVariant(product, variantText);
+      const ref = refMap[index];
+      const resolvedAttr = this.resolveLineAttribute(product, variantText, this.transactionLineAttributeText(row, index));
+      const attribute_id = ref?.attributeId !== undefined ? ref.attributeId : resolvedAttr.attribute_id;
+      const attribute_name = ref?.attributeName !== undefined ? ref.attributeName : resolvedAttr.attribute_name;
+      const attribute_value = ref?.attributeValue !== undefined ? ref.attributeValue : resolvedAttr.attribute_value;
+      const producedQty = this.lineNumber(row, ['produced']) || (index === 0 ? Number(v['producedQty']) || 0 : 0);
+      return {
+        sno: index + 1,
+        product_id: product?.id ?? this.optionalNumber(v['finishedProductId']),
+        product_name: product?.product_name || productName,
+        product_code: product?.product_code || null,
+        variant_id,
+        variant_name,
+        attribute_id,
+        attribute_name,
+        attribute_value,
+        uom_id,
+        uom_name,
+        planned_qty: this.lineNumber(row, ['planned']) || (index === 0 ? Number(v['plannedQty']) || 0 : 0),
+        produced_qty: producedQty,
+        rejected_qty: this.lineNumber(row, ['rejected']) || (index === 0 ? Number(v['rejectedQty']) || 0 : 0),
+        wastage_qty: 0,
+        production_cost: this.lineNumber(row, ['cost']) || (index === 0 ? this.parseCurrency(String(v['productionCost'] ?? '')) || 0 : 0),
+        batch_no: this.lineValue(row, ['batch', 'lot']) || v['batchNo'] || null,
+        expiry_date: this.isoDateValue(this.lineValue(row, ['expiry']) || v['expiryDate']) || null,
+        serial_no: this.lineValue(row, ['serial']) || null,
+        serial_numbers: product?.serial_applicable ? (this.serialNumbersForLine(row, index).length ? this.serialNumbersForLine(row, index) : null) : null,
+        remarks: this.lineValue(row, ['remarks']) || null
+      };
+    });
+  }
+
+  private buildManufacturingTransactionPayload(
+    v: Record<string, any>,
+    segmentId: number | null,
+    selectedSegmentName: string | null
+  ): Record<string, any> {
+    const status = this.purchaseStatus(v['status'], 'draft');
+    const post = status === 'posted';
+
+    if (this.config?.key === 'productionPlanning') {
+      this.syncProductionPlanningBomRequirementRows(false);
+      const syncedBomVersion = this.formValues()['bomVersion'] || v['bomVersion'];
+      const finished = this.findProductBySelection(v['finishedProduct']);
+      const loc = this.resolveManufacturingLocation(v['warehouse'], v['warehouseId'], v['branchId']);
+      return {
+        id: this.editingId(),
+        segment_id: segmentId,
+        segment_name: selectedSegmentName,
+        plan_number: v['planNo'] || null,
+        plan_date: this.isoDateValue(v['planDate']) || this.todayIso(),
+        production_date: this.isoDateValue(v['productionDate']) || this.todayIso(),
+        finished_product_id: finished?.id ?? this.optionalNumber(v['finishedProductId']),
+        finished_product_name: finished?.product_name || v['finishedProduct'] || null,
+        planned_qty: Number(v['plannedQty']) || 0,
+        bom_version: syncedBomVersion || null,
+        work_center: v['workCenter'] || null,
+        warehouse_id: loc.warehouse_id,
+        warehouse_name: loc.warehouse_name,
+        branch_id: loc.branch_id,
+        branch_name: loc.branch_name,
+        remarks: v['remarks'] || null,
+        status,
+        post,
+        items: this.manufacturingMaterialItems('plan')
+      };
+    }
+
+    if (this.config?.key === 'materialIssueProduction') {
+      const loc = this.resolveManufacturingLocation(v['fromWarehouse'], v['fromWarehouseId'], v['fromBranchId'] ?? v['branchId']);
+      const forFinishedProduct = this.findProductBySelection(v['forFinishedProduct']);
+      return {
+        id: this.editingId(),
+        segment_id: segmentId,
+        segment_name: selectedSegmentName,
+        issue_number: v['issueNo'] || null,
+        issue_date: this.isoDateValue(v['issueDate']) || this.todayIso(),
+        production_plan_id: this.optionalNumber(v['productionPlanId']),
+        production_plan_number: v['productionRef'] || null,
+        for_finished_product_id: forFinishedProduct?.id ?? this.optionalNumber(v['forFinishedProductId']),
+        for_finished_product_name: forFinishedProduct?.product_name || v['forFinishedProduct'] || null,
+        from_warehouse_id: loc.warehouse_id,
+        from_warehouse_name: loc.warehouse_name,
+        from_branch_id: loc.branch_id,
+        from_branch_name: loc.branch_name,
+        to_work_center: v['toWorkCenter'] || null,
+        issued_by_name: v['issuedBy'] || null,
+        remarks: v['remarks'] || null,
+        status,
+        post,
+        items: this.manufacturingMaterialItems('issue')
+      };
+    }
+
+    if (this.config?.key === 'productionEntry') {
+      const finished = this.findProductBySelection(v['finishedProduct']);
+      const loc = this.resolveManufacturingLocation(v['toWarehouse'], v['toWarehouseId'], v['toBranchId'] ?? v['branchId']);
+      const productionItems = this.productionEntryItems(v);
+      const productionCost = this.parseCurrency(String(v['productionCost'] ?? ''))
+        || productionItems.reduce((sum, item: any) => sum + (Number(item?.production_cost) || 0), 0);
+      return {
+        id: this.editingId(),
+        segment_id: segmentId,
+        segment_name: selectedSegmentName,
+        production_number: v['productionNo'] || null,
+        production_date: this.isoDateValue(v['productionDate']) || this.todayIso(),
+        production_plan_id: this.optionalNumber(v['productionPlanId']),
+        production_plan_number: v['planRef'] || null,
+        finished_product_id: finished?.id ?? this.optionalNumber(v['finishedProductId']),
+        finished_product_name: finished?.product_name || v['finishedProduct'] || null,
+        produced_qty: Number(v['producedQty']) || 0,
+        rejected_qty: Number(v['rejectedQty']) || 0,
+        wastage_qty: 0,
+        production_cost: productionCost,
+        to_warehouse_id: loc.warehouse_id,
+        to_warehouse_name: loc.warehouse_name,
+        to_branch_id: loc.branch_id,
+        to_branch_name: loc.branch_name,
+        batch_no: v['batchNo'] || null,
+        expiry_date: this.isoDateValue(v['expiryDate']) || null,
+        remarks: v['remarks'] || null,
+        status,
+        post,
+        items: productionItems
+      };
+    }
+
+    const loc = this.resolveManufacturingLocation(v['toWarehouse'], v['toWarehouseId'], v['toBranchId'] ?? v['branchId']);
+    return {
+      id: this.editingId(),
+      segment_id: segmentId,
+      segment_name: selectedSegmentName,
+      return_number: v['returnNo'] || null,
+      return_date: this.isoDateValue(v['returnDate']) || this.todayIso(),
+      material_issue_id: this.optionalNumber(v['materialIssueId']),
+      material_issue_number: v['issueRef'] || null,
+      production_plan_id: this.optionalNumber(v['productionPlanId']),
+      production_plan_number: v['productionRef'] || null,
+      to_warehouse_id: loc.warehouse_id,
+      to_warehouse_name: loc.warehouse_name,
+      to_branch_id: loc.branch_id,
+      to_branch_name: loc.branch_name,
+      reason: v['reason'] || null,
+      remarks: v['remarks'] || null,
+      status,
+      post,
+      items: this.manufacturingMaterialItems('return')
+    };
   }
 
   private activeSalesLineRows(): string[][] {
@@ -19313,11 +20988,138 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return duplicate(r => same(r.vendor_name, payload['vendor_name']) || same(r.vendor_code, payload['vendor_code'])) ? 'Vendor already exists. Edit the existing row instead of adding duplicate.' : '';
       case 'customerMaster':
         return duplicate(r => same(r.customer_name, payload['customer_name']) || same(r.customer_code, payload['customer_code'])) ? 'Customer already exists. Edit the existing row instead of adding duplicate.' : '';
+      case 'channelPartnerMaster':
+        return duplicate(r => same(r.partner_name, payload['partner_name']) || same(r.partner_code, payload['partner_code'])) ? 'Channel Partner already exists. Edit the existing row instead of adding duplicate.' : '';
       case 'productServiceMaster':
         return duplicate(r => same(r.product_name, payload['product_name']) && same(r.segment_name, payload['segment_name'])) ? 'Product / Service already exists in this segment. Edit the existing row instead of adding duplicate.' : '';
       default:
         return '';
     }
+  }
+
+  private payloadHasValue(value: any): boolean {
+    return String(value ?? '').trim().length > 0;
+  }
+
+  private productByIdOrSelection(id: any, selection: any): ProductItem | null {
+    const productId = this.optionalNumber(id);
+    if (productId) {
+      const byId = this.loadedProductObjects().find(product => Number(product.id) === productId);
+      if (byId) return byId;
+    }
+    return this.findProductBySelection(selection);
+  }
+
+  private validateManufacturingMaterialItems(items: any[], mode: 'plan' | 'issue' | 'return', isPosting = false): string {
+    if (!Array.isArray(items) || !items.length) {
+      return mode === 'plan'
+        ? 'Add at least one raw material requirement before saving Production Plan.'
+        : 'Add at least one raw material line before saving this manufacturing document.';
+    }
+
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index] || {};
+      const rowNo = index + 1;
+      const product = this.productByIdOrSelection(item.product_id, item.product_name);
+      if (!this.payloadHasValue(item.product_name) && !item.product_id) return `Raw Material is required on row ${rowNo}.`;
+      if (!product || !this.productIsManufacturingRawMaterial(product)) {
+        return `Row ${rowNo} must use a Raw Material or Sub-Finished Product.`;
+      }
+      if (mode === 'plan' && !(Number(item.required_qty) > 0)) return `Required Qty must be greater than zero on raw material row ${rowNo}.`;
+      if (mode === 'issue' && !(Number(item.issued_qty) > 0)) return `Issued Qty must be greater than zero on raw material row ${rowNo}.`;
+      if (mode === 'return' && !(Number(item.returned_qty) > 0)) return `Returned Qty must be greater than zero on raw material row ${rowNo}.`;
+      if (isPosting && mode === 'issue' && product.batch_applicable && !this.payloadHasValue(item.batch_no)) {
+        return `Batch / Lot No is required for "${item.product_name || product.product_name}" on material issue row ${rowNo}.`;
+      }
+    }
+    return '';
+  }
+
+  private validateProductionEntryItems(items: any[], isPosting = false): string {
+    if (!Array.isArray(items) || !items.length) return 'Add at least one finished product line before saving Production Entry.';
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index] || {};
+      const rowNo = index + 1;
+      const product = this.productByIdOrSelection(item.product_id, item.product_name);
+      if (!this.payloadHasValue(item.product_name) && !item.product_id) return `Finished Product is required on row ${rowNo}.`;
+      if (!product || !this.productIsManufacturingFinished(product)) {
+        return `Row ${rowNo} must use a Finished Product, Sub-Finished Product, or Physical Stock output product.`;
+      }
+      if (!(Number(item.produced_qty) > 0)) return `Produced Qty must be greater than zero on finished product row ${rowNo}.`;
+      if (isPosting && product.batch_applicable && !this.payloadHasValue(item.batch_no)) {
+        return `Batch / Lot No is required for "${item.product_name || product.product_name}" on production output row ${rowNo}.`;
+      }
+      if (isPosting && product.expiry_applicable && !this.payloadHasValue(item.expiry_date)) {
+        return `Expiry Date is required for "${item.product_name || product.product_name}" on production output row ${rowNo}.`;
+      }
+    }
+    return '';
+  }
+
+  private validateManufacturingPayload(payload: Record<string, any>): string {
+    const key = this.config?.key || '';
+    const isPosting = this.normalizeKey(payload['status']) === 'posted';
+
+    if (key === 'productionPlanning') {
+      const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
+      if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Plan.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Plan Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+      if (!(Number(payload['planned_qty']) > 0)) return 'Planned Qty must be greater than zero for Production Plan.';
+      return this.validateManufacturingMaterialItems(payload['items'], 'plan');
+    }
+
+    if (key === 'materialIssueProduction') {
+      if (isPosting && !this.payloadHasValue(payload['from_branch_id']) && !this.payloadHasValue(payload['from_warehouse_id'])) {
+        return 'From Warehouse / Branch is required before posting Material Issue for Production.';
+      }
+      const directIssue = !this.payloadHasValue(payload['production_plan_id']) && !this.payloadHasValue(payload['production_plan_number']);
+      if (directIssue) {
+        const forFinished = this.productByIdOrSelection(payload['for_finished_product_id'], payload['for_finished_product_name']);
+        if (!this.payloadHasValue(payload['for_finished_product_name']) && !payload['for_finished_product_id']) {
+          return 'For Finished Product is required for direct Material Issue.';
+        }
+        if (!forFinished || !this.productIsManufacturingFinished(forFinished)) {
+          return 'For Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+        }
+      }
+      return this.validateManufacturingMaterialItems(payload['items'], 'issue', isPosting);
+    }
+
+    if (key === 'productionEntry') {
+      if (isPosting && !this.payloadHasValue(payload['to_branch_id']) && !this.payloadHasValue(payload['to_warehouse_id'])) {
+        return 'Finished Goods Warehouse / Branch is required before posting Production Entry.';
+      }
+      const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
+      if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Entry.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Entry Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+      if (!(Number(payload['produced_qty']) > 0) && !((payload['items'] || []).some((item: any) => Number(item?.produced_qty) > 0))) {
+        return 'Produced Qty must be greater than zero for Production Entry.';
+      }
+      return this.validateProductionEntryItems(payload['items'], isPosting);
+    }
+
+    if (key === 'productionReturn') {
+      if (isPosting && !this.payloadHasValue(payload['to_branch_id']) && !this.payloadHasValue(payload['to_warehouse_id'])) {
+        return 'Return To Warehouse / Branch is required before posting Production Return.';
+      }
+      return this.validateManufacturingMaterialItems(payload['items'], 'return');
+    }
+
+    return '';
+  }
+
+  private validateBomMasterPayload(payload: Record<string, any>): string {
+    const rawMaterials = this.rawMaterialNamesFromBomValue(payload['rawMaterials'] ?? payload['raw_materials']);
+    if (!rawMaterials.length) return 'Add at least one Raw Material product for this BOM.';
+
+    for (const rawMaterial of rawMaterials) {
+      const product = this.findProductBySelection(rawMaterial);
+      if (!product || !this.productIsManufacturingRawMaterial(product)) {
+        return `"${rawMaterial}" must be a Product Master item with Product Nature Raw Material or Sub-Finished Product.`;
+      }
+    }
+
+    return '';
   }
 
   protected validatePayload(payload: Record<string, any>): string {
@@ -19329,6 +21131,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // silently posts stock into the shared "Unassigned" pool.
     const mergedLocationMessage = this.mergedLocationValidationMessage(payload);
     if (mergedLocationMessage) return mergedLocationMessage;
+
+    const mrpCeilingMessage = this.transactionMrpCeilingValidationMessage();
+    if (mrpCeilingMessage) return mrpCeilingMessage;
 
     // Workstream E: Stock Transfer isn't in stockLocationScreenKeys (it has
     // two independent location fields, not the one mergedLocationValidationMessage()
@@ -19364,6 +21169,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (String(payload['status'] || '').toLowerCase() === 'posted') {
       const serialMessage = this.serialCoverageValidationMessage();
       if (serialMessage) return serialMessage;
+    }
+
+    if (this.config?.key === 'bomMaster') {
+      const bomMessage = this.validateBomMasterPayload(payload);
+      if (bomMessage) return bomMessage;
+    }
+
+    if (this.isManufacturingTransactionKey()) {
+      return this.validateManufacturingPayload(payload);
     }
 
     if (this.config?.key === 'businessSegments') {
@@ -19577,10 +21391,40 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // support) — the legacy flat `gstin` column is only synced server-side after
   // save, so a pending row (not yet saved) never has it. Prefer the primary/first
   // entry from `gstins`, falling back to the flat field for already-saved records.
-  private primaryGstinDisplay(r: any): string {
+  private primaryPartyGstinRow(r: any): any | null {
     const list = Array.isArray(r?.gstins) ? r.gstins : [];
-    if (list.length) return (list.find((g: any) => g?.is_primary) || list[0])?.gstin || '';
-    return r?.gstin || '';
+    if (!list.length) return null;
+    return list.find((g: any) => !!(g?.isPrimary ?? g?.is_primary)) || list[0] || null;
+  }
+
+  private partyPrimaryGstin(r: any): string {
+    const row = this.primaryPartyGstinRow(r);
+    return String(row?.gstin || r?.gstin || '').trim();
+  }
+
+  private partyPrimaryState(r: any): string {
+    const row = this.primaryPartyGstinRow(r);
+    return String(row?.stateName ?? row?.state_name ?? r?.state ?? '').trim();
+  }
+
+  private primaryGstinDisplay(r: any): string {
+    return this.partyPrimaryGstin(r);
+  }
+
+  private segmentCategoryPolicySummary(categories: any[]): string {
+    const labels = (categories || []).map((category: any) => {
+      const name = String(category?.category_name || category?.categoryName || '').trim();
+      const policies = [
+        category?.serial_applicable || category?.serialApplicable
+          ? `Serial: ${category?.serial_policy_name || category?.serialPolicyName || 'Yes'}`
+          : '',
+        category?.batch_applicable || category?.batchApplicable
+          ? `Batch: ${category?.batch_policy_name || category?.batchPolicyName || 'Yes'}`
+          : ''
+      ].filter(Boolean).join(' / ');
+      return policies ? `${name}: ${policies}` : '';
+    }).filter(Boolean);
+    return labels.join(', ');
   }
 
   protected mapToGridRows(records: any[]): string[][] {
@@ -19590,8 +21434,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return records.map(r => [
           r.segment_name || '',
           (r.categories || []).map((c: any) => c.category_name).join(', '),
-          (r.hsn_sac_codes || []).map((h: any) => h.code).join(', '),
-          (r.uoms || []).map((u: any) => u.uom_symbol || u.uom_name).join(', '),
+          this.segmentCategoryPolicySummary(r.categories || []),
           r.usage_note || '',
           cap(r.status || 'active')
         ]);
@@ -19691,6 +21534,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return records.map(r => [r.vendor_code || '', r.vendor_name || '', r.vendor_type || '', r.segment_name || '', this.primaryGstinDisplay(r), cap(r.status || 'active')]);
       case 'customerMaster':
         return records.map(r => [r.customer_code || '', r.customer_name || '', r.customer_type || '', r.segment_name || '', this.primaryGstinDisplay(r), cap(r.status || 'active')]);
+      case 'channelPartnerMaster':
+        return records.map(r => [r.partner_code || '', r.partner_name || '', r.partner_type || '', r.segment_name || '', r.gstin || '', cap(r.status || 'active')]);
       case 'productServiceMaster':
         return records.map(r => [
           r.product_code || '',
@@ -19704,6 +21549,28 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           r.hsn_sac_code || '',
           String(r.gst_rate ?? ''),
           cap(r.item_status || 'active')
+        ]);
+      case 'bomMaster':
+        return records.map(r => [
+          r.bom_code || r.bomCode || '',
+          r.finished_product_name || r.finishedProductName || r.finishedProduct || '',
+          r.bom_version || r.bomVersion || r.version || '',
+          Array.isArray(r.raw_materials || r.rawMaterials)
+            ? (r.raw_materials || r.rawMaterials).join(', ')
+            : (r.raw_materials || r.rawMaterials || ''),
+          String(r.quantity ?? r.qty ?? ''),
+          String(r.wastage_percent ?? r.wastagePercent ?? ''),
+          String(r.production_cost ?? r.productionCost ?? ''),
+          cap(r.status || 'active')
+        ]);
+      case 'workCenterMaster':
+        return records.map(r => [
+          r.work_center_code || r.workCenterCode || '',
+          r.work_center_name || r.workCenterName || '',
+          r.department || '',
+          r.capacity || '',
+          String(r.cost_per_hour ?? r.costPerHour ?? ''),
+          cap(r.status || 'active')
         ]);
       case 'purchaseRequisition':
         return records.map(r => [
@@ -19845,6 +21712,43 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           r.customer_name || '',
           r.sales_return_number || r.sales_invoice_number || 'Direct',
           `Rs. ${Number(r.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+          cap(r.status || 'draft')
+        ]);
+      case 'productionPlanning':
+        return records.map(r => [
+          r.plan_number || r.planNumber || '',
+          r.plan_date || r.planDate || '',
+          r.finished_product_name || r.finishedProductName || '',
+          String(r.planned_qty ?? r.plannedQty ?? 0),
+          r.work_center || r.workCenter || '',
+          cap(r.status || 'draft')
+        ]);
+      case 'materialIssueProduction':
+        return records.map(r => [
+          r.issue_number || r.issueNumber || '',
+          r.issue_date || r.issueDate || '',
+          r.production_plan_number || r.productionPlanNumber || '',
+          r.from_warehouse_name || r.fromWarehouseName || r.from_branch_name || r.fromBranchName || '',
+          String((r.items || []).length || 0),
+          cap(r.status || 'draft')
+        ]);
+      case 'productionEntry':
+        return records.map(r => [
+          r.production_number || r.productionNumber || '',
+          r.production_date || r.productionDate || '',
+          r.finished_product_name || r.finishedProductName || '',
+          String(r.produced_qty ?? r.producedQty ?? 0),
+          String(r.rejected_qty ?? r.rejectedQty ?? 0),
+          `Rs. ${Number(r.production_cost ?? r.productionCost ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
+          cap(r.status || 'draft')
+        ]);
+      case 'productionReturn':
+        return records.map(r => [
+          r.return_number || r.returnNumber || '',
+          r.return_date || r.returnDate || '',
+          r.material_issue_number || r.materialIssueNumber || '',
+          r.to_warehouse_name || r.toWarehouseName || r.to_branch_name || r.toBranchName || '',
+          String((r.items || []).length || 0),
           cap(r.status || 'draft')
         ]);
       default:

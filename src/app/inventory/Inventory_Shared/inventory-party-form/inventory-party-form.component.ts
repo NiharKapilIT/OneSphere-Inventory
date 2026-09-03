@@ -22,7 +22,7 @@ import { InventoryGstinListComponent } from '../inventory-gstin-list/inventory-g
 })
 export class InventoryPartyFormComponent {
   @Input({ required: true }) host!: any;
-  @Input({ required: true }) partyKind!: 'vendor' | 'customer';
+  @Input({ required: true }) partyKind!: 'vendor' | 'customer' | 'channelPartner';
   @Input() partyLabel = 'Vendor';
   // '' on Master (unprefixed keys, matches today's saved data exactly);
   // 'quickVendor'/'quickCustomer' inside the quick-add modal, so this
@@ -37,9 +37,10 @@ export class InventoryPartyFormComponent {
   // for genuinely new parties not yet in Global Contact.
   @Input() nameCodeMode: 'formValues' | 'quickAddSignals' = 'formValues';
 
-  private readonly categoryOptionsByKind: Record<'vendor' | 'customer', string[]> = {
+  private readonly categoryOptionsByKind: Record<'vendor' | 'customer' | 'channelPartner', string[]> = {
     vendor: ['Supplier', 'Service Provider', 'Contractor', 'Manufacturer', 'Broker', 'Channel Partner', 'Food Supplier', 'Beverage Supplier'],
-    customer: ['Dealer', 'Corporate Client', 'Tenant', 'Property Buyer', 'Project Client', 'Restaurant Guest', 'Banquet Client', 'Hotel Guest']
+    customer: ['Dealer', 'Corporate Client', 'Tenant', 'Property Buyer', 'Project Client', 'Restaurant Guest', 'Banquet Client', 'Hotel Guest'],
+    channelPartner: ['Referral Partner', 'Broker', 'Dealer', 'Affiliate', 'Channel Partner', 'Distributor']
   };
 
   get categoryOptions(): string[] {
@@ -60,12 +61,17 @@ export class InventoryPartyFormComponent {
   // quick-add never had a Category field before this rebuild, so it gets
   // a clean prefixed key instead.
   categoryKey(): string {
-    return this.keyPrefix ? this.pfx('category') : (this.partyKind === 'vendor' ? 'vendorCategory' : 'customerCategory');
+    if (this.keyPrefix) return this.pfx('category');
+    if (this.partyKind === 'vendor') return 'vendorCategory';
+    if (this.partyKind === 'channelPartner') return 'partnerCategory';
+    return 'customerCategory';
   }
 
   selectedContact(): any {
     if (this.nameCodeMode === 'quickAddSignals') {
-      return this.partyKind === 'vendor' ? this.host.quickVendorLinkedContact() : this.host.quickCustomerLinkedContact();
+      if (this.partyKind === 'vendor') return this.host.quickVendorLinkedContact();
+      if (this.partyKind === 'channelPartner') return this.host.quickChannelPartnerLinkedContact();
+      return this.host.quickCustomerLinkedContact();
     }
     return this.host.selectedPartyContact();
   }
@@ -73,6 +79,7 @@ export class InventoryPartyFormComponent {
   onContactChange(contact: any): void {
     if (this.nameCodeMode === 'quickAddSignals') {
       if (this.partyKind === 'vendor') this.host.selectQuickVendorContact(contact);
+      else if (this.partyKind === 'channelPartner') this.host.selectQuickChannelPartnerContact(contact);
       else this.host.selectQuickCustomerContact(contact);
     } else {
       this.host.selectPartyContact(contact);

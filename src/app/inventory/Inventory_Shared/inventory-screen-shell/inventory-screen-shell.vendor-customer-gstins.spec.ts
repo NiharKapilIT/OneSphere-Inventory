@@ -54,6 +54,17 @@ describe('InventoryScreenShell — Vendor/Customer GSTIN list casing (item 6)', 
     expect(rows).toEqual([{ stateName: 'Karnataka', stateCode: '29', gstin: '29ABCDE1234F1Z1', isPrimary: false }]);
   });
 
+  it('uses the camelCase primary GSTIN even when it is not the first GSTIN row', () => {
+    const gstin = (component as any).primaryGstinDisplay({
+      gstin: '36ABCDE1234F1Z5',
+      gstins: [
+        { stateName: 'Telangana', stateCode: '36', gstin: '36ABCDE1234F1Z5', isPrimary: false },
+        { stateName: 'Karnataka', stateCode: '29', gstin: '29ABCDE1234F1Z1', isPrimary: true }
+      ]
+    });
+    expect(gstin).toBe('29ABCDE1234F1Z1');
+  });
+
   it('returns an empty array for a missing/non-array gstins value', () => {
     expect((component as any).normalizePartyGstinRows(undefined)).toEqual([]);
     expect((component as any).normalizePartyGstinRows(null)).toEqual([]);

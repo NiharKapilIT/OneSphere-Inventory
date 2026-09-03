@@ -34,6 +34,7 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
       getTdsCodes: () => of({ success: true, data: [] }) as any,
       getVendorFyPurchaseSummary: () => of({ success: true, data: null }) as any,
       getAvailableNotes: () => of({ success: true, data: [] }) as any,
+      getPaymentVoucherAccountSetup: () => of({ banks: [], depositBanks: [], onlinePaymentTypes: [] }) as any,
       savePaymentVoucher: (payload: any) => { savePayload = payload; return of({ success: true, data: { voucher_number: 'PV-EL-26-00001' } }) as any; }
     };
 
@@ -160,14 +161,14 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
 
   // Item 20: end-to-end through the real rendered <app-payment-mode-selector>
   // (not a manually-faked `details.isValid`) -- setting a mode row's amount
-  // over ₹20,000 while it's still Cash must round-trip through the child
+  // over the voucher-specific Cash cap while it's still Cash must round-trip through the child
   // component's own [amount] input back into row.details.isValid and block
   // save(), the same as any other incomplete mode row does.
-  it('save() blocks a Cash mode row whose amount exceeds the ₹20,000 cap', () => {
+  it('save() blocks a Pay-against-PI Cash mode row whose amount exceeds Rs 9,999', () => {
     setUpParty();
-    (component as any).quickAmount.set(25000);
+    (component as any).quickAmount.set(10000);
     component.addMode(); // defaults to Cash, valid at amount 0
-    component.setModeAmount(0, '25000');
+    component.setModeAmount(0, '10000');
     fixture.detectChanges(); // propagate [amount] into the child, then its valueChange back out
 
     expect(component.modeRows()[0].details.mode).toBe('CASH');
@@ -176,14 +177,14 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
     component.save();
 
     expect(savePayload).toBeNull();
-    expect(component.saveError()).toContain('required fields');
+    expect(component.saveError()).toContain('Purchase Invoice');
   });
 
-  it('save() accepts a Cash mode row at exactly ₹20,000', () => {
+  it('save() accepts a Pay-against-PI Cash mode row at exactly Rs 9,999', () => {
     setUpParty();
-    (component as any).quickAmount.set(20000);
+    (component as any).quickAmount.set(9999);
     component.addMode();
-    component.setModeAmount(0, '20000');
+    component.setModeAmount(0, '9999');
     fixture.detectChanges();
 
     expect(component.modeRows()[0].details.isValid).toBe(true);
@@ -192,7 +193,27 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
 
     expect(savePayload).not.toBeNull();
     expect(savePayload.modes).toEqual([
-      { modeKey: 'cash', amount: 20000, refJson: { summary: 'Cash' } }
+      { modeKey: 'cash', amount: 9999, refJson: { summary: 'Cash' } }
+    ]);
+  });
+
+  it('save() accepts a Receipt-against-SI Cash mode row up to Rs 199,000', () => {
+    (component as any).mode.set('receipt');
+    (component as any).selectedPartyId.set(2);
+    (component as any).parties.set([{ id: 2, customer_name: 'Retail Customer' } as any]);
+    (component as any).quickAmount.set(199000);
+    component.addMode();
+    component.setModeAmount(0, '199000');
+    fixture.detectChanges();
+
+    expect(component.modeRows()[0].details.isValid).toBe(true);
+
+    component.save();
+
+    expect(savePayload).not.toBeNull();
+    expect(savePayload.voucherType).toBe('receipt');
+    expect(savePayload.modes).toEqual([
+      { modeKey: 'cash', amount: 199000, refJson: { summary: 'Cash' } }
     ]);
   });
 });

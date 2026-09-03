@@ -178,6 +178,130 @@ export interface StockTransfer {
   items: StockTransferItem[];
 }
 
+export interface ManufacturingMaterialItem {
+  id?: number;
+  sno: number;
+  product_id?: number;
+  product_name: string;
+  product_code?: string;
+  variant_id?: number;
+  variant_name?: string;
+  attribute_id?: number;
+  attribute_name?: string;
+  attribute_value?: string;
+  uom_id?: number;
+  uom_name?: string;
+  required_qty?: number;
+  available_qty?: number;
+  shortage_qty?: number;
+  batch_required?: boolean;
+  issued_qty?: number;
+  consumed_qty?: number;
+  returned_qty?: number;
+  batch_no?: string;
+  serial_no?: string;
+  serial_numbers?: string[] | null;
+  remarks?: string;
+}
+
+export interface ProductionPlan {
+  id: number;
+  plan_number: string;
+  plan_date?: string;
+  production_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  finished_product_id?: number;
+  finished_product_name?: string;
+  planned_qty: number;
+  bom_version?: string;
+  work_center?: string;
+  branch_id?: number;
+  branch_name?: string;
+  warehouse_id?: number;
+  warehouse_name?: string;
+  remarks?: string;
+  status: string;
+  created_at?: string;
+  items: ManufacturingMaterialItem[];
+}
+
+export interface MaterialIssueProduction {
+  id: number;
+  issue_number: string;
+  issue_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  production_plan_id?: number;
+  production_plan_number?: string;
+  from_branch_id?: number;
+  from_branch_name?: string;
+  from_warehouse_id?: number;
+  from_warehouse_name?: string;
+  to_work_center?: string;
+  issued_by_name?: string;
+  remarks?: string;
+  total_qty: number;
+  status: string;
+  created_at?: string;
+  items: ManufacturingMaterialItem[];
+}
+
+export interface ProductionEntryItem extends ManufacturingMaterialItem {
+  planned_qty?: number;
+  produced_qty: number;
+  rejected_qty?: number;
+  wastage_qty?: number;
+  production_cost?: number;
+}
+
+export interface ProductionEntry {
+  id: number;
+  production_number: string;
+  production_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  production_plan_id?: number;
+  production_plan_number?: string;
+  finished_product_id?: number;
+  finished_product_name?: string;
+  produced_qty: number;
+  rejected_qty: number;
+  wastage_qty: number;
+  production_cost: number;
+  to_branch_id?: number;
+  to_branch_name?: string;
+  to_warehouse_id?: number;
+  to_warehouse_name?: string;
+  batch_no?: string;
+  remarks?: string;
+  status: string;
+  created_at?: string;
+  items: ProductionEntryItem[];
+}
+
+export interface ProductionReturn {
+  id: number;
+  return_number: string;
+  return_date?: string;
+  segment_id?: number;
+  segment_name?: string;
+  material_issue_id?: number;
+  material_issue_number?: string;
+  production_plan_id?: number;
+  production_plan_number?: string;
+  to_branch_id?: number;
+  to_branch_name?: string;
+  to_warehouse_id?: number;
+  to_warehouse_name?: string;
+  reason?: string;
+  remarks?: string;
+  total_qty: number;
+  status: string;
+  created_at?: string;
+  items: ManufacturingMaterialItem[];
+}
+
 export interface StockAdjustmentItem {
   id?: number;
   sno: number;
@@ -901,6 +1025,139 @@ export class InventoryTransactionsService {
     };
   }
 
+  private normManufacturingMaterialItem(i: any): ManufacturingMaterialItem {
+    return {
+      id: i?.id,
+      sno: i?.sno || 1,
+      product_id: i?.productId ?? i?.product_id,
+      product_name: i?.productName || i?.product_name || '',
+      product_code: i?.productCode || i?.product_code,
+      variant_id: i?.variantId ?? i?.variant_id,
+      variant_name: i?.variantName || i?.variant_name,
+      attribute_id: i?.attributeId ?? i?.attribute_id,
+      attribute_name: i?.attributeName || i?.attribute_name,
+      attribute_value: i?.attributeValue || i?.attribute_value,
+      uom_id: i?.uomId ?? i?.uom_id,
+      uom_name: i?.uomName || i?.uom_name,
+      required_qty: Number(i?.requiredQty ?? i?.required_qty ?? 0),
+      available_qty: Number(i?.availableQty ?? i?.available_qty ?? 0),
+      shortage_qty: Number(i?.shortageQty ?? i?.shortage_qty ?? 0),
+      batch_required: !!(i?.batchRequired ?? i?.batch_required),
+      issued_qty: Number(i?.issuedQty ?? i?.issued_qty ?? 0),
+      consumed_qty: Number(i?.consumedQty ?? i?.consumed_qty ?? 0),
+      returned_qty: Number(i?.returnedQty ?? i?.returned_qty ?? 0),
+      batch_no: i?.batchNo || i?.batch_no,
+      serial_no: i?.serialNo || i?.serial_no,
+      serial_numbers: i?.serialNumbers ?? i?.serial_numbers ?? null,
+      remarks: i?.remarks
+    };
+  }
+
+  private normProductionPlan(r: any): ProductionPlan {
+    return {
+      id: r?.id,
+      plan_number: r?.planNumber || r?.plan_number || '',
+      plan_date: r?.planDate || r?.plan_date,
+      production_date: r?.productionDate || r?.production_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      finished_product_id: r?.finishedProductId ?? r?.finished_product_id,
+      finished_product_name: r?.finishedProductName || r?.finished_product_name,
+      planned_qty: Number(r?.plannedQty ?? r?.planned_qty ?? 0),
+      bom_version: r?.bomVersion || r?.bom_version,
+      work_center: r?.workCenter || r?.work_center,
+      branch_id: r?.branchId ?? r?.branch_id,
+      branch_name: r?.branchName || r?.branch_name,
+      warehouse_id: r?.warehouseId ?? r?.warehouse_id,
+      warehouse_name: r?.warehouseName || r?.warehouse_name,
+      remarks: r?.remarks,
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => this.normManufacturingMaterialItem(i))
+    };
+  }
+
+  private normMaterialIssueProduction(r: any): MaterialIssueProduction {
+    return {
+      id: r?.id,
+      issue_number: r?.issueNumber || r?.issue_number || '',
+      issue_date: r?.issueDate || r?.issue_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      production_plan_id: r?.productionPlanId ?? r?.production_plan_id,
+      production_plan_number: r?.productionPlanNumber || r?.production_plan_number,
+      from_branch_id: r?.fromBranchId ?? r?.from_branch_id,
+      from_branch_name: r?.fromBranchName || r?.from_branch_name,
+      from_warehouse_id: r?.fromWarehouseId ?? r?.from_warehouse_id,
+      from_warehouse_name: r?.fromWarehouseName || r?.from_warehouse_name,
+      to_work_center: r?.toWorkCenter || r?.to_work_center,
+      issued_by_name: r?.issuedByName || r?.issued_by_name,
+      remarks: r?.remarks,
+      total_qty: Number(r?.totalQty ?? r?.total_qty ?? 0),
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => this.normManufacturingMaterialItem(i))
+    };
+  }
+
+  private normProductionEntry(r: any): ProductionEntry {
+    return {
+      id: r?.id,
+      production_number: r?.productionNumber || r?.production_number || '',
+      production_date: r?.productionDate || r?.production_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      production_plan_id: r?.productionPlanId ?? r?.production_plan_id,
+      production_plan_number: r?.productionPlanNumber || r?.production_plan_number,
+      finished_product_id: r?.finishedProductId ?? r?.finished_product_id,
+      finished_product_name: r?.finishedProductName || r?.finished_product_name,
+      produced_qty: Number(r?.producedQty ?? r?.produced_qty ?? 0),
+      rejected_qty: Number(r?.rejectedQty ?? r?.rejected_qty ?? 0),
+      wastage_qty: Number(r?.wastageQty ?? r?.wastage_qty ?? 0),
+      production_cost: Number(r?.productionCost ?? r?.production_cost ?? 0),
+      to_branch_id: r?.toBranchId ?? r?.to_branch_id,
+      to_branch_name: r?.toBranchName || r?.to_branch_name,
+      to_warehouse_id: r?.toWarehouseId ?? r?.to_warehouse_id,
+      to_warehouse_name: r?.toWarehouseName || r?.to_warehouse_name,
+      batch_no: r?.batchNo || r?.batch_no,
+      remarks: r?.remarks,
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => ({
+        ...this.normManufacturingMaterialItem(i),
+        planned_qty: Number(i?.plannedQty ?? i?.planned_qty ?? 0),
+        produced_qty: Number(i?.producedQty ?? i?.produced_qty ?? 0),
+        rejected_qty: Number(i?.rejectedQty ?? i?.rejected_qty ?? 0),
+        wastage_qty: Number(i?.wastageQty ?? i?.wastage_qty ?? 0),
+        production_cost: Number(i?.productionCost ?? i?.production_cost ?? 0)
+      }))
+    };
+  }
+
+  private normProductionReturn(r: any): ProductionReturn {
+    return {
+      id: r?.id,
+      return_number: r?.returnNumber || r?.return_number || '',
+      return_date: r?.returnDate || r?.return_date,
+      segment_id: r?.segmentId ?? r?.segment_id,
+      segment_name: r?.segmentName || r?.segment_name,
+      material_issue_id: r?.materialIssueId ?? r?.material_issue_id,
+      material_issue_number: r?.materialIssueNumber || r?.material_issue_number,
+      production_plan_id: r?.productionPlanId ?? r?.production_plan_id,
+      production_plan_number: r?.productionPlanNumber || r?.production_plan_number,
+      to_branch_id: r?.toBranchId ?? r?.to_branch_id,
+      to_branch_name: r?.toBranchName || r?.to_branch_name,
+      to_warehouse_id: r?.toWarehouseId ?? r?.to_warehouse_id,
+      to_warehouse_name: r?.toWarehouseName || r?.to_warehouse_name,
+      reason: r?.reason,
+      remarks: r?.remarks,
+      total_qty: Number(r?.totalQty ?? r?.total_qty ?? 0),
+      status: r?.status || 'draft',
+      created_at: r?.createdAt || r?.created_at,
+      items: (r?.items || []).map((i: any) => this.normManufacturingMaterialItem(i))
+    };
+  }
+
   private normStockAdjustment(r: any): StockAdjustment {
     return {
       id: r?.id, adjustment_number: r?.adjustmentNumber || r?.adjustment_number || '',
@@ -1210,6 +1467,90 @@ export class InventoryTransactionsService {
         ? this.http.put<ApiResponse<any>>(this.url(`stock-transfers/${id}`), body, { headers: h })
         : this.http.post<ApiResponse<any>>(this.url('stock-transfers'), body, { headers: h }),
       r => this.normStockTransfer(r)
+    );
+  }
+
+  getProductionPlans(status?: string, segmentId?: number | null): Observable<ApiResponse<ProductionPlan[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('production-plans'), { headers: this.headers(), params }),
+      r => this.normProductionPlan(r)
+    );
+  }
+
+  saveProductionPlan(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ProductionPlan>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`production-plans/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('production-plans'), body, { headers: h }),
+      r => this.normProductionPlan(r)
+    );
+  }
+
+  getMaterialIssueProductions(status?: string, segmentId?: number | null): Observable<ApiResponse<MaterialIssueProduction[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('material-issues-production'), { headers: this.headers(), params }),
+      r => this.normMaterialIssueProduction(r)
+    );
+  }
+
+  saveMaterialIssueProduction(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<MaterialIssueProduction>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`material-issues-production/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('material-issues-production'), body, { headers: h }),
+      r => this.normMaterialIssueProduction(r)
+    );
+  }
+
+  getProductionEntries(status?: string, segmentId?: number | null): Observable<ApiResponse<ProductionEntry[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('production-entries'), { headers: this.headers(), params }),
+      r => this.normProductionEntry(r)
+    );
+  }
+
+  saveProductionEntry(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ProductionEntry>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`production-entries/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('production-entries'), body, { headers: h }),
+      r => this.normProductionEntry(r)
+    );
+  }
+
+  getProductionReturns(status?: string, segmentId?: number | null): Observable<ApiResponse<ProductionReturn[]>> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    if (segmentId) params = params.set('segmentId', String(segmentId));
+    return this.mapArray(
+      this.http.get<ApiResponse<any[]>>(this.url('production-returns'), { headers: this.headers(), params }),
+      r => this.normProductionReturn(r)
+    );
+  }
+
+  saveProductionReturn(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<ProductionReturn>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.url(`production-returns/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.url('production-returns'), body, { headers: h }),
+      r => this.normProductionReturn(r)
     );
   }
 
