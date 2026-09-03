@@ -107,15 +107,20 @@
         <label>
           Branch Name
           <input type="text" [ngModel]="form().branchName" name="branchName"
-            (ngModelChange)="onBranchNameChange($event)" placeholder="e.g. Mumbai Head Office" />
+            (ngModelChange)="onBranchNameChange($event)" placeholder="e.g. Mumbai Head Office"
+            [class.input-error]="branchNameTaken()" />
+          @if (branchNameTaken()) {
+          <small class="bc-field-error"><i class="pi pi-exclamation-circle"></i> A branch with this name already exists in this company.</small>
+          }
         </label>
+        @if (form().id) {
         <label>
           Branch Code
           <div class="bc-code-wrap">
             <input type="text" [ngModel]="form().branchCode" name="branchCode"
               (ngModelChange)="onBranchCodeChange($event)"
               [class.input-error]="branchCodeTaken()"
-              placeholder="{{ form().id ? 'Branch code' : 'Auto-filled from name' }}" />
+              placeholder="Branch code" />
             @if (branchCodeChecking()) {
               <i class="bc-code-icon pi pi-spin pi-spinner"></i>
             } @else if (form().branchCode && branchCodeTaken()) {
@@ -126,10 +131,9 @@
           </div>
           @if (branchCodeTaken()) {
           <small class="bc-field-error"><i class="pi pi-exclamation-circle"></i> Branch Code already in use — choose a different one.</small>
-          } @else if (!form().id) {
-          <small class="bc-field-hint">Suggested from branch name — you may edit it.</small>
           }
         </label>
+        }
         <label>
           Email
           <input type="email" [ngModel]="form().email" name="email"

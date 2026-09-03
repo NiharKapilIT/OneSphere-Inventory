@@ -51,6 +51,9 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   branchCodeChecking = signal(false);
   branchCodeTaken = signal(false);
 
+  // ── Duplicate branch name (within the same company) ───────────
+  branchNameTaken = signal(false);
+
   private _codeWasManuallyEdited = false;
   private _lastSuggestedCode = '';
   private _codeDebounce: ReturnType<typeof setTimeout> | null = null;
@@ -140,6 +143,7 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   // ── Field change handlers (with auto-suggest) ─────────────────
   onBranchNameChange(value: string): void {
     this.updateForm('branchName', value);
+    this.branchNameTaken.set(this.isBranchNameTaken(value));
     if (!this._codeWasManuallyEdited && !this.form().id) {
       const suggested = this.suggestBranchCode(value);
       if (suggested) {
@@ -164,6 +168,10 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     if (!current.branchName.trim() || !current.branchCode.trim()) {
       this.errorMessage.set('Branch name and branch code are required.');
+      return;
+    }
+    if (this.isBranchNameTaken(current.branchName)) {
+      this.errorMessage.set('A branch with this name already exists in this company. Please choose a different name.');
       return;
     }
     if (!current.id && this.branchCodeTaken()) {
@@ -225,10 +233,18 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   }
 
   private suggestBranchCode(name: string): string {
-    const firstLetter = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')[0];
-    if (!firstLetter) return '';
-    const yy = new Date().getFullYear().toString().slice(-2);
-    const prefix = `${firstLetter}${yy}`;
+    const words = name.trim().toUpperCase().split(/\s+/)
+      .map(word => word.replace(/[^A-Z0-9]/g, ''))
+      .filter(Boolean);
+    if (!words.length) return '';
+
+    const initials = words
+      .map(word => word[0])
+      .join('')
+      .padEnd(2, 'X')
+      .slice(0, 2);
+
+    const prefix = `${initials}BC`;
     const serial = this.nextCodeSerial(prefix, this.branches().map(b => b.branchCode));
     return `${prefix}${serial}`;
   }
@@ -241,7 +257,9 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
       const n = parseInt(code.slice(prefix.length), 10);
       if (!isNaN(n) && n > max) max = n;
     }
-    return String(max + 1).padStart(3, '0');
+    // padStart(4, '0') only guarantees a minimum width; once the max hits 9999
+    // the next number naturally overflows to 5+ digits instead of wrapping or colliding.
+    return String(max + 1).padStart(4, '0');
   }
 
   private scheduleBranchCodeCheck(code: string): void {
@@ -264,7 +282,15 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     this._lastSuggestedCode = '';
     this.branchCodeChecking.set(false);
     this.branchCodeTaken.set(false);
+    this.branchNameTaken.set(false);
     if (this._codeDebounce) { clearTimeout(this._codeDebounce); this._codeDebounce = null; }
+  }
+
+  private isBranchNameTaken(name: string): boolean {
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) return false;
+    const currentId = this.form().id;
+    return this.branches().some(b => b.branchName.trim().toLowerCase() === trimmed && b.id !== currentId);
   }
 
   private emptyForm(): BranchFormState {
