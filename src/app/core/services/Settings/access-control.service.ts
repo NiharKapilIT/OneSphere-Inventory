@@ -154,6 +154,12 @@ export class AccessControlService {
     return this.http.get<ApiResponse<BranchResponse[]>>(`${this.apiUrl()}/branches`);
   }
 
+  // Bare branch codes across every company (no names/company info) — feeds the
+  // branch-code generator's cross-tenant collision check.
+  getAllBranchCodes(): Observable<ApiResponse<string[]>> {
+    return this.http.get<ApiResponse<string[]>>(`${this.apiUrl()}/branches/codes`);
+  }
+
   getAssignableModules(): Observable<ApiResponse<ModuleResponse[]>> {
     return this.http.get<ApiResponse<ModuleResponse[]>>(`${this.apiUrl()}/users/assignable-modules`);
   }

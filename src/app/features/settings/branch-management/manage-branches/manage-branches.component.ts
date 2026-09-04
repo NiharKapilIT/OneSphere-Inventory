@@ -50,6 +50,10 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   // ── Branch code auto-suggest & uniqueness ─────────────────────
   branchCodeChecking = signal(false);
   branchCodeTaken = signal(false);
+  // Bare codes across every company, used so a newly generated/edited code never
+  // collides with another tenant's — the DB constraint itself is only per-company,
+  // but codes should still look distinct company-to-company.
+  allBranchCodes = signal<string[]>([]);
 
   // ── Duplicate branch name (within the same company) ───────────
   branchNameTaken = signal(false);
@@ -70,6 +74,17 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     this.isAdmin.set(this.readCurrentUserIsAdmin());
     await this.loadBranches();
+    await this.loadAllBranchCodes();
+  }
+
+  async loadAllBranchCodes(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.access.getAllBranchCodes());
+      this.allBranchCodes.set(response.data ?? []);
+    } catch {
+      // Non-fatal — falls back to checking uniqueness within just this company,
+      // same as before this cross-tenant check existed.
+    }
   }
 
   ngOnDestroy(): void {
@@ -245,8 +260,14 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
       .slice(0, 2);
 
     const prefix = `${initials}BC`;
-    const serial = this.nextCodeSerial(prefix, this.branches().map(b => b.branchCode));
+    const serial = this.nextCodeSerial(prefix, this.knownBranchCodes());
     return `${prefix}${serial}`;
+  }
+
+  // Union of this company's branches (always fresh) and the cross-company code list
+  // (may be empty if that load failed) — used for both suggesting and validating codes.
+  private knownBranchCodes(): string[] {
+    return Array.from(new Set([...this.allBranchCodes(), ...this.branches().map(b => b.branchCode)]));
   }
 
   private nextCodeSerial(prefix: string, existingCodes: string[]): string {
@@ -271,9 +292,13 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
       this.branchCodeChecking.set(false);
       const lower = code.trim().toLowerCase();
       const currentId = this.form().id;
-      this.branchCodeTaken.set(
-        this.branches().some(b => b.branchCode.toLowerCase() === lower && b.id !== currentId)
-      );
+      // Editing a branch without changing its own code shouldn't flag as taken.
+      const ownCode = currentId ? this.branches().find(b => b.id === currentId)?.branchCode : null;
+      if (ownCode && ownCode.toLowerCase() === lower) {
+        this.branchCodeTaken.set(false);
+        return;
+      }
+      this.branchCodeTaken.set(this.knownBranchCodes().some(c => c.toLowerCase() === lower));
     }, 400);
   }
 
