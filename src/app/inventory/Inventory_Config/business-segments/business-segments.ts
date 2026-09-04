@@ -159,22 +159,6 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.usageNote.set(String(applyInventoryTextCase(note ?? '', 'sentence')));
   }
 
-  onNewHsnCodeChange(code: string): void {
-    this.newHsnCode.set(String(applyInventoryTextCase(code ?? '', 'upper')));
-  }
-
-  onNewHsnDescChange(description: string): void {
-    this.newHsnDesc.set(String(applyInventoryTextCase(description ?? '', 'sentence')));
-  }
-
-  onNewUomNameChange(name: string): void {
-    this.newUomName.set(toInventoryTitleCase(name ?? ''));
-  }
-
-  onNewUomSymbolChange(symbol: string): void {
-    this.newUomSymbol.set(String(applyInventoryTextCase(symbol ?? '', 'upper')));
-  }
-
   // Global standard code format: PREFIX (first 3 alnum chars of name) - YY - 5-digit sequence.
   // Matches generateCodeFromName() in inventory-screen-shell.ts, used across the other master screens.
   private autoCode(name: string): string {
