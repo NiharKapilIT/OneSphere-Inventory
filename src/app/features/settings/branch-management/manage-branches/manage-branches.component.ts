@@ -50,6 +50,13 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   // ── Branch code auto-suggest & uniqueness ─────────────────────
   branchCodeChecking = signal(false);
   branchCodeTaken = signal(false);
+  // Bare codes across every company, used so a newly generated/edited code never
+  // collides with another tenant's — the DB constraint itself is only per-company,
+  // but codes should still look distinct company-to-company.
+  allBranchCodes = signal<string[]>([]);
+
+  // ── Duplicate branch name (within the same company) ───────────
+  branchNameTaken = signal(false);
 
   private _codeWasManuallyEdited = false;
   private _lastSuggestedCode = '';
@@ -67,6 +74,17 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     this.isAdmin.set(this.readCurrentUserIsAdmin());
     await this.loadBranches();
+    await this.loadAllBranchCodes();
+  }
+
+  async loadAllBranchCodes(): Promise<void> {
+    try {
+      const response = await firstValueFrom(this.access.getAllBranchCodes());
+      this.allBranchCodes.set(response.data ?? []);
+    } catch {
+      // Non-fatal — falls back to checking uniqueness within just this company,
+      // same as before this cross-tenant check existed.
+    }
   }
 
   ngOnDestroy(): void {
@@ -140,6 +158,7 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   // ── Field change handlers (with auto-suggest) ─────────────────
   onBranchNameChange(value: string): void {
     this.updateForm('branchName', value);
+    this.branchNameTaken.set(this.isBranchNameTaken(value));
     if (!this._codeWasManuallyEdited && !this.form().id) {
       const suggested = this.suggestBranchCode(value);
       if (suggested) {
@@ -164,6 +183,10 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     this.errorMessage.set('');
     if (!current.branchName.trim() || !current.branchCode.trim()) {
       this.errorMessage.set('Branch name and branch code are required.');
+      return;
+    }
+    if (this.isBranchNameTaken(current.branchName)) {
+      this.errorMessage.set('A branch with this name already exists in this company. Please choose a different name.');
       return;
     }
     if (!current.id && this.branchCodeTaken()) {
@@ -225,12 +248,26 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
   }
 
   private suggestBranchCode(name: string): string {
-    const firstLetter = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')[0];
-    if (!firstLetter) return '';
-    const yy = new Date().getFullYear().toString().slice(-2);
-    const prefix = `${firstLetter}${yy}`;
-    const serial = this.nextCodeSerial(prefix, this.branches().map(b => b.branchCode));
+    const words = name.trim().toUpperCase().split(/\s+/)
+      .map(word => word.replace(/[^A-Z0-9]/g, ''))
+      .filter(Boolean);
+    if (!words.length) return '';
+
+    const initials = words
+      .map(word => word[0])
+      .join('')
+      .padEnd(2, 'X')
+      .slice(0, 2);
+
+    const prefix = `${initials}BC`;
+    const serial = this.nextCodeSerial(prefix, this.knownBranchCodes());
     return `${prefix}${serial}`;
+  }
+
+  // Union of this company's branches (always fresh) and the cross-company code list
+  // (may be empty if that load failed) — used for both suggesting and validating codes.
+  private knownBranchCodes(): string[] {
+    return Array.from(new Set([...this.allBranchCodes(), ...this.branches().map(b => b.branchCode)]));
   }
 
   private nextCodeSerial(prefix: string, existingCodes: string[]): string {
@@ -241,7 +278,9 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
       const n = parseInt(code.slice(prefix.length), 10);
       if (!isNaN(n) && n > max) max = n;
     }
-    return String(max + 1).padStart(3, '0');
+    // padStart(4, '0') only guarantees a minimum width; once the max hits 9999
+    // the next number naturally overflows to 5+ digits instead of wrapping or colliding.
+    return String(max + 1).padStart(4, '0');
   }
 
   private scheduleBranchCodeCheck(code: string): void {
@@ -253,9 +292,13 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
       this.branchCodeChecking.set(false);
       const lower = code.trim().toLowerCase();
       const currentId = this.form().id;
-      this.branchCodeTaken.set(
-        this.branches().some(b => b.branchCode.toLowerCase() === lower && b.id !== currentId)
-      );
+      // Editing a branch without changing its own code shouldn't flag as taken.
+      const ownCode = currentId ? this.branches().find(b => b.id === currentId)?.branchCode : null;
+      if (ownCode && ownCode.toLowerCase() === lower) {
+        this.branchCodeTaken.set(false);
+        return;
+      }
+      this.branchCodeTaken.set(this.knownBranchCodes().some(c => c.toLowerCase() === lower));
     }, 400);
   }
 
@@ -264,7 +307,15 @@ export class ManageBranchesComponent implements OnInit, OnDestroy {
     this._lastSuggestedCode = '';
     this.branchCodeChecking.set(false);
     this.branchCodeTaken.set(false);
+    this.branchNameTaken.set(false);
     if (this._codeDebounce) { clearTimeout(this._codeDebounce); this._codeDebounce = null; }
+  }
+
+  private isBranchNameTaken(name: string): boolean {
+    const trimmed = name.trim().toLowerCase();
+    if (!trimmed) return false;
+    const currentId = this.form().id;
+    return this.branches().some(b => b.branchName.trim().toLowerCase() === trimmed && b.id !== currentId);
   }
 
   private emptyForm(): BranchFormState {

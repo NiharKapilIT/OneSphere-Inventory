@@ -1117,19 +1117,29 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   private generateCompanyCode(name: string): string {
-    const firstLetter = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')[0];
-    if (!firstLetter) return '';
-    const yy = new Date().getFullYear().toString().slice(-2);
-    return `${firstLetter}${yy}001`;
+    const words = name.trim().toUpperCase().split(/\s+/)
+      .map(word => word.replace(/[^A-Z0-9]/g, ''))
+      .filter(Boolean);
+    if (!words.length) return '';
+    const prefix = (words.length >= 2
+      ? words[0].slice(0, 2) + words[1].slice(0, 2)
+      : words[0].slice(0, 4)).padEnd(4, 'X').slice(0, 4);
+    return `${prefix}0001`;
   }
 
-  // First branch is always the Head Office — code from initials (e.g. "Head Office" -> "HO").
+  // First branch is always the Head Office — code from initials + 'BC' + '0001'
+  // (e.g. "Head Office" -> "HOBC0001"), matching the format used everywhere else
+  // branch codes are generated. It's always the very first branch for a brand-new
+  // company, so the sequence number is always 0001 here.
   private generateDefaultBranchCode(name: string): string {
-    const words = name.trim().replace(/[^A-Za-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
-    if (!words.length) return 'HO';
-    return words.length >= 2
-      ? words.slice(0, 3).map(w => w[0].toUpperCase()).join('')
-      : words[0].substring(0, 3).toUpperCase();
+    const words = name.trim().toUpperCase().replace(/[^A-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+    if (!words.length) return 'HOBC0001';
+    const initials = words
+      .map(w => w[0])
+      .join('')
+      .padEnd(2, 'X')
+      .slice(0, 2);
+    return `${initials}BC0001`;
   }
 
   async onCompanyCodeBlur(): Promise<void> {
