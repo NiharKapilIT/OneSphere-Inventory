@@ -388,8 +388,49 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     return kind === 'warehouse' || kind === 'branch' ? kind : '';
   }
 
+  // Resolves "Current Warehouse"/"Current Branch" off the transaction's own
+  // picked location first -- mirrors InventoryScreenShell's own
+  // resolvedProductFilterLocation() key->field convention (kept in sync
+  // manually here since the shell doesn't expose that private resolver to
+  // this component). Only the config.key values this badge has been wired
+  // up for are covered here; any other key (raw resolves to '') falls
+  // through to the session-based active-location badge below, unchanged.
+  private currentTransactionLocationRaw(): string {
+    const key = this.host?.config?.key || '';
+    const formValues = this.host?.formValues?.() || {};
+    const val = (name: string) => String(formValues?.[name] || '').trim();
+
+    if (key === 'purchaseInvoice') return val('receivingLocation') || val('warehouse');
+    if (key === 'stockTransfer') return val('fromWarehouse');
+    if (key === 'salesInvoice') {
+      const interbranch = val('interbranchSale').toLowerCase() === 'yes';
+      return interbranch ? val('branch') : val('warehouse');
+    }
+    return '';
+  }
+
+  private currentTransactionLocation(): { warehouseId: number } | { branchId: number } | null {
+    const raw = this.currentTransactionLocationRaw();
+    if (!raw) return null;
+
+    const warehouses: WarehouseItem[] = this.host?.loadedWarehouseObjects?.() || [];
+    const warehouseMatch = warehouses.find(w => String(w?.warehouse_name || '').trim() === raw);
+    if (warehouseMatch?.id != null) return { warehouseId: Number(warehouseMatch.id) };
+
+    const branches: BranchInvItem[] = this.host?.loadedBranchObjects?.() || [];
+    const branchMatch = branches.find(b => String(b?.branch_name || '').trim() === raw);
+    if (branchMatch) {
+      const branchId = Number(branchMatch.branch_id ?? branchMatch.id);
+      if (Number.isFinite(branchId)) return { branchId };
+    }
+
+    return null;
+  }
+
   private isActiveSessionWarehouse(warehouseId: number | null): boolean {
     if (warehouseId == null) return false;
+    const transactionLocation = this.currentTransactionLocation();
+    if (transactionLocation) return 'warehouseId' in transactionLocation && transactionLocation.warehouseId === warehouseId;
     const kind = this.activeLocationKind();
     if (kind === 'branch') return false;
     const activeId = Number(sessionStorage.getItem('warehouseId') || 0);
@@ -398,6 +439,8 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
 
   private isActiveSessionBranch(branchId: number | null): boolean {
     if (branchId == null) return false;
+    const transactionLocation = this.currentTransactionLocation();
+    if (transactionLocation) return 'branchId' in transactionLocation && transactionLocation.branchId === branchId;
     const kind = this.activeLocationKind();
     if (kind === 'warehouse') return false;
     const activeId = Number(sessionStorage.getItem('branchId') || 0);

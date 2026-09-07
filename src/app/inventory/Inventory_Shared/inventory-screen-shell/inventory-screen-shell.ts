@@ -3004,6 +3004,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   ]);
 
   private readonly availableStockProductOptionScopeKeys = new Set([
+    'goodsreceipt',
     'deliverychallan',
     'salesinvoice',
     'stocktransfer',
@@ -10274,7 +10275,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private transactionMrpCeilingValidationMessage(): string {
     const key = this.config?.key || '';
-    if (!['salesInvoice', 'salesOrder', 'purchaseInvoice'].includes(key)) return '';
+    // Sales Invoice is deliberately absent here (item 32): its MRP ceiling
+    // is no longer a hard block on Save Draft / Post -- see
+    // salesRateBoundsNotice(), which surfaces the same "exceeds MRP" case as
+    // a non-blocking advisory notice next to the save confirmation instead.
+    if (!['salesOrder', 'purchaseInvoice'].includes(key)) return '';
     const rows = key === 'purchaseInvoice' ? this.activePurchaseLineRows() : this.activeSalesLineRows();
     const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
