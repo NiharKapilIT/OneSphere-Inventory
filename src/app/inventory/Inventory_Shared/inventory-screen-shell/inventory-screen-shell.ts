@@ -7,7 +7,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, forkJoin, from, map, of, switchMap, tap } from 'rxjs';
-import { ApiResponse, AttributeItem, AttributeValueItem, BranchInvItem, CategoryItem, ChannelPartnerItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
+import { ApiResponse, AttributeItem, BomItem, BomLineItem, PriceListItem, WorkCenterItem, AttributeValueItem, BranchInvItem, CategoryItem, ChannelPartnerItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
 import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption, TransportDetails } from '../inventory-transactions.service';
 import { applyInventoryTextCase, inventoryTextCaseForField, inventoryTextCaseForLineColumn, toInventoryTitleCase } from '../inventory-text-case.util';
 import {
@@ -366,10 +366,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly savedRecordObjects = signal<any[]>([]);
   readonly editingId = signal<number | null>(null);
   // BOM / Work Center / Price List Master have no backend row id (see
-  // LOCAL_MASTER_CONFIGS) — the row currently open for editing is identified
-  // by the key its code column held when Edit was pressed, so changing that
-  // code still updates the same row instead of leaving a duplicate behind.
-  readonly editingLocalRowKey = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly saveMsg = signal('');
   readonly saveError = signal('');
@@ -537,6 +533,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private readonly loadedSegmentObjects = signal<SegmentItem[]>([]);
   private readonly loadedHsnSacObjects = signal<HsnSacItem[]>([]);
   private readonly loadedUomObjects = signal<UomItem[]>([]);
+  // BOM and Work Center masters, read by Production Planning for its BOM
+  // explosion and its Work Center / BOM Version dropdowns. Loaded from the API
+  // since migration 219 gave them real tables.
+  private readonly loadedBomObjects = signal<BomItem[]>([]);
+  private readonly loadedWorkCenterObjects = signal<WorkCenterItem[]>([]);
   private readonly allAttributeObjects = signal<AttributeItem[]>([]);
   private readonly loadedAttributeObjects = signal<AttributeItem[]>([]);
   private readonly loadedAttributeReady = signal(false);
@@ -1822,12 +1823,28 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private static readonly PRICING_TYPE_NATURES = new Set(['Service', 'Service Bundle', 'Digital / Subscription']);
-  private static readonly MANUFACTURING_RAW_NATURE_KEYS = new Set([
-    'rawmaterial',
+
+  // Every label the intermediate manufacturing stage has ever carried in
+  // inventory.inv_product_types, normalised through compactKey(). Migration 218
+  // renamed the live one (code SUBFIN) to 'Semi-Finished Product', which is what
+  // the business calls it; the older names stay matched so a product still
+  // classified under one of them keeps working:
+  //   'Semi-Finished Product'          -> semifinishedproduct   (live, code SUBFIN)
+  //   'Sub-Finished Product'           -> subfinishedproduct    (pre-218 label)
+  //   'Semi-Finished / WIP (retired)'  -> semifinishedwipretired (code WIP, inactive)
+  // A single list because both the raw-material set and the output set need it —
+  // it is an input to a higher assembly and an output of a lower one.
+  private static readonly SEMI_FINISHED_NATURE_KEYS = [
+    'semifinishedproduct',
     'subfinishedproduct',
     'semifinishedgoods',
     'semifinishedwip',
+    'semifinishedwipretired',
     'wip'
+  ] as const;
+  private static readonly MANUFACTURING_RAW_NATURE_KEYS = new Set([
+    'rawmaterial',
+    ...InventoryScreenShell.SEMI_FINISHED_NATURE_KEYS
   ]);
   // What a manufacturing run is allowed to OUTPUT: a finished good, or the
   // semi-finished/intermediate stage of one. 'physicalstock' and 'product' used
@@ -1835,19 +1852,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // Finished Product dropdowns on BOM Master and the four Production screens;
   // a plain Physical Stock item is bought and sold, not produced.
   //
-  // The intermediate stage carries TWO seeded names in inventory.inv_product_types
-  // and both are matched here on purpose:
-  //   'Semi-Finished / WIP'   (code WIP,    id 3)    — status 'inactive', legacy
-  //   'Sub-Finished Product'  (code SUBFIN, id 2513) — status 'active', migration 181
-  // Identical flags (tracks_inventory, allows_production, no purchase/sale), so
-  // they are one concept under two labels. Only SUBFIN is selectable in Product
-  // Master today; WIP stays matched so any product still carrying it keeps working.
   private static readonly MANUFACTURING_OUTPUT_NATURE_KEYS = new Set([
     'finishedproduct',
     'finishedgoods',
-    'subfinishedproduct',
-    'semifinishedgoods',
-    'semifinishedwip'
+    ...InventoryScreenShell.SEMI_FINISHED_NATURE_KEYS
   ]);
 
   private isRawMaterialNatureName(value: any): boolean {
@@ -1859,8 +1867,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private isSubFinishedNatureKey(value: any): boolean {
-    const key = this.compactKey(value);
-    return key === 'subfinishedproduct' || key === 'semifinishedgoods' || key === 'semifinishedwip' || key === 'wip';
+    return (InventoryScreenShell.SEMI_FINISHED_NATURE_KEYS as readonly string[])
+      .includes(this.compactKey(value));
   }
 
   private rawMaterialAllowsSaleFromValues(values: Record<string, any>): boolean {
@@ -4385,6 +4393,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         error: () => {}
       });
 
+    this.inventoryConfigService.getBoms(true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: res => this.loadedBomObjects.set(res.data ?? []), error: () => {} });
+
+    this.inventoryConfigService.getWorkCenters(true)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: res => this.loadedWorkCenterObjects.set(res.data ?? []), error: () => {} });
+
     this.inventoryConfigService.getProductTypes(true)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -4519,7 +4535,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           if (!this.isCurrentSegmentRequest(requestedSegmentId)) return;
           const products = res.data ?? [];
           this.loadedProductObjects.set(products);
-          const names = products.map(item => item.product_name).filter(Boolean) as string[];
+          const names = products.map((item: ProductItem) => item.product_name).filter(Boolean) as string[];
           this.productOptionList.set(this.mergeOptions([], names));
         },
         error: () => {}
@@ -4588,202 +4604,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       });
   }
 
-  // ── Browser-persisted masters ────────────────────────────────────────────
-  // BOM Master, Work Center Master and Price List Master have no backend at
-  // all: there is no inv_bom / work_center / price_list table anywhere in the
-  // schema (bom_version and work_center are plain free-text columns on the
-  // production-plan tables), no controller and no service method. They are
-  // therefore deliberately NOT in isApiWired() — adding them there would make
-  // loadApiRecords()/deleteApiCall() fire requests to endpoints that do not
-  // exist — and they persist per company in localStorage instead.
-  //
-  // That storage layer already existed for the two manufacturing masters. What
-  // was missing is that onShellClick() returned on !isApiWired() before it ever
-  // reached the Add / Save / Edit / Delete branches, so every button on these
-  // screens was inert and nothing the user typed was ever written anywhere.
-  private static readonly LOCAL_MASTER_CONFIGS: Record<string, InventoryScreenConfig> = {
-    bomMaster: bomMasterConfig,
-    workCenterMaster: workCenterMasterConfig,
-    priceListMaster: priceListMasterConfig
-  };
-
-  isLocalMasterKey(key = this.config?.key || ''): boolean {
-    return !!InventoryScreenShell.LOCAL_MASTER_CONFIGS[key];
-  }
-
-  // Every screen that has a real save path, whether that path is the API or
-  // browser storage. onShellClick() gates on this instead of isApiWired(),
-  // which is still the narrower "has a backend" question used for loading,
-  // deleting and posting.
-  isSaveWired(): boolean {
-    return this.isApiWired() || this.isLocalMasterKey();
-  }
-
-  // Templates show "Update" rather than "Add" while a saved record is open.
-  // API-backed screens track that with editingId; the browser-persisted
-  // masters have no id, so both are folded into the one call templates make.
-  isEditingSavedRecord(): boolean {
-    return this.editingId() !== null || this.editingLocalRowKey() !== null;
-  }
-
-  private localMasterStorageKey(masterKey: string): string {
-    const companyId = sessionStorage.getItem('companyId') || '0';
-    // Key name kept as-is so BOM/Work Center rows already saved on a machine
-    // stay visible after this change.
-    return `inv_manufacturing_master::${companyId}::${masterKey}`;
-  }
-
-  // config.rows ships seeded sample rows for these screens. Deleting one has to
-  // survive a reload, so removed seed keys are remembered here rather than the
-  // row simply reappearing from the config on the next render.
-  private localMasterRemovedKey(masterKey: string): string {
-    return `${this.localMasterStorageKey(masterKey)}::removed`;
-  }
-
-  private removedLocalMasterKeys(masterKey: string): string[] {
-    try {
-      const raw = localStorage.getItem(this.localMasterRemovedKey(masterKey));
-      const keys = raw ? JSON.parse(raw) : [];
-      return Array.isArray(keys) ? keys.map(key => String(key || '')).filter(Boolean) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private setRemovedLocalMasterKeys(masterKey: string, keys: string[]): void {
-    try {
-      localStorage.setItem(this.localMasterRemovedKey(masterKey), JSON.stringify([...new Set(keys)]));
-    } catch {
-      // Storage unavailable (private browsing / quota) — the row still
-      // disappears for this session, it just comes back on reload.
-    }
-  }
-
-  private normalizeLocalMasterRow(masterKey: string, row: any): string[] {
-    const columns = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey]?.columns || [];
-    const source = Array.isArray(row) ? row : [];
-    return Array.from({ length: columns.length }, (_, index) => String(source[index] ?? '').trim());
-  }
-
-  // The row's identity: its code column, falling back to the name column for
-  // configs whose first column can be blank.
-  private localMasterRowKey(row: string[]): string {
-    return this.normalizeKey(row[0] || row[1]);
-  }
-
-  private storedLocalMasterRows(masterKey: string): string[][] {
-    try {
-      const raw = localStorage.getItem(this.localMasterStorageKey(masterKey));
-      const rows = raw ? JSON.parse(raw) : [];
-      return Array.isArray(rows)
-        ? rows.map(row => this.normalizeLocalMasterRow(masterKey, row)).filter(row => row.some(cell => cell))
-        : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private localMasterRows(masterKey: string): string[][] {
-    const configRows = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey]?.rows || [];
-    const removed = new Set(this.removedLocalMasterKeys(masterKey));
-    const seen = new Set<string>();
-    return [
-      ...this.storedLocalMasterRows(masterKey),
-      ...configRows.map(row => this.normalizeLocalMasterRow(masterKey, row))
-    ].filter(row => {
-      const key = this.localMasterRowKey(row);
-      if (!key || seen.has(key) || removed.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-
-  // Kept as the manufacturing-specific reader used by Production Planning's
-  // BOM lookup, so those call sites keep reading exactly what they always did.
-  private manufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
-    return this.localMasterRows(masterKey);
-  }
-
-  private saveLocalMaster(payload: Record<string, any>): ApiResponse<any> {
-    const masterKey = this.config?.key || '';
-    if (!this.isLocalMasterKey(masterKey)) {
-      return { success: false, message: 'Unknown screen', data: null };
-    }
-    const display = this.mapToGridRows([payload])[0] || [];
-    const normalizedDisplay = this.normalizeLocalMasterRow(masterKey, display);
-    if (!normalizedDisplay.some(cell => cell)) {
-      return { success: false, message: 'Enter the required master details.', data: null };
-    }
-
-    const rowKey = this.localMasterRowKey(normalizedDisplay);
-    // While editing, the row that was opened is replaced even if its own code
-    // was changed in the form — otherwise renaming a code would leave the old
-    // row behind and silently create a second one.
-    const replacedKey = this.editingLocalRowKey() || rowKey;
-    const existing = this.storedLocalMasterRows(masterKey)
-      .filter(row => {
-        const key = this.localMasterRowKey(row);
-        return key !== rowKey && key !== replacedKey;
-      });
-    const nextRows = [normalizedDisplay, ...existing];
-    try {
-      localStorage.setItem(this.localMasterStorageKey(masterKey), JSON.stringify(nextRows));
-      // Editing a seeded row writes a stored copy of it, so the seed must stay
-      // suppressed; re-creating a previously deleted code un-suppresses it.
-      const removed = this.removedLocalMasterKeys(masterKey)
-        .filter(key => key !== rowKey)
-        .concat(replacedKey !== rowKey ? [replacedKey] : []);
-      this.setRemovedLocalMasterKeys(masterKey, removed);
-      this.editingLocalRowKey.set(null);
-      return { success: true, message: 'Record saved.', data: payload };
-    } catch {
-      return { success: false, message: `Unable to save ${this.config?.title || 'this master'} in this browser.`, data: null };
-    }
-  }
-
-  private deleteLocalMasterRow(row: string[]): boolean {
-    const masterKey = this.config?.key || '';
-    if (!this.isLocalMasterKey(masterKey)) return false;
-    const rowKey = this.localMasterRowKey(this.normalizeLocalMasterRow(masterKey, row));
-    if (!rowKey) return false;
-    try {
-      const remaining = this.storedLocalMasterRows(masterKey)
-        .filter(stored => this.localMasterRowKey(stored) !== rowKey);
-      localStorage.setItem(this.localMasterStorageKey(masterKey), JSON.stringify(remaining));
-      this.setRemovedLocalMasterKeys(masterKey, [...this.removedLocalMasterKeys(masterKey), rowKey]);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  // Fills the form from a grid row (these screens have no record object to
-  // read back — the row IS the record) and remembers which row is open so
-  // saveLocalMaster() replaces it instead of appending a duplicate.
-  //
-  // Fields are matched to columns by label, not by position: Work Center
-  // Master declares Work Center Code as its LAST field but its FIRST column,
-  // so a positional read would put the code into the name box.
-  private editLocalMasterRow(row: string[]): void {
-    const masterKey = this.config?.key || '';
-    const config = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey];
-    const fields = config?.fields || [];
-    const columns = config?.columns || [];
-    const normalized = this.normalizeLocalMasterRow(masterKey, row);
-    const values: Record<string, any> = {};
-    fields.forEach((field, fieldIndex) => {
-      const byLabel = columns.findIndex(column => this.normalizeKey(column) === this.normalizeKey(field.label));
-      const cell = normalized[byLabel >= 0 ? byLabel : fieldIndex] ?? '';
-      values[field.key] = field.type === 'multiselect'
-        ? cell.split(',').map(item => item.trim()).filter(Boolean)
-        : cell;
-    });
-    this.formValues.set(values);
-    this.editingLocalRowKey.set(this.localMasterRowKey(normalized));
-    this.saveMsg.set('');
-    this.saveError.set('');
-  }
-
   private rawMaterialNamesFromBomValue(value: any): string[] {
     const values = Array.isArray(value) ? value : String(value || '').split(/[,;]+/);
     return values
@@ -4792,15 +4612,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private productionPlanningBomRecords(): ManufacturingBomRecord[] {
-    return this.manufacturingMasterRows('bomMaster').map(row => ({
-      bomCode: row[0] || '',
-      finishedProduct: row[1] || '',
-      version: row[2] || '',
-      rawMaterials: this.rawMaterialNamesFromBomValue(row[3]),
-      quantityPerUnit: this.parseCurrency(row[4]) || 1,
-      wastagePercent: this.parseCurrency(row[5]) || 0,
-      productionCost: this.parseCurrency(row[6]) || 0,
-      status: row[7] || 'Active'
+    return this.loadedBomObjects().map(bom => ({
+      bomCode: bom.bom_code || '',
+      finishedProduct: bom.finished_product_name || '',
+      version: bom.bom_version || '',
+      rawMaterials: (bom.items || []).map((item: BomLineItem) => item.product_name).filter(Boolean),
+      quantityPerUnit: Number(bom.quantity) || 1,
+      wastagePercent: Number(bom.wastage_percent) || 0,
+      productionCost: Number(bom.production_cost) || 0,
+      status: bom.status || 'active'
     })).filter(record =>
       !!record.finishedProduct
       && record.rawMaterials.length > 0
@@ -4855,11 +4675,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'paymentTermsMaster':
         return ['Create terms such as Immediate, 15 Days, 30 Days or Advance.', 'Map terms to customer/vendor or transaction.', 'ERP uses it to calculate due dates, receivable ageing and payable schedules.'];
       case 'priceListMaster':
-        return ['Create a price list for a customer type, branch or date range.', 'Add product-wise rates with UOM and effective dates.', 'Sales Invoice and POS can auto-fill rate based on customer and selected product.'];
+        return ['Enter the price list name, branch, product and rate, then Add — the row stages below, and Save writes it.', 'Reopen a saved row with Edit; the button reads Update and replaces that row instead of creating a second one.', 'Kept in this browser for this company — it is not shared with other machines or users yet.'];
       case 'bomMaster':
-        return ['Select the finished product that will be manufactured.', 'Add raw material/component lines with UOM and quantity required.', 'During production, ERP consumes raw materials and can increase finished goods stock.'];
+        return ['Pick the Finished Product — only Finished and Semi-Finished items are listed, because a plain Physical Stock item is bought and sold, not produced.', 'Add the Raw Materials it consumes (Raw Material or Semi-Finished items), the quantity per unit, wastage % and production cost.', 'Add stages the BOM below, Save writes it, and Edit reopens it with the button reading Update.', 'Kept in this browser for this company — it is not shared with other machines or users yet.'];
       case 'workCenterMaster':
-        return ['Create the production area, machine, section or team where work happens.', 'Define department, capacity and cost per hour.', 'Manufacturing planning can use this for routing, capacity and production costing.'];
+        return ['Create the production area, machine, section or team where work happens.', 'Define department, capacity and cost per hour, then Add and Save.', 'Production Planning reads these for routing, capacity and costing.', 'Kept in this browser for this company — it is not shared with other machines or users yet.'];
       case 'consumptionTypeMaster':
         return ['Create the reason/type for internal stock usage.', 'If approval is required, map a reusable Approval Workflow.', 'Stock issue or consumption entries use this to route approval and report department usage.'];
       case 'productTypeMaster':
@@ -4885,7 +4705,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'posBilling':
       case 'stockTransfer':
       case 'stockAdjustment':
-        return ['Fill header details first: date, party, segment and location.', 'Add or remove item rows directly in the entry grid.', 'Save to post or keep the transaction as per workflow.'];
+        return [
+          'Fill header details first: date, party, segment and location.',
+          'In the item grid, type into the Product cell to search — it is a search box, not a dropdown. Pick a match to fill the row.',
+          'If the product does not exist yet, choose Add "<name>" in Product Master: it opens Product Master with the name filled in, and brings you back here with the product already in that row and this document untouched.',
+          'Where a line needs serial numbers, the Serial No column button shows the serial policy name for that line (IMEI Number, Chassis No, ...) with the captured/required count beside it.',
+          'Save to post or keep the transaction as per workflow.'
+        ];
+      case 'productionPlanning':
+        return ['Pick the Finished Product to be produced — only Finished and Semi-Finished items are listed.', 'Enter planned quantity, BOM version and work center; the raw-material requirement grid fills from the BOM.', 'Save the plan, then issue materials against it in Material Issue for Production.'];
+      case 'materialIssueProduction':
+        return ['Reference the production plan and the finished product it is for.', 'Issue Raw Material or Semi-Finished items only — a finished good is an output, never an input.', 'Saving reduces raw-material stock from the issuing location and moves value into WIP.'];
+      case 'productionEntry':
+        return ['Record what actually came off the line against the plan.', 'The Finished Product accepts Finished and Semi-Finished items only.', 'Enter produced and rejected quantity, batch/expiry where the policy needs them, then post — finished stock increases and production cost is captured.'];
+      case 'productionReturn':
+        return ['Reference the material issue whose leftovers are coming back.', 'Enter the quantity returned per raw material row.', 'Saving puts that stock back into the source location and reduces WIP.'];
       case 'stockAvailabilityReport':
       case 'stockLedger':
       case 'segmentSummary':
@@ -4899,7 +4733,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         return ['Select customer and voucher date.', 'Allocate receipt against open sales invoices.', 'Add receipt mode and save the voucher.'];
       default:
         if (this.config?.kind === 'master') {
-          return [`Create the ${this.config.title} record with code, name and required classification.`, 'Keep status active only when the setup is verified.', 'After saving, users can select this master in related transaction and report screens.'];
+          return [
+            `Create the ${this.config.title} record with code, name and required classification.`,
+            'Keep status active only when the setup is verified.',
+            'To change a saved record use Edit on its row — the form reloads it and the button reads Update, so you change that row instead of being told it already exists.',
+            'After saving, users can select this master in related transaction and report screens.'
+          ];
         }
 
         if (this.config?.kind === 'transaction') {
@@ -4917,11 +4756,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   guideExampleText(): string {
     switch (this.config?.key) {
       case 'bomMaster':
-        return 'Example: Finished Product = Drone. Raw material lines can be Drone Motor 4 Nos, Propeller 4 Nos, Battery Pack 1 Nos and Frame 1 Nos. Quantity means raw material required per one finished unit.';
+        return 'Example: Finished Product = Drone (classified Finished Product in Product Master). Raw materials can be Drone Motor, Propeller, Battery Pack and Frame. Quantity means raw material required per one finished unit. If the Finished Product list is empty, no product has been given a Finished or Semi-Finished nature yet.';
       case 'workCenterMaster':
         return 'Example: Assembly Line can produce 40 units per day at Rs. 1200 per hour. QC Station can inspect 80 units per day at Rs. 850 per hour.';
       case 'priceListMaster':
-        return 'Example: LED Display can have Retail rate 24500, Dealer rate 23000 and Corporate rate 23800. ERP chooses the rate from customer price list and product.';
+        return 'Example: LED Display can have Retail rate 24500, Dealer rate 23000 and Corporate rate 23800. Each combination of price list, branch and product is one row.';
       case 'approvalWorkflowMaster':
         return 'Example: Single Level = Admin Manager only. Two Level = Production Manager then Operations Head. Multi Level = Department Head, Finance Manager and Final Approver.';
       case 'consumptionTypeMaster':
@@ -4960,11 +4799,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   guideImpactText(): string {
     switch (this.config?.key) {
       case 'bomMaster':
-        return 'Wrong BOM quantity will consume wrong raw material stock and distort production cost.';
+        return 'Wrong BOM quantity will consume wrong raw material stock and distort production cost. These rows live in this browser only — clearing site data or moving to another machine loses them.';
       case 'workCenterMaster':
-        return 'Wrong capacity or hourly cost can affect production planning and manufacturing costing.';
+        return 'Wrong capacity or hourly cost can affect production planning and manufacturing costing. These rows live in this browser only — clearing site data or moving to another machine loses them.';
       case 'priceListMaster':
-        return 'Wrong price list can auto-fill incorrect sales rates in invoice and POS.';
+        return 'Wrong price list can auto-fill incorrect sales rates in invoice and POS. These rows live in this browser only — clearing site data or moving to another machine loses them.';
       case 'approvalWorkflowMaster':
         return 'Wrong approver mapping can block documents or send approval to the wrong user.';
       case 'consumptionTypeMaster':
@@ -5051,7 +4890,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     // BOM Master and the four Production screens list only Finished /
-    // Sub-Finished products as an output, and Raw Material / Sub-Finished as an
+    // Semi-Finished products as an output, and Raw Material / Semi-Finished as an
     // input. When nothing in Product Master carries those natures the dropdown
     // is empty, which reads as a broken screen — say what is missing and where
     // it is fixed instead, the same way the Purchase Requisition hint above does.
@@ -5059,10 +4898,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const manufacturingKey = this.compactKey(field.key);
       if ((manufacturingKey === 'finishedproduct' || manufacturingKey === 'forfinishedproduct')
         && !this.finishedManufacturingProductOptions().length) {
-        return 'No Finished / Sub-Finished products yet — set Product Nature in Product Master';
+        return 'None yet — use + to create one in Product Master (nature Finished or Semi-Finished)';
       }
       if (manufacturingKey === 'rawmaterials' && !this.rawMaterialProductOptions().length) {
-        return 'No Raw Material / Sub-Finished products yet — set Product Nature in Product Master';
+        return 'None yet — use + to create one in Product Master (nature Raw Material or Semi-Finished)';
       }
     }
 
@@ -5180,6 +5019,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   openAddMaster(master: string, sourceFieldKey?: string): void {
+    // Masters with a real screen of their own go there instead of opening a
+    // popup that either has no form or no Save behind it.
+    if (!InventoryScreenShell.QUICK_ADD_MODAL_MASTERS.has(master)
+      && !this.isInlineManufacturingQuickAdd(master)
+      && this.openMasterScreenForQuickAdd(master, sourceFieldKey)) {
+      return;
+    }
+
     const current = this.activeAddMaster();
     const currentName = this.quickAddName();
     if (current) {
@@ -8446,11 +8293,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private workCenterOptionsFromMaster(): string[] {
-    return this.manufacturingMasterRows('workCenterMaster')
-      .filter(row => this.normalizeKey(row[5] || row[4] || 'Active') !== 'inactive')
-      .map(row => String(row[1] || row[0] || '').trim())
-      .filter(Boolean);
+    return this.loadedWorkCenterObjects()
+      .filter(item => this.normalizeKey(item.status || 'active') !== 'inactive')
+      .map(item => item.work_center_name)
+      .filter(Boolean) as string[];
   }
+
 
   private runtimeOptions(field: InventoryField): string[] | undefined {
     if (field.type !== 'select' && field.type !== 'multiselect') return field.options;
@@ -14594,7 +14442,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this._autoCodeFields.clear();
     this.genericNameValue.set('');
     this.editingId.set(null);
-    this.editingLocalRowKey.set(null);
     this.txDocId.set(null);
     this.txDocNumber.set('');
     this.txDocStatus.set('draft');
@@ -14742,6 +14589,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       || key === 'batchLotPolicy' || key === 'barcodeConfiguration' || key === 'substituteProducts'
       || key === 'consumptionTypeMaster' || key === 'productTypeMaster'
       || key === 'vendorMaster' || key === 'customerMaster' || key === 'channelPartnerMaster' || key === 'productServiceMaster'
+      || key === 'bomMaster' || key === 'workCenterMaster' || key === 'priceListMaster'
       || key === 'stockTransfer' || key === 'stockAdjustment'
       || key === 'openingStockEntry' || key === 'cycleCount'
       || this.isPurchaseTransactionKey(key || '')
@@ -15442,9 +15290,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   liveRows(): string[][] {
-    if (this.isLocalMasterKey()) {
-      return this.localMasterRows(this.config!.key);
-    }
     if (this.isApiWired()) {
       return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
     }
@@ -15509,6 +15354,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'substituteProducts':    obs$ = this.inventoryConfigService.getSubstituteProducts(true);        break;
       case 'consumptionTypeMaster': obs$ = this.inventoryConfigService.getConsumptionTypes(segmentId, true);   break;
       case 'productTypeMaster':     obs$ = this.inventoryConfigService.getProductTypes(true);                  break;
+      case 'bomMaster':             obs$ = this.inventoryConfigService.getBoms(true);                          break;
+      case 'workCenterMaster':      obs$ = this.inventoryConfigService.getWorkCenters(true);                   break;
+      case 'priceListMaster':       obs$ = this.inventoryConfigService.getPriceLists(true);                    break;
       case 'vendorMaster':         obs$ = this.inventoryConfigService.getVendors(null, true);            break;
       case 'customerMaster':       obs$ = this.inventoryConfigService.getCustomers(null, true);          break;
       case 'channelPartnerMaster': obs$ = this.inventoryConfigService.getChannelPartners(null, true);    break;
@@ -16058,12 +15906,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'customerMaster':        obs$ = this.saveCustomerWithContactWriteback(payload, id);            break;
       case 'channelPartnerMaster':  obs$ = this.saveChannelPartnerWithContactWriteback(payload, id);      break;
       case 'productServiceMaster':  obs$ = this.inventoryConfigService.saveProduct(payload, id);          break;
-      // No endpoint exists for these three — they persist in browser storage.
-      // Routed through the same success path as everything else so the form
-      // clears, the grid refreshes and the confirmation reads identically.
-      case 'bomMaster':
-      case 'workCenterMaster':
-      case 'priceListMaster':       obs$ = of(this.saveLocalMaster(payload));                            break;
+      case 'bomMaster':             obs$ = this.inventoryConfigService.saveBom(payload, id);              break;
+      case 'workCenterMaster':      obs$ = this.inventoryConfigService.saveWorkCenter(payload, id);       break;
+      case 'priceListMaster':       obs$ = this.inventoryConfigService.savePriceList(payload, id);        break;
       case 'purchaseRequisition':   obs$ = this.txService.savePurchaseRequisition(payload, id);           break;
       case 'requestForQuotation':   obs$ = this.txService.saveRfq(payload, id);                           break;
       case 'purchaseOrder':         obs$ = this.txService.savePurchaseOrder(payload, id);                  break;
@@ -16406,6 +16251,89 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Product Master, so the screen is never actually reachable to return to.
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
+
+  // The real screen behind each "+" quick-add. The lightweight modal only ever
+  // implemented a form for SOME masters; for the rest its Save button fell
+  // through to closeAddMaster(), so the popup shut as if it had saved and threw
+  // the typed values away. Anything listed here now opens its own full master
+  // screen and returns to the document afterwards — the same trip Product /
+  // Service takes, which is both honest and gives the complete form rather than
+  // a cut-down copy of it.
+  private static readonly QUICK_ADD_MASTER_ROUTES: Record<string, string> = {
+    'Product / Service': '/dashboard/inventory/masters/product-service-master',
+    'Location': '/dashboard/inventory/configuration/warehouse-location-master',
+    'Business Segment': '/dashboard/inventory/configuration/business-segments',
+    'New Segment': '/dashboard/inventory/configuration/business-segments',
+    'Payment Terms': '/dashboard/inventory/masters/payment-terms-master',
+    'Price List': '/dashboard/inventory/masters/price-list-master',
+    'Consumption Type': '/dashboard/inventory/masters/consumption-type-master',
+    'Approval Workflow': '/dashboard/inventory/masters/approval-workflow-master',
+    'Transporter': '/dashboard/inventory/masters/transporter-master',
+    'Vehicle': '/dashboard/inventory/masters/vehicle-master',
+    'BOM': '/dashboard/inventory/masters/bom-master',
+    'Work Center': '/dashboard/inventory/masters/work-center-master'
+  };
+
+  // Quick-adds the modal genuinely implements — these keep their popup.
+  private static readonly QUICK_ADD_MODAL_MASTERS = new Set([
+    'UOM', 'UOM Conversion', 'HSN / SAC', 'Category', 'Product Type', 'Brand',
+    'Manufacturer', 'Variant', 'Attribute', 'Contact Person', 'Vendor',
+    'Customer', 'Channel Partner', 'Serial Number Policy', 'Batch / Lot Policy'
+  ]);
+
+  // True when this "+" has neither a working popup nor a screen to send the
+  // user to. Read by the modal so Save can say so instead of pretending.
+  // Every screen that has a real save path. Kept as its own name because the
+  // click handler reads it; it is now simply "has a backend", since BOM, Work
+  // Center and Price List gained real tables in migration 219 and nothing is
+  // browser-persisted any more.
+  isSaveWired(): boolean {
+    return this.isApiWired();
+  }
+
+  // Templates show "Update" rather than "Add" while a saved record is open.
+  isEditingSavedRecord(): boolean {
+    return this.editingId() !== null;
+  }
+
+  quickAddIsUnavailable(master = this.activeAddMaster()): boolean {
+    if (!master) return false;
+    if (InventoryScreenShell.QUICK_ADD_MODAL_MASTERS.has(master)) return false;
+    if (this.isInlineManufacturingQuickAdd(master)) return false;
+    return !InventoryScreenShell.QUICK_ADD_MASTER_ROUTES[master];
+  }
+
+  quickAddUnavailableMessage(master = this.activeAddMaster()): string {
+    return `${master || 'This master'} cannot be created from here yet. Open its own screen from the menu, then come back and select it.`;
+  }
+
+  // The modal's Save used to fall through to closeAddMaster() for any master it
+  // had no handler for: the popup shut as though it had saved and everything
+  // typed was discarded. Now it says so and stays open, so nothing is lost
+  // silently. Reached only when the master has no screen to redirect to either.
+  reportQuickAddUnavailable(): void {
+    this.quickAddError.set(this.quickAddUnavailableMessage());
+  }
+
+  // Navigate to a master's own screen, preserving this document exactly the way
+  // the Product / Service trip does, and return here once it saves.
+  private openMasterScreenForQuickAdd(master: string, sourceFieldKey?: string): boolean {
+    const route = InventoryScreenShell.QUICK_ADD_MASTER_ROUTES[master];
+    const key = this.config?.key;
+    const returnRoute = key ? InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key] : undefined;
+    // Without a return route there is nothing to come back to, so the popup
+    // stays — better a limited form than a one-way trip that loses the document.
+    if (!route || !returnRoute || !this.router) return false;
+    // Never redirect out of a nested quick-add: the parent popup's own
+    // half-entered state would be lost on the way.
+    if (this.activeAddMaster()) return false;
+
+    this.snapshotDocumentForMasterTrip(key!);
+    const queryParams: Record<string, string> = { returnTo: key!, returnRoute };
+    if (sourceFieldKey) queryParams['sourceField'] = sourceFieldKey;
+    this.router.navigate([route], { queryParams });
+    return true;
+  }
   private static readonly PAYMENT_TERMS_MASTER_ROUTE = '/dashboard/inventory/masters/payment-terms-master';
   private static readonly PROCUREMENT_RESUME_TTL_MS = 30 * 60 * 1000;
 
@@ -16436,8 +16364,28 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const returnRoute = key ? InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key] : undefined;
     if (!returnRoute || !this.router) return;
 
+    this.snapshotDocumentForMasterTrip(key!, sourceFieldKey, pendingLine);
+
+    const queryParams: Record<string, string> = { returnTo: key!, returnRoute };
+    if (sourceFieldKey) queryParams['sourceField'] = sourceFieldKey;
+    // Carried so Product Master opens with the name already typed in the line,
+    // rather than making the user type it a second time.
+    const typedName = String(pendingLine?.productName || '').trim();
+    if (typedName) queryParams['productName'] = typedName;
+
+    this.router.navigate([InventoryScreenShell.PRODUCT_MASTER_ROUTE], { queryParams });
+  }
+
+  // Preserves the in-progress document across a trip to a master screen. Shared
+  // by the Product / Service trip and by every other quick-add that now opens
+  // its own master screen instead of a popup.
+  private snapshotDocumentForMasterTrip(
+    key: string,
+    sourceFieldKey?: string,
+    pendingLine?: { rowIndex: number; columnIndex: number; productName: string }
+  ): void {
     try {
-      sessionStorage.setItem(this.procurementResumeStorageKey(key!), JSON.stringify({
+      sessionStorage.setItem(this.procurementResumeStorageKey(key), JSON.stringify({
         formValues: this.formValues(),
         entryLineRows: this.entryLineRows(),
         editingId: this.editingId(),
@@ -16459,15 +16407,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // sessionStorage unavailable (e.g. private-browsing edge cases) — still
       // navigate, just without the resume snapshot.
     }
-
-    const queryParams: Record<string, string> = { returnTo: key!, returnRoute };
-    if (sourceFieldKey) queryParams['sourceField'] = sourceFieldKey;
-    // Carried so Product Master opens with the name already typed in the line,
-    // rather than making the user type it a second time.
-    const typedName = String(pendingLine?.productName || '').trim();
-    if (typedName) queryParams['productName'] = typedName;
-
-    this.router.navigate([InventoryScreenShell.PRODUCT_MASTER_ROUTE], { queryParams });
   }
 
   addProductFromLineProductPicker(pendingLine?: { rowIndex: number; columnIndex: number; productName: string }): void {
@@ -16592,7 +16531,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private navigateBackAfterProductMasterSave(savedProduct?: any): void {
-    if (this.config?.key !== 'productServiceMaster' || !this.router) return;
+    // Any master screen opened via a "+" returns, not just Product Master —
+    // the returnTo/returnRoute params are what mark the trip, and an ordinary
+    // visit to any of these screens carries neither.
+    if (!this.router || this.config?.kind !== 'master') return;
     const params = this.activatedRoute?.snapshot.queryParamMap;
     const returnTo = params?.get('returnTo');
     const returnRoute = params?.get('returnRoute');
@@ -16972,9 +16914,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         case 'channelPartnerMaster': return this.saveChannelPartnerWithContactWriteback(payload, null);
         case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
         case 'productTypeMaster':    return this.inventoryConfigService.saveProductType(payload, null);
-        case 'bomMaster':
-        case 'workCenterMaster':
-        case 'priceListMaster':      return of(this.saveLocalMaster(payload));
+        case 'bomMaster':            return this.inventoryConfigService.saveBom(payload, null);
+        case 'workCenterMaster':     return this.inventoryConfigService.saveWorkCenter(payload, null);
+        case 'priceListMaster':      return this.inventoryConfigService.savePriceList(payload, null);
         default: return of({ success: false, message: 'Unknown screen', data: null });
       }
     };
@@ -17743,6 +17685,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'substituteProducts': return records.find(r => r.product_name === row[0] && r.substitute_product_name === row[1]);
       case 'consumptionTypeMaster': return records.find(r => r.type_code === row[0] || r.type_name === row[0]);
       case 'productTypeMaster':   return records.find(r => r.type_code === row[0]);
+      case 'bomMaster':           return records.find(r => r.bom_code === row[0]);
+      case 'workCenterMaster':    return records.find(r => r.work_center_code === row[0]);
+      case 'priceListMaster':     return records.find(r => r.price_list_name === row[0] && String(r.product_name || '') === row[2]);
       case 'vendorMaster':       return records.find(r => r.vendor_code === row[0]);
       case 'customerMaster':     return records.find(r => r.customer_code === row[0]);
       case 'channelPartnerMaster': return records.find(r => r.partner_code === row[0]);
@@ -17785,34 +17730,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private deleteApiCall(record: any): Observable<ApiResponse<any>> | null {
     switch (this.config?.key) {
       case 'productTypeMaster': return this.inventoryConfigService.deleteProductType(record.id);
+      case 'bomMaster':         return this.inventoryConfigService.deleteBom(record.id);
+      case 'workCenterMaster':  return this.inventoryConfigService.deleteWorkCenter(record.id);
+      case 'priceListMaster':   return this.inventoryConfigService.deletePriceList(record.id);
       default: return null;
     }
   }
 
   deleteRecordByRow(row: string[]): void {
-    if (this.isLocalMasterKey()) {
-      this.confirmAction({
-        title: 'Delete Record',
-        message: `Are you sure you want to delete "${row[0] || row[1] || 'this record'}"? This action cannot be undone.`,
-        confirmLabel: 'Delete',
-        cancelLabel: 'Cancel',
-        tone: 'danger'
-      }).then(proceed => {
-        if (!proceed) return;
-        this.saveMsg.set('');
-        this.saveError.set('');
-        if (!this.deleteLocalMasterRow(row)) {
-          this.saveError.set('Could not delete that record in this browser.');
-          return;
-        }
-        if (this.editingLocalRowKey() === this.localMasterRowKey(this.normalizeLocalMasterRow(this.config!.key, row))) {
-          this.clearConfigForm();
-        }
-        this.saveMsg.set('Record deleted.');
-        setTimeout(() => this.saveMsg.set(''), 3000);
-      });
-      return;
-    }
     if (!this.isApiWired()) return;
     const record = this.findRecordByRow(row);
     if (!record?.id) return;
@@ -17917,10 +17842,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   editRecordByRow(row: string[]): void {
-    if (this.isLocalMasterKey()) {
-      this.editLocalMasterRow(row);
-      return;
-    }
     if (!this.isApiWired()) return;
     this.deliveryAddressOverride.set(null);
     if (this.config?.key === 'productServiceMaster' && !this.isAdmin()) {
@@ -18199,6 +18120,40 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         break;
       case 'consumptionTypeMaster':
         this.formValues.set({ consumptionType: record.type_name || '', typeName: record.type_name || '', typeCode: record.type_code || '', department: record.department || '', approvalRequired: record.approval_required ? 'Yes' : 'No', approvalWorkflow: record.approval_workflow_name || '', remarks: record.remarks || '', status: cap(record.status || 'active') });
+        break;
+      case 'bomMaster':
+        this.formValues.set({
+          bomCode: record.bom_code || '',
+          finishedProduct: record.finished_product_name || '',
+          version: record.bom_version || '',
+          // Stored as rows; the form's Raw Materials control is a multiselect.
+          rawMaterials: (record.items || []).map((item: any) => item.product_name).filter(Boolean),
+          quantity: record.quantity ?? 1,
+          wastagePercent: record.wastage_percent ?? 0,
+          productionCost: record.production_cost ?? 0,
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'workCenterMaster':
+        this.formValues.set({
+          workCenterCode: record.work_center_code || '',
+          workCenterName: record.work_center_name || '',
+          department: record.department || '',
+          capacity: record.capacity || '',
+          costPerHour: record.cost_per_hour ?? 0,
+          status: cap(record.status || 'active')
+        });
+        break;
+      case 'priceListMaster':
+        this.formValues.set({
+          priceListName: record.price_list_name || '',
+          applicableBranch: record.branch_name || '',
+          product: record.product_name || '',
+          rate: record.rate ?? 0,
+          effectiveFrom: record.effective_from || '',
+          effectiveTo: record.effective_to || '',
+          status: cap(record.status || 'active')
+        });
         break;
       case 'productTypeMaster':
         this.formValues.set({
@@ -19134,6 +19089,56 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           hsn_sac_ids: [],
           uom_ids: [],
           usage_note: v['usageNote'] || null,
+          status: lc(v['status'] || 'active')
+        };
+      case 'bomMaster':
+        return {
+          id: this.editingId(),
+          segment_id: selectedSegmentId,
+          bom_code: String(v['bomCode'] || '').trim() || null,
+          bom_version: String(v['version'] || '').trim() || null,
+          finished_product_id: this.findProductBySelection(v['finishedProduct'])?.id ?? null,
+          finished_product_name: String(v['finishedProduct'] || '').trim(),
+          quantity: this.parseCurrency(v['quantity']) || 1,
+          wastage_percent: this.parseCurrency(v['wastagePercent']) || 0,
+          production_cost: this.parseCurrency(v['productionCost']) || 0,
+          status: lc(v['status'] || 'active'),
+          // Raw materials are rows now, not a comma-joined string, so a BOM can
+          // be queried and costed. sp_upsert_bom replaces them wholesale.
+          items: this.rawMaterialNamesFromBomValue(v['rawMaterials']).map(name => {
+            const product = this.findProductBySelection(name);
+            return {
+              product_id: product?.id ?? null,
+              product_name: name,
+              quantity: 1,
+              uom_id: null,
+              uom_name: this.productBaseUomLabel(product) || null
+            };
+          })
+        };
+      case 'workCenterMaster':
+        return {
+          id: this.editingId(),
+          segment_id: selectedSegmentId,
+          work_center_code: String(v['workCenterCode'] || '').trim() || null,
+          work_center_name: String(v['workCenterName'] || '').trim(),
+          department: String(v['department'] || '').trim() || null,
+          capacity: String(v['capacity'] || '').trim() || null,
+          cost_per_hour: this.parseCurrency(v['costPerHour']) || 0,
+          status: lc(v['status'] || 'active')
+        };
+      case 'priceListMaster':
+        return {
+          id: this.editingId(),
+          segment_id: selectedSegmentId,
+          price_list_name: String(v['priceListName'] || '').trim(),
+          branch_id: this.branchResolvedId(this.findBranchBySelection(v['applicableBranch'])) ?? null,
+          branch_name: String(v['applicableBranch'] || '').trim() || null,
+          product_id: this.findProductBySelection(v['product'])?.id ?? null,
+          product_name: String(v['product'] || '').trim() || null,
+          rate: this.parseCurrency(v['rate']) || 0,
+          effective_from: this.isoDateValue(v['effectiveFrom']),
+          effective_to: this.isoDateValue(v['effectiveTo']),
           status: lc(v['status'] || 'active')
         };
       case 'stockTransfer':
@@ -21355,7 +21360,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const product = this.productByIdOrSelection(item.product_id, item.product_name);
       if (!this.payloadHasValue(item.product_name) && !item.product_id) return `Raw Material is required on row ${rowNo}.`;
       if (!product || !this.productIsManufacturingRawMaterial(product)) {
-        return `Row ${rowNo} must use a Raw Material or Sub-Finished Product.`;
+        return `Row ${rowNo} must use a Raw Material or Semi-Finished Product.`;
       }
       if (mode === 'plan' && !(Number(item.required_qty) > 0)) return `Required Qty must be greater than zero on raw material row ${rowNo}.`;
       if (mode === 'issue' && !(Number(item.issued_qty) > 0)) return `Issued Qty must be greater than zero on raw material row ${rowNo}.`;
@@ -21375,7 +21380,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const product = this.productByIdOrSelection(item.product_id, item.product_name);
       if (!this.payloadHasValue(item.product_name) && !item.product_id) return `Finished Product is required on row ${rowNo}.`;
       if (!product || !this.productIsManufacturingFinished(product)) {
-        return `Row ${rowNo} must use a Finished Product or Sub-Finished Product.`;
+        return `Row ${rowNo} must use a Finished Product or Semi-Finished Product.`;
       }
       if (!(Number(item.produced_qty) > 0)) return `Produced Qty must be greater than zero on finished product row ${rowNo}.`;
       if (isPosting && product.batch_applicable && !this.payloadHasValue(item.batch_no)) {
@@ -21395,7 +21400,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (key === 'productionPlanning') {
       const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
       if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Plan.';
-      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Plan Finished Product must be a Finished Product or Sub-Finished Product.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Plan Finished Product must be a Finished Product or Semi-Finished Product.';
       if (!(Number(payload['planned_qty']) > 0)) return 'Planned Qty must be greater than zero for Production Plan.';
       return this.validateManufacturingMaterialItems(payload['items'], 'plan');
     }
@@ -21411,7 +21416,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           return 'For Finished Product is required for direct Material Issue.';
         }
         if (!forFinished || !this.productIsManufacturingFinished(forFinished)) {
-          return 'For Finished Product must be a Finished Product or Sub-Finished Product.';
+          return 'For Finished Product must be a Finished Product or Semi-Finished Product.';
         }
       }
       return this.validateManufacturingMaterialItems(payload['items'], 'issue', isPosting);
@@ -21423,7 +21428,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
       const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
       if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Entry.';
-      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Entry Finished Product must be a Finished Product or Sub-Finished Product.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Entry Finished Product must be a Finished Product or Semi-Finished Product.';
       if (!(Number(payload['produced_qty']) > 0) && !((payload['items'] || []).some((item: any) => Number(item?.produced_qty) > 0))) {
         return 'Produced Qty must be greater than zero for Production Entry.';
       }
@@ -21441,13 +21446,17 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private validateBomMasterPayload(payload: Record<string, any>): string {
-    const rawMaterials = this.rawMaterialNamesFromBomValue(payload['rawMaterials'] ?? payload['raw_materials']);
+    // The payload carries raw materials as item rows since they became real
+    // inv_bom_items; fall back to the old shapes for any other caller.
+    const rawMaterials = Array.isArray(payload['items'])
+      ? payload['items'].map((item: any) => String(item?.product_name || '').trim()).filter(Boolean)
+      : this.rawMaterialNamesFromBomValue(payload['rawMaterials'] ?? payload['raw_materials']);
     if (!rawMaterials.length) return 'Add at least one Raw Material product for this BOM.';
 
     for (const rawMaterial of rawMaterials) {
       const product = this.findProductBySelection(rawMaterial);
       if (!product || !this.productIsManufacturingRawMaterial(product)) {
-        return `"${rawMaterial}" must be a Product Master item with Product Nature Raw Material or Sub-Finished Product.`;
+        return `"${rawMaterial}" must be a Product Master item with Product Nature Raw Material or Semi-Finished Product.`;
       }
     }
 
@@ -21504,21 +21513,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'bomMaster') {
-      if (!hasValue(payload['bomCode'])) return 'BOM Code is required.';
-      if (!hasValue(payload['finishedProduct'])) return 'Select the Finished Product this BOM produces.';
+      if (!hasValue(payload['bom_code'])) return 'BOM Code is required.';
+      if (!hasValue(payload['finished_product_name'])) return 'Select the Finished Product this BOM produces.';
       const bomMessage = this.validateBomMasterPayload(payload);
       if (bomMessage) return bomMessage;
     }
 
     if (this.config?.key === 'workCenterMaster') {
-      if (!hasValue(payload['workCenterCode'])) return 'Work Center Code is required.';
-      if (!hasValue(payload['workCenterName'])) return 'Work Center Name is required.';
+      if (!hasValue(payload['work_center_code'])) return 'Work Center Code is required.';
+      if (!hasValue(payload['work_center_name'])) return 'Work Center Name is required.';
     }
 
     if (this.config?.key === 'priceListMaster') {
-      if (!hasValue(payload['priceListName'])) return 'Price List Name is required.';
-      if (!hasValue(payload['product'])) return 'Select the Product this rate applies to.';
-      if (!hasValue(payload['rate'])) return 'Rate is required.';
+      if (!hasValue(payload['price_list_name'])) return 'Price List Name is required.';
+      if (!hasValue(payload['product_name'])) return 'Select the Product this rate applies to.';
+      if (!Number(payload['rate'])) return 'Rate is required.';
     }
 
     if (this.isManufacturingTransactionKey()) {

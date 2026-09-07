@@ -1126,7 +1126,7 @@ export const productTypeMasterConfig: InventoryScreenConfig = {
     ['SERVICE', 'Service', 'Yes', 'Yes', 'No', 'Yes', 'No', 'System', 'Active'],
     ['FIXED_ASSET', 'Fixed Asset', 'Yes', 'No', 'Yes', 'No', 'Yes', 'System', 'Active'],
     ['CONSUMABLE', 'Consumable', 'Yes', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
-    ['SUBFIN', 'Sub-Finished Product', 'No', 'No', 'Yes', 'No', 'No', 'System', 'Active'],
+    ['SUBFIN', 'Semi-Finished Product', 'No', 'No', 'Yes', 'No', 'No', 'System', 'Active'],
     ['FINP', 'Finished Product', 'No', 'Yes', 'Yes', 'No', 'No', 'System', 'Active'],
     ['RAW_MAT', 'Raw Material', 'Yes', 'No', 'Yes', 'No', 'No', 'System', 'Active']
   ]

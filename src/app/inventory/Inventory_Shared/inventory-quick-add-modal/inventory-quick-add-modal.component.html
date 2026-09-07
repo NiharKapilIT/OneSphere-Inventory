@@ -803,7 +803,7 @@
                        host.activeAddMaster() === 'Batch / Lot Policy' ? host.saveQuickBatchPolicy() :
                        host.activeAddMaster() === 'UOM Conversion' ? host.addUomConversionRow() :
                        host.isInlineManufacturingQuickAdd(host.activeAddMaster()) ? host.saveQuickManufacturingInlineMaster() :
-                       host.closeAddMaster()"
+                       host.reportQuickAddUnavailable()"
               [disabled]="host.isSavingQuickAdd()">
               <i [class]="host.isSavingQuickAdd() ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
               {{ host.activeAddMaster() === 'UOM Conversion' ? 'Add Row' : (host.isSavingQuickAdd() ? 'Saving...' : (host.activeAddMaster() === 'UOM' && host.isQuickUomMappingContext() ? 'Save & Map' : 'Save')) }}

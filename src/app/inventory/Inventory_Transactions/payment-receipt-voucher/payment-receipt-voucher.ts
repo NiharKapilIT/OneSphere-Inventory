@@ -274,7 +274,7 @@ export class PaymentReceiptVoucherComponent {
     `Total cash ${this.mode() === 'pay' ? 'payment against Purchase Invoice' : 'receipt against Sales Invoice'} cannot exceed ${this.fmt(this.cashLimit())}.`
   );
 
-  readonly onAccountAmount = computed(() => Math.max(0, this.modeTotal() + this.totalNotesApplied() + this.tdsAmount() + this.tcsAmount() - this.totalAllocated()));
+  readonly onAccountAmount = computed(() => Math.max(0, this.modeTotal() + this.totalNotesApplied() + this.tdsAmount() - this.tcsAmount() - this.totalAllocated()));
   readonly netAmount = computed(() => Math.max(0, this.modeTotal()));
 
   // What the mode-total should match: the selected invoices' allocated total
@@ -284,7 +284,7 @@ export class PaymentReceiptVoucherComponent {
   readonly referenceTotal = computed(() => Math.max(0,
     (this.selectedInvoiceIds().size > 0 ? this.totalAllocated() : this.quickAmount()) - this.totalNotesApplied()
   ));
-  readonly modeDiff = computed(() => this.modeTotal() - (this.referenceTotal() - this.tdsAmount() - this.tcsAmount()));
+  readonly modeDiff = computed(() => this.modeTotal() - (this.referenceTotal() - this.tdsAmount() + this.tcsAmount()));
   readonly modeShort = computed(() => this.modeDiff() < -0.005);
 
   readonly canSave = computed(() =>

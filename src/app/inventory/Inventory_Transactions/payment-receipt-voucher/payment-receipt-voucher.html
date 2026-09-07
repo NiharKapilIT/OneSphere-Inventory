@@ -301,7 +301,7 @@
                 [ngModel]="tcsPercentageInput()" (ngModelChange)="setTcsPercentage($event)" />
             </div>
             <div class="erp-form-group">
-              <label class="erp-label">TCS Deducted (₹)</label>
+              <label class="erp-label">TCS Collected by Vendor (₹) <span class="erp-label-hint">added to the payment</span></label>
               <input class="erp-input" type="text" [value]="tcsPercentage() > 0 ? fmt(tcsAmount()) : '—'" readonly style="text-align:right" />
             </div>
           }

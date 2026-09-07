@@ -8,6 +8,61 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+// BOM / Work Center / Price List — real records as of migration 219; these
+// three masters previously had no backend and lived in browser localStorage.
+export interface WorkCenterItem {
+  id: number;
+  company_id?: number | null;
+  segment_id?: number | null;
+  work_center_code: string;
+  work_center_name: string;
+  department?: string | null;
+  capacity?: string | null;
+  cost_per_hour: number;
+  status: string;
+}
+
+export interface PriceListItem {
+  id: number;
+  company_id?: number | null;
+  segment_id?: number | null;
+  price_list_code: string;
+  price_list_name: string;
+  branch_id?: number | null;
+  branch_name?: string | null;
+  product_id?: number | null;
+  product_name?: string | null;
+  rate: number;
+  effective_from?: string | null;
+  effective_to?: string | null;
+  status: string;
+}
+
+export interface BomLineItem {
+  id?: number;
+  sno: number;
+  product_id?: number | null;
+  product_name: string;
+  quantity: number;
+  uom_id?: number | null;
+  uom_name?: string | null;
+}
+
+export interface BomItem {
+  id: number;
+  company_id?: number | null;
+  segment_id?: number | null;
+  bom_code: string;
+  bom_version?: string | null;
+  finished_product_id?: number | null;
+  finished_product_name: string;
+  quantity: number;
+  wastage_percent: number;
+  production_cost: number;
+  status: string;
+  items: BomLineItem[];
+}
+
 export interface SegmentItem {
   id: number;
   company_id: number;
@@ -2164,6 +2219,131 @@ export class InventoryConfigService {
       is_system: this.value(item, 'is_system', 'isSystem', false),
       sort_order: this.value(item, 'sort_order', 'sortOrder', 100),
       status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  // ── BOM / Work Center / Price List ────────────────────────────────────────
+  // Real endpoints as of migration 219. These three masters previously had no
+  // backend at all and were kept in browser localStorage.
+
+  getWorkCenters(includeInactive = false): Observable<ApiResponse<WorkCenterItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('work-centers'), { headers: this.headers(), params: { includeInactive } }
+    ), item => this.normalizeWorkCenter(item));
+  }
+
+  saveWorkCenter(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<WorkCenterItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`work-centers/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('work-centers'), body, { headers: h }),
+      item => this.normalizeWorkCenter(item)
+    );
+  }
+
+  deleteWorkCenter(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(this.masterUrl(`work-centers/${id}`), { headers: this.headers() });
+  }
+
+  private normalizeWorkCenter(item: any): WorkCenterItem {
+    return {
+      id: item?.id,
+      company_id: this.value(item, 'company_id', 'companyId'),
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      work_center_code: this.value(item, 'work_center_code', 'workCenterCode', ''),
+      work_center_name: this.value(item, 'work_center_name', 'workCenterName', ''),
+      department: this.value(item, 'department', 'department'),
+      capacity: this.value(item, 'capacity', 'capacity'),
+      cost_per_hour: Number(this.value(item, 'cost_per_hour', 'costPerHour', 0)) || 0,
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  getPriceLists(includeInactive = false): Observable<ApiResponse<PriceListItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('price-lists'), { headers: this.headers(), params: { includeInactive } }
+    ), item => this.normalizePriceList(item));
+  }
+
+  savePriceList(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<PriceListItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`price-lists/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('price-lists'), body, { headers: h }),
+      item => this.normalizePriceList(item)
+    );
+  }
+
+  deletePriceList(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(this.masterUrl(`price-lists/${id}`), { headers: this.headers() });
+  }
+
+  private normalizePriceList(item: any): PriceListItem {
+    return {
+      id: item?.id,
+      company_id: this.value(item, 'company_id', 'companyId'),
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      price_list_code: this.value(item, 'price_list_code', 'priceListCode', ''),
+      price_list_name: this.value(item, 'price_list_name', 'priceListName', ''),
+      branch_id: this.value(item, 'branch_id', 'branchId'),
+      branch_name: this.value(item, 'branch_name', 'branchName'),
+      product_id: this.value(item, 'product_id', 'productId'),
+      product_name: this.value(item, 'product_name', 'productName'),
+      rate: Number(this.value(item, 'rate', 'rate', 0)) || 0,
+      effective_from: this.value(item, 'effective_from', 'effectiveFrom'),
+      effective_to: this.value(item, 'effective_to', 'effectiveTo'),
+      status: this.value(item, 'status', 'status', 'active')
+    };
+  }
+
+  getBoms(includeInactive = false): Observable<ApiResponse<BomItem[]>> {
+    return this.mapArray(this.http.get<ApiResponse<any[]>>(
+      this.masterUrl('boms'), { headers: this.headers(), params: { includeInactive } }
+    ), item => this.normalizeBom(item));
+  }
+
+  saveBom(payload: Record<string, any>, id?: number | null): Observable<ApiResponse<BomItem>> {
+    const h = this.headers();
+    const body = this.toApiValue(payload);
+    return this.mapItem(
+      id
+        ? this.http.put<ApiResponse<any>>(this.masterUrl(`boms/${id}`), body, { headers: h })
+        : this.http.post<ApiResponse<any>>(this.masterUrl('boms'), body, { headers: h }),
+      item => this.normalizeBom(item)
+    );
+  }
+
+  deleteBom(id: number): Observable<ApiResponse<any>> {
+    return this.http.delete<ApiResponse<any>>(this.masterUrl(`boms/${id}`), { headers: this.headers() });
+  }
+
+  private normalizeBom(item: any): BomItem {
+    const rawItems = this.value(item, 'items', 'items', []) || [];
+    return {
+      id: item?.id,
+      company_id: this.value(item, 'company_id', 'companyId'),
+      segment_id: this.value(item, 'segment_id', 'segmentId'),
+      bom_code: this.value(item, 'bom_code', 'bomCode', ''),
+      bom_version: this.value(item, 'bom_version', 'bomVersion'),
+      finished_product_id: this.value(item, 'finished_product_id', 'finishedProductId'),
+      finished_product_name: this.value(item, 'finished_product_name', 'finishedProductName', ''),
+      quantity: Number(this.value(item, 'quantity', 'quantity', 1)) || 0,
+      wastage_percent: Number(this.value(item, 'wastage_percent', 'wastagePercent', 0)) || 0,
+      production_cost: Number(this.value(item, 'production_cost', 'productionCost', 0)) || 0,
+      status: this.value(item, 'status', 'status', 'active'),
+      items: (Array.isArray(rawItems) ? rawItems : []).map((row: any) => ({
+        id: row?.id,
+        sno: Number(this.value(row, 'sno', 'sno', 0)) || 0,
+        product_id: this.value(row, 'product_id', 'productId'),
+        product_name: this.value(row, 'product_name', 'productName', ''),
+        quantity: Number(this.value(row, 'quantity', 'quantity', 1)) || 0,
+        uom_id: this.value(row, 'uom_id', 'uomId'),
+        uom_name: this.value(row, 'uom_name', 'uomName')
+      }))
     };
   }
 }

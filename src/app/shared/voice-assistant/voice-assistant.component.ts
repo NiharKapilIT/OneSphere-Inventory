@@ -70,6 +70,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select the Vendor / Supplier from the party field.',
         'Enter GRN date. Link the Purchase Order number if applicable.',
         'Add item rows — select Product, enter Received Quantity, Rate and UOM.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Verify HSN code, GST breakup and total invoice amount.',
         'Click Save to post the GRN. Stock increases in the selected warehouse.'
       ]
@@ -82,6 +83,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Link the Purchase Order number if goods are against a PO.',
         'Enter the receipt date and any reference or vehicle details.',
         'Add item rows — Product, Received Quantity, Rate, UOM and Tax.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Verify the total amount and tax summary.',
         'Click Save. Stock quantity increases in the selected warehouse.'
       ]
@@ -140,6 +142,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment, Branch and the Vendor.',
         'Enter PO date, expected delivery date and payment terms.',
         'Add item rows — Product, Quantity, Rate, UOM and applicable Tax.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the total amount and GST breakup.',
         'Save to generate the PO with a unique PO number.',
         'The vendor can be notified from the saved PO screen.'
@@ -152,6 +155,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment, Branch and the Customer.',
         'Enter invoice date and payment due date.',
         'Add item rows — Product, Quantity, Rate, UOM and GST.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Price auto-fills from Price List if configured for the customer.',
         'Review the total, GST breakup and net receivable amount.',
         'Save to post the invoice. Receivable balance is updated.'
@@ -164,6 +168,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment, Branch and Department.',
         'Enter the required date and reason for purchase.',
         'Add item rows — Product, Required Quantity and UOM.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Save the requisition. It goes for approval if approval workflow is set.',
         'After approval, a Purchase Order is raised against the approved requisition.'
       ]
@@ -177,6 +182,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select the Destination Warehouse (where stock is moving to).',
         'Enter the transfer date.',
         'Add item rows — Product, Transfer Quantity and UOM.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Save. Stock is deducted from the source and added to the destination.'
       ]
     },
@@ -187,6 +193,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment and the Warehouse to adjust.',
         'Enter the adjustment date and select the adjustment reason.',
         'Add item rows — Product, Quantity (positive to add stock, negative to reduce).',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the adjustment entries carefully before saving.',
         'Save to post. Stock levels are updated immediately in the selected warehouse.'
       ]
@@ -196,12 +203,12 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
       steps: [
         'Go to Inventory → Masters → Product / Service Master.',
         'Select the Business Segment for this product.',
-        'Enter the Product Name — code generates automatically.',
-        'Select Category, Product Type (Physical/Service) and Base UOM.',
+        'Enter the Product Name — code and SKU generate automatically. Arriving from a transaction line, the name is already filled in for you.',
+        'Select Category, Product Nature and Base UOM. Product Nature matters: only Finished and Semi-Finished items can be produced, and only Raw Material or Semi-Finished items can be issued to production.',
         'In Tax Details: select the Category — HSN codes will be suggested.',
         'Pick the matching HSN code from the green suggestion panel.',
         'Set Stock Controls (min, max, reorder level) if needed.',
-        'Click Save Product.'
+        'Click Save Product. If you came from a GRN, Purchase Invoice or other transaction, saving returns you to that document with this product already in the line.'
       ]
     },
     'add category': {
@@ -279,6 +286,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment, Branch and Customer.',
         'Enter the estimation date and valid-until date.',
         'Add item rows — Product, Quantity, Rate, UOM and applicable Tax.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the total and tax breakup.',
         'Save to generate the estimation. It can be converted to a Sales Order later.'
       ]
@@ -290,6 +298,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Select Business Segment, Branch and Customer.',
         'Enter the proforma date.',
         'Add item rows — Product, Quantity, Rate, UOM and Tax.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the amount and GST details.',
         'Save. A proforma invoice can be converted to a Sales Invoice on confirmation.'
       ]
@@ -323,6 +332,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Go to Inventory → Transactions → Purchase Return.',
         'Select the Vendor and the Purchase Invoice or GRN the return is against.',
         'Add item rows — Product, Return Quantity, and the Reason for return.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the taxable value and GST reversal.',
         'Save and Post. Stock reduces in the warehouse.',
         'A Debit Note is generated automatically for the returned value — it will show up as a hint next time you open Vendor Payment for this vendor.'
@@ -334,6 +344,7 @@ export class VoiceAssistantComponent implements OnInit, OnDestroy {
         'Go to Inventory → Transactions → Sales Return.',
         'Select the Customer and the Sales Invoice the return is against.',
         'Add item rows — Product, Return Quantity, and the Reason for return.',
+        'Type into the Product cell to search it. If it does not exist yet, choose Add to Product Master — it opens with the name filled in and returns you here with the product in that row.',
         'Review the taxable value and GST reversal.',
         'Save and Post. Stock increases back in the warehouse.',
         'A Credit Note is generated automatically for the returned value — it will show up as a hint next time you open Customer Receipt for this customer.'

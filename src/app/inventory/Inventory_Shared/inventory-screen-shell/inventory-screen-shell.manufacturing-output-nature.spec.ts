@@ -8,7 +8,7 @@ import { InventoryScreenConfig, bomMasterConfig } from '../inventory-screen.mode
 // "in BOM master and Manufacturing should be show the product only finished and
 // subfinished".
 //
-// The intermediate stage is seeded twice: Sub-Finished Product (active) and
+// The intermediate stage is seeded twice: Semi-Finished Product (active) and
 // Semi-Finished / WIP (inactive legacy). Both are matched, so it does not
 // matter which label a product carries.
 //
@@ -16,9 +16,9 @@ import { InventoryScreenConfig, bomMasterConfig } from '../inventory-screen.mode
 // 'product', so every ordinary stock item appeared in the Finished Product
 // dropdown on BOM Master and the four Production screens. A Physical Stock item
 // is bought and sold, not produced. The INPUT side is deliberately untouched:
-// raw material fields still list Raw Material + Sub-Finished, or a BOM could
+// raw material fields still list Raw Material + Semi-Finished, or a BOM could
 // not consume anything.
-describe('InventoryScreenShell — manufacturing output is Finished / Sub-Finished only', () => {
+describe('InventoryScreenShell — manufacturing output is Finished / Semi-Finished only', () => {
   function createComponent(config: InventoryScreenConfig) {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -48,7 +48,7 @@ describe('InventoryScreenShell — manufacturing output is Finished / Sub-Finish
   // Mirrors the seeded natures in inventory.inv_product_types.
   const products = [
     { id: 1, product_name: 'Drone Motor', product_nature_name: 'Finished Product', tracks_inventory: true, allows_sale: true, allows_production: true },
-    { id: 2, product_name: 'Motor Housing', product_nature_name: 'Sub-Finished Product', tracks_inventory: true, allows_sale: false, allows_production: true },
+    { id: 2, product_name: 'Motor Housing', product_nature_name: 'Semi-Finished Product', tracks_inventory: true, allows_sale: false, allows_production: true },
     { id: 3, product_name: 'Half Frame', product_nature_name: 'Semi-Finished / WIP', tracks_inventory: true, allows_sale: false, allows_production: true },
     { id: 4, product_name: 'LED Display', product_nature_name: 'Physical Stock', tracks_inventory: true, allows_sale: true, allows_production: false },
     { id: 5, product_name: 'Copper Wire', product_nature_name: 'Raw Material', tracks_inventory: true, allows_sale: false, allows_production: true, allows_purchase: true },
@@ -60,7 +60,7 @@ describe('InventoryScreenShell — manufacturing output is Finished / Sub-Finish
     return component;
   }
 
-  it('BOM Master Finished Product lists only Finished and Sub-Finished, never Physical Stock', () => {
+  it('BOM Master Finished Product lists only Finished and Semi-Finished, never Physical Stock', () => {
     const component = withProducts(createComponent(bomMasterConfig));
     const options = (component as any).finishedManufacturingProductOptions();
 
@@ -104,12 +104,12 @@ describe('InventoryScreenShell — manufacturing output is Finished / Sub-Finish
     (component as any).loadedProductObjects.set([products[3]]);   // Physical Stock only
 
     const hint = component.fieldTypingHint({ key: 'finishedProduct', label: 'Finished Product', type: 'select' } as any);
-    expect(hint).toContain('Product Nature');
+    expect(hint).toContain('Product Master');
   });
 
   it('drops the hint once a Finished product exists', () => {
     const component = withProducts(createComponent(bomMasterConfig));
     const hint = component.fieldTypingHint({ key: 'finishedProduct', label: 'Finished Product', type: 'select' } as any);
-    expect(hint).not.toContain('No Finished / Sub-Finished products yet');
+    expect(hint).not.toContain('None yet');
   });
 });
