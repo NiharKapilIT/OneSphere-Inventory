@@ -18,8 +18,76 @@
   b { color: #1a2233; font-weight: 600; }
 }
 
+// The shared .inventory-kpi-grid is a dashboard grid: a fixed 4 columns with
+// 38px icons and 14px card padding. Inside this 560px drawer that leaves each
+// column ~120px, so the icon alone eats a third of it, labels and figures wrap
+// mid-word, and six cards end on a ragged 4 + 2 row. This panel is a summary,
+// not a dashboard, so it is laid out for the width it actually has: two even
+// columns (six cards -> a clean 3 x 2), smaller icons, and figures that are
+// allowed to keep their own line.
 .pay-kpi-grid {
   margin-top: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+
+  .inventory-kpi-card {
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+
+  .inventory-card-icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+
+  .inventory-kpi-card > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  small {
+    font-size: 10.5px;
+    line-height: 1.2;
+    color: #8b94a7;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  strong {
+    font-size: 14px;
+    line-height: 1.25;
+    color: #1a2233;
+    // Money lines up column-to-column instead of jittering between rows.
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .erp-badge {
+    justify-self: start;
+  }
+}
+
+// Outstanding is the figure the whole panel exists to answer, so it reads first.
+.pay-kpi-emphasis {
+  border-color: #fcd9b6;
+  background: #fffaf4;
+
+  strong { color: #a8552f; }
+}
+
+@media (max-width: 560px) {
+  .pay-kpi-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .req { color: #b91c1c; }
@@ -304,16 +372,46 @@
   overflow: hidden;
 }
 
+// space-between across three values left the voucher number floating wherever
+// the date and amount happened to end. Fixed columns keep date, voucher and
+// amount aligned down the list, with the amount right-aligned so the figures
+// compare at a glance.
 .pay-hist-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
   padding: 8px 12px;
   border-bottom: 1px solid #eef1f6;
   font-size: 12.5px;
 
   &:last-child { border-bottom: 0; }
-  .m { color: #8b94a7; }
+
+  .m {
+    color: #8b94a7;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  b {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // The "no payments yet" line has nothing to align against.
+  > span:only-child { grid-column: 1 / -1; }
+}
+
+.pay-hist-head {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  color: #8b94a7;
+  background: #f8fafc;
+
+  b { font-weight: 700; }
 }
 
 .pay-dr-f {

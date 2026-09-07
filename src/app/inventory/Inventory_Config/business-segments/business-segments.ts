@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
@@ -159,22 +159,6 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     this.usageNote.set(String(applyInventoryTextCase(note ?? '', 'sentence')));
   }
 
-  onNewHsnCodeChange(code: string): void {
-    this.newHsnCode.set(String(applyInventoryTextCase(code ?? '', 'upper')));
-  }
-
-  onNewHsnDescChange(description: string): void {
-    this.newHsnDesc.set(String(applyInventoryTextCase(description ?? '', 'sentence')));
-  }
-
-  onNewUomNameChange(name: string): void {
-    this.newUomName.set(toInventoryTitleCase(name ?? ''));
-  }
-
-  onNewUomSymbolChange(symbol: string): void {
-    this.newUomSymbol.set(String(applyInventoryTextCase(symbol ?? '', 'upper')));
-  }
-
   // Global standard code format: PREFIX (first 3 alnum chars of name) - YY - 5-digit sequence.
   // Matches generateCodeFromName() in inventory-screen-shell.ts, used across the other master screens.
   private autoCode(name: string): string {
@@ -255,6 +239,16 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     setTimeout(() => this.saveMsg.set(''), 4000);
   }
 
+  @ViewChild('stagedCategories') private stagedCategoriesEl?: ElementRef<HTMLElement>;
+
+  /** The add form can be taller than the dialog, so bring the staging grid back
+   *  into view after each add — otherwise the only feedback is a count the user
+   *  has to go hunting for. */
+  private revealStagedCategories(): void {
+    setTimeout(() => this.stagedCategoriesEl?.nativeElement
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  }
+
   onQuickCategoryStaged(category: CategoryItem): void {
     const hasDuplicate = this.pendingCategories().some(item =>
       this.normalizeKey(item.category_name) === this.normalizeKey(category.category_name)
@@ -266,6 +260,7 @@ export class InventoryBusinessSegmentsComponent implements OnInit {
     }
     this.pendingCategories.update(rows => [...rows, category]);
     this.categoryPopupError.set('');
+    this.revealStagedCategories();
   }
 
   removePendingCategory(index: number): void {

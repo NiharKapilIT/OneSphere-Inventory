@@ -56,6 +56,7 @@ describe('InventoryScreenShell — GRN/PI "Add Product" routes to Product Master
     const router = { navigate: vi.fn() };
     const activatedRoute = { snapshot: { queryParamMap: convertToParamMap(queryParams) } };
 
+    TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [InventoryScreenShell],
       providers: [
@@ -126,6 +127,163 @@ describe('InventoryScreenShell — GRN/PI "Add Product" routes to Product Master
       component.addProductFromProcurementGrid();
       expect(router.navigate).not.toHaveBeenCalled();
       expect(sessionStorage.length).toBe(0);
+    });
+  });
+
+  // The same trip, now offered on every enabled screen that can trigger a
+  // Product quick-add. It had to be: the quick-add modal's own
+  // 'Product / Service' branch is a static mock with no [ngModel] and no save
+  // handler, so on the screens below the "+" opened a popup that could never
+  // create anything — and inside the line product picker the button called
+  // addProductFromProcurementGrid(), which returned silently because the
+  // screen had no return route registered.
+  describe('every enabled screen with a Product "+" reaches Product Master (and back)', () => {
+    const cases: Array<[string, string]> = [
+      ['purchaseReturn', '/dashboard/inventory/transactions/purchase-return'],
+      ['salesOrder', '/dashboard/inventory/transactions/sales-order'],
+      ['deliveryChallan', '/dashboard/inventory/transactions/delivery-challan'],
+      ['salesReturn', '/dashboard/inventory/transactions/sales-return'],
+      ['stockAdjustment', '/dashboard/inventory/transactions/stock-adjustment'],
+      ['productionPlanning', '/dashboard/inventory/transactions/production-planning'],
+      ['materialIssueProduction', '/dashboard/inventory/transactions/material-issue-production'],
+      ['productionEntry', '/dashboard/inventory/transactions/production-entry'],
+      ['productionReturn', '/dashboard/inventory/transactions/production-return'],
+      ['bomMaster', '/dashboard/inventory/masters/bom-master'],
+      ['priceListMaster', '/dashboard/inventory/masters/price-list-master'],
+      ['barcodeConfiguration', '/dashboard/inventory/masters/barcode-configuration']
+    ];
+
+    for (const [key, route] of cases) {
+      it(`${key}: navigates to Product Master carrying its own return route`, () => {
+        const { component, router } = createComponent({
+          key,
+          title: key,
+          subtitle: '',
+          kind: key.endsWith('Master') || key === 'barcodeConfiguration' ? 'master' : 'transaction',
+          icon: 'pi pi-box'
+        } as InventoryScreenConfig);
+
+        component.addProductFromProcurementGrid();
+
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['/dashboard/inventory/masters/product-service-master'],
+          { queryParams: { returnTo: key, returnRoute: route } }
+        );
+      });
+
+      it(`${key}: Product Master navigates back to it after a successful save`, async () => {
+        const { component, router } = createComponent(productMasterConfig, { returnTo: key, returnRoute: route });
+        vi.spyOn(component as any, 'validatePayload').mockReturnValue('');
+        vi.spyOn((component as any).inventoryConfigService, 'saveProduct')
+          .mockReturnValue(of({ success: true, data: { id: 900, product_name: 'Round Trip' } }));
+
+        component.saveConfigRecord();
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+        expect(router.navigate).toHaveBeenCalledWith([route], { queryParams: { resumed: '1', createdProduct: 'Round Trip' } });
+      });
+    }
+
+    // A product needs nature, UOM, HSN, category and tracking policies before a
+    // line can use it — too much for a cut-down inline form — so the line grid's
+    // create affordance takes the full round trip instead, and the product it
+    // creates lands back in the cell the user was typing into.
+    describe('round trip from a line grid cell', () => {
+      const grnLineConfig: InventoryScreenConfig = {
+        key: 'goodsReceipt', title: 'GRN', subtitle: '', kind: 'transaction', icon: 'pi pi-download',
+        lineColumns: ['Product', 'UOM', 'Qty']
+      };
+
+      it('carries the typed name and the exact cell out to Product Master', () => {
+        const { component, router } = createComponent(grnLineConfig);
+        component.entryLineRows.set([['', 'Nos', ''], ['', 'Nos', '']]);
+
+        component.addProductFromLineProductPicker({ rowIndex: 1, columnIndex: 0, productName: 'Copper Wire' });
+
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['/dashboard/inventory/masters/product-service-master'],
+          { queryParams: { returnTo: 'goodsReceipt', returnRoute: '/dashboard/inventory/transactions/goods-receipt', productName: 'Copper Wire' } }
+        );
+        const snap = JSON.parse(sessionStorage.getItem(storageKeyFor('goodsReceipt'))!);
+        expect(snap.pendingLine).toEqual({ rowIndex: 1, columnIndex: 0, productName: 'Copper Wire' });
+      });
+
+      it('Product Master opens with that name already filled in', () => {
+        const { component } = createComponent(productMasterConfig, {
+          returnTo: 'goodsReceipt',
+          returnRoute: '/dashboard/inventory/transactions/goods-receipt',
+          productName: 'Copper Wire'
+        });
+
+        expect(component.productName()).toBe('Copper Wire');
+        expect(component.formValues()['productName']).toBe('Copper Wire');
+      });
+
+      it('sends the saved product name back on the return leg', async () => {
+        const { component, router } = createComponent(productMasterConfig, {
+          returnTo: 'goodsReceipt',
+          returnRoute: '/dashboard/inventory/transactions/goods-receipt',
+          productName: 'Copper Wire'
+        });
+        vi.spyOn(component as any, 'validatePayload').mockReturnValue('');
+        vi.spyOn((component as any).inventoryConfigService, 'saveProduct')
+          .mockReturnValue(of({ success: true, data: { id: 601, product_name: 'Copper Wire' } }));
+
+        component.saveConfigRecord();
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+        expect(router.navigate).toHaveBeenCalledWith(
+          ['/dashboard/inventory/transactions/goods-receipt'],
+          { queryParams: { resumed: '1', createdProduct: 'Copper Wire' } }
+        );
+      });
+
+      it('drops the created product into the row it was started from', async () => {
+        sessionStorage.setItem(storageKeyFor('goodsReceipt'), JSON.stringify({
+          formValues: { vendor: 'Acme Supplies' },
+          entryLineRows: [['LED Display', 'Nos', '2'], ['', 'Nos', '']],
+          editingId: null,
+          pendingLine: { rowIndex: 1, columnIndex: 0, productName: 'Copper Wire' },
+          savedAt: Date.now()
+        }));
+
+        const { component } = createComponent(grnLineConfig, { resumed: '1', createdProduct: 'Copper Wire' });
+        const setCell = vi.spyOn(component, 'setEntryLineCell');
+        await new Promise(resolve => setTimeout(resolve));
+
+        expect(component.formValues()['vendor']).toBe('Acme Supplies');
+        expect(setCell).toHaveBeenCalledWith(1, 0, 'Copper Wire');
+      });
+
+      it('restores the document but touches no cell when the user came back without saving', async () => {
+        sessionStorage.setItem(storageKeyFor('goodsReceipt'), JSON.stringify({
+          formValues: { vendor: 'Acme Supplies' },
+          entryLineRows: [['', 'Nos', '']],
+          editingId: null,
+          pendingLine: { rowIndex: 0, columnIndex: 0, productName: 'Copper Wire' },
+          savedAt: Date.now()
+        }));
+
+        // No createdProduct — Product Master was abandoned.
+        const { component } = createComponent(grnLineConfig, { resumed: '1' });
+        const setCell = vi.spyOn(component, 'setEntryLineCell');
+        await new Promise(resolve => setTimeout(resolve));
+
+        expect(component.formValues()['vendor']).toBe('Acme Supplies');
+        expect(setCell).not.toHaveBeenCalled();
+      });
+    });
+
+    it('the line product picker only offers "Open Product Master" where the trip is wired', () => {
+      const wired = createComponent({
+        key: 'salesReturn', title: '', subtitle: '', kind: 'transaction', icon: 'pi pi-box'
+      } as InventoryScreenConfig).component;
+      const unwired = createComponent({
+        key: 'cycleCount', title: '', subtitle: '', kind: 'transaction', icon: 'pi pi-box'
+      } as InventoryScreenConfig).component;
+
+      expect(wired.canAddProductFromThisScreen()).toBe(true);
+      expect(unwired.canAddProductFromThisScreen()).toBe(false);
     });
   });
 
@@ -205,7 +363,7 @@ describe('InventoryScreenShell — GRN/PI "Add Product" routes to Product Master
 
       expect(router.navigate).toHaveBeenCalledWith(
         ['/dashboard/inventory/transactions/goods-receipt'],
-        { queryParams: { resumed: '1' } }
+        { queryParams: { resumed: '1', createdProduct: 'New Widget' } }
       );
     });
 
@@ -223,7 +381,7 @@ describe('InventoryScreenShell — GRN/PI "Add Product" routes to Product Master
 
       expect(router.navigate).toHaveBeenCalledWith(
         ['/dashboard/inventory/transactions/purchase-invoice'],
-        { queryParams: { resumed: '1' } }
+        { queryParams: { resumed: '1', createdProduct: 'New Widget 2' } }
       );
     });
 

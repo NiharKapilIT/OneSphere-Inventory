@@ -203,7 +203,7 @@
               @if (field.addMaster) {
                 <button type="button" class="erp-btn btn-white btn-icon"
                   [title]="'Add ' + field.addMaster"
-                  (click)="openAddMaster(field.addMaster, field.key)">
+                  (click)="openFieldAddMaster(field)">
                   <i class="pi pi-plus"></i>
                 </button>
               }
@@ -246,12 +246,12 @@
           <div class="tbl-wrap">
             @let renderedColumns = lineGridRenderColumns();
             @let rowViews = entryLineRowViews();
-            <table class="erp-table compact inventory-resizable-table purchase-invoice-editable-table">
+            <table class="erp-table compact inventory-resizable-table">
               <thead>
                 <tr>
                   <th class="text-center">Actions</th>
                   @for (column of renderedColumns; track column) {
-                    <th [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [style.width]="lineGridColumnWidthPx(column)">
+                    <th [class]="lineGridColumnCssClass(column)" [style.width]="lineGridColumnWidthPx(column)">
                       {{ lineGridColumnHeader(column) }}
                       <span class="inventory-col-resize-handle" title="Drag to resize column" (mousedown)="startLineGridColumnResize($event, column)"></span>
                     </th>
@@ -273,7 +273,7 @@
                       @let cellView = columnIndex >= 0 ? rowView?.columns?.[columnIndex] : null;
                       @let cellApplies = lineGridColumnAppliesToRow(row, rowIndex, column, rowView);
                       @let serialViewBadge = (cellApplies && lineGridColumnIsSerialPicker(column) && lineGridCellReadonly(rowIndex, row, column)) ? serialViewBadgeTextForRow(rowIndex, row) : '';
-                      <td [class]="lineGridColumnCssClass(column)" [class.purchase-invoice-line-col-serial]="lineGridColumnIsSerialPicker(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
+                      <td [class]="lineGridColumnCssClass(column)" [class.inventory-hint-anchor]="cellView?.stockHint || cellView?.priceHint">
                         @if (!cellApplies) {
                           <span class="inventory-grid-na">ï¿½ N/A ï¿½</span>
                         } @else if (serialViewBadge) {
@@ -294,7 +294,7 @@
                             @if (attr.isAuto) {
                               <span class="inventory-grid-static-value">{{ attr.value || 'ï¿½' }}</span>
                             } @else {
-                              <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select purchase-invoice-grid-select inventory-attr-select" appendTo="body"
+                              <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select inventory-attr-select" appendTo="body"
                                 [items]="attr.options" [searchable]="false" [clearable]="false"
                                 [ngModel]="attr.value" (ngModelChange)="setLineAttrValue(rowIndex, attr.name, $event)"
                                 placeholder="Select">
@@ -322,7 +322,7 @@
                             </div>
                           </div>
                         } @else if (cellView?.options?.length) {
-                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select purchase-invoice-grid-select" appendTo="body"
+                          <ng-select class="erp-ng-select inventory-ng-select inventory-grid-select" appendTo="body"
                             [items]="cellView?.options || []"
                             [searchable]="true" [clearable]="false"
                             [multiple]="cellView?.usesMultiSelect"
@@ -498,7 +498,6 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
-            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
           }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">

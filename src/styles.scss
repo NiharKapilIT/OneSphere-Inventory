@@ -12674,6 +12674,18 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   border-radius: 8px;
 }
 
+
+// Rows beyond the line quantity are disabled, not just refused, so the tick
+// count can never disagree with what will actually be saved. Ticked rows stay
+// enabled so a selection can be swapped without clearing everything first.
+.inventory-serial-select-row--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+
+  input {
+    cursor: not-allowed;
+  }
+}
 .inventory-serial-select-row {
   display: flex;
   align-items: center;
@@ -13176,14 +13188,23 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   background: var(--page-bg, #fff);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
 
+  // Keep the section tabs on ONE line. nowrap alone is not enough: .content-area
+  // has overflow-x:hidden, so an unwrapped row gets clipped at the right edge
+  // rather than staying reachable. Scrolling the tab bar itself keeps every tab
+  // on one row AND reachable on a narrow viewport.
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+
   .tabs-nav {
-    flex-wrap: wrap;
-    min-width: 0; // let the row actually shrink/wrap instead of forcing the
-                  // base .tabs-nav min-width: min-content floor
+    flex-wrap: nowrap;
+    min-width: max-content;
   }
 
   .tab-item {
     min-height: 40px;
+    flex: 0 0 auto;
+    white-space: nowrap;
 
     .tab-label {
       font-size: 10.4px; // 20% down from the shared .tab-item base of 13px
@@ -13830,6 +13851,25 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   .inv-popup-body {
     overflow: auto;
     min-height: 0;
+  }
+}
+
+.inv-category-staged {
+  border: 1px solid #e5eaf2;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px;
+
+  .tbl-wrap {
+    max-height: 240px;
+    overflow: auto;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f1f5f9;
   }
 }
 

@@ -33,7 +33,10 @@ describe('PaymentReceiptVoucherComponent — TCS vendor FY threshold (item 22)',
       getOutstandingInvoices: () => of({ success: true, data: [] }) as any,
       getTdsCodes: () => of({ success: true, data: [] }) as any,
       getAvailableNotes: () => of({ success: true, data: [] }) as any,
-      getVendorFyPurchaseSummary: () => of({ success: true, data: summary }) as any
+      getVendorFyPurchaseSummary: () => of({ success: true, data: summary }) as any,
+      // The component loads the Accounts bank/cheque-book masters on construction.
+      getPaymentVoucherAccountSetup: () => of({ banks: [], depositBanks: [], onlinePaymentTypes: [] }) as any,
+      getPaymentVoucherBankDetails: () => of({ chequeNumbers: [], upiNames: [] }) as any
     };
     TestBed.configureTestingModule({
       imports: [PaymentReceiptVoucherComponent],

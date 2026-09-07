@@ -75,12 +75,24 @@ export interface PaymentVoucherAccountOption {
   accountNumber?: string;
   bankBookBalance?: number;
   passbookBalance?: number;
+  /** Cheque options only: accounts.tbl_mst_cheque_management.cheque_book_id the leaf belongs to. */
+  bookId?: any;
+  /** Bank options only: accounts.tbl_mst_bank_configuration.isprimary — used to pre-select a default bank. */
+  isPrimary?: boolean;
 }
 
 export interface PaymentVoucherAccountSetup {
   banks: PaymentVoucherAccountOption[];
   depositBanks: PaymentVoucherAccountOption[];
   onlinePaymentTypes: PaymentVoucherAccountOption[];
+}
+
+/** Per-bank master detail behind a selected bank account — the un-used cheque
+ *  leaves of its cheque book(s) (Accounts > Config > Cheque Management) and its
+ *  configured UPI handles. Same source the Accounts screens read. */
+export interface PaymentVoucherBankDetails {
+  chequeNumbers: PaymentVoucherAccountOption[];
+  upiNames: PaymentVoucherAccountOption[];
 }
 
 export interface PaymentVoucher {
@@ -153,8 +165,32 @@ export class PaymentsService {
       branchName: this.readString(r, ['branchName', 'pbranchname', 'pBranchName']) || undefined,
       accountNumber: this.readString(r, ['accountNumber', 'pbankaccountnumber', 'pBankaccountnumber']) || undefined,
       bankBookBalance: this.readNumber(r, ['bankBookBalance', 'pbankbalance', 'pBankBalance']),
-      passbookBalance: this.readNumber(r, ['passbookBalance', 'pbankpassbookbalance', 'pBankPassbookBalance'])
+      passbookBalance: this.readNumber(r, ['passbookBalance', 'pbankpassbookbalance', 'pBankPassbookBalance']),
+      isPrimary: this.readAny(r, ['isPrimary', 'pisprimary', 'pIsprimary']) === true
     };
+  }
+
+  private normChequeOptions(rows: any): PaymentVoucherAccountOption[] {
+    const source = Array.isArray(rows) ? rows : [];
+    const result: PaymentVoucherAccountOption[] = [];
+    for (const row of source) {
+      const number = this.readString(row, ['chequeNumber', 'pChequenumber', 'pchequenumber']);
+      if (!number || number === '0') continue;
+      result.push({ id: number, label: number, bookId: this.readAny(row, ['chequeBookId', 'pChqbookid', 'pchqbookid']) });
+    }
+    return result;
+  }
+
+  private normUpiOptions(rows: any): PaymentVoucherAccountOption[] {
+    const source = Array.isArray(rows) ? rows : [];
+    const byLabel = new Map<string, PaymentVoucherAccountOption>();
+    for (const row of source) {
+      const name = this.readString(row, ['upiName', 'pUpiname', 'pupiname']);
+      if (!name) continue;
+      const key = name.toUpperCase();
+      if (!byLabel.has(key)) byLabel.set(key, { id: name, label: name });
+    }
+    return [...byLabel.values()];
   }
 
   private normBankOptions(rows: any): PaymentVoucherAccountOption[] {
@@ -314,6 +350,23 @@ export class PaymentsService {
         onlinePaymentTypes: this.normOnlinePaymentTypes(modeRes?.modeofTransactionslist ?? modeRes?.modeOfTransactionsList ?? modeRes)
       };
     }));
+  }
+
+  /** Cheque-book leaves + UPI handles configured against one bank account, from
+   *  the same /Accounts/GetBankDetailsbyId the Accounts screens use. Returns
+   *  empty lists (never errors) when nothing is configured, so the Cheque No. /
+   *  UPI fields fall back to free text. */
+  getPaymentVoucherBankDetails(bankId: any): Observable<PaymentVoucherBankDetails> {
+    const empty: PaymentVoucherBankDetails = { chequeNumbers: [], upiNames: [] };
+    if (bankId === null || bankId === undefined || bankId === '') return of(empty);
+    const params = this.accountsParams().set('pbankid', String(bankId));
+    return this.http.get<any>(this.accountsUrl('GetBankDetailsbyId'), { headers: this.headers(), params }).pipe(
+      map(res => ({
+        chequeNumbers: this.normChequeOptions(res?.chequeslist ?? res?.chequesList),
+        upiNames: this.normUpiOptions(res?.bankupilist ?? res?.bankUpiList)
+      })),
+      catchError(() => of(empty))
+    );
   }
 
   savePaymentVoucher(payload: {

@@ -202,6 +202,7 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     this.documentRef.removeEventListener('pointerdown', this.outsideClickHandler, true);
     this.detachResizeObserver();
     this.destroyPopupView();
+    this.destroySuggestView();
   }
 
   private resizeObserver: ResizeObserver | null = null;
@@ -434,16 +435,28 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     return this.host.productSubtitleFromParts(this.variantValue(), attrPairs);
   });
 
+  // The method exists on every screen (it's on the shared shell), so its mere
+  // presence proved nothing — addProductFromProcurementGrid() silently returns
+  // on any screen with no return route registered, which left this button
+  // showing and doing absolutely nothing on most transaction screens. Ask the
+  // host whether the trip is actually available instead.
   protected readonly canOpenProductConfig = computed(() => {
     const host = this.host;
-    return !!host && (
+    if (!host) return false;
+    if (typeof host.canAddProductFromThisScreen === 'function') {
+      return !!host.canAddProductFromThisScreen();
+    }
+    return (
       typeof host.addProductFromLineProductPicker === 'function'
       || typeof host.addProductFromProcurementGrid === 'function'
     );
   });
 
-  protected openPopup(event: MouseEvent): void {
-    event.stopPropagation?.();
+  // `event` is optional because the popup is now also opened programmatically,
+  // straight after a product is chosen in the grid cell, when that product
+  // still needs a variant or attribute before the line is complete.
+  protected openPopup(event?: MouseEvent): void {
+    event?.stopPropagation?.();
     const viewportPadding = 12;
     const estimatedWidth = Math.min(680, window.innerWidth - (viewportPadding * 2));
     const left = Math.min(
@@ -523,8 +536,195 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
     this.close();
   }
 
+  /** True once a product is chosen but the line still needs a variant or an
+   *  attribute value — i.e. there is genuinely something left to pick. */
+  protected readonly needsConfiguration = computed(() =>
+    !!this.productValue() && !this.canAddProduct()
+  );
+
+  /** Whether this row has a variant/attribute step at all, so the cell only
+   *  offers a "configure" affordance on products that actually have one. */
+  protected readonly hasConfigurableSteps = computed(() =>
+    (this.showVariantStep() && !this.variantReadonly()) ||
+    this.attrSelections().some(attr => !attr.isAuto && !this.isAttributeReadonly(attr.name))
+  );
+
+  // ── Type-to-search product entry, with inline create ─────────────────────
+  // Modelled on app-hsn-sac-picker: the typed text is always kept, matches are
+  // offered as you type, and when nothing matches you can create the record
+  // without leaving the line. Unlike that picker the search is client-side —
+  // products are already loaded in full by the shell (host.lineColumnOptions),
+  // so there is no endpoint to call and no debounce to wait through.
+  protected readonly searchText = signal('');
+  protected readonly searchOpen = signal(false);
+
+  /** What the input shows: the typed query while searching, else the picked product. */
+  protected readonly inputValue = computed(() =>
+    this.searchOpen() ? this.searchText() : (this.productValue() || '')
+  );
+
+  protected readonly matches = computed<string[]>(() => {
+    const query = this.searchText().trim().toLowerCase();
+    const options = this.productOptions();
+    if (!query) return options.slice(0, 12);
+    return options.filter(option => option.toLowerCase().includes(query)).slice(0, 12);
+  });
+
+  private readonly hasExactMatch = computed(() => {
+    const typed = this.searchText().trim().toLowerCase();
+    if (!typed) return true;
+    return this.productOptions().some(option => option.trim().toLowerCase() === typed);
+  });
+
+  /** Offer the Product Master trip only once it is clear nothing matches. */
+  protected readonly canQuickAddProduct = computed(() =>
+    this.canOpenProductConfig()
+    && this.searchText().trim().length >= 2
+    && !this.hasExactMatch()
+  );
+
+  // ── Suggestion panel placement ───────────────────────────────────────────
+  // The panel is rendered into document.body and positioned fixed, because the
+  // line grid lives inside .tbl-wrap { overflow-x: auto }: an absolutely
+  // positioned child of the cell is CLIPPED at the table's edge regardless of
+  // its z-index, so raising z-index alone would not have fixed this. Same
+  // reason the ng-select this replaced used appendTo="body", and the same
+  // treatment the variant popup already gets.
+  protected readonly suggestLeft = signal(0);
+  protected readonly suggestTop = signal(0);
+  protected readonly suggestWidth = signal(260);
+
+  @ViewChild('suggestRoot') private readonly suggestRootRef?: ElementRef<HTMLElement>;
+  @ViewChild('suggestTemplate') private readonly suggestTemplateRef?: TemplateRef<unknown>;
+  private suggestView: EmbeddedViewRef<unknown> | null = null;
+
+  // Fixed positioning is relative to the viewport, so the panel has to follow
+  // the input when anything scrolls — including the grid's own horizontal
+  // scroll, which is why this listens in the capture phase.
+  private readonly suggestRepositionHandler = (): void => {
+    if (!this.searchOpen()) return;
+    this.positionSuggest();
+  };
+
+  private readonly suggestOutsideClickHandler = (event: PointerEvent): void => {
+    const target = event.target as Element | null;
+    if (!target) return;
+    if (this.suggestRootRef?.nativeElement.contains(target)) return;
+    if (target.closest?.('.inventory-line-product-suggest')) return;
+    if (this.triggerBtnRef?.nativeElement.contains(target)) return;
+    this.closeSearch(true);
+  };
+
+  private positionSuggest(): void {
+    const input = this.triggerBtnRef?.nativeElement.querySelector('.inventory-line-product-input') as HTMLElement | null;
+    if (!input) return;
+    const rect = input.getBoundingClientRect();
+    const padding = 8;
+    const width = Math.max(260, Math.min(420, rect.width));
+    const panelHeight = this.suggestRootRef?.nativeElement.getBoundingClientRect().height || 240;
+
+    // Flip above the input when there isn't room below it — a line near the
+    // bottom of the screen would otherwise open the panel off-screen.
+    const below = rect.bottom + 2;
+    const flip = below + panelHeight > window.innerHeight - padding && rect.top - panelHeight > padding;
+
+    this.suggestWidth.set(width);
+    this.suggestLeft.set(Math.max(padding, Math.min(rect.left, window.innerWidth - width - padding)));
+    this.suggestTop.set(flip ? Math.max(padding, rect.top - panelHeight - 2) : below);
+  }
+
+  private ensureSuggestRendered(): void {
+    if (this.suggestView || !this.suggestTemplateRef) return;
+    this.suggestView = this.viewContainerRef.createEmbeddedView(this.suggestTemplateRef);
+    this.suggestView.detectChanges();
+    for (const node of this.suggestView.rootNodes) {
+      if (node && typeof (node as Node).nodeType === 'number') {
+        this.documentRef.body.appendChild(node as Node);
+      }
+    }
+    this.documentRef.addEventListener('pointerdown', this.suggestOutsideClickHandler, true);
+    window.addEventListener('scroll', this.suggestRepositionHandler, true);
+    window.addEventListener('resize', this.suggestRepositionHandler);
+    this.positionSuggest();
+    // Re-measure once the real content has laid out, so the flip-above
+    // decision uses the panel's actual height rather than the estimate.
+    setTimeout(() => {
+      if (!this.searchOpen()) return;
+      this.suggestView?.detectChanges();
+      this.positionSuggest();
+    }, 0);
+  }
+
+  private destroySuggestView(): void {
+    this.documentRef.removeEventListener('pointerdown', this.suggestOutsideClickHandler, true);
+    window.removeEventListener('scroll', this.suggestRepositionHandler, true);
+    window.removeEventListener('resize', this.suggestRepositionHandler);
+    const view = this.suggestView;
+    this.suggestView = null;
+    if (!view) return;
+    for (const node of [...view.rootNodes] as Node[]) {
+      if (node.parentNode) node.parentNode.removeChild(node);
+    }
+    view.destroy();
+  }
+
+  private openSearchPanel(): void {
+    this.searchOpen.set(true);
+    this.ensureSuggestRendered();
+  }
+  protected onSearchInput(value: string): void {
+    this.searchText.set(value ?? '');
+    this.openSearchPanel();
+    this.suggestView?.detectChanges();
+    this.positionSuggest();
+  }
+
+  protected onSearchFocus(): void {
+    this.searchText.set(this.productValue() || '');
+    this.openSearchPanel();
+  }
+
+  /** Closing without a pick must not strand a half-typed value in the cell. */
+  protected closeSearch(_force = false): void {
+    this.searchOpen.set(false);
+    this.searchText.set('');
+    this.destroySuggestView();
+  }
+
+  protected chooseMatch(value: string): void {
+    this.closeSearch(true);
+    this.pickProduct(value);
+  }
+
+  // A product carries far more than a name — nature, base UOM, HSN and GST,
+  // category, tracking policies — so it is created on the real Product Master
+  // screen rather than through a cut-down inline form that would leave a
+  // half-configured record behind. The shell snapshots this in-progress
+  // document, carries the typed name over so the form opens part-filled, and
+  // brings the user back to THIS cell with the new product already in it.
+  protected createInProductMaster(): void {
+    const name = this.searchText().trim();
+    const pendingLine = { rowIndex: this.rowIndex, columnIndex: this.productColumnIndex, productName: name };
+    this.closeSearch(true);
+    if (typeof this.host?.addProductFromLineProductPicker === 'function') {
+      this.host.addProductFromLineProductPicker(pendingLine);
+      return;
+    }
+    this.host?.addProductFromProcurementGrid?.(undefined, pendingLine);
+  }
+
   protected pickProduct(value: string): void {
     this.host.setEntryLineCell(this.rowIndex, this.productColumnIndex, value);
+    if (!value) return;
+
+    // Variant options and attribute rows are derived from the product the host
+    // has just been given, so let that settle before deciding whether anything
+    // is still outstanding. If it is, go straight into the popup rather than
+    // making the user find a second control; if the product needs nothing,
+    // the pick is finished here and they can move to the next cell.
+    setTimeout(() => {
+      if (this.needsConfiguration()) this.openPopup();
+    });
   }
 
   protected pickVariant(value: string): void {

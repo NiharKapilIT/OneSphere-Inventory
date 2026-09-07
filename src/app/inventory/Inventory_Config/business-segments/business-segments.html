@@ -181,12 +181,16 @@
           <i class="pi pi-times-circle"></i> {{ categoryPopupError() }}
         </div>
       }
+      <!-- The staging grid is the only confirmation that "Add To Grid" worked,
+           so it is kept in its own bounded, scrollable panel rather than being
+           pushed below the fold by a long add form. -->
+      <div class="inv-category-staged" #stagedCategories>
       <div class="inventory-section-title">
         <div>
           <h3>Temp Categories</h3>
           <p>Review added categories before final save.</p>
         </div>
-        <span class="erp-label-hint">{{ pendingCategories().length }} added</span>
+        <span class="erp-badge badge-info">{{ pendingCategories().length }} added</span>
       </div>
       @if (pendingCategories().length) {
         <div class="tbl-wrap">
@@ -224,6 +228,7 @@
           <i class="pi pi-inbox"></i> No categories added to temp grid yet.
         </div>
       }
+      </div>
     </div>
     <div class="inv-popup-foot">
       <button type="button" class="erp-btn btn-white" [disabled]="savingPendingCategories()" (click)="closeCategoryMasterDialog()">Cancel</button>

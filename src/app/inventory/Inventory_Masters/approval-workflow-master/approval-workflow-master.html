@@ -1059,7 +1059,7 @@
                   }
                 }
                 @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
+                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openFieldAddMaster(field)">
                     <i class="pi pi-plus"></i>
                   </button>
                 }
@@ -1164,7 +1164,7 @@
           } @else if (config.kind === 'report') {
             <button type="button" class="erp-btn btn-primary"><i class="pi pi-search"></i> Generate</button>
           } @else {
-            <button type="button" class="erp-btn btn-primary"><i class="pi pi-plus"></i> Add</button>
+            <button type="button" class="erp-btn btn-primary"><i class="pi" [class.pi-plus]="!isEditingSavedRecord()" [class.pi-check]="isEditingSavedRecord()"></i> {{ isEditingSavedRecord() ? 'Update' : 'Add' }}</button>
           }
         </div>
         }

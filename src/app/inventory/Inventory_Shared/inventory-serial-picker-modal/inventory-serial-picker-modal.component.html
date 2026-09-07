@@ -108,11 +108,24 @@
           @if (host.serialPickerLoading()) {
             <span class="inventory-grid-empty-hint">Loading available serials…</span>
           } @else {
+            @let atCap = host.serialPickerDraftValues().length >= picker.qtyNeeded;
             <div class="inventory-serial-select-list">
               @for (option of host.serialPickerAvailableOptions(); track option.id) {
-                <label class="inventory-serial-select-row">
+                @let isChecked = host.isSerialPickerOptionChecked(option.id);
+                <!-- Once the line quantity is covered, the remaining rows are
+                     disabled rather than merely refused by the handler. A plain
+                     (change) refusal leaves the browser's own tick in place —
+                     Angular does not rewrite [checked] because the bound value
+                     never changed — so the list would show more ticks than the
+                     quantity allows and Save would silently keep only the first
+                     few. Already-ticked rows stay enabled so a selection can
+                     still be swapped. -->
+                <label class="inventory-serial-select-row"
+                  [class.inventory-serial-select-row--disabled]="!isChecked && atCap"
+                  [title]="!isChecked && atCap ? 'Quantity of ' + picker.qtyNeeded + ' already selected — untick one to choose a different serial number.' : ''">
                   <input type="checkbox"
-                    [checked]="host.isSerialPickerOptionChecked(option.id)"
+                    [checked]="isChecked"
+                    [disabled]="!isChecked && atCap"
                     (change)="host.toggleSerialPickerOption(option)" />
                   <span>{{ host.serialPickerOptionLabel(option) }}</span>
                 </label>
@@ -120,6 +133,13 @@
                 <span class="inventory-grid-empty-hint">No serial numbers available to select.</span>
               }
             </div>
+            @if (atCap) {
+              <div class="inventory-optional-hint">
+                <i class="pi pi-check-circle"></i>
+                All {{ picker.qtyNeeded }} required serial number{{ picker.qtyNeeded === 1 ? '' : 's' }} selected.
+                Untick one to choose a different unit.
+              </div>
+            }
           }
         </div>
       }

@@ -121,7 +121,7 @@
                   @if (field.addMaster) {
                     <button type="button" class="erp-btn btn-white btn-icon"
                       [title]="'Add ' + field.addMaster"
-                      (click)="openAddMaster(field.addMaster, field.key)">
+                      (click)="openFieldAddMaster(field)">
                       <i class="pi pi-plus"></i>
                     </button>
                   }
@@ -150,7 +150,7 @@
                   @if (field.addMaster) {
                     <button type="button" class="erp-btn btn-white btn-icon"
                       [title]="'Add ' + field.addMaster"
-                      (click)="openAddMaster(field.addMaster, field.key)">
+                      (click)="openFieldAddMaster(field)">
                       <i class="pi pi-plus"></i>
                     </button>
                   }
@@ -221,7 +221,7 @@
               @if (field.addMaster) {
                 <button type="button" class="erp-btn btn-white btn-icon"
                   [title]="'Add ' + field.addMaster"
-                  (click)="openAddMaster(field.addMaster, field.key)">
+                  (click)="openFieldAddMaster(field)">
                   <i class="pi pi-plus"></i>
                 </button>
               }
@@ -488,7 +488,6 @@
             <button type="button" class="erp-btn btn-white btn-sm" title="Export PDF" (click)="runGridToolbarAction('records', 'pdf')"><i class="pi pi-file-pdf"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Export Excel" (click)="runGridToolbarAction('records', 'excel')"><i class="pi pi-file-excel"></i></button>
             <button type="button" class="erp-btn btn-white btn-sm" title="Mail" (click)="runGridToolbarAction('records', 'mail')"><i class="pi pi-envelope"></i></button>
-            <button type="button" class="erp-btn btn-white btn-sm" title="WhatsApp" (click)="runGridToolbarAction('records', 'whatsapp')"><i class="pi pi-whatsapp"></i></button>
           }
           <span class="inventory-grid-divider"></span>
           <div class="inventory-grid-pager">

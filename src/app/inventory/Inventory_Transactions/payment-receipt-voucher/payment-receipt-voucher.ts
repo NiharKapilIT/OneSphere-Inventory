@@ -39,6 +39,8 @@ const TDS_SECTIONS_FALLBACK: { value: string; label: string; rate: number }[] = 
 const CASH_PAYMENT_LIMIT = 9999;
 const CASH_RECEIPT_LIMIT = 199000;
 
+const NO_BANK_OPTIONS: PaymentModeOption[] = [];
+
 @Component({
   selector: 'app-payment-receipt-voucher',
   standalone: true,
@@ -107,6 +109,24 @@ export class PaymentReceiptVoucherComponent {
   readonly accountBankOptions = signal<PaymentModeOption[]>([]);
   readonly accountDepositBankOptions = signal<PaymentModeOption[]>([]);
   readonly accountOnlinePaymentTypes = signal<PaymentModeOption[]>([]);
+  // "Bank Name" means different things on the two sides, so it is fed
+  // differently:
+  //   Payment — the cheque is drawn on OUR account, so offer the banks
+  //             configured in Accounts and let the primary one pre-select.
+  //   Receipt — the customer pays from THEIR OWN bank, which is not one of our
+  //             ledger accounts. Offering our configured banks here would stamp
+  //             our account as the payer's, so the field is left as free text
+  //             (bank name, branch and account number are all the customer's).
+  //             Where the money lands is captured separately as the Deposited
+  //             Bank, and that is what reaches our Bank Book.
+  readonly bankOptionsForMode = computed<PaymentModeOption[]>(() =>
+    this.mode() === 'pay' ? this.accountBankOptions() : NO_BANK_OPTIONS);
+
+  // Cheque-book leaves / UPI handles per bank account, keyed by bank id and
+  // fetched lazily the first time a row selects that bank (they are per-bank
+  // master data, unlike the bank list itself which is per company/branch).
+  readonly bankDetailsByBankId = signal<Record<string, { chequeNumbers: PaymentModeOption[]; upiNames: PaymentModeOption[] }>>({});
+  private readonly bankDetailsRequested = new Set<string>();
   readonly narration = signal('');
   readonly tdsSection = signal<string>('');
   readonly voucherDate = signal<string>(new Date().toISOString().slice(0, 10));
@@ -530,6 +550,30 @@ export class PaymentReceiptVoucherComponent {
   }
   setModeDetails(idx: number, details: PaymentModeSelectorValue): void {
     this.modeRows.update(rows => rows.map((r, i) => i === idx ? { ...r, details } : r));
+    this.loadBankDetails(details.bankId);
+  }
+
+  private loadBankDetails(bankId: any): void {
+    const key = this.bankKey(bankId);
+    if (!key || this.bankDetailsRequested.has(key)) return;
+    this.bankDetailsRequested.add(key);
+    this.paymentsService.getPaymentVoucherBankDetails(bankId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(details => this.bankDetailsByBankId.update(map => ({ ...map, [key]: details })));
+  }
+
+  private bankKey(bankId: any): string {
+    return bankId === null || bankId === undefined ? '' : String(bankId);
+  }
+
+  // Both are called from the template, so they hand back a shared empty array
+  // rather than a fresh [] per change-detection pass.
+  chequeNumbersFor(row: ModeRow): PaymentModeOption[] {
+    return this.bankDetailsByBankId()[this.bankKey(row.details.bankId)]?.chequeNumbers ?? NO_BANK_OPTIONS;
+  }
+
+  upiNamesFor(row: ModeRow): PaymentModeOption[] {
+    return this.bankDetailsByBankId()[this.bankKey(row.details.bankId)]?.upiNames ?? NO_BANK_OPTIONS;
   }
 
   // Flattens the shared component's rich output into the flat string map
@@ -545,6 +589,7 @@ export class PaymentReceiptVoucherComponent {
       put('branchName', d.branchName);
       put('accountNumber', d.accountNumber);
       put(d.bankSubType === 'CHEQUE' ? 'chequeNumber' : 'referenceNumber', d.refNumber);
+      put('chequeBookId', d.chequeBookId);
       put(d.bankSubType === 'CHEQUE' ? 'chequeDate' : 'transactionDate', d.refDate);
       put('cardNumber', d.cardNumber);
       put('bankFinancialServices', d.bankFinancialServices);

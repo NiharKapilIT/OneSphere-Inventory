@@ -69,6 +69,11 @@ export interface PaymentModeOption {
   /** Only used for the "Deposited Bank Name" list -- shows the Bank Book / Pass Book pills when present. */
   bankBookBalance?: number;
   passbookBalance?: number;
+  /** Only used for the "Cheque No." list -- the cheque book the leaf belongs to. */
+  bookId?: any;
+  /** Bank lists only -- accounts.tbl_mst_bank_configuration.isprimary. The
+   *  primary bank is auto-selected when the Bank tab is opened. */
+  isPrimary?: boolean;
 }
 
 export interface PaymentModeSelectorValue {
@@ -80,6 +85,9 @@ export interface PaymentModeSelectorValue {
   accountNumber: string;
   /** Cheque No. (Cheque) / Reference No. (Online, Debit Card, Credit Card). */
   refNumber: string;
+  /** Cheque only: the cheque book `refNumber` was picked from, when it came from
+   *  a configured cheque book rather than being typed in free-hand. */
+  chequeBookId: any | null;
   /** Cheque Date (Cheque) / Transaction Date (Online) -- ISO yyyy-MM-dd. */
   refDate: string | null;
   cardNumber: string;
@@ -108,6 +116,7 @@ export function defaultPaymentModeValue(): PaymentModeSelectorValue {
     branchName: '',
     accountNumber: '',
     refNumber: '',
+    chequeBookId: null,
     refDate: null,
     cardNumber: '',
     bankFinancialServices: '',
@@ -148,6 +157,16 @@ export class PaymentModeSelectorComponent {
   @Input() label = 'Payment'; // renders "Mode Of Payment" / "Mode Of Receipt"
   @Input() banks: PaymentModeOption[] = [];
   @Input() depositBanks: PaymentModeOption[] = [];
+  /** Un-used cheque leaves of the selected bank's cheque book (Accounts >
+   *  Config > Cheque Management). Supplied => "Cheque No." becomes a dropdown
+   *  of those numbers; empty => it stays the free-text input it always was. */
+  @Input() chequeNumbers: PaymentModeOption[] = [];
+  /** Receipts only. On money coming IN the cheque is drawn on the CUSTOMER's
+   *  bank, so "Bank Name" is free text — but our books still need to know which
+   *  of our accounts it is banked into, which is what decides whether it reaches
+   *  the Bank Book or waits in Cheque on Hand. Payments don't need it: the bank
+   *  the cheque is drawn on is already ours. */
+  @Input() depositBankOnCheque = false;
   @Input() onlinePaymentTypes: PaymentModeOption[] = DEFAULT_ONLINE_TYPES;
   @Input() upiOptions: PaymentModeOption[] = [];
   @Input() cashBalanceLabel = '';
@@ -180,6 +199,7 @@ export class PaymentModeSelectorComponent {
     this.branchName.set(v.branchName ?? '');
     this.accountNumber.set(v.accountNumber ?? '');
     this.refNumber.set(v.refNumber ?? '');
+    this.chequeBookId.set(v.chequeBookId ?? null);
     this.refDate.set(v.refDate ?? null);
     this.cardNumber.set(v.cardNumber ?? '');
     this.bankFinancialServices.set(v.bankFinancialServices ?? '');
@@ -201,6 +221,7 @@ export class PaymentModeSelectorComponent {
   readonly branchName = signal('');
   readonly accountNumber = signal('');
   readonly refNumber = signal('');
+  readonly chequeBookId = signal<any | null>(null);
   readonly refDate = signal<string | null>(null);
   readonly cardNumber = signal('');
   readonly bankFinancialServices = signal('');
@@ -237,12 +258,29 @@ export class PaymentModeSelectorComponent {
     this.mode.set(next);
     this.resetBankFields();
     this.bankSubType.set(next === 'BANK' ? 'CHEQUE' : null);
+    if (next === 'BANK') this.applyDefaultBanks();
   }
 
   setBankSubType(next: PaymentBankSubType): void {
     if (this.disabled || this.bankSubType() === next) return;
     this.resetBankFields();
     this.bankSubType.set(next);
+    this.applyDefaultBanks();
+  }
+
+  /** Pre-selects the bank account configured in Accounts (Config > Bank
+   *  Configuration) so its name/branch/account number are already filled in:
+   *  the one flagged primary, or the only one there is. With several
+   *  non-primary accounts nothing is guessed -- the user picks. */
+  private applyDefaultBanks(): void {
+    const pick = (options: PaymentModeOption[]): PaymentModeOption | null =>
+      options.find(o => o.isPrimary) ?? (options.length === 1 ? options[0] : null);
+
+    const bank = pick(this.banks);
+    if (bank) this.setBankId(bank.id);
+
+    const depositBank = pick(this.depositBanks);
+    if (depositBank) this.setDepositBankId(depositBank.id);
   }
 
   private resetBankFields(): void {
@@ -251,6 +289,7 @@ export class PaymentModeSelectorComponent {
     this.branchName.set('');
     this.accountNumber.set('');
     this.refNumber.set('');
+    this.chequeBookId.set(null);
     this.refDate.set(null);
     this.cardNumber.set('');
     this.bankFinancialServices.set('');
@@ -270,6 +309,13 @@ export class PaymentModeSelectorComponent {
     this.bankName.set(bank?.label ?? '');
     if (bank?.branchName !== undefined) this.branchName.set(String(bank.branchName || '').slice(0, 30));
     if (bank?.accountNumber !== undefined) this.accountNumber.set(this.digitsOnly(String(bank.accountNumber)).slice(0, 20));
+    // The cheque book belongs to the bank account, so a leaf picked for the
+    // previous bank no longer applies. Only Cheque is affected -- a Reference
+    // No. on the other tabs isn't drawn from the bank's book.
+    if (this.bankSubType() === 'CHEQUE') {
+      this.refNumber.set('');
+      this.chequeBookId.set(null);
+    }
   }
   setBankNameFree(v: string): void {
     this.bankId.set(null);
@@ -280,6 +326,15 @@ export class PaymentModeSelectorComponent {
   setRefNumber(v: string): void {
     const max = this.bankSubType() === 'CHEQUE' ? 6 : 25;
     this.refNumber.set(this.digitsOnly(v).slice(0, max));
+    this.chequeBookId.set(null);
+  }
+  /** Cheque No. picked from the configured cheque book -- keeps the book id
+   *  alongside the number so the saved voucher records which book it came from. */
+  setChequeNumber(v: any): void {
+    const selectedId = this.valueId(v);
+    const leaf = this.findOption(this.chequeNumbers, selectedId) ?? this.asPaymentOption(v);
+    this.refNumber.set(selectedId === null || selectedId === undefined ? '' : String(leaf?.label ?? selectedId));
+    this.chequeBookId.set(leaf?.bookId ?? null);
   }
   setRefDate(d: Date | string | null): void { this.refDate.set(d ? this.toIsoDate(d) : null); }
   setCardNumber(v: string): void { this.cardNumber.set(this.digitsOnly(v).slice(0, 16)); }
@@ -457,6 +512,7 @@ export class PaymentModeSelectorComponent {
       branchName: this.branchName(),
       accountNumber: this.accountNumber(),
       refNumber: this.refNumber(),
+      chequeBookId: bankSubType === 'CHEQUE' ? this.chequeBookId() : null,
       refDate: this.refDate(),
       cardNumber: this.cardNumber(),
       bankFinancialServices: this.bankFinancialServices(),

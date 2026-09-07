@@ -20,6 +20,7 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
   let fixture: ComponentFixture<PaymentReceiptVoucherComponent>;
   let component: PaymentReceiptVoucherComponent;
   let savePayload: any;
+  let bankDetailsCalls: any[];
 
   function setUpParty(): void {
     (component as any).selectedPartyId.set(1);
@@ -28,6 +29,7 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
 
   beforeEach(async () => {
     savePayload = null;
+    bankDetailsCalls = [];
     const paymentsServiceStub: Partial<PaymentsService> = {
       getPaymentVouchers: () => of({ success: true, data: [] }) as any,
       getOutstandingInvoices: () => of({ success: true, data: [] }) as any,
@@ -35,6 +37,7 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
       getVendorFyPurchaseSummary: () => of({ success: true, data: null }) as any,
       getAvailableNotes: () => of({ success: true, data: [] }) as any,
       getPaymentVoucherAccountSetup: () => of({ banks: [], depositBanks: [], onlinePaymentTypes: [] }) as any,
+      getPaymentVoucherBankDetails: (bankId: any) => { bankDetailsCalls.push(bankId); return of({ chequeNumbers: [{ id: '501', label: '501', bookId: 1 }], upiNames: [] }) as any; },
       savePaymentVoucher: (payload: any) => { savePayload = payload; return of({ success: true, data: { voucher_number: 'PV-EL-26-00001' } }) as any; }
     };
 
@@ -144,6 +147,51 @@ describe('PaymentReceiptVoucherComponent — mode-of-payment integration (item 1
     expect(m.refJson.chequeNumber).toBe('456789'); // Cheque No. -> chequeNumber, not referenceNumber
     expect(m.refJson.chequeDate).toBe('2026-08-16');
     expect(m.refJson.bankId).toBe('7');
+  });
+
+  // Bank + cheque-book master data configured in Accounts (Config > Bank
+  // Configuration / Cheque Management) has to reach the Inventory Pay/Receipt
+  // screen: the cheque leaves are per bank account, so they are fetched the
+  // first time a row selects a bank and then reused for every row on that bank.
+  it('fetches the selected bank\'s cheque book once and offers its leaves to that row', () => {
+    component.addMode();
+    component.setModeDetails(0, { ...defaultPaymentModeValue(), mode: 'BANK', bankSubType: 'CHEQUE', bankId: 6, modeKey: 'cheque', isValid: false });
+
+    expect(bankDetailsCalls).toEqual([6]);
+    expect(component.chequeNumbersFor(component.modeRows()[0]).map(o => o.label)).toEqual(['501']);
+
+    // A second row on the same bank reuses the cached lookup rather than re-fetching.
+    component.addMode();
+    component.setModeDetails(1, { ...defaultPaymentModeValue(), mode: 'BANK', bankSubType: 'CHEQUE', bankId: 6, modeKey: 'cheque', isValid: false });
+    expect(bankDetailsCalls).toEqual([6]);
+    expect(component.chequeNumbersFor(component.modeRows()[1]).map(o => o.label)).toEqual(['501']);
+  });
+
+  it('saves the cheque book a picked cheque number came from', () => {
+    setUpParty();
+    (component as any).quickAmount.set(5000);
+    component.addMode();
+    component.setModeAmount(0, '5000');
+    component.setModeDetails(0, {
+      ...defaultPaymentModeValue(),
+      mode: 'BANK',
+      bankSubType: 'CHEQUE',
+      bankId: 6,
+      bankName: 'UNION BANK OF INDIA@5980152956',
+      branchName: 'Head Office',
+      refNumber: '501',
+      chequeBookId: 1,
+      refDate: '2026-09-04',
+      modeKey: 'cheque',
+      summary: 'Cheque #501 · UNION BANK OF INDIA@5980152956',
+      isValid: true
+    });
+
+    component.save();
+
+    const [m] = savePayload.modes;
+    expect(m.refJson.chequeNumber).toBe('501');
+    expect(m.refJson.chequeBookId).toBe('1');
   });
 
   it('removing a mode row drops it from what gets saved', () => {

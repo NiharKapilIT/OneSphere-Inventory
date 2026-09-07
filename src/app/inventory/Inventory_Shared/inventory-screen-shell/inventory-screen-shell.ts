@@ -6,7 +6,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { DatePickerModule } from 'primeng/datepicker';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, forkJoin, from, map, of, switchMap } from 'rxjs';
+import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntilChanged, forkJoin, from, map, of, switchMap, tap } from 'rxjs';
 import { ApiResponse, AttributeItem, AttributeValueItem, BranchInvItem, CategoryItem, ChannelPartnerItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
 import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption, TransportDetails } from '../inventory-transactions.service';
 import { applyInventoryTextCase, inventoryTextCaseForField, inventoryTextCaseForLineColumn, toInventoryTitleCase } from '../inventory-text-case.util';
@@ -20,6 +20,7 @@ import {
   InventoryField,
   InventoryScreenConfig,
   InventorySegment,
+  priceListMasterConfig,
   workCenterMasterConfig
 } from '../inventory-screen.model';
 
@@ -364,6 +365,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly formValues = signal<Record<string, any>>({});
   readonly savedRecordObjects = signal<any[]>([]);
   readonly editingId = signal<number | null>(null);
+  // BOM / Work Center / Price List Master have no backend row id (see
+  // LOCAL_MASTER_CONFIGS) — the row currently open for editing is identified
+  // by the key its code column held when Edit was pressed, so changing that
+  // code still updates the same row instead of leaving a duplicate behind.
+  readonly editingLocalRowKey = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly saveMsg = signal('');
   readonly saveError = signal('');
@@ -1483,6 +1489,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // navigation — a plain, unrelated visit here never auto-applies a
     // leftover/abandoned snapshot.
     this.restoreProcurementResumeIfReturning();
+    this.applyProductMasterTypedName();
 
     this.loadLookupOptions();
     // Loaded on every screen (not just Vendor/Customer Master + GRN) so the
@@ -1585,7 +1592,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
     }
 
-    if (!this.isApiWired()) return;
+    // Not isApiWired(): BOM / Work Center / Price List Master save to browser
+    // storage rather than an endpoint, and this early return was why every
+    // button below (Add, Save, Edit, Delete, Clear) did nothing at all on them.
+    if (!this.isSaveWired()) return;
 
     // Pending grid — remove row
     if (title === 'Remove' || dataAction === 'remove-pending') {
@@ -1605,13 +1615,29 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       } else {
         const row = button.closest('tr');
         if (!row) return;
+        event.preventDefault();
+
+        // Take the row straight from the data, not from the rendered cells.
+        // The saved grid only paints visibleRecordColumns(), which silently
+        // drops any column that is empty across every row — so the <td> list
+        // is positionally shifted against the source row whenever that
+        // happens. findRecordByRow() matches on row[0] being the code column,
+        // so a single auto-hidden earlier column made it match nothing, and
+        // editRecordByRow()'s `if (!record) return` bailed without a word:
+        // Edit appeared dead, and re-entering the values then hit the
+        // "already exists" duplicate guard because editingId was never set.
+        const sourceRow = this.savedRowForTableRow(row);
+        if (sourceRow) {
+          this.editRecordByRow(sourceRow);
+          return;
+        }
+
+        // Fall back to the old cell-text reading if the row can't be located
+        // in the data (custom grids that don't come from pagedRows()).
         const cells = Array.from(row.querySelectorAll('td'))
           .slice(1)
           .map(cell => (cell.textContent || '').trim());
-        if (cells.length) {
-          event.preventDefault();
-          this.editRecordByRow(cells);
-        }
+        if (cells.length) this.editRecordByRow(cells);
       }
       return;
     }
@@ -1642,7 +1668,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const isFormAction = !!button.closest('.inventory-form-actions') && !button.closest('.inventory-final-actions');
       if (isFormAction) {
         event.preventDefault();
-        if (this.config?.key === 'uomMaster' || this.config?.key === 'productServiceMaster' || this.editingId() !== null) {
+        if (this.config?.key === 'uomMaster' || this.config?.key === 'productServiceMaster' || this.isEditingSavedRecord()) {
           this.saveConfigRecord();
         } else {
           this.addToPendingRows();
@@ -1803,14 +1829,25 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     'semifinishedwip',
     'wip'
   ]);
+  // What a manufacturing run is allowed to OUTPUT: a finished good, or the
+  // semi-finished/intermediate stage of one. 'physicalstock' and 'product' used
+  // to be in here, which is why every ordinary stock item showed up in the
+  // Finished Product dropdowns on BOM Master and the four Production screens;
+  // a plain Physical Stock item is bought and sold, not produced.
+  //
+  // The intermediate stage carries TWO seeded names in inventory.inv_product_types
+  // and both are matched here on purpose:
+  //   'Semi-Finished / WIP'   (code WIP,    id 3)    — status 'inactive', legacy
+  //   'Sub-Finished Product'  (code SUBFIN, id 2513) — status 'active', migration 181
+  // Identical flags (tracks_inventory, allows_production, no purchase/sale), so
+  // they are one concept under two labels. Only SUBFIN is selectable in Product
+  // Master today; WIP stays matched so any product still carrying it keeps working.
   private static readonly MANUFACTURING_OUTPUT_NATURE_KEYS = new Set([
     'finishedproduct',
     'finishedgoods',
     'subfinishedproduct',
     'semifinishedgoods',
-    'semifinishedwip',
-    'physicalstock',
-    'product'
+    'semifinishedwip'
   ]);
 
   private isRawMaterialNatureName(value: any): boolean {
@@ -3191,7 +3228,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const nature = this.productNatureKey(product);
     if (!InventoryScreenShell.MANUFACTURING_OUTPUT_NATURE_KEYS.has(nature)) return false;
     if (this.isSubFinishedNatureKey(nature)) return product.allows_production !== false;
-    if (nature === 'physicalstock' || nature === 'product') return product.allows_sale !== false;
     if (nature === 'finishedgoods' || nature === 'finishedproduct') return product.allows_sale !== false;
     return false;
   }
@@ -4552,72 +4588,200 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       });
   }
 
-  private isLocalManufacturingMasterKey(key = this.config?.key || ''): key is 'bomMaster' | 'workCenterMaster' {
-    return key === 'bomMaster' || key === 'workCenterMaster';
+  // ── Browser-persisted masters ────────────────────────────────────────────
+  // BOM Master, Work Center Master and Price List Master have no backend at
+  // all: there is no inv_bom / work_center / price_list table anywhere in the
+  // schema (bom_version and work_center are plain free-text columns on the
+  // production-plan tables), no controller and no service method. They are
+  // therefore deliberately NOT in isApiWired() — adding them there would make
+  // loadApiRecords()/deleteApiCall() fire requests to endpoints that do not
+  // exist — and they persist per company in localStorage instead.
+  //
+  // That storage layer already existed for the two manufacturing masters. What
+  // was missing is that onShellClick() returned on !isApiWired() before it ever
+  // reached the Add / Save / Edit / Delete branches, so every button on these
+  // screens was inert and nothing the user typed was ever written anywhere.
+  private static readonly LOCAL_MASTER_CONFIGS: Record<string, InventoryScreenConfig> = {
+    bomMaster: bomMasterConfig,
+    workCenterMaster: workCenterMasterConfig,
+    priceListMaster: priceListMasterConfig
+  };
+
+  isLocalMasterKey(key = this.config?.key || ''): boolean {
+    return !!InventoryScreenShell.LOCAL_MASTER_CONFIGS[key];
   }
 
-  private localManufacturingMasterStorageKey(masterKey: 'bomMaster' | 'workCenterMaster'): string {
+  // Every screen that has a real save path, whether that path is the API or
+  // browser storage. onShellClick() gates on this instead of isApiWired(),
+  // which is still the narrower "has a backend" question used for loading,
+  // deleting and posting.
+  isSaveWired(): boolean {
+    return this.isApiWired() || this.isLocalMasterKey();
+  }
+
+  // Templates show "Update" rather than "Add" while a saved record is open.
+  // API-backed screens track that with editingId; the browser-persisted
+  // masters have no id, so both are folded into the one call templates make.
+  isEditingSavedRecord(): boolean {
+    return this.editingId() !== null || this.editingLocalRowKey() !== null;
+  }
+
+  private localMasterStorageKey(masterKey: string): string {
     const companyId = sessionStorage.getItem('companyId') || '0';
+    // Key name kept as-is so BOM/Work Center rows already saved on a machine
+    // stay visible after this change.
     return `inv_manufacturing_master::${companyId}::${masterKey}`;
   }
 
-  private normalizeManufacturingMasterRow(masterKey: 'bomMaster' | 'workCenterMaster', row: any): string[] {
-    const columns = masterKey === 'bomMaster'
-      ? (bomMasterConfig.columns || [])
-      : (workCenterMasterConfig.columns || []);
+  // config.rows ships seeded sample rows for these screens. Deleting one has to
+  // survive a reload, so removed seed keys are remembered here rather than the
+  // row simply reappearing from the config on the next render.
+  private localMasterRemovedKey(masterKey: string): string {
+    return `${this.localMasterStorageKey(masterKey)}::removed`;
+  }
+
+  private removedLocalMasterKeys(masterKey: string): string[] {
+    try {
+      const raw = localStorage.getItem(this.localMasterRemovedKey(masterKey));
+      const keys = raw ? JSON.parse(raw) : [];
+      return Array.isArray(keys) ? keys.map(key => String(key || '')).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private setRemovedLocalMasterKeys(masterKey: string, keys: string[]): void {
+    try {
+      localStorage.setItem(this.localMasterRemovedKey(masterKey), JSON.stringify([...new Set(keys)]));
+    } catch {
+      // Storage unavailable (private browsing / quota) — the row still
+      // disappears for this session, it just comes back on reload.
+    }
+  }
+
+  private normalizeLocalMasterRow(masterKey: string, row: any): string[] {
+    const columns = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey]?.columns || [];
     const source = Array.isArray(row) ? row : [];
     return Array.from({ length: columns.length }, (_, index) => String(source[index] ?? '').trim());
   }
 
-  private storedManufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
+  // The row's identity: its code column, falling back to the name column for
+  // configs whose first column can be blank.
+  private localMasterRowKey(row: string[]): string {
+    return this.normalizeKey(row[0] || row[1]);
+  }
+
+  private storedLocalMasterRows(masterKey: string): string[][] {
     try {
-      const raw = localStorage.getItem(this.localManufacturingMasterStorageKey(masterKey));
+      const raw = localStorage.getItem(this.localMasterStorageKey(masterKey));
       const rows = raw ? JSON.parse(raw) : [];
       return Array.isArray(rows)
-        ? rows.map(row => this.normalizeManufacturingMasterRow(masterKey, row)).filter(row => row.some(cell => cell))
+        ? rows.map(row => this.normalizeLocalMasterRow(masterKey, row)).filter(row => row.some(cell => cell))
         : [];
     } catch {
       return [];
     }
   }
 
-  private manufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
-    const configRows = masterKey === 'bomMaster'
-      ? (bomMasterConfig.rows || [])
-      : (workCenterMasterConfig.rows || []);
+  private localMasterRows(masterKey: string): string[][] {
+    const configRows = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey]?.rows || [];
+    const removed = new Set(this.removedLocalMasterKeys(masterKey));
     const seen = new Set<string>();
     return [
-      ...this.storedManufacturingMasterRows(masterKey),
-      ...configRows.map(row => this.normalizeManufacturingMasterRow(masterKey, row))
+      ...this.storedLocalMasterRows(masterKey),
+      ...configRows.map(row => this.normalizeLocalMasterRow(masterKey, row))
     ].filter(row => {
-      const key = this.normalizeKey(row[0] || row[1]);
-      if (!key || seen.has(key)) return false;
+      const key = this.localMasterRowKey(row);
+      if (!key || seen.has(key) || removed.has(key)) return false;
       seen.add(key);
       return true;
     });
   }
 
-  private saveLocalManufacturingMaster(payload: Record<string, any>): ApiResponse<any> {
-    const masterKey = this.config?.key as 'bomMaster' | 'workCenterMaster';
-    if (!this.isLocalManufacturingMasterKey(masterKey)) {
+  // Kept as the manufacturing-specific reader used by Production Planning's
+  // BOM lookup, so those call sites keep reading exactly what they always did.
+  private manufacturingMasterRows(masterKey: 'bomMaster' | 'workCenterMaster'): string[][] {
+    return this.localMasterRows(masterKey);
+  }
+
+  private saveLocalMaster(payload: Record<string, any>): ApiResponse<any> {
+    const masterKey = this.config?.key || '';
+    if (!this.isLocalMasterKey(masterKey)) {
       return { success: false, message: 'Unknown screen', data: null };
     }
     const display = this.mapToGridRows([payload])[0] || [];
-    const normalizedDisplay = this.normalizeManufacturingMasterRow(masterKey, display);
+    const normalizedDisplay = this.normalizeLocalMasterRow(masterKey, display);
     if (!normalizedDisplay.some(cell => cell)) {
       return { success: false, message: 'Enter the required master details.', data: null };
     }
 
-    const rowKey = this.normalizeKey(normalizedDisplay[0] || normalizedDisplay[1]);
-    const existing = this.storedManufacturingMasterRows(masterKey)
-      .filter(row => this.normalizeKey(row[0] || row[1]) !== rowKey);
+    const rowKey = this.localMasterRowKey(normalizedDisplay);
+    // While editing, the row that was opened is replaced even if its own code
+    // was changed in the form — otherwise renaming a code would leave the old
+    // row behind and silently create a second one.
+    const replacedKey = this.editingLocalRowKey() || rowKey;
+    const existing = this.storedLocalMasterRows(masterKey)
+      .filter(row => {
+        const key = this.localMasterRowKey(row);
+        return key !== rowKey && key !== replacedKey;
+      });
     const nextRows = [normalizedDisplay, ...existing];
     try {
-      localStorage.setItem(this.localManufacturingMasterStorageKey(masterKey), JSON.stringify(nextRows));
+      localStorage.setItem(this.localMasterStorageKey(masterKey), JSON.stringify(nextRows));
+      // Editing a seeded row writes a stored copy of it, so the seed must stay
+      // suppressed; re-creating a previously deleted code un-suppresses it.
+      const removed = this.removedLocalMasterKeys(masterKey)
+        .filter(key => key !== rowKey)
+        .concat(replacedKey !== rowKey ? [replacedKey] : []);
+      this.setRemovedLocalMasterKeys(masterKey, removed);
+      this.editingLocalRowKey.set(null);
       return { success: true, message: 'Record saved.', data: payload };
     } catch {
-      return { success: false, message: 'Unable to save Manufacturing master locally.', data: null };
+      return { success: false, message: `Unable to save ${this.config?.title || 'this master'} in this browser.`, data: null };
     }
+  }
+
+  private deleteLocalMasterRow(row: string[]): boolean {
+    const masterKey = this.config?.key || '';
+    if (!this.isLocalMasterKey(masterKey)) return false;
+    const rowKey = this.localMasterRowKey(this.normalizeLocalMasterRow(masterKey, row));
+    if (!rowKey) return false;
+    try {
+      const remaining = this.storedLocalMasterRows(masterKey)
+        .filter(stored => this.localMasterRowKey(stored) !== rowKey);
+      localStorage.setItem(this.localMasterStorageKey(masterKey), JSON.stringify(remaining));
+      this.setRemovedLocalMasterKeys(masterKey, [...this.removedLocalMasterKeys(masterKey), rowKey]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Fills the form from a grid row (these screens have no record object to
+  // read back — the row IS the record) and remembers which row is open so
+  // saveLocalMaster() replaces it instead of appending a duplicate.
+  //
+  // Fields are matched to columns by label, not by position: Work Center
+  // Master declares Work Center Code as its LAST field but its FIRST column,
+  // so a positional read would put the code into the name box.
+  private editLocalMasterRow(row: string[]): void {
+    const masterKey = this.config?.key || '';
+    const config = InventoryScreenShell.LOCAL_MASTER_CONFIGS[masterKey];
+    const fields = config?.fields || [];
+    const columns = config?.columns || [];
+    const normalized = this.normalizeLocalMasterRow(masterKey, row);
+    const values: Record<string, any> = {};
+    fields.forEach((field, fieldIndex) => {
+      const byLabel = columns.findIndex(column => this.normalizeKey(column) === this.normalizeKey(field.label));
+      const cell = normalized[byLabel >= 0 ? byLabel : fieldIndex] ?? '';
+      values[field.key] = field.type === 'multiselect'
+        ? cell.split(',').map(item => item.trim()).filter(Boolean)
+        : cell;
+    });
+    this.formValues.set(values);
+    this.editingLocalRowKey.set(this.localMasterRowKey(normalized));
+    this.saveMsg.set('');
+    this.saveError.set('');
   }
 
   private rawMaterialNamesFromBomValue(value: any): string[] {
@@ -4886,6 +5050,22 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         : 'Map contact person in Branch Master for selected branch';
     }
 
+    // BOM Master and the four Production screens list only Finished /
+    // Sub-Finished products as an output, and Raw Material / Sub-Finished as an
+    // input. When nothing in Product Master carries those natures the dropdown
+    // is empty, which reads as a broken screen — say what is missing and where
+    // it is fixed instead, the same way the Purchase Requisition hint above does.
+    if (this.config?.key === 'bomMaster' || this.isManufacturingTransactionKey()) {
+      const manufacturingKey = this.compactKey(field.key);
+      if ((manufacturingKey === 'finishedproduct' || manufacturingKey === 'forfinishedproduct')
+        && !this.finishedManufacturingProductOptions().length) {
+        return 'No Finished / Sub-Finished products yet — set Product Nature in Product Master';
+      }
+      if (manufacturingKey === 'rawmaterials' && !this.rawMaterialProductOptions().length) {
+        return 'No Raw Material / Sub-Finished products yet — set Product Nature in Product Master';
+      }
+    }
+
     if (field.key === 'serialFormat') return 'Free-text reference note, not validated — e.g. 15-digit IMEI';
     if (field.key === 'batchFormat') return 'Free-text reference note, not validated — e.g. YYYYMMDD-SUPPLIER-SEQ';
 
@@ -4983,11 +5163,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   openFieldAddMaster(field: InventoryField): void {
     if (!field.addMaster) return;
-    const key = field.key.toLowerCase();
+    // A "+" next to any Product field goes to the real Product Master and
+    // returns here afterwards, rather than opening the quick-add modal, whose
+    // Product / Service branch has no bindings and saves nothing. Screens with
+    // no return route registered still fall through to the modal below, which
+    // is correct for every other master it does implement.
     if (
-      this.config?.key === 'bomMaster'
-      && field.addMaster === 'Product / Service'
-      && (key === 'finishedproduct' || key === 'rawmaterials')
+      field.addMaster === 'Product / Service'
+      && this.config?.key
+      && InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[this.config.key]
     ) {
       this.addProductFromProcurementGrid(field.key);
       return;
@@ -9011,15 +9195,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   lineGridColumnHeader(column: string): string {
-    // Header follows the product's mapped serial policy label where available.
-    if (this.lineGridColumnIsSerialValue(column)) {
-      return column;
-    }
-    if (this.isStandaloneSerialPolicyColumn(column)) {
-      const policyNames = this.lineGridSerialColumnNames();
-      if (policyNames.length === 1) return policyNames[0];
-      if (policyNames.length > 1) return 'Serial / IMEI Number';
-    }
+    // The header stays the generic column name ("Serial No") — one header can
+    // only ever name one policy, but a grid holds rows for different products,
+    // each with its own policy (IMEI Number, Chassis No, …). The policy is
+    // per-row information, so it belongs on the row's own button, which is
+    // where serialPickerSummaryForRow() now puts it.
     return column;
   }
 
@@ -14026,12 +14206,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const inheritedSource = this.inheritedSalesSerialSource(rowIndex);
     const dcItemId = inheritedSource?.dcItemId ?? null;
     const siItemId = inheritedSource?.siItemId ?? null;
+    // The button carries the row's own serial policy name — the column header
+    // is now the plain "Serial No", so this is where the user learns WHICH
+    // number this line wants (IMEI Number, Chassis No, ...). The captured/
+    // required count stays alongside it: it is the only place the qty cap is
+    // visible before the picker opens.
     const label = this.productSerialColumnLabels(product)[0] || 'Serial No';
     if (dcItemId) return count ? `${count} ${label}(s) from DC` : 'Loading…';
 
     if (siItemId) return count ? `${count} ${label}(s) from SI` : 'Loading...';
-    const verb = this.serialPickerModeForKey() === 'capture' ? 'Enter' : 'Select';
-    return `${verb} ${label} (${count}/${qty || 0})`;
+    return `${label} (${count}/${qty || 0})`;
   }
 
   // Compact "{policy name} · {count}" badge text for a row whose serial cell
@@ -14410,6 +14594,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this._autoCodeFields.clear();
     this.genericNameValue.set('');
     this.editingId.set(null);
+    this.editingLocalRowKey.set(null);
     this.txDocId.set(null);
     this.txDocNumber.set('');
     this.txDocStatus.set('draft');
@@ -15257,11 +15442,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   liveRows(): string[][] {
-    if (this.config?.key === 'bomMaster') {
-      return this.manufacturingMasterRows('bomMaster');
-    }
-    if (this.config?.key === 'workCenterMaster') {
-      return this.manufacturingMasterRows('workCenterMaster');
+    if (this.isLocalMasterKey()) {
+      return this.localMasterRows(this.config!.key);
     }
     if (this.isApiWired()) {
       return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
@@ -15840,6 +16022,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     postSaveAction?: (savedRecord: any) => void
   ): void {
     const id = this.editingId();
+    // Captured before the save runs: the browser-persisted masters clear their
+    // own editing marker as part of writing, and they carry no numeric id, so
+    // `id` alone would report an update as if it were a new record.
+    const wasEditing = this.isEditingSavedRecord();
     const savedPurchaseInvoiceGrnId = this.config?.key === 'purchaseInvoice'
       ? this.optionalNumber(payload['grn_id'])
       : null;
@@ -15872,6 +16058,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       case 'customerMaster':        obs$ = this.saveCustomerWithContactWriteback(payload, id);            break;
       case 'channelPartnerMaster':  obs$ = this.saveChannelPartnerWithContactWriteback(payload, id);      break;
       case 'productServiceMaster':  obs$ = this.inventoryConfigService.saveProduct(payload, id);          break;
+      // No endpoint exists for these three — they persist in browser storage.
+      // Routed through the same success path as everything else so the form
+      // clears, the grid refreshes and the confirmation reads identically.
+      case 'bomMaster':
+      case 'workCenterMaster':
+      case 'priceListMaster':       obs$ = of(this.saveLocalMaster(payload));                            break;
       case 'purchaseRequisition':   obs$ = this.txService.savePurchaseRequisition(payload, id);           break;
       case 'requestForQuotation':   obs$ = this.txService.saveRfq(payload, id);                           break;
       case 'purchaseOrder':         obs$ = this.txService.savePurchaseOrder(payload, id);                  break;
@@ -15921,7 +16113,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             : '';
           const finishSave = () => {
             const forcedStatusMessage = this.forcedDocumentStatusMessage(forceDocumentStatus);
-            const savedMessage = forcedStatusMessage || (id ? 'Record updated.' : 'Record saved.');
+            const savedMessage = forcedStatusMessage || (wasEditing ? 'Record updated.' : 'Record saved.');
             // Advisory captured before the save (e.g. Rate over MRP) rides
             // along with the confirmation instead of having blocked it.
             const saveNotice = this.pendingSaveNotice;
@@ -15995,7 +16187,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
             // via the GRN/PI grid-header "Add Product" flow (?returnTo=...
             // present) — a normal, unrelated Product Master save is a no-op
             // here, see navigateBackAfterProductMasterSave()'s own guard.
-            this.navigateBackAfterProductMasterSave();
+            this.navigateBackAfterProductMasterSave(res.data);
           };
 
           const segmentMap$ = this.mapSavedGlobalMasterToSelectedSegment(res.data);
@@ -16188,12 +16380,30 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // when the document already legitimately validates. The sessionStorage
   // snapshot works unconditionally and never risks a spurious partial row in
   // the shared DB.
+  // Every screen whose "Add Product" goes to the real Product Master and
+  // comes back. The quick-add modal's own 'Product / Service' branch is a
+  // static mock — no [ngModel] bindings and no save handler at all — so a
+  // product could never actually be created from it; anywhere that trigger is
+  // reachable has to route here instead, or the button lies to the user.
   private static readonly PROCUREMENT_RETURN_ROUTES: Record<string, string> = {
     goodsReceipt: '/dashboard/inventory/transactions/goods-receipt',
     purchaseInvoice: '/dashboard/inventory/transactions/purchase-invoice',
+    purchaseReturn: '/dashboard/inventory/transactions/purchase-return',
+    salesOrder: '/dashboard/inventory/transactions/sales-order',
+    deliveryChallan: '/dashboard/inventory/transactions/delivery-challan',
     salesInvoice: '/dashboard/inventory/transactions/sales-invoice',
+    salesReturn: '/dashboard/inventory/transactions/sales-return',
     stockTransfer: '/dashboard/inventory/transactions/stock-transfer',
-    bomMaster: '/dashboard/inventory/masters/bom-master'
+    stockAdjustment: '/dashboard/inventory/transactions/stock-adjustment',
+    productionPlanning: '/dashboard/inventory/transactions/production-planning',
+    materialIssueProduction: '/dashboard/inventory/transactions/material-issue-production',
+    productionEntry: '/dashboard/inventory/transactions/production-entry',
+    productionReturn: '/dashboard/inventory/transactions/production-return',
+    bomMaster: '/dashboard/inventory/masters/bom-master',
+    priceListMaster: '/dashboard/inventory/masters/price-list-master',
+    barcodeConfiguration: '/dashboard/inventory/masters/barcode-configuration'
+    // Substitute Products is deliberately absent: its route redirects to
+    // Product Master, so the screen is never actually reachable to return to.
   };
   private static readonly PRODUCT_MASTER_ROUTE = '/dashboard/inventory/masters/product-service-master';
   private static readonly PAYMENT_TERMS_MASTER_ROUTE = '/dashboard/inventory/masters/payment-terms-master';
@@ -16213,7 +16423,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return `inv_procurement_resume::${screenKey}`;
   }
 
-  addProductFromProcurementGrid(sourceFieldKey?: string): void {
+  // `pendingLine` is set when the trip started from a line grid's product cell
+  // rather than a header field: it records the row and column the user was
+  // typing into, plus the name they had typed, so the product created over in
+  // Product Master lands back in that exact cell instead of leaving them to
+  // re-find and re-pick it.
+  addProductFromProcurementGrid(
+    sourceFieldKey?: string,
+    pendingLine?: { rowIndex: number; columnIndex: number; productName: string }
+  ): void {
     const key = this.config?.key;
     const returnRoute = key ? InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key] : undefined;
     if (!returnRoute || !this.router) return;
@@ -16234,6 +16452,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         transportDetailsForm: this.transportDetailsForm(),
         pendingRows: this.pendingRows(),
         sourceFieldKey: sourceFieldKey || null,
+        pendingLine: pendingLine ?? null,
         savedAt: Date.now()
       }));
     } catch {
@@ -16243,14 +16462,46 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
     const queryParams: Record<string, string> = { returnTo: key!, returnRoute };
     if (sourceFieldKey) queryParams['sourceField'] = sourceFieldKey;
+    // Carried so Product Master opens with the name already typed in the line,
+    // rather than making the user type it a second time.
+    const typedName = String(pendingLine?.productName || '').trim();
+    if (typedName) queryParams['productName'] = typedName;
 
     this.router.navigate([InventoryScreenShell.PRODUCT_MASTER_ROUTE], { queryParams });
   }
 
-  addProductFromLineProductPicker(): void {
-    this.addProductFromProcurementGrid();
+  addProductFromLineProductPicker(pendingLine?: { rowIndex: number; columnIndex: number; productName: string }): void {
+    this.addProductFromProcurementGrid(undefined, pendingLine);
   }
 
+  // Read by the line product picker so it only offers "Open Product Master"
+  // where the trip is actually wired, instead of rendering a dead button.
+  canAddProductFromThisScreen(): boolean {
+    const key = this.config?.key;
+    return !!key && !!InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[key];
+  }
+
+  // Arrived on Product Master from a transaction line where the name had
+  // already been typed — carry it in so the form opens part-filled. Code and
+  // SKU auto-generate off it exactly as they do when it is typed here directly.
+  //
+  // Runs on init rather than inside the product-types response like the nature
+  // defaulting below: the name depends on nothing being loaded, and hanging it
+  // off that call would mean a slow or failed lookup silently lost what the
+  // user had typed.
+  private applyProductMasterTypedName(): void {
+    if (this.config?.key !== 'productServiceMaster') return;
+    const typedName = String(this.activatedRoute?.snapshot.queryParamMap.get('productName') || '').trim();
+    if (!typedName) return;
+    if (String(this.formValues()['productName'] || '').trim()) return;
+    this.productName.set(typedName);
+    this.collectFormField('productName', typedName);
+    this.onProductNameChange(typedName);
+  }
+
+  // BOM Master additionally implies the nature: its Raw Materials field wants a
+  // raw material, its Finished Product field a finished one. This one DOES need
+  // the natures loaded, so it stays on the product-types response.
   private applyProductMasterReturnDefaults(): void {
     if (this.config?.key !== 'productServiceMaster') return;
     const params = this.activatedRoute?.snapshot.queryParamMap;
@@ -16297,6 +16548,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       lineGstIncludedMap?: Record<number, boolean>;
       transportDetailsForm?: Record<string, any>;
       pendingRows?: Array<{ payload: Record<string, any>; formSnapshot: Record<string, any>; display: string[] }>;
+      pendingLine?: { rowIndex: number; columnIndex: number; productName: string } | null;
       savedAt?: number;
     } | null = null;
     try {
@@ -16320,16 +16572,41 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.lineGstIncludedMap.set(snap.lineGstIncludedMap || {});
     this.transportDetailsForm.set(snap.transportDetailsForm || {});
     if (Array.isArray(snap.pendingRows)) this.pendingRows.set(snap.pendingRows);
+
+    // The trip started from a line grid cell and a product was actually
+    // created: put it in that cell, so the user comes back to a finished line
+    // rather than having to find and pick what they just created.
+    const createdProduct = String(this.activatedRoute?.snapshot.queryParamMap.get('createdProduct') || '').trim();
+    const pendingLine = snap.pendingLine;
+    if (!createdProduct || !pendingLine) return;
+    if (!Number.isFinite(pendingLine.rowIndex) || pendingLine.rowIndex < 0) return;
+    if (!Number.isFinite(pendingLine.columnIndex) || pendingLine.columnIndex < 0) return;
+    // After the rows above have been restored, and after loadLookupOptions()
+    // has had a chance to bring the new product into the option lists — the
+    // cell write itself triggers the same UOM/GST/rate defaulting a manual
+    // pick does, which needs the product to be resolvable.
+    setTimeout(() => {
+      if (pendingLine.rowIndex >= this.entryLineRows().length) return;
+      this.setEntryLineCell(pendingLine.rowIndex, pendingLine.columnIndex, createdProduct);
+    });
   }
 
-  private navigateBackAfterProductMasterSave(): void {
+  private navigateBackAfterProductMasterSave(savedProduct?: any): void {
     if (this.config?.key !== 'productServiceMaster' || !this.router) return;
     const params = this.activatedRoute?.snapshot.queryParamMap;
     const returnTo = params?.get('returnTo');
     const returnRoute = params?.get('returnRoute');
     if (!returnTo || !returnRoute) return;
     if (!InventoryScreenShell.PROCUREMENT_RETURN_ROUTES[returnTo]) return;
-    this.router.navigate([returnRoute], { queryParams: { resumed: '1' } });
+
+    const queryParams: Record<string, string> = { resumed: '1' };
+    // The name of what was just created, so the source screen can drop it into
+    // the line that sent the user here. Passed by name rather than id because
+    // the line grid cell holds the product NAME (see setEntryLineCell callers).
+    const createdName = String(savedProduct?.product_name || savedProduct?.productName || '').trim();
+    if (createdName) queryParams['createdProduct'] = createdName;
+
+    this.router.navigate([returnRoute], { queryParams });
   }
 
   saveDocumentNoteDraft(): void {
@@ -16696,7 +16973,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         case 'productServiceMaster': return this.inventoryConfigService.saveProduct(payload, null);
         case 'productTypeMaster':    return this.inventoryConfigService.saveProductType(payload, null);
         case 'bomMaster':
-        case 'workCenterMaster':     return of(this.saveLocalManufacturingMaster(payload));
+        case 'workCenterMaster':
+        case 'priceListMaster':      return of(this.saveLocalMaster(payload));
         default: return of({ success: false, message: 'Unknown screen', data: null });
       }
     };
@@ -17426,6 +17704,25 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return 'badge-success';
   }
 
+  /**
+   * Maps a rendered saved-grid <tr> back to the full source row it was painted
+   * from, by its position in the tbody. The grid renders
+   * `@for (row of pagedRows('records', liveRows()))`, so the Nth data row of
+   * the current page is the Nth <tr> — and this returns every column, including
+   * the ones visibleRecordColumns() chose not to paint.
+   */
+  private savedRowForTableRow(tableRow: HTMLElement): string[] | null {
+    const body = tableRow.parentElement;
+    if (!body || body.tagName !== 'TBODY') return null;
+
+    const position = Array.prototype.indexOf.call(body.children, tableRow);
+    if (position < 0) return null;
+
+    const rows = this.pagedRows('records', this.liveRows());
+    const sourceRow = rows[position];
+    return Array.isArray(sourceRow) ? sourceRow.map(cell => String(cell ?? '')) : null;
+  }
+
   private findRecordByRow(row: string[]): any {
     const records = this.segmentFilteredRecords(this.savedRecordObjects());
     switch (this.config?.key) {
@@ -17493,6 +17790,29 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   deleteRecordByRow(row: string[]): void {
+    if (this.isLocalMasterKey()) {
+      this.confirmAction({
+        title: 'Delete Record',
+        message: `Are you sure you want to delete "${row[0] || row[1] || 'this record'}"? This action cannot be undone.`,
+        confirmLabel: 'Delete',
+        cancelLabel: 'Cancel',
+        tone: 'danger'
+      }).then(proceed => {
+        if (!proceed) return;
+        this.saveMsg.set('');
+        this.saveError.set('');
+        if (!this.deleteLocalMasterRow(row)) {
+          this.saveError.set('Could not delete that record in this browser.');
+          return;
+        }
+        if (this.editingLocalRowKey() === this.localMasterRowKey(this.normalizeLocalMasterRow(this.config!.key, row))) {
+          this.clearConfigForm();
+        }
+        this.saveMsg.set('Record deleted.');
+        setTimeout(() => this.saveMsg.set(''), 3000);
+      });
+      return;
+    }
     if (!this.isApiWired()) return;
     const record = this.findRecordByRow(row);
     if (!record?.id) return;
@@ -17597,6 +17917,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   editRecordByRow(row: string[]): void {
+    if (this.isLocalMasterKey()) {
+      this.editLocalMasterRow(row);
+      return;
+    }
     if (!this.isApiWired()) return;
     this.deliveryAddressOverride.set(null);
     if (this.config?.key === 'productServiceMaster' && !this.isAdmin()) {
@@ -17606,7 +17930,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
     const record = this.findRecordByRow(row);
     const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Active';
-    if (!record) return;
+    if (!record) {
+      // Never fail silently here. A dead Edit button sends the user back to the
+      // form to retype what already exists, where the duplicate guard then
+      // refuses it — leaving them stuck between "already exists" and an Edit
+      // that does nothing.
+      this.saveMsg.set('');
+      this.saveError.set('Could not open that record for editing. Refresh the list and try again.');
+      return;
+    }
     this.editingId.set(record.id ?? null);
     this._autoCodeFields.clear();
     this.loadTransportDetailsForRecord(record.id ?? null);
@@ -21043,7 +21375,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       const product = this.productByIdOrSelection(item.product_id, item.product_name);
       if (!this.payloadHasValue(item.product_name) && !item.product_id) return `Finished Product is required on row ${rowNo}.`;
       if (!product || !this.productIsManufacturingFinished(product)) {
-        return `Row ${rowNo} must use a Finished Product, Sub-Finished Product, or Physical Stock output product.`;
+        return `Row ${rowNo} must use a Finished Product or Sub-Finished Product.`;
       }
       if (!(Number(item.produced_qty) > 0)) return `Produced Qty must be greater than zero on finished product row ${rowNo}.`;
       if (isPosting && product.batch_applicable && !this.payloadHasValue(item.batch_no)) {
@@ -21063,7 +21395,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (key === 'productionPlanning') {
       const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
       if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Plan.';
-      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Plan Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Plan Finished Product must be a Finished Product or Sub-Finished Product.';
       if (!(Number(payload['planned_qty']) > 0)) return 'Planned Qty must be greater than zero for Production Plan.';
       return this.validateManufacturingMaterialItems(payload['items'], 'plan');
     }
@@ -21079,7 +21411,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           return 'For Finished Product is required for direct Material Issue.';
         }
         if (!forFinished || !this.productIsManufacturingFinished(forFinished)) {
-          return 'For Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+          return 'For Finished Product must be a Finished Product or Sub-Finished Product.';
         }
       }
       return this.validateManufacturingMaterialItems(payload['items'], 'issue', isPosting);
@@ -21091,7 +21423,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       }
       const finished = this.productByIdOrSelection(payload['finished_product_id'], payload['finished_product_name']);
       if (!this.payloadHasValue(payload['finished_product_name']) && !payload['finished_product_id']) return 'Finished Product is required for Production Entry.';
-      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Entry Finished Product must be Finished Product, Sub-Finished Product, or Physical Stock.';
+      if (!finished || !this.productIsManufacturingFinished(finished)) return 'Production Entry Finished Product must be a Finished Product or Sub-Finished Product.';
       if (!(Number(payload['produced_qty']) > 0) && !((payload['items'] || []).some((item: any) => Number(item?.produced_qty) > 0))) {
         return 'Produced Qty must be greater than zero for Production Entry.';
       }
@@ -21172,8 +21504,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'bomMaster') {
+      if (!hasValue(payload['bomCode'])) return 'BOM Code is required.';
+      if (!hasValue(payload['finishedProduct'])) return 'Select the Finished Product this BOM produces.';
       const bomMessage = this.validateBomMasterPayload(payload);
       if (bomMessage) return bomMessage;
+    }
+
+    if (this.config?.key === 'workCenterMaster') {
+      if (!hasValue(payload['workCenterCode'])) return 'Work Center Code is required.';
+      if (!hasValue(payload['workCenterName'])) return 'Work Center Name is required.';
+    }
+
+    if (this.config?.key === 'priceListMaster') {
+      if (!hasValue(payload['priceListName'])) return 'Price List Name is required.';
+      if (!hasValue(payload['product'])) return 'Select the Product this rate applies to.';
+      if (!hasValue(payload['rate'])) return 'Rate is required.';
     }
 
     if (this.isManufacturingTransactionKey()) {
@@ -21561,6 +21906,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           String(r.quantity ?? r.qty ?? ''),
           String(r.wastage_percent ?? r.wastagePercent ?? ''),
           String(r.production_cost ?? r.productionCost ?? ''),
+          cap(r.status || 'active')
+        ]);
+      case 'priceListMaster':
+        return records.map(r => [
+          r.price_list_name || r.priceListName || '',
+          r.applicable_branch || r.applicableBranch || '',
+          r.product_name || r.productName || r.product || '',
+          String(r.rate ?? ''),
+          this.gridDateDisplay(r.effective_from || r.effectiveFrom || ''),
+          this.gridDateDisplay(r.effective_to || r.effectiveTo || ''),
           cap(r.status || 'active')
         ]);
       case 'workCenterMaster':

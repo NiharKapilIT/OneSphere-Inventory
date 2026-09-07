@@ -220,9 +220,12 @@
                 [value]="row.details"
                 [amount]="row.amount"
                 [cashLimit]="cashLimit()"
-                [banks]="accountBankOptions()"
+                [banks]="bankOptionsForMode()"
                 [depositBanks]="accountDepositBankOptions()"
+                [depositBankOnCheque]="mode() === 'receipt'"
                 [onlinePaymentTypes]="accountOnlinePaymentTypes()"
+                [chequeNumbers]="chequeNumbersFor(row)"
+                [upiOptions]="upiNamesFor(row)"
                 (valueChange)="setModeDetails(idx, $event)">
               </app-payment-mode-selector>
             </div>
@@ -401,10 +404,13 @@
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-info-circle"></i></span><div><small>Status</small><span class="erp-badge" [class]="agingLabel(inv).cls">{{ agingLabel(inv).text }}</span></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-file"></i></span><div><small>Invoice Value</small><strong>{{ fmt(inv.total_amount) }}</strong></div></article>
         <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-check"></i></span><div><small>Paid Till Date</small><strong>{{ fmt(inv.paid_amount) }}</strong></div></article>
-        <article class="inventory-card inventory-kpi-card"><span class="inventory-card-icon"><i class="pi pi-exclamation-triangle"></i></span><div><small>Outstanding</small><strong>{{ fmt(inv.outstanding) }}</strong></div></article>
+        <article class="inventory-card inventory-kpi-card pay-kpi-emphasis"><span class="inventory-card-icon"><i class="pi pi-exclamation-triangle"></i></span><div><small>Outstanding</small><strong>{{ fmt(inv.outstanding) }}</strong></div></article>
       </div>
       <div class="pay-dr-sec">Payment History</div>
       <div class="pay-hist">
+        @if (drawerHistory().length) {
+          <div class="pay-hist-row pay-hist-head"><span>Date</span><span>Voucher</span><b>Amount</b></div>
+        }
         @for (h of drawerHistory(); track h.voucherNumber) {
           <div class="pay-hist-row"><span>{{ fmtDate(h.date) }}</span><span class="m">{{ h.voucherNumber }}</span><b>{{ fmt(h.amount) }}</b></div>
         } @empty {

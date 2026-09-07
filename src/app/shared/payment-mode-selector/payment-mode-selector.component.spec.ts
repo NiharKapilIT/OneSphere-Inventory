@@ -166,6 +166,65 @@ describe('PaymentModeSelectorComponent (item 19)', () => {
     expect(v.depositBankName).toBe('Company Current A/c');
   });
 
+  // Bank / cheque-book master data configured in Accounts: with a cheque book
+  // supplied, "Cheque No." stops being free text and becomes a pick from that
+  // book's un-used leaves, carrying the book id along with the number.
+  it('a cheque number picked from the configured cheque book carries its book id', () => {
+    component.banks = [{ id: 6, label: 'UNION BANK OF INDIA@5980152956' }];
+    component.chequeNumbers = [{ id: '501', label: '501', bookId: 1 }, { id: '502', label: '502', bookId: 1 }];
+    component.setTopMode('BANK');
+    component.setChequeNumber('502');
+
+    const v = latest();
+    expect(v.refNumber).toBe('502');
+    expect(v.chequeBookId).toBe(1);
+  });
+
+  it('typing a cheque number by hand leaves no cheque book attached', () => {
+    component.setTopMode('BANK');
+    component.setRefNumber('654321');
+    const v = latest();
+    expect(v.refNumber).toBe('654321');
+    expect(v.chequeBookId).toBeNull();
+  });
+
+  it('opening the Bank tab pre-selects the primary bank account, or the only one configured', () => {
+    component.banks = [{ id: 6, label: 'UNION BANK OF INDIA@5980152956', branchName: 'Head Office', accountNumber: '5980152956' }];
+    component.depositBanks = component.banks;
+    component.setTopMode('BANK');
+
+    const v = latest();
+    expect(v.bankId).toBe(6);
+    expect(v.bankName).toBe('UNION BANK OF INDIA@5980152956');
+    expect(v.branchName).toBe('Head Office');
+    expect(v.accountNumber).toBe('5980152956');
+    expect(v.depositBankId).toBe(6);
+  });
+
+  it('does not guess a bank when several are configured and none is primary', () => {
+    component.banks = [{ id: 1, label: 'SBI Current A/c' }, { id: 2, label: 'HDFC Current A/c' }];
+    component.setTopMode('BANK');
+    expect(latest().bankId).toBeNull();
+
+    component.banks = [{ id: 1, label: 'SBI Current A/c' }, { id: 2, label: 'HDFC Current A/c', isPrimary: true }];
+    component.setBankSubType('ONLINE');
+    expect(latest().bankId).toBe(2);
+  });
+
+  it('changing bank clears a cheque number picked from the previous bank\'s book', () => {
+    component.banks = [{ id: 1, label: 'SBI Current A/c' }, { id: 2, label: 'HDFC Current A/c' }];
+    component.chequeNumbers = [{ id: '501', label: '501', bookId: 1 }];
+    component.setTopMode('BANK');
+    component.setBankId(1);
+    component.setChequeNumber('501');
+    expect(latest().refNumber).toBe('501');
+
+    component.setBankId(2);
+    const v = latest();
+    expect(v.refNumber).toBe('');
+    expect(v.chequeBookId).toBeNull();
+  });
+
   it('markAllTouched() reveals validation errors for empty required fields', () => {
     component.setTopMode('BANK'); // CHEQUE, everything empty
     fixture.detectChanges();

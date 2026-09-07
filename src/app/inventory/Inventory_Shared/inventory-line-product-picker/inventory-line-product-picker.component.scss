@@ -276,3 +276,116 @@
 :host ::ng-deep .inv-line-picker-field .ng-select-container {
   min-height: 34px;
 }
+
+// ── Inline product cell ─────────────────────────────────────────────────────
+// The grid cell is now a search box rather than a "+ Product" trigger, so that
+// picking a product is pure keyboard work. The adjust button only appears for
+// products that actually carry a variant or attribute step, and turns into a
+// warning when that step is still outstanding.
+.inventory-line-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+
+  .inventory-line-product-inline-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.inventory-line-product-adjust {
+  flex: 0 0 auto;
+
+  &.inventory-line-product-adjust--pending {
+    border-color: #f0b429;
+    color: #b45309;
+    background: #fffbeb;
+  }
+}
+
+.inventory-line-product-subtitle {
+  display: block;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+
+// ── Inline product search + create ──────────────────────────────────────────
+// Same interaction shape as app-hsn-sac-picker, sized for a grid cell.
+.inventory-line-product-search {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.inventory-line-product-input {
+  width: 100%;
+}
+
+// Fixed, and rendered into <body> by ensureSuggestRendered(). It cannot be
+// absolutely positioned inside the cell: the line grid sits in
+// .tbl-wrap { overflow-x: auto }, which clips any overflowing child at the
+// table's edge — a clip no z-index can escape, since z-index orders painting
+// but does not exempt an element from its ancestor's overflow. left/top/width
+// are set from the input's bounding rect and refreshed on scroll and resize.
+//
+// 20005 sits above the page and the sticky footer (60) but below the picker's
+// own variant popup (backdrop 20000 / popup 20010), so opening that popup
+// still paints over this panel rather than under it.
+.inventory-line-product-suggest {
+  position: fixed;
+  z-index: 20005;
+  min-width: 260px;
+  max-width: 420px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #dbe8f9;
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(16, 24, 40, .16);
+}
+
+.inventory-line-product-suggest-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: #1a2233;
+  cursor: pointer;
+
+  &:hover { background: #eff6ff; color: #2456d6; }
+}
+
+.inventory-line-product-suggest-empty {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #8b94a7;
+}
+
+.inventory-line-product-add-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid #eef1f6;
+  background: #f8fafc;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2456d6;
+  cursor: pointer;
+
+  &:hover { background: #eff6ff; }
+  i { margin-right: 4px; }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    font-weight: 500;
+    font-size: 10.5px;
+    color: #8b94a7;
+  }
+}

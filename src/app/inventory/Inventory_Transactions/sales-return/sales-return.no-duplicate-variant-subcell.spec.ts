@@ -66,14 +66,22 @@ describe('InventorySalesReturnComponent — Product cell has no leftover Variant
   it('does not render a live/editable Variant <ng-select> outside the picker (the old sub-row control)', () => {
     const productCell = fixture.nativeElement.querySelector('td.inventory-line-col-product');
     expect(productCell).toBeTruthy();
-    expect(productCell.querySelector('ng-select')).toBeNull();
+    // The product is now typed into a plain text box (so an unknown product can
+    // be created inline), which makes this stricter than it used to be: NO
+    // ng-select belongs in this cell at all. Any that appears is either the old
+    // Variant sub-row control coming back or the product dropdown returning.
+    expect(productCell.querySelectorAll('ng-select').length).toBe(0);
+    expect(productCell.querySelector('input.inventory-line-product-input')).toBeTruthy();
+    expect(productCell.querySelector('.inventory-line-subcell')).toBeNull();
   });
 
-  it('the picker trigger button alone carries the product name, variant and both attribute values', () => {
-    const trigger = fixture.nativeElement.querySelector('td.inventory-line-col-product .inventory-line-product-trigger');
-    expect(trigger).toBeTruthy();
-    const text = trigger.textContent.replace(/\s+/g, ' ').trim();
-    expect(text).toContain('Test Phone Multi Attr');
+  it('the picker cell alone carries the variant and both attribute values', () => {
+    const cell = fixture.nativeElement.querySelector('td.inventory-line-col-product .inventory-line-product-cell');
+    expect(cell).toBeTruthy();
+    // The product name is held by the inline search box; the variant and
+    // attribute selection is summarised directly beneath it.
+    const summary = fixture.nativeElement.querySelector('td.inventory-line-col-product .inventory-line-product-subtitle');
+    const text = (summary?.textContent || '').replace(/\s+/g, ' ').trim();
     expect(text).toContain('Model A');
     expect(text).toContain('Ram');
     expect(text).toContain('8GB');

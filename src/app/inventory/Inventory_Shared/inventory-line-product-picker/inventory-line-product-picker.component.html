@@ -1,20 +1,67 @@
-<button #triggerBtn type="button"
-  class="erp-btn btn-white btn-sm inventory-line-product-trigger"
-  [class.inventory-line-product-trigger--empty]="!productValue()"
-  [title]="triggerTitle()"
-  [attr.aria-label]="triggerTitle()"
-  (click)="openPopup($event)">
-  <span class="inventory-line-product-trigger-text">
-    @if (productValue()) {
-      <strong>{{ productValue() }}</strong>
-      @if (triggerSubtitle()) {
-        <br><small class="inventory-grid-subtitle">{{ triggerSubtitle() }}</small>
-      }
-    } @else {
-      + Product
-    }
-  </span>
-</button>
+<!-- Product is picked inline by typing, which is the fast path and what a line
+     grid should feel like. The popup is no longer the way in — it now only
+     opens for the products that genuinely need a variant or attribute, either
+     automatically right after the pick or from the adjust button below. -->
+<div class="inventory-line-product-cell" #triggerBtn>
+  <!-- A plain text box rather than an ng-select, so an unknown product can be
+       typed and then created inline — the same shape as app-hsn-sac-picker. -->
+  <div class="inventory-line-product-search">
+    <input class="erp-input inventory-grid-input inventory-line-product-input"
+      type="text"
+      [ngModel]="inputValue()"
+      (ngModelChange)="onSearchInput($event)"
+      (focus)="onSearchFocus()"
+      placeholder="Search product" />
+
+    <!-- Rendered into document.body (see ensureSuggestRendered) and positioned
+         fixed: the line grid lives inside .tbl-wrap { overflow-x: auto }, which
+         CLIPS an absolutely-positioned child at the table edge no matter how
+         high its z-index is. This is the same reason the ng-select this replaced
+         used appendTo="body", and the same treatment the popup below gets. -->
+    <ng-template #suggestTemplate>
+      <div class="inventory-line-product-suggest" #suggestRoot
+        [style.left.px]="suggestLeft()"
+        [style.top.px]="suggestTop()"
+        [style.width.px]="suggestWidth()">
+        @for (option of matches(); track option) {
+          <button type="button" class="inventory-line-product-suggest-item" (click)="chooseMatch(option)">
+            {{ option }}
+          </button>
+        }
+
+        @if (!matches().length) {
+          <div class="inventory-line-product-suggest-empty">No matching product.</div>
+        }
+
+        <!-- A product needs far more than a name to be usable on a line — nature,
+             UOM, HSN, category, tax, tracking policies — so this opens the real
+             Product Master with the typed name already filled in, and returns to
+             this exact cell once it is saved. -->
+        @if (canQuickAddProduct()) {
+          <button type="button" class="inventory-line-product-add-link" (click)="createInProductMaster()">
+            <i class="pi pi-external-link"></i> Add "{{ searchText() }}" in Product Master
+            <small>Opens Product Master, then returns here with it filled in</small>
+          </button>
+        }
+      </div>
+    </ng-template>
+  </div>
+
+  @if (productValue() && hasConfigurableSteps()) {
+    <button type="button"
+      class="erp-btn btn-white btn-icon btn-sm inventory-line-product-adjust"
+      [class.inventory-line-product-adjust--pending]="needsConfiguration()"
+      [title]="needsConfiguration() ? 'Variant / attributes required' : 'Change variant / attributes'"
+      [attr.aria-label]="needsConfiguration() ? 'Variant / attributes required' : 'Change variant / attributes'"
+      (click)="openPopup($event)">
+      <i class="pi" [class.pi-exclamation-circle]="needsConfiguration()" [class.pi-sliders-h]="!needsConfiguration()"></i>
+    </button>
+  }
+</div>
+
+@if (productValue() && triggerSubtitle()) {
+  <small class="inventory-grid-subtitle inventory-line-product-subtitle">{{ triggerSubtitle() }}</small>
+}
 
 <ng-template #popupTemplate>
   <div class="inventory-modal-backdrop inventory-line-product-popup-backdrop">

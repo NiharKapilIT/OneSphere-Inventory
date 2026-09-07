@@ -1199,6 +1199,16 @@
                   }
                 </div>
               </div>
+              } @else {
+              <!-- Serial No., Batch/Lot, Expiry and QC all live inside this
+                   section, and switching it to No both hides and clears them.
+                   Without this note the controls simply vanish and there is
+                   nothing on screen to say how to get them back. -->
+              <div class="inventory-optional-hint">
+                <i class="pi pi-info-circle"></i>
+                Serial Number, Batch / Lot, Expiry and QC options are part of this section.
+                Set <strong>Tracking Policies</strong> to <strong>Yes</strong> above to add or change them.
+              </div>
               }
             </div>
             }
@@ -1715,7 +1725,7 @@
                   }
                 }
                 @if (field.addMaster) {
-                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openAddMaster(field.addMaster, field.key)">
+                  <button type="button" class="erp-btn btn-white btn-icon" [title]="field.addMaster === 'New Segment' ? 'Add New Segment' : 'Add ' + field.addMaster" (click)="openFieldAddMaster(field)">
                     <i class="pi pi-plus"></i>
                   </button>
                 }

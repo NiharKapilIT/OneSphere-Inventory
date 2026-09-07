@@ -73,9 +73,15 @@
       <div class="col-12 col-md-6">
         <div class="erp-form-group">
           <label class="erp-label">Cheque No. <span class="required">*</span></label>
+          @if (chequeNumbers.length) {
+          <ng-select appendTo="body" [items]="chequeNumbers" bindLabel="label" bindValue="id" [ngModel]="refNumber()"
+            [ngModelOptions]="{ standalone: true }" [disabled]="disabled" placeholder="Select Cheque No"
+            (change)="setChequeNumber($event)" (close)="touch('refNumber')"></ng-select>
+          } @else {
           <input class="erp-input" type="text" inputmode="numeric" placeholder="Cheque No" maxlength="6"
             [disabled]="disabled" [ngModel]="refNumber()" [ngModelOptions]="{ standalone: true }"
             (ngModelChange)="setRefNumber($event)" (keypress)="blockNonDigitKey($event)" (blur)="touch('refNumber')">
+          }
           @if (refNumberError) { <div class="erp-field-error">{{ refNumberError }}</div> }
         </div>
       </div>
@@ -93,6 +99,26 @@
           @if (refDateError) { <div class="erp-field-error">{{ refDateError }}</div> }
         </div>
       </div>
+
+      <!-- Receipts only: which of OUR accounts this cheque is banked into.
+           Left blank the receipt sits in Cheque on Hand until it is deposited. -->
+      @if (depositBankOnCheque) {
+      <div class="col-12 col-md-6">
+        <div class="erp-form-group">
+          <label class="erp-label">Deposited Bank Name</label>
+          @if (depositBanks.length) {
+          <ng-select appendTo="body" [items]="depositBanks" bindLabel="label" bindValue="id"
+            [ngModel]="depositBankId()" [ngModelOptions]="{ standalone: true }" [disabled]="disabled"
+            placeholder="Select (leave blank to hold as Cheque on Hand)"
+            (change)="setDepositBankId($event)"></ng-select>
+          } @else {
+          <input class="erp-input" type="text" placeholder="Deposited Bank Name" maxlength="40" [disabled]="disabled"
+            [ngModel]="depositBankName()" [ngModelOptions]="{ standalone: true }"
+            (ngModelChange)="setDepositBankNameFree($event)" (keypress)="blockNonLetterKey($event)">
+          }
+        </div>
+      </div>
+      }
     </div>
     }
 

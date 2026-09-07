@@ -160,30 +160,26 @@ describe('InventoryLineProductPickerComponent', () => {
       expect((component as any).triggerSubtitle()).toBe('Model A · Color Red');
     });
 
-    it('renders <strong> product name and <small class="inventory-grid-subtitle"> in the trigger DOM once a product is picked', () => {
+    // The cell is now an inline search box, so the product name is rendered by
+    // the ng-select itself and the variant/attribute summary sits beneath it.
+    it('renders the variant/attribute summary beneath the cell once a product is picked', () => {
       host.entryLineRows.set([['Widget A', 'Model A', '', '']]);
       host.__setAttrSelections([{ name: 'Color', value: 'Red', options: ['Red', 'Blue'], isAuto: false }]);
       fixture.detectChanges();
-      const strong: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text strong');
-      const small: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text small.inventory-grid-subtitle');
-      expect(strong?.textContent).toBe('Widget A');
+      const small: HTMLElement = fixture.nativeElement.querySelector('small.inventory-line-product-subtitle');
       expect(small?.textContent).toBe('Model A · Color Red');
     });
 
-    it('renders plain "+ Product" text with no <strong>/<small> when nothing is picked yet', () => {
+    it('renders the inline search box and no summary when nothing is picked yet', () => {
       fixture.detectChanges();
-      const text: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text');
-      expect(text.textContent.trim()).toBe('+ Product');
-      expect(text.querySelector('strong')).toBeNull();
-      expect(text.querySelector('small')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.inventory-line-product-cell')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('small.inventory-line-product-subtitle')).toBeNull();
     });
 
-    it('omits the <small> subtitle when there is no variant and no attribute to show', () => {
+    it('omits the summary when there is no variant and no attribute to show', () => {
       host.entryLineRows.set([['Widget A', '', '', '']]);
       fixture.detectChanges();
-      const text: HTMLElement = fixture.nativeElement.querySelector('.inventory-line-product-trigger-text');
-      expect(text.querySelector('strong')?.textContent).toBe('Widget A');
-      expect(text.querySelector('small')).toBeNull();
+      expect(fixture.nativeElement.querySelector('small.inventory-line-product-subtitle')).toBeNull();
     });
   });
 

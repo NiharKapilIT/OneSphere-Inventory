@@ -30,7 +30,7 @@ export class InventoryProductServiceMasterComponent extends InventoryScreenShell
     { id: 'pm-section-stock', label: 'Stock Controls' },
     { id: 'pm-section-tracking', label: 'Tracking Policies' },
     { id: 'pm-section-additional', label: 'Additional Information' },
-    { id: 'pm-section-uom', label: 'Alternate UOM Mapping' },
+    { id: 'pm-section-uom', label: 'Alternate UOM' },
   ];
   readonly productMasterActiveSection = signal<string>('pm-section-basic');
 

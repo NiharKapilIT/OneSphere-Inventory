@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 
 import { PaymentReceiptVoucherComponent } from './payment-receipt-voucher';
 import { PaymentsService, TdsCode } from '../../Inventory_Shared/payments.service';
+import { defaultPaymentModeValue } from '../../../shared/payment-mode-selector/payment-mode-selector.component';
 
 // Item 21: "TDS is applicable only for Services and should be shown
 // automatically with the percentage and amount." Pins down: TDS only
@@ -38,7 +39,10 @@ describe('PaymentReceiptVoucherComponent — TDS auto-apply for Services (item 2
       getPaymentVouchers: () => of({ success: true, data: [] }) as any,
       getOutstandingInvoices: () => of({ success: true, data: [SERVICE_INVOICE, GOODS_INVOICE] }) as any,
       getTdsCodes: () => of({ success: true, data: tdsCodes }) as any,
-      getAvailableNotes: () => of({ success: true, data: [] }) as any
+      getAvailableNotes: () => of({ success: true, data: [] }) as any,
+      // The component loads the Accounts bank/cheque-book masters on construction.
+      getPaymentVoucherAccountSetup: () => of({ banks: [], depositBanks: [], onlinePaymentTypes: [] }) as any,
+      getPaymentVoucherBankDetails: () => of({ chequeNumbers: [], upiNames: [] }) as any
     };
     TestBed.configureTestingModule({
       imports: [PaymentReceiptVoucherComponent],
@@ -149,6 +153,14 @@ describe('PaymentReceiptVoucherComponent — TDS auto-apply for Services (item 2
     component.toggleInvoice(SERVICE_INVOICE as any, true);
     fixture.detectChanges();
     component.addMode();
+    // Pay the ₹11,800 by cheque, not cash: the ₹9,999 cash-payment cap is
+    // checked before the TDS section, and would otherwise be the message we get.
+    component.setModeDetails(0, {
+      ...defaultPaymentModeValue(),
+      mode: 'BANK', bankSubType: 'CHEQUE',
+      bankName: 'HDFC Bank', branchName: 'MG Road', refNumber: '456789', refDate: '2026-09-04',
+      modeKey: 'cheque', summary: 'Cheque #456789 · HDFC Bank', isValid: true
+    });
     fixture.detectChanges();
     component.save();
     expect(component.saveError()).toContain('TDS section');

@@ -449,7 +449,14 @@ export class QuickAddCategoryComponent implements OnInit {
       this.clearCategoryForm();
       return;
     }
-    this.svc.saveCategory(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    // `id: 0` above is only a local placeholder for the staged-row shape — it
+    // must never reach the server. inventory.sp_upsert_category reads the id as
+    // NULLIF(p_data->>'id', ''), and '0' is not '', so a zero id is taken as a
+    // real one: the procedure goes down its UPDATE branch, matches no row and
+    // raises "Category not found" instead of inserting. Business Segments only
+    // works because it builds its own payload without an id at all.
+    const { id: _newCategoryPlaceholderId, ...newCategoryPayload } = payload;
+    this.svc.saveCategory(newCategoryPayload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.saving.set(false);
         if (res.success && res.data) {
