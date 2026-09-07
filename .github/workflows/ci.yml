@@ -2,9 +2,16 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, development, release, hotfixes]
   pull_request:
-    branches: [main]
+    branches: [main, development, release, hotfixes]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:
@@ -27,3 +34,118 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  promote-to-release:
+    needs: build-and-test
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch branches
+        run: git fetch origin development:refs/remotes/origin/development release:refs/remotes/origin/release
+
+      # A real merge commit (not squash/rebase) keeps development and release
+      # sharing ancestry, so each future promotion PR diffs only the new
+      # commits instead of re-showing everything ever promoted.
+      - name: Open and merge development -> release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ahead=$(git rev-list --count origin/release..origin/development)
+          if [ "$ahead" = "0" ]; then
+            echo "release is already up to date with development, nothing to promote"
+            exit 0
+          fi
+          pr_number=$(gh pr list --base release --head development --state open --json number --jq '.[0].number // empty')
+          if [ -z "$pr_number" ]; then
+            gh pr create \
+              --base release \
+              --head development \
+              --title "Promote development to release" \
+              --body "Automated promotion — CI passed on development at ${{ github.sha }}."
+            pr_number=$(gh pr list --base release --head development --state open --json number --jq '.[0].number // empty')
+          fi
+          gh pr merge "$pr_number" --merge
+
+  promote-to-main:
+    needs: build-and-test
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch branches
+        run: git fetch origin release:refs/remotes/origin/release main:refs/remotes/origin/main
+
+      - name: Open and merge release -> main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          ahead=$(git rev-list --count origin/main..origin/release)
+          if [ "$ahead" = "0" ]; then
+            echo "main is already up to date with release, nothing to promote"
+            exit 0
+          fi
+          pr_number=$(gh pr list --base main --head release --state open --json number --jq '.[0].number // empty')
+          if [ -z "$pr_number" ]; then
+            gh pr create \
+              --base main \
+              --head release \
+              --title "Promote release to main" \
+              --body "Automated promotion — CI passed on release at ${{ github.sha }}."
+            pr_number=$(gh pr list --base main --head release --state open --json number --jq '.[0].number // empty')
+          fi
+          gh pr merge "$pr_number" --merge
+
+  # Runs after ANY push lands on main -- whether it arrived via the release
+  # promotion above, or a human merging an urgent hotfixes PR straight into
+  # main. Carries that commit back down into development and release (and
+  # hotfixes) so the next promotion doesn't silently revert it, and so a new
+  # hotfix branch starts from a caught-up main.
+  sync-main-downstream:
+    needs: build-and-test
+    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch branches
+        run: git fetch origin development:refs/remotes/origin/development release:refs/remotes/origin/release hotfixes:refs/remotes/origin/hotfixes main:refs/remotes/origin/main
+
+      - name: Back-merge main into development, release and hotfixes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          for target in development release hotfixes; do
+            ahead=$(git rev-list --count "origin/$target..origin/main")
+            if [ "$ahead" = "0" ]; then
+              echo "$target is already up to date with main, skipping"
+              continue
+            fi
+            pr_number=$(gh pr list --base "$target" --head main --state open --json number --jq '.[0].number // empty')
+            if [ -z "$pr_number" ]; then
+              gh pr create \
+                --base "$target" \
+                --head main \
+                --title "Sync main into $target" \
+                --body "Automated back-merge — main moved ahead at ${{ github.sha }}."
+              pr_number=$(gh pr list --base "$target" --head main --state open --json number --jq '.[0].number // empty')
+            fi
+            gh pr merge "$pr_number" --merge
+          done
