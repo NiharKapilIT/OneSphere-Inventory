@@ -244,13 +244,18 @@
   gap: 6px;
 }
 
-.inv-line-picker-active-dot {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
-  border-radius: 50%;
-  background: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+.inv-line-picker-current-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #15803d;
+  background: #dcfce7;
+  box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.25) inset;
 }
 
 .inv-line-picker-branch-card ul {
