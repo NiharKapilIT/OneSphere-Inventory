@@ -182,7 +182,10 @@ export class WalkthroughTourComponent implements OnDestroy {
     const el = document.querySelector<HTMLElement>(step.target);
     if (!el) return;
 
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    // e.g. this component's own unit-test environment (jsdom has no scrollIntoView)
+    if (typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    }
 
     setTimeout(() => {
       const rect = el.getBoundingClientRect();

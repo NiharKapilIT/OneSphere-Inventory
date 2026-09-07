@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { DatePipe } from '@angular/common';
 
 import { LoginService } from './login.service';
 
@@ -6,7 +7,9 @@ describe('LoginService', () => {
   let service: LoginService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [DatePipe],
+    });
     service = TestBed.inject(LoginService);
   });
 
