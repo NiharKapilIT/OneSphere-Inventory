@@ -5,6 +5,7 @@ on:
     branches: [main, development, release, hotfixes]
   pull_request:
     branches: [main, development, release, hotfixes]
+  workflow_dispatch: {}
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
