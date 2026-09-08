@@ -7825,8 +7825,26 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return ref || 'Direct Purchase Return';
   }
 
+  // The session's active Branch/Warehouse, when one is set and still resolves
+  // to a real loaded record, is the only location a document may be booked to
+  // — company admins included; an admin moves by switching their active
+  // location, which is what the switcher is for. inventory.sp_save_grn and
+  // inventory.sp_save_purchase_return enforce the same rule server-side and are
+  // the authority; greying the picker out just stops the form from showing a
+  // location the save is going to override.
+  activeSessionLocationLocked(): boolean {
+    return !!(this.sessionActiveWarehouse() || this.sessionActiveBranch());
+  }
+
+  // GRN's counterpart to purchaseReturnLocationLocked() below.
+  goodsReceiptLocationLocked(): boolean {
+    if (this.config?.key !== 'goodsReceipt') return false;
+    return this.activeSessionLocationLocked();
+  }
+
   purchaseReturnLocationLocked(): boolean {
     if (this.config?.key !== 'purchaseReturn') return false;
+    if (this.activeSessionLocationLocked()) return true;
     const values = this.formValues();
     const reference = this.normalizeKey(values['piReference'] || '');
     return !!values['piId'] && reference !== '' && !reference.includes('directpurchasereturn');
@@ -13051,10 +13069,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // its own inv_serial_units rows (see openSerialPicker()).
       patch['piGrnId'] = doc.grn_id ?? null;
       patch['vendorId'] = doc.vendor_id ?? null;
+      // The goods can only go back from where the invoice received them, so the
+      // location is taken from the PI verbatim — it is never merged with, or
+      // fallen back to, whatever the session default had already dropped into
+      // the field. A branch-received PI (warehouse_id null) used to leave both
+      // halves empty here and keep the pre-filled session warehouse, which is
+      // how PRET-GE-26-00003 came to relieve Warehouse 29 for an invoice
+      // received at Branch 126. inventory.sp_save_purchase_return re-derives
+      // the same location server-side and is the authority.
       patch['warehouseId'] = doc.warehouse_id ?? null;
-      patch['warehouse'] = doc.warehouse_name || doc.branch_name || doc.remarks || this.formValues()['warehouse'] || '';
       patch['branchId'] = doc.branch_id ?? null;
       patch['branch'] = doc.branch_name || '';
+      patch['warehouse'] = doc.warehouse_name || doc.branch_name || '';
       patch['vendor'] = doc.party_name || this.formValues()['vendor'] || '';
     } else if (key === 'debitNote') {
       // Item 18: the merged dropdown/tray can hand back either a Purchase

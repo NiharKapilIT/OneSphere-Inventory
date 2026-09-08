@@ -139,8 +139,10 @@
                 </label>
               } @else if (field.key === 'receivingLocation') {
                 <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                  [class.inventory-control-readonly]="goodsReceiptLocationLocked()"
                   [items]="grnReceivingLocationGroups()" bindLabel="label" bindValue="label" groupBy="group"
-                  [searchable]="true" [clearable]="true"
+                  [searchable]="!goodsReceiptLocationLocked()" [clearable]="!goodsReceiptLocationLocked()"
+                  [readonly]="goodsReceiptLocationLocked()"
                   [ngModel]="formFieldValue(field)"
                   (ngModelChange)="collectFormField(field.key, $event)"
                   placeholder="Select Warehouse or Branch">
