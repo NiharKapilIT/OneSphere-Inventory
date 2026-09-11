@@ -12663,6 +12663,107 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   color: #475569;
 }
 
+// Per-serial warranty (migration 237) -- the shared-default row above the
+// chip list, the small pill on each chip showing its effective date /
+// prompting to set one, and the inline override editor that opens beneath a
+// chip when its pill is clicked.
+.inventory-serial-warranty-default {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.inventory-optional-hint-inline {
+  font-weight: 400;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.inventory-serial-warranty-mode-toggle {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 8px;
+}
+
+.inventory-serial-warranty-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+}
+
+.inventory-serial-warranty-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inventory-serial-warranty-computed {
+  font-size: 12.5px;
+  color: #334155;
+  padding-bottom: 6px;
+}
+
+.inventory-serial-chip-warranty {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 11.5px;
+  cursor: pointer;
+
+  i {
+    font-size: 10px;
+  }
+}
+
+.inventory-serial-chip-warranty--custom {
+  border-color: #fbbf24;
+  background: #fef3c7;
+}
+
+.inventory-serial-chip-warranty--readonly {
+  cursor: default;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.inventory-serial-chip--editing {
+  border-color: #94a3b8;
+}
+
+.inventory-serial-warranty-override-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: -2px 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+
+  input {
+    max-width: 150px;
+  }
+}
+
 .inventory-serial-select-list {
   display: flex;
   flex-direction: column;
@@ -14804,4 +14905,22 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   padding: 14px 20px;
   border-top: 1px solid #e5eaf2;
   background: #f8fafc;
+}
+
+// Product Master edit-lock (migration 236, item: "final delivery" batch
+// 2026-09-11): a <fieldset> around the whole product form is the disable
+// mechanism (cascades to every descendant input/select/textarea/button
+// automatically, no per-field wiring needed) -- this just strips the
+// browser's default fieldset chrome and dims the content when disabled so
+// it reads as "locked", not as a rendering bug.
+.inventory-locked-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+
+  &:disabled {
+    opacity: 0.65;
+    pointer-events: none;
+  }
 }

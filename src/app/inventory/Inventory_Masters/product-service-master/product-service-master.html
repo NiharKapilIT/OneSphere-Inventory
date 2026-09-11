@@ -434,6 +434,17 @@
         } @else if (config.key === 'productServiceMaster') {
           <div class="inventory-branch-form">
 
+            @if (isCurrentProductLocked()) {
+              <div class="erp-alert alert-warning">
+                <i class="pi pi-lock alert-icon"></i>
+                <div class="alert-body">
+                  <div class="alert-title">This product can no longer be edited</div>
+                  <div class="alert-msg">It has already been used in a posted transaction. Deactivate it and create a new product for any change.</div>
+                </div>
+              </div>
+            }
+            <fieldset class="inventory-locked-fieldset" [disabled]="isCurrentProductLocked()">
+
             <!-- -- Business Segment context bar ----------------------------- -->
             <div class="product-segment-bar">
               <span class="product-segment-bar-label"><i class="pi pi-briefcase"></i> Business Segment</span>
@@ -1265,6 +1276,7 @@
                 Use this when purchase or sales UOM differs from Base UOM. Example: Base UOM KG, Alternate UOM Bag, factor 26, Purchase Yes, Sales Yes/No, Active Yes.
               </div>
             </div>
+            </fieldset>
           </div>
         } @else if (config.key === 'consumptionTypeMaster') {
           <div class="inventory-branch-form">
@@ -1861,7 +1873,7 @@
           } @else if (config.kind === 'report') {
             <button type="button" class="erp-btn btn-primary"><i class="pi pi-search"></i> Generate</button>
           } @else {
-            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving()" (click)="config.key === 'productServiceMaster' ? saveConfigRecord() : null">
+            <button type="button" class="erp-btn btn-primary" [disabled]="isSaving() || (config.key === 'productServiceMaster' && isCurrentProductLocked())" (click)="config.key === 'productServiceMaster' ? saveConfigRecord() : null">
               <i [class]="isSaving() ? 'pi pi-spin pi-spinner' : config.key === 'productServiceMaster' && editingId() !== null ? 'pi pi-save' : 'pi pi-plus'"></i>
               {{ config.key === 'productServiceMaster' ? (editingId() !== null ? 'Update Product' : 'Save Product') : 'Add' }}
             </button>

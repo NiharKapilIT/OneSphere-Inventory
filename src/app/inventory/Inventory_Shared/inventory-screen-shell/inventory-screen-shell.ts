@@ -31,6 +31,18 @@ export interface VariantAttrSelection {
   isAuto: boolean;
 }
 
+// One physical serial unit's warranty, resolved at the moment it was
+// captured on the serial picker (GRN / Direct PI) — either computed from a
+// manufacturing date + term, or entered straight as a warranty-upto date.
+// Mirrors inv_serial_units' own manufacturing_date/warranty_term_months/
+// warranty_upto/warranty_mode columns (migration 237).
+export interface SerialWarrantyEntry {
+  mode: 'term' | 'straight';
+  manufacturing_date: string | null;
+  warranty_term_months: number | null;
+  warranty_upto: string | null;
+}
+
 interface ProductApplicableVariantAttributeRow {
   variant_id: number;
   variant_name: string;
@@ -305,6 +317,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly productExpiryApplicable = signal(false);
   readonly productQcRequired = signal(false);
   readonly productWarrantyApplicable = signal(false);
+  // True once the loaded Product Master record has moved real stock/value
+  // through a posted transaction (migration 236) -- the form renders
+  // read-only (see product-service-master.html's locked fieldset) and Save
+  // is disabled; the backend enforces the same rule on the save endpoint
+  // regardless, so this is UX only, never the sole guard.
+  readonly isCurrentProductLocked = signal(false);
   readonly productTaxUomRequired = signal(false);
   readonly productBrandRequired = signal(false);
   readonly productVariantRequired = signal(false);
@@ -506,9 +524,20 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // shows already-captured serials (e.g. a GRN-linked PI line) with no
   // add/remove affordances, distinct from 'inherited' (which is specifically
   // the DC/SI cross-reference flow with its own "reserved via ..." copy).
-  readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited' | 'view'; qtyNeeded: number; productId: number | null; productName: string } | null>(null);
+  readonly activeSerialPicker = signal<{ rowIndex: number; mode: 'capture' | 'select' | 'inherited' | 'view'; qtyNeeded: number; productId: number | null; productName: string; warrantyApplicable: boolean } | null>(null);
   readonly serialPickerDraftValues = signal<string[]>([]);
-  readonly serialPickerAvailableOptions = signal<{ id: number; serial_no: string }[]>([]);
+  readonly serialPickerAvailableOptions = signal<{ id: number; serial_no: string; warranty_upto?: string | null; manufacturing_date?: string | null }[]>([]);
+  // Per-line, per-serial warranty (capture mode only — GRN / Direct PI, the
+  // screens that actually create new serial units). Populated by the shared
+  // default below unless a specific serial has been individually overridden.
+  readonly lineSerialWarrantyMap = signal<Record<number, Record<string, SerialWarrantyEntry>>>({});
+  // The picker's own working state while open: one shared default applied to
+  // every serial that hasn't been overridden, plus the set of per-serial
+  // overrides entered so far. "Same for all" is simply never overriding
+  // anything; "separate for each" is overriding every one.
+  readonly serialPickerWarrantyDefault = signal<SerialWarrantyEntry>({ mode: 'term', manufacturing_date: null, warranty_term_months: null, warranty_upto: null });
+  readonly serialPickerWarrantyOverrides = signal<Record<string, SerialWarrantyEntry>>({});
+  readonly serialPickerWarrantyEditingSerial = signal<string | null>(null);
   // "select" mode tracks the checked STATE by unique unit id, not by
   // serial_no text — a serial policy with allow_duplicate=true means two
   // different physical units can legitimately share the same serial_no
@@ -1938,7 +1967,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const nature = this.productNatureObjects.find(n => n.id === natureId) ?? null;
     this.collectFormField('productNatureId', natureId);
     this.collectFormField('productNatureName', nature?.type_name ?? null);
-    this.collectFormField('productType', nature?.type_name ?? null);
+    // product_type is the backend's legacy Product/Service classifier
+    // (StringLength(20), read everywhere as LOWER(product_type)='service')
+    // -- it must never carry the full Nature label (e.g. "Semi-Finished
+    // Product", 21 chars) or the save 400s past that length cap. The
+    // granular nature already lives fully in productNatureId/productNatureName.
+    this.collectFormField('productType', nature ? (nature.is_service ? 'Service' : 'Product') : null);
     this.syncRawMaterialBehaviorForNature(nature?.type_name);
     if (nature && nature.tracks_inventory === false) {
       this.productStockControlsRequired.set(false);
@@ -2016,6 +2050,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const currentBaseUom = String(this.formValues()['baseUom'] || '').trim();
     if (currentBaseUom && !this.productBaseUomOptions().some(option => this.optionEquals(option, currentBaseUom))) {
       this.collectFormField('baseUom', null);
+    }
+    // Same "bind the category's own defaults" treatment as serial/batch
+    // policy above, extended to the one other product-relevant default a
+    // Category actually carries: its configured UOM list. Only on a still-
+    // empty field, same guard as everywhere else here, so switching category
+    // on an already-configured product never silently overwrites a UOM the
+    // user (or an earlier category) already set.
+    if (cat && !currentBaseUom && !this.formValues()['baseUom']) {
+      const firstCategoryUom = (cat.uoms || [])[0];
+      if (firstCategoryUom) {
+        const label = this.uomDisplayLabel(firstCategoryUom);
+        if (label) this.collectFormField('baseUom', label);
+      }
     }
 
     if (this.editingId() === null && (!this.formValues()['sku'] || this.skuIsAuto())) {
@@ -12934,6 +12981,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.boundReferenceFields.set({});
     this.lineRefItemIdMap.set({});
     this.lineSerialUnitsMap.set({});
+    this.lineSerialWarrantyMap.set({});
     this.entryLineRowsKey.set(key);
     this.entryLineRows.set([this.blankLineRow()]);
   }
@@ -13008,6 +13056,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.entryLineRows.set(rows);
     this.lineRefItemIdMap.set({});
     this.lineSerialUnitsMap.set({});
+    this.lineSerialWarrantyMap.set({});
   }
 
   private manufacturingLineRefMapFromItems(
@@ -13207,6 +13256,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.entryLineRows.set(rows.length ? rows : [this.blankLineRow()]);
     this.lineRefItemIdMap.set(refMap);
     this.lineSerialUnitsMap.set({});
+    this.lineSerialWarrantyMap.set({});
     this.boundReferenceLabels.set([doc.doc_number]);
     this.boundReferenceFields.set(patch);
     if (key === 'productionEntry') {
@@ -14362,7 +14412,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       mode: 'view',
       qtyNeeded: serials.length,
       productId: product?.id ?? null,
-      productName: product?.product_name || productName
+      productName: product?.product_name || productName,
+      warrantyApplicable: false
     });
     this.serialPickerDraftValues.set([...serials]);
     this.serialPickerAvailableOptions.set([]);
@@ -14439,12 +14490,27 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // there's nothing to pick between.
     const mode: 'capture' | 'select' | 'inherited' = inheritedSource ? 'inherited' : this.serialPickerModeForKey();
 
-    this.activeSerialPicker.set({ rowIndex, mode, qtyNeeded, productId: product.id, productName: product.product_name || productName });
+    // Warranty capture only applies where NEW serial units are actually
+    // being born (mode 'capture' — GRN / Direct PI) and only for a product
+    // configured to need it; 'select'/'inherited'/'view' rows are picking or
+    // reading units already fixed at receipt time, never re-capturing.
+    const warrantyApplicable = mode === 'capture' && !!product.warranty_applicable;
+    this.activeSerialPicker.set({ rowIndex, mode, qtyNeeded, productId: product.id, productName: product.product_name || productName, warrantyApplicable });
     this.serialPickerDraftValues.set([...(this.lineSerialUnitsMap()[rowIndex] || [])]);
     this.serialPickerAvailableOptions.set([]);
     this.serialPickerSelectedIds.set(new Set());
     this.serialPickerError.set('');
     this.serialPickerMessage.set('');
+    if (warrantyApplicable) {
+      // Resume exactly what was already entered for this row (e.g. reopening
+      // the picker to add one more unit), rather than resetting to blank.
+      this.serialPickerWarrantyOverrides.set({ ...(this.lineSerialWarrantyMap()[rowIndex] || {}) });
+      this.serialPickerWarrantyDefault.set({ mode: 'term', manufacturing_date: null, warranty_term_months: null, warranty_upto: null });
+    } else {
+      this.serialPickerWarrantyOverrides.set({});
+      this.serialPickerWarrantyDefault.set({ mode: 'term', manufacturing_date: null, warranty_term_months: null, warranty_upto: null });
+    }
+    this.serialPickerWarrantyEditingSerial.set(null);
 
     if (mode === 'inherited' && inheritedSource) {
       this.serialPickerLoading.set(true);
@@ -14642,6 +14708,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   removeSerialPickerCaptureValue(value: string): void {
     this.serialPickerDraftValues.set(this.serialPickerDraftValues().filter(s => s !== value));
+    this.clearSerialPickerWarrantyOverride(value);
   }
 
   // Bulk counterpart to addSerialPickerCaptureValue — adds a whole
@@ -14677,17 +14744,133 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const picker = this.activeSerialPicker();
     if (picker && save) {
       this.lineSerialUnitsMap.update(map => ({ ...map, [picker.rowIndex]: [...this.serialPickerDraftValues()] }));
+      if (picker.warrantyApplicable) {
+        // Every captured serial gets an entry — the shared default for
+        // anything not individually overridden, matching "same for all,
+        // unless overridden" — never left half-populated.
+        const resolved: Record<string, SerialWarrantyEntry> = {};
+        const overrides = this.serialPickerWarrantyOverrides();
+        const fallback = this.serialPickerWarrantyDefault();
+        for (const serial of this.serialPickerDraftValues()) {
+          resolved[serial] = overrides[serial] ?? fallback;
+        }
+        this.lineSerialWarrantyMap.update(map => ({ ...map, [picker.rowIndex]: resolved }));
+      } else {
+        this.lineSerialWarrantyMap.update(map => { const next = { ...map }; delete next[picker.rowIndex]; return next; });
+      }
     }
     this.activeSerialPicker.set(null);
     this.serialPickerDraftValues.set([]);
     this.serialPickerAvailableOptions.set([]);
     this.serialPickerSelectedIds.set(new Set());
+    this.serialPickerWarrantyOverrides.set({});
+    this.serialPickerWarrantyEditingSerial.set(null);
     this.serialPickerError.set('');
     this.serialPickerMessage.set('');
     if (this.serialPickerMessageTimer) {
       clearTimeout(this.serialPickerMessageTimer);
       this.serialPickerMessageTimer = null;
     }
+  }
+
+  // ── Per-serial warranty (capture mode only) ───────────────────────────────
+  // One shared default applied to every captured serial, with a per-serial
+  // override for the (uncommon) unit that genuinely differs — e.g. a
+  // different manufacturing batch mixed into the same GRN line. "Same for
+  // all" is simply the default with zero overrides; "separate for each" is
+  // overriding every one — both are the same mechanism, just used
+  // differently, so the screen never forces a choice between two modes.
+
+  /** Adds whole months to a plain "YYYY-MM-DD" string. Works entirely in
+   *  UTC-anchored Date.UTC arithmetic and formats the result back manually —
+   *  never round-trips through toISOString()/local-time getters, which shift
+   *  the date by a day in any timezone behind UTC (a local midnight Aug 1
+   *  becomes "2026-07-31T..." once read back as UTC). */
+  private addMonthsToIsoDate(iso: string, months: number): string | null {
+    if (!iso || !Number.isFinite(months)) return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+    if (!match) return null;
+    const [, y, m, d] = match;
+    const utc = new Date(Date.UTC(Number(y), Number(m) - 1 + months, Number(d)));
+    if (Number.isNaN(utc.getTime())) return null;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${utc.getUTCFullYear()}-${pad(utc.getUTCMonth() + 1)}-${pad(utc.getUTCDate())}`;
+  }
+
+  /** Resolves a warranty entry's effective warranty_upto, computing it from
+   *  manufacturing_date + term when the entry is in 'term' mode so the UI
+   *  can always show a concrete date, however it was entered. */
+  protected resolvedWarrantyUpto(entry: SerialWarrantyEntry | null | undefined): string | null {
+    if (!entry) return null;
+    if (entry.mode === 'straight') return entry.warranty_upto;
+    if (entry.manufacturing_date && entry.warranty_term_months) {
+      return this.addMonthsToIsoDate(entry.manufacturing_date, entry.warranty_term_months);
+    }
+    return null;
+  }
+
+  /** What a given captured serial will actually save as — its own override
+   *  if it has one, otherwise the shared default. Used both for the modal's
+   *  per-chip preview and to resolve the final payload on save. */
+  protected serialPickerEffectiveWarranty(serial: string): SerialWarrantyEntry {
+    return this.serialPickerWarrantyOverrides()[serial] ?? this.serialPickerWarrantyDefault();
+  }
+
+  // Clears every value field on a mode switch — leaving them in place would
+  // let a since-abandoned manufacturing_date/term silently persist behind a
+  // 'straight' entry (or vice versa), which resolvedWarrantyUpto() ignores
+  // for display but has no business surviving into the saved payload.
+  setSerialPickerWarrantyDefaultMode(mode: 'term' | 'straight'): void {
+    this.serialPickerWarrantyDefault.set({ mode, manufacturing_date: null, warranty_term_months: null, warranty_upto: null });
+  }
+  setSerialPickerWarrantyDefaultMfgDate(value: string): void {
+    this.serialPickerWarrantyDefault.update(v => ({ ...v, manufacturing_date: value || null }));
+  }
+  setSerialPickerWarrantyDefaultTermMonths(value: string): void {
+    const months = Number(value);
+    this.serialPickerWarrantyDefault.update(v => ({ ...v, warranty_term_months: Number.isFinite(months) && months > 0 ? months : null }));
+  }
+  setSerialPickerWarrantyDefaultStraightDate(value: string): void {
+    this.serialPickerWarrantyDefault.update(v => ({ ...v, warranty_upto: value || null }));
+  }
+
+  /** Opens (or closes, on a second click) the inline per-serial override
+   *  editor for one chip — seeded from its current effective value, so
+   *  overriding "starts from" the shared default rather than blank. */
+  toggleSerialPickerWarrantyEdit(serial: string): void {
+    if (this.serialPickerWarrantyEditingSerial() === serial) {
+      this.serialPickerWarrantyEditingSerial.set(null);
+      return;
+    }
+    this.serialPickerWarrantyOverrides.update(map =>
+      map[serial] ? map : { ...map, [serial]: { ...this.serialPickerWarrantyDefault() } }
+    );
+    this.serialPickerWarrantyEditingSerial.set(serial);
+  }
+
+  // Same "clear the other mode's fields" rule as the shared default's own
+  // mode setter above.
+  setSerialPickerSerialWarrantyMode(serial: string, mode: 'term' | 'straight'): void {
+    this.serialPickerWarrantyOverrides.update(map => ({
+      ...map,
+      [serial]: { mode, manufacturing_date: null, warranty_term_months: null, warranty_upto: null }
+    }));
+  }
+  setSerialPickerSerialWarrantyMfgDate(serial: string, value: string): void {
+    this.serialPickerWarrantyOverrides.update(map => ({ ...map, [serial]: { ...(map[serial] ?? this.serialPickerWarrantyDefault()), manufacturing_date: value || null } }));
+  }
+  setSerialPickerSerialWarrantyTermMonths(serial: string, value: string): void {
+    const months = Number(value);
+    this.serialPickerWarrantyOverrides.update(map => ({ ...map, [serial]: { ...(map[serial] ?? this.serialPickerWarrantyDefault()), warranty_term_months: Number.isFinite(months) && months > 0 ? months : null } }));
+  }
+  setSerialPickerSerialWarrantyStraightDate(serial: string, value: string): void {
+    this.serialPickerWarrantyOverrides.update(map => ({ ...map, [serial]: { ...(map[serial] ?? this.serialPickerWarrantyDefault()), warranty_upto: value || null } }));
+  }
+
+  /** Drops the override, reverting this one serial back to the shared default. */
+  clearSerialPickerWarrantyOverride(serial: string): void {
+    this.serialPickerWarrantyOverrides.update(map => { const next = { ...map }; delete next[serial]; return next; });
+    if (this.serialPickerWarrantyEditingSerial() === serial) this.serialPickerWarrantyEditingSerial.set(null);
   }
 
   isNameField(field: InventoryField): boolean {
@@ -14703,6 +14886,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.isLineGridFullscreen.set(false);
     this._autoCodeFields.clear();
     this.genericNameValue.set('');
+    this.isCurrentProductLocked.set(false);
     this.editingId.set(null);
     this.txDocId.set(null);
     this.txDocNumber.set('');
@@ -14722,6 +14906,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.lineAttrValueMap.set({});
     this.lineSerialValueMap.set({});
     this.lineSerialUnitsMap.set({});
+    this.lineSerialWarrantyMap.set({});
     this.categorySerialApplicable.set(false);
     this.categoryBatchApplicable.set(false);
     this.uomConversionRequired.set(false);
@@ -14774,6 +14959,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.lineSerialValueMap.set({});
       this.lineRefItemIdMap.set({});
       this.lineSerialUnitsMap.set({});
+    this.lineSerialWarrantyMap.set({});
       this.applyDefaultLocationToCurrentTransaction(true);
       return;
     }
@@ -15840,9 +16026,23 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   ): ((savedSi: any) => void) | undefined {
     if (choice === 'onlyInvoice') return undefined;
     const dcStatus: 'draft' | 'posted' = choice === 'invoiceWithDc' ? 'posted' : 'draft';
+    // Snapshotted HERE, synchronously, before the save even fires — not read
+    // lazily inside the returned callback. That callback runs as
+    // postSaveAction, which executeSaveConfigRecord() always invokes AFTER
+    // finishSave(), and finishSave() calls clearConfigForm(), which wipes
+    // entryLineRows()/lineSerialUnitsMap() back to a blank default row. A
+    // lazy read left the auto-created DC with whatever blankLineRow()
+    // defaults to (the line grid's first scoped product option, qty '1', no
+    // serials) instead of what was actually invoiced — silently correct-
+    // looking in a small test catalog where "first product" often matched by
+    // coincidence, and the reason a since-fixed batch of auto-created DCs
+    // (DC-26-00002/3/4/7) shipped with dispatch_qty 1 and zero serials
+    // regardless of the real invoiced quantity.
+    const lineItemsSnapshot = this.salesLineItems();
+    const serialUnitsSnapshot = this.lineSerialUnitsMap();
     return (savedSi: any) => {
       this.printAutoGeneratedDocument('salesInvoice', savedSi);
-      const dcPayload = this.buildAutoDeliveryChallanPayload(siPayload, savedSi, dcStatus);
+      const dcPayload = this.buildAutoDeliveryChallanPayload(siPayload, savedSi, dcStatus, lineItemsSnapshot, serialUnitsSnapshot);
       this.txService.saveDeliveryChallan(dcPayload, null).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (dcRes: ApiResponse<any>) => {
           if (dcRes.success && dcRes.data) {
@@ -15907,10 +16107,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private buildAutoDeliveryChallanPayload(
     siPayload: Record<string, any>,
     savedSalesInvoice: any,
-    status: 'draft' | 'posted'
+    status: 'draft' | 'posted',
+    lineItemsSnapshot: any[],
+    serialUnitsSnapshot: Record<number, string[]>
   ): Record<string, any> {
     const siItemIds = this.siItemIdsFromSavedRecord(savedSalesInvoice);
-    const items = this.salesLineItems().map((item: any, index: number) => ({
+    const items = lineItemsSnapshot.map((item: any, index: number) => ({
       sno: index + 1,
       so_item_id: null,
       si_item_id: siItemIds[index] ?? null,
@@ -15926,7 +16128,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       attribute_value: item.attribute_value,
       so_qty: 0,
       dispatch_qty: item.qty,
-      serial_numbers: this.lineSerialUnitsMap()[index] || null
+      serial_numbers: serialUnitsSnapshot[index] || null
     }));
     const siDocNo = String(savedSalesInvoice?.doc_number || savedSalesInvoice?.docNumber || siPayload['doc_number'] || '');
     return {
@@ -18555,6 +18757,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         });
         break;
       case 'productServiceMaster':
+        this.isCurrentProductLocked.set(!!record.locked_for_edit);
         this.genericNameValue.set(record.product_name || '');
         this.productName.set(record.product_name || '');
         this.selectedProductCategory.set(record.category_name || '');
@@ -18663,6 +18866,29 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // a previously-edited record's serials into the new one.
   private hydrateLineSerialUnitsFromRecord(record: any): void {
     this.lineSerialUnitsMap.set(this.lineSerialMapFromItems(record?.items || []));
+  }
+
+  // Restores each line's per-serial warranty capture (migration 237) when
+  // reopening a saved GRN/Direct PI draft before it posts — a no-op for any
+  // other document type, since those items simply carry no serial_warranty.
+  private hydrateLineSerialWarrantyFromRecord(record: any): void {
+    const items: any[] = Array.isArray(record?.items) ? record.items : [];
+    const map: Record<number, Record<string, SerialWarrantyEntry>> = {};
+    items.forEach((item, index) => {
+      const raw = item?.serial_warranty ?? item?.serialWarranty;
+      if (!raw || typeof raw !== 'object') return;
+      const entries: Record<string, SerialWarrantyEntry> = {};
+      for (const [serial, value] of Object.entries<any>(raw)) {
+        entries[serial] = {
+          mode: value?.mode === 'straight' ? 'straight' : 'term',
+          manufacturing_date: value?.manufacturing_date ?? value?.manufacturingDate ?? null,
+          warranty_term_months: value?.warranty_term_months ?? value?.warrantyTermMonths ?? null,
+          warranty_upto: value?.warranty_upto ?? value?.warrantyUpto ?? null
+        };
+      }
+      if (Object.keys(entries).length) map[index] = entries;
+    });
+    this.lineSerialWarrantyMap.set(map);
   }
 
   // A Sales Invoice line billed against a Delivery Challan item never
@@ -18862,6 +19088,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.txDocId.set(record.id ?? null);
     this.txDocStatus.set(record.status || 'draft');
     this.hydrateLineSerialUnitsFromRecord(record);
+    this.hydrateLineSerialWarrantyFromRecord(record);
 
     if (this.config?.key === 'purchaseRequisition') {
       this.txDocNumber.set(record.pr_number || '');
@@ -21350,6 +21577,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         batch_no: this.lineValue(row, ['batch']),
         serial_no: this.transactionLineSerialText(row, index),
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
+        serial_warranty: this.lineSerialWarrantyMap()[index] || null,
         expiry_date: this.lineValue(row, ['expiry']) || null,
         warehouse_name: this.lineValue(row, ['warehouse', 'location']) || defaultWarehouse || null,
         amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
@@ -21405,6 +21633,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         batch_no: this.lineValue(row, ['batch']),
         serial_no: this.transactionLineSerialText(row, index),
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
+        serial_warranty: this.lineSerialWarrantyMap()[index] || null,
         expiry_date: this.lineValue(row, ['expiry']) || null,
         warranty_upto: this.isoDateValue(this.lineValue(row, ['warranty'])) || null,
         amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
@@ -21814,6 +22043,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   protected validatePayload(payload: Record<string, any>): string {
     const hasValue = (value: any) => String(value ?? '').trim().length > 0;
+
+    // Mirrors the server-side guard in UpsertProductAsync (migration 236) so
+    // the user sees this immediately instead of after a round trip — the
+    // backend still enforces it regardless of whether this check ever runs.
+    if (this.config?.key === 'productServiceMaster' && this.editingId() !== null && this.isCurrentProductLocked()) {
+      return 'This product has already been used in a posted transaction and can no longer be edited. Deactivate it and create a new product instead.';
+    }
 
     // GRN / Purchase Invoice / Delivery Challan: a Branch picked in the merged
     // Warehouse/Branch dropdown must resolve to exactly one real warehouse, or

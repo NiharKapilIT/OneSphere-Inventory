@@ -709,6 +709,11 @@ export interface ProductItem {
   bundle_composition?: ProductBundleItem[];
   variant_stock_controls?: ProductVariantStockControl[];
   status: string;
+  // True once this product has moved real stock/value through a posted
+  // GRN/PI/SI/Return/Transfer/Adjustment/Production document (migration
+  // 236) -- the record is then read-only; the backend enforces the same
+  // rule on save regardless of what the UI does with this flag.
+  locked_for_edit?: boolean;
 }
 
 export interface ProductApplicableVariant {
@@ -1792,7 +1797,8 @@ export class InventoryConfigService {
         reorder_level: this.value(s, 'reorder_level', 'reorderLevel', 0),
         reorder_qty: this.value(s, 'reorder_qty', 'reorderQty', 0),
       } as ProductVariantStockControl)),
-      status: this.value(item, 'status', 'status', 'active')
+      status: this.value(item, 'status', 'status', 'active'),
+      locked_for_edit: this.value(item, 'locked_for_edit', 'lockedForEdit', false)
     };
   }
 

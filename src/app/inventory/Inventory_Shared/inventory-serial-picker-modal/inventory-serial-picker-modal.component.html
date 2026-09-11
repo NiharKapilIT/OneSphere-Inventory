@@ -68,12 +68,80 @@
             }
           </div>
 
+          @if (picker.warrantyApplicable) {
+            <div class="erp-form-group inventory-serial-warranty-default">
+              <label>Warranty <span class="inventory-optional-hint-inline">— applies to every serial below unless you override one individually</span></label>
+              <div class="inventory-serial-warranty-mode-toggle">
+                <button type="button" class="erp-btn btn-sm" [class.btn-primary]="host.serialPickerWarrantyDefault().mode === 'term'" [class.btn-white]="host.serialPickerWarrantyDefault().mode !== 'term'"
+                  (click)="host.setSerialPickerWarrantyDefaultMode('term')">Manufacturing Date + Term</button>
+                <button type="button" class="erp-btn btn-sm" [class.btn-primary]="host.serialPickerWarrantyDefault().mode === 'straight'" [class.btn-white]="host.serialPickerWarrantyDefault().mode !== 'straight'"
+                  (click)="host.setSerialPickerWarrantyDefaultMode('straight')">Straight Warranty Upto</button>
+              </div>
+              @if (host.serialPickerWarrantyDefault().mode === 'term') {
+                <div class="inventory-serial-warranty-fields">
+                  <div>
+                    <span class="inventory-serial-warranty-field-label">Manufacturing Date</span>
+                    <input class="erp-input" type="date" [ngModel]="host.serialPickerWarrantyDefault().manufacturing_date"
+                      (ngModelChange)="host.setSerialPickerWarrantyDefaultMfgDate($event)" />
+                  </div>
+                  <div>
+                    <span class="inventory-serial-warranty-field-label">Term (months)</span>
+                    <input class="erp-input" type="number" min="1" placeholder="e.g. 12" [ngModel]="host.serialPickerWarrantyDefault().warranty_term_months"
+                      (ngModelChange)="host.setSerialPickerWarrantyDefaultTermMonths($event)" />
+                  </div>
+                  <div class="inventory-serial-warranty-computed">
+                    Warranty Upto: <strong>{{ host.resolvedWarrantyUpto(host.serialPickerWarrantyDefault()) || '—' }}</strong>
+                  </div>
+                </div>
+              } @else {
+                <div class="inventory-serial-warranty-fields">
+                  <div>
+                    <span class="inventory-serial-warranty-field-label">Warranty Upto</span>
+                    <input class="erp-input" type="date" [ngModel]="host.serialPickerWarrantyDefault().warranty_upto"
+                      (ngModelChange)="host.setSerialPickerWarrantyDefaultStraightDate($event)" />
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
           <div class="inventory-serial-chip-list">
             @for (serial of host.serialPickerDraftValues(); track serial) {
-              <span class="inventory-serial-chip">
+              @let editing = host.serialPickerWarrantyEditingSerial() === serial;
+              @let effective = picker.warrantyApplicable ? host.serialPickerEffectiveWarranty(serial) : null;
+              @let isOverridden = picker.warrantyApplicable && !!host.serialPickerWarrantyOverrides()[serial];
+              <span class="inventory-serial-chip" [class.inventory-serial-chip--editing]="editing">
                 {{ serial }}
+                @if (picker.warrantyApplicable) {
+                  <button type="button" class="inventory-serial-chip-warranty" [class.inventory-serial-chip-warranty--custom]="isOverridden"
+                    [title]="isOverridden ? 'Individually overridden — click to edit' : 'Using the shared default — click to override just this one'"
+                    (click)="host.toggleSerialPickerWarrantyEdit(serial)">
+                    <i class="pi pi-shield"></i>{{ host.resolvedWarrantyUpto(effective) || 'Set warranty' }}
+                  </button>
+                }
                 <button type="button" (click)="host.removeSerialPickerCaptureValue(serial)"><i class="pi pi-times"></i></button>
               </span>
+              @if (editing) {
+                <div class="inventory-serial-warranty-override-row">
+                  <div class="inventory-serial-warranty-mode-toggle">
+                    <button type="button" class="erp-btn btn-sm" [class.btn-primary]="effective?.mode === 'term'" [class.btn-white]="effective?.mode !== 'term'"
+                      (click)="host.setSerialPickerSerialWarrantyMode(serial, 'term')">Mfg Date + Term</button>
+                    <button type="button" class="erp-btn btn-sm" [class.btn-primary]="effective?.mode === 'straight'" [class.btn-white]="effective?.mode !== 'straight'"
+                      (click)="host.setSerialPickerSerialWarrantyMode(serial, 'straight')">Straight Upto</button>
+                  </div>
+                  @if (effective?.mode === 'term') {
+                    <input class="erp-input erp-input-sm" type="date" [ngModel]="effective?.manufacturing_date" (ngModelChange)="host.setSerialPickerSerialWarrantyMfgDate(serial, $event)" title="Manufacturing Date" />
+                    <input class="erp-input erp-input-sm" type="number" min="1" placeholder="Months" [ngModel]="effective?.warranty_term_months" (ngModelChange)="host.setSerialPickerSerialWarrantyTermMonths(serial, $event)" title="Term (months)" />
+                    <span class="inventory-serial-warranty-computed">= {{ host.resolvedWarrantyUpto(effective) || '—' }}</span>
+                  } @else {
+                    <input class="erp-input erp-input-sm" type="date" [ngModel]="effective?.warranty_upto" (ngModelChange)="host.setSerialPickerSerialWarrantyStraightDate(serial, $event)" title="Warranty Upto" />
+                  }
+                  @if (isOverridden) {
+                    <button type="button" class="erp-btn btn-white btn-sm" (click)="host.clearSerialPickerWarrantyOverride(serial)">Use shared default</button>
+                  }
+                  <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="host.toggleSerialPickerWarrantyEdit(serial)"><i class="pi pi-check"></i></button>
+                </div>
+              }
             } @empty {
               <span class="inventory-grid-empty-hint">No serial numbers entered yet.</span>
             }
@@ -128,6 +196,14 @@
                     [disabled]="!isChecked && atCap"
                     (change)="host.toggleSerialPickerOption(option)" />
                   <span>{{ host.serialPickerOptionLabel(option) }}</span>
+                  @if (option.warranty_upto) {
+                    <!-- The warranty this exact unit already carries from when
+                         it was received (migration 237) — read-only here,
+                         never re-entered at the point of sale. -->
+                    <span class="inventory-serial-chip-warranty inventory-serial-chip-warranty--readonly" title="Warranty already fixed on this unit at receipt">
+                      <i class="pi pi-shield"></i>Warranty upto {{ option.warranty_upto }}
+                    </span>
+                  }
                 </label>
               } @empty {
                 <span class="inventory-grid-empty-hint">No serial numbers available to select.</span>

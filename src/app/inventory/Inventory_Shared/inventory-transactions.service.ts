@@ -770,6 +770,10 @@ export interface AvailableStock {
 export interface SerialUnit {
   id?: number;
   serial_no?: string;
+  // The warranty already fixed on this exact physical unit at receipt time
+  // (migration 237) — read-only display when selling it, never re-entered.
+  manufacturing_date?: string | null;
+  warranty_upto?: string | null;
 }
 
 export interface SalesReturnItem {
@@ -2164,7 +2168,17 @@ export class InventoryTransactionsService {
   }
 
   private normSerialUnits(res: ApiResponse<any[]>): ApiResponse<SerialUnit[]> {
-    return { ...res, data: (res.data ?? []).map((r: any) => ({ id: r?.id, serial_no: r?.serialNo || r?.serial_no })) };
+    return {
+      ...res, data: (res.data ?? []).map((r: any) => ({
+        id: r?.id,
+        serial_no: r?.serialNo || r?.serial_no,
+        // Carried through so the picker can show, read-only, the warranty
+        // already fixed on this exact unit when it was received (migration
+        // 237) — "warranty should carry at sales by its serial no."
+        manufacturing_date: r?.manufacturingDate || r?.manufacturing_date || null,
+        warranty_upto: r?.warrantyUpto || r?.warranty_upto || null
+      }))
+    };
   }
 
   getAvailableSerials(params: { productId: number; variantId?: number | null; attributeId?: number | null; attributeValue?: string | null; warehouseId?: number | null; branchId?: number | null }): Observable<ApiResponse<SerialUnit[]>> {
