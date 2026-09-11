@@ -992,13 +992,14 @@ export const serialNumberPolicyConfig: InventoryScreenConfig = {
     { key: 'serialFormat', label: 'Format Notes (optional)' },
     { key: 'captureStage', label: 'Capture Stage', type: 'select', options: ['Purchase Inward', 'Sales Invoice', 'Both Inward and Sale', 'Warranty Registration'] },
     { key: 'allowDuplicate', label: 'Allow Duplicate Serial No.', type: 'select', options: ['Yes', 'No'] },
+    { key: 'warrantyApplicable', label: 'Warranty Applicable', type: 'select', options: ['Yes', 'No'] },
     { key: 'status', label: 'Status', type: 'select', options: INVENTORY_OPTIONS.status }
   ],
-  columns: ['Policy Code', 'Policy Name', 'Applicable Category', 'Serial Format', 'Capture Stage', 'Allow Duplicate', 'Status'],
+  columns: ['Policy Code', 'Policy Name', 'Applicable Category', 'Serial Format', 'Capture Stage', 'Allow Duplicate', 'Warranty Applicable', 'Status'],
   rows: [
-    ['SNP-IMEI', 'IMEI Required', 'Mobile & Accessories', '15 digit IMEI', 'Both Inward and Sale', 'No', 'Active'],
-    ['SNP-SERIAL', 'Serial No Required', 'Computers & Devices', 'Brand serial number', 'Purchase Inward', 'No', 'Active'],
-    ['SNP-WAR', 'Warranty Serial Tracking', 'Electronics', 'Alphanumeric', 'Warranty Registration', 'No', 'Active']
+    ['SNP-IMEI', 'IMEI Required', 'Mobile & Accessories', '15 digit IMEI', 'Both Inward and Sale', 'No', 'Yes', 'Active'],
+    ['SNP-SERIAL', 'Serial No Required', 'Computers & Devices', 'Brand serial number', 'Purchase Inward', 'No', 'No', 'Active'],
+    ['SNP-WAR', 'Warranty Serial Tracking', 'Electronics', 'Alphanumeric', 'Warranty Registration', 'No', 'Yes', 'Active']
   ]
 };
 
@@ -1391,7 +1392,7 @@ export const purchaseInvoiceConfig = transaction(
     // actually references a posted GRN, where it displays (read-only) the
     // GRN's accepted quantity -- see item 5. Received Qty is intentionally
     // NOT a PI column: PI always bills on Accepted Qty when GRN-linked.
-    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    lineColumns: ['Product', 'Variant', 'Attribute', 'UOM', 'Qty', 'Accepted Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Warranty Upto', 'Amount'],
     lineRows: [],
     columns: ['PI No', 'PI Date', 'Vendor', 'Warehouse / Branch', 'GRN Ref', 'Amount', 'Due Date', 'Status'],
     rows: []
@@ -1452,7 +1453,7 @@ export const salesInvoiceConfig = transaction(
     // Warehouse column (line ~1290 above) is a real, independently-editable
     // per-line field and stays untouched -- this removal is Sales Invoice
     // only.
-    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'MRP', 'Selling Price', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Amount'],
+    lineColumns: ['Item / SKU', 'Variant', 'Attribute', 'UOM', 'Qty', 'Rate', 'Disc %', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Warranty Upto', 'Amount'],
     lineRows: [
       ['LED Display 32 inch', '', '', 'Nos', '2', '24,500', '26,000', '24,500', '0', '18%', 'NA', 'SN-1042, SN-1043', 'NA', 'HYD Main WH', '57,820'],
       ['Agro Seed Premium', '', '', 'Bag', '10', '2,150', '2,300', '2,150', '1', '5%', 'LOT-AGRO-0526-A', 'NA', '18-Dec-2026', 'BLR Store', '22,349'],

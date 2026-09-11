@@ -362,6 +362,15 @@
   cursor: pointer;
 
   &:hover { background: #eff6ff; color: #2456d6; }
+
+  // Keyboard highlight. Matches :hover exactly so arrowing and pointing look
+  // the same — the row under the arrow keys IS the row Enter will pick. The
+  // left bar makes the position unmistakable when scanning a long list.
+  &.is-active {
+    background: #eff6ff;
+    color: #2456d6;
+    box-shadow: inset 2px 0 0 #2456d6;
+  }
 }
 
 .inventory-line-product-suggest-empty {

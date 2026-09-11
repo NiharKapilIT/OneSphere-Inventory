@@ -438,18 +438,24 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
     });
   });
 
-  // Workstream B: once a Branch/Warehouse is selected on one of the
-  // stockLocationScreenKeys screens, the product list narrows to what's
-  // actually in stock there -- reusing sp_get_available_stock (via
-  // getAvailableStock) with no productId, a single bulk "which products
-  // have stock here" call. Deliberately fails open (full unfiltered list)
-  // whenever the location is unresolved, the fetch is still in flight, or it
-  // resolves to genuinely zero stocked products -- a filtering bug here
-  // reads as "I can't find my product at all," worse than no filter.
+  // Workstream B: once a Branch/Warehouse is selected on an OUTWARD screen
+  // (Delivery Challan, Sales Invoice, Stock Transfer, Material Issue), the
+  // product list narrows to what's actually in stock there -- reusing
+  // sp_get_available_stock (via getAvailableStock) with no productId, a
+  // single bulk "which products have stock here" call. Deliberately fails
+  // open (full unfiltered list) whenever the location is unresolved, the
+  // fetch is still in flight, or it resolves to genuinely zero stocked
+  // products -- a filtering bug here reads as "I can't find my product at
+  // all," worse than no filter.
+  //
+  // Goods Receipt is NOT scoped (it used to be): it is the inward document
+  // that gives a product its first stock, so narrowing it to already-stocked
+  // products hid every newly created product -- the picker then offered
+  // "Add X in Product Master" for a product that already existed.
   describe('Product filtering scoped to the selected Branch/Warehouse (Workstream B)', () => {
     beforeEach(() => {
-      makeComponent(transaction('goodsReceipt', 'Goods Receipt',
-        ['Product', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'Amount']));
+      makeComponent(transaction('deliveryChallan', 'Delivery Challan',
+        ['Item / SKU', 'UOM', 'Qty', 'Rate', 'Amount']));
       (component as any).loadedProductObjects.set([
         { id: 14, product_name: 'Dell Desktop', product_code: 'DD-1' } as any,
         { id: 20, product_name: 'HP Printer', product_code: 'HP-1' } as any
@@ -462,26 +468,26 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
     }
 
     it('fails open (full list) before any location is selected', () => {
-      component.formValues.set({ receivingLocation: '' });
+      component.formValues.set({ fromWarehouse: '' });
       expect((component as any).lineColumnOptions('Item / SKU')).toEqual(['Dell Desktop', 'HP Printer']);
     });
 
     it('fails open on the very first read (fetch just kicked off), then narrows once the fetch resolves', () => {
       seedAvailableStock([{ product_id: 14, available: 5 }]);
-      component.formValues.set({ receivingLocation: 'Floating WH' }); // UNLINKED_WH, id 9
+      component.formValues.set({ fromWarehouse: 'Floating WH' }); // UNLINKED_WH, id 9
       // First call reads the pre-fetch cache state (nothing yet) and fails open.
-      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop', 'HP Printer']);
+      expect((component as any).productNamesScopedToLocation('deliveryChallan')).toEqual(['Dell Desktop', 'HP Printer']);
       // The stub resolves synchronously, so a second read now sees the
       // narrowed set -- exactly what the next render/change-detection pass
       // would show once the real HTTP call lands.
-      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop']);
+      expect((component as any).productNamesScopedToLocation('deliveryChallan')).toEqual(['Dell Desktop']);
     });
 
     it('fails open (full list) when the location resolves to genuinely zero stocked products', () => {
       seedAvailableStock([]);
-      component.formValues.set({ receivingLocation: 'Floating WH' });
-      (component as any).productNamesScopedToLocation('goodsReceipt'); // kick off + resolve
-      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['Dell Desktop', 'HP Printer']);
+      component.formValues.set({ fromWarehouse: 'Floating WH' });
+      (component as any).productNamesScopedToLocation('deliveryChallan'); // kick off + resolve
+      expect((component as any).productNamesScopedToLocation('deliveryChallan')).toEqual(['Dell Desktop', 'HP Printer']);
     });
 
     // Full Warehouse/Branch Independence: a branch pick now resolves
@@ -489,20 +495,31 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
     // first" -- so the underlying fetch is scoped by branchId, not warehouseId.
     it('resolves a branch straight to a branch-scoped location -- no more auto-collapse to a linked warehouse', () => {
       seedAvailableStock([{ product_id: 20, available: 3 }]);
-      component.formValues.set({ receivingLocation: 'Head Office' }); // SOLO_BRANCH, branch_id 37
-      (component as any).productNamesScopedToLocation('goodsReceipt');
-      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['HP Printer']);
+      component.formValues.set({ fromWarehouse: 'Head Office' }); // SOLO_BRANCH, branch_id 37
+      (component as any).productNamesScopedToLocation('deliveryChallan');
+      expect((component as any).productNamesScopedToLocation('deliveryChallan')).toEqual(['HP Printer']);
       const spy = (component as any).txService.getAvailableStock as any;
       expect(spy.mock.calls[0][0]).toEqual(expect.objectContaining({ branchId: 37 }));
     });
 
     it('resolves a directly picked warehouse and filters by that warehouse, unchanged', () => {
       seedAvailableStock([{ product_id: 20, available: 3 }]);
-      component.formValues.set({ receivingLocation: 'Floating WH' }); // UNLINKED_WH, id 9
-      (component as any).productNamesScopedToLocation('goodsReceipt');
-      expect((component as any).productNamesScopedToLocation('goodsReceipt')).toEqual(['HP Printer']);
+      component.formValues.set({ fromWarehouse: 'Floating WH' }); // UNLINKED_WH, id 9
+      (component as any).productNamesScopedToLocation('deliveryChallan');
+      expect((component as any).productNamesScopedToLocation('deliveryChallan')).toEqual(['HP Printer']);
       const spy = (component as any).txService.getAvailableStock as any;
       expect(spy.mock.calls[0][0]).toEqual(expect.objectContaining({ warehouseId: 9 }));
+    });
+
+    it('does not scope Goods Receipt -- a product with no stock anywhere yet must still be receivable', () => {
+      const spy = seedAvailableStock([{ product_id: 14, available: 5 }]);
+      component.config = transaction('goodsReceipt', 'Goods Receipt', ['Product', 'UOM', 'Received Qty', 'Accepted Qty', 'Rate', 'Amount']);
+      component.formValues.set({ receivingLocation: 'Floating WH' });
+      (component as any).productNamesScopedToLocation('goodsReceipt');
+      // HP Printer has no stock at Floating WH (or anywhere) -- exactly the
+      // newly-created-product case -- and still shows.
+      expect((component as any).lineColumnOptions('Product')).toEqual(['Dell Desktop', 'HP Printer']);
+      expect(spy).not.toHaveBeenCalled();
     });
 
     it('does not scope Sales Order -- out of scope for Workstream B, stays the plain unfiltered list', () => {

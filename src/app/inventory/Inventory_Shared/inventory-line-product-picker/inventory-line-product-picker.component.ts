@@ -718,6 +718,9 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
   protected onSearchInput(value: string): void {
     this.searchText.set(value ?? '');
     this.openSearchPanel();
+    // Retyping invalidates whatever was highlighted — the list underneath has
+    // changed — so the highlight goes back to the first match.
+    this.activeIndex.set(this.matches().length ? 0 : -1);
     this.suggestView?.detectChanges();
     this.positionSuggest();
   }
@@ -725,18 +728,81 @@ export class InventoryLineProductPickerComponent implements OnDestroy {
   protected onSearchFocus(): void {
     this.searchText.set(this.productValue() || '');
     this.openSearchPanel();
+    this.activeIndex.set(this.matches().length ? 0 : -1);
   }
 
   /** Closing without a pick must not strand a half-typed value in the cell. */
   protected closeSearch(_force = false): void {
     this.searchOpen.set(false);
     this.searchText.set('');
+    this.activeIndex.set(-1);
     this.destroySuggestView();
   }
 
   protected chooseMatch(value: string): void {
     this.closeSearch(true);
     this.pickProduct(value);
+  }
+
+  // ── Keyboard navigation ──────────────────────────────────────────────────
+  // The cell is a text box so an unknown product can be typed and created
+  // inline, but it still has to FEEL like the dropdown it replaced: arrow keys
+  // move through the matches, Enter picks the highlighted one, Escape closes.
+  // Without this a user had to leave the keyboard and reach for the mouse on
+  // every line, which is the opposite of what a line grid is for.
+  protected readonly activeIndex = signal(-1);
+
+  protected onSearchKeydown(event: KeyboardEvent): void {
+    const list = this.matches();
+
+    switch (event.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        event.preventDefault();          // don't let the caret jump in the input
+        if (!this.searchOpen()) { this.onSearchFocus(); return; }
+        if (!list.length) return;
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        // Wraps at both ends, so holding one arrow cycles rather than sticking.
+        const next = (this.activeIndex() + step + list.length) % list.length;
+        this.activeIndex.set(next);
+        this.suggestView?.detectChanges();
+        this.scrollActiveIntoView();
+        return;
+      }
+
+      case 'Enter': {
+        const index = this.activeIndex();
+        if (!this.searchOpen() || index < 0 || index >= list.length) return;
+        // Only swallow Enter when it actually picks something, so a form-level
+        // Enter still works when the panel is closed or empty.
+        event.preventDefault();
+        this.chooseMatch(list[index]);
+        return;
+      }
+
+      case 'Escape': {
+        if (!this.searchOpen()) return;
+        event.preventDefault();
+        this.closeSearch(true);
+        return;
+      }
+
+      case 'Tab':
+        // Leaving the cell should not strand a half-typed query behind.
+        if (this.searchOpen()) this.closeSearch(true);
+        return;
+
+      default:
+        return;
+    }
+  }
+
+  /** Keeps the highlighted row visible when arrowing past the panel's edge. */
+  private scrollActiveIntoView(): void {
+    const root = this.suggestRootRef?.nativeElement;
+    if (!root) return;
+    const items = root.querySelectorAll<HTMLElement>('.inventory-line-product-suggest-item');
+    items.item(this.activeIndex())?.scrollIntoView({ block: 'nearest' });
   }
 
   // A product carries far more than a name — nature, base UOM, HSN and GST,

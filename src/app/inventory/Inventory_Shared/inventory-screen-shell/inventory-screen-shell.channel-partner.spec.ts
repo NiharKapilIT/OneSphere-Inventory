@@ -80,16 +80,46 @@ describe('InventoryScreenShell — Channel Partner (item 2)', () => {
     return (component as any).validatePayload(payload);
   }
 
-  it('blocks saving a Sales Order without a Channel Partner', () => {
+  // Channel Partner is no longer required on every sale. Most sales are direct,
+  // and demanding a partner on all of them blocked the ordinary case. The
+  // "Referral Business" switch declares the intent: the partner is required
+  // only when it is on, and the field is hidden entirely when it is off.
+
+  it('allows saving a Sales Order with no Channel Partner when it is not referral business', () => {
+    const message = validate('salesOrder', {
+      customer: 'Acme Corp', channelPartner: '', referralBusiness: 'No'
+    });
+    expect(message).not.toContain('Channel Partner');
+  });
+
+  it('allows saving a Sales Invoice with no Channel Partner when it is not referral business', () => {
+    const message = validate('salesInvoice', {
+      customer: 'Acme Corp', channelPartner: '', referralBusiness: 'No',
+      invoiceNo: 'INV-1', invoiceDate: '2026-08-15'
+    });
+    expect(message).not.toContain('Channel Partner');
+  });
+
+  it('treats an absent Referral Business flag as direct business, not referral', () => {
+    // A document saved before this switch existed carries no flag at all; it
+    // must not start failing validation retroactively.
     const message = validate('salesOrder', { customer: 'Acme Corp', channelPartner: '' });
+    expect(message).not.toContain('Channel Partner');
+  });
+
+  it('requires a Channel Partner once the sale IS marked referral business', () => {
+    const message = validate('salesOrder', {
+      customer: 'Acme Corp', channelPartner: '', referralBusiness: 'Yes'
+    });
     expect(message).toContain('Channel Partner is required');
   });
 
-  it('blocks saving a Sales Invoice without a Channel Partner', () => {
+  it('accepts a referral Sales Invoice that names its Channel Partner', () => {
     const message = validate('salesInvoice', {
-      customer: 'Acme Corp', channelPartner: '', invoiceNo: 'INV-1', invoiceDate: '2026-08-15'
+      customer: 'Acme Corp', channelPartner: 'Bright Referrals', referralBusiness: 'Yes',
+      invoiceNo: 'INV-1', invoiceDate: '2026-08-15'
     });
-    expect(message).toContain('Channel Partner is required');
+    expect(message).not.toContain('Channel Partner');
   });
 
   it('does not require a Channel Partner to save a Delivery Challan', () => {

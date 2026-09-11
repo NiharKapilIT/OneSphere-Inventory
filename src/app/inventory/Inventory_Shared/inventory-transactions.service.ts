@@ -2365,6 +2365,18 @@ export class InventoryTransactionsService {
       : this.http.post<ApiResponse<any>>(this.salesUrl('credit-notes'), body, { headers: h });
   }
 
+  /**
+   * The number the next document of this type will get, for display before
+   * posting. A preview only — nothing is allocated, so opening a screen and
+   * closing it leaves no gap. The saved document is the authority: if someone
+   * else saves first, the server hands this one the next free number instead.
+   */
+  peekNextDocNumber(docType: string): Observable<ApiResponse<string | null>> {
+    const params = new HttpParams().set('docType', docType);
+    return this.http.get<ApiResponse<string | null>>(
+      this.url('next-doc-number'), { headers: this.headers(), params });
+  }
+
   getRefDocs(docType: string, segmentId?: number | null, customerId?: number | null): Observable<ApiResponse<PurchaseRefDoc[]>> {
     let params = new HttpParams().set('docType', docType);
     if (segmentId) params = params.set('segmentId', String(segmentId));

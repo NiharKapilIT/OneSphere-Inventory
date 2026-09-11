@@ -304,6 +304,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   readonly productSerialApplicable = signal(false);
   readonly productExpiryApplicable = signal(false);
   readonly productQcRequired = signal(false);
+  readonly productWarrantyApplicable = signal(false);
   readonly productTaxUomRequired = signal(false);
   readonly productBrandRequired = signal(false);
   readonly productVariantRequired = signal(false);
@@ -531,6 +532,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private readonly taxCategoryOptionList = signal<string[]>([]);
   private readonly loadedCategoryObjects = signal<CategoryItem[]>([]);
   private readonly loadedSegmentObjects = signal<SegmentItem[]>([]);
+
+  // Distinguishes "this company has no segments" from "segments have not come
+  // back yet". Reference lists are segment-scoped on the server, where a
+  // missing segment_id means EVERY segment, so the difference matters: firing
+  // the request too early returns other segments' documents.
+  private readonly segmentsResolved = signal(false);
   private readonly loadedHsnSacObjects = signal<HsnSacItem[]>([]);
   private readonly loadedUomObjects = signal<UomItem[]>([]);
   // BOM and Work Center masters, read by Production Planning for its BOM
@@ -2287,7 +2294,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private onSelectedSegmentChanged(segment: string): void {
     if (!segment || !this.config?.key) return;
-    this.clearConfigForm();
+    // A fresh component starts with selectedSegment '' and only gets its
+    // real segment once getSegments() lands — so this fires once on EVERY
+    // screen open, well after ngOnInit. When ngOnInit has already put
+    // something on the form for a master trip — the restored GRN/PI on the
+    // way back (restoreProcurementResumeIfReturning()), or the typed product
+    // name on the way out (applyProductMasterTypedName()) — clearing here
+    // threw it away: the user came back to an empty document, and Product
+    // Master opened with a blank name. Skip that one initial clear; a segment
+    // change the user makes afterwards still resets the form as before.
+    const keepFormFromInit = this.skipClearOnInitialSegmentResolve;
+    this.skipClearOnInitialSegmentResolve = false;
+    if (!keepFormFromInit) this.clearConfigForm();
     this.formValues.update(values => ({ ...values, segment }));
     this.refreshSegmentScopedOptions();
     this.loadSegmentScopedLookups();
@@ -3003,8 +3021,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     'productionPlanning', 'materialIssueProduction', 'productionEntry', 'productionReturn'
   ]);
 
+  // Screens whose product picker narrows to what is actually IN STOCK at the
+  // selected location (see productNamesScopedToLocation()). Outward documents
+  // only: you can only dispatch / bill / transfer / issue what is there.
+  // Goods Receipt is deliberately ABSENT — it is the inward document that
+  // gives a product its first stock, so filtering it to already-stocked
+  // products hid every newly created product: the picker offered "Add X in
+  // Product Master" for a product that already existed (found 2026-09-11,
+  // "Portable Charger" created via that very quick-add never showed on GRN).
   private readonly availableStockProductOptionScopeKeys = new Set([
-    'goodsreceipt',
     'deliverychallan',
     'salesinvoice',
     'stocktransfer',
@@ -3165,6 +3190,34 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       hasStockTrackingLine
     });
     if (fromMessage) return `From: ${fromMessage}`;
+
+    // Stock can only be sent OUT of the location the user is standing in.
+    // A branch user moving stock out of a branch they are not in is moving
+    // someone else's stock, and the receiving side has no way to know it
+    // happened. The destination is deliberately unrestricted — sending to any
+    // branch or warehouse is the whole point of a transfer.
+    //
+    // Admins are exempt: they work across the company, so any -> any is
+    // allowed for them, same rule as Interbranch Sale on the invoice side.
+    if (!this.isAdmin()) {
+      // A BranchInvItem's id is resolved via branchResolvedId(), not .id —
+      // the two are not always the same field on this shape.
+      const activeBranchId = this.branchResolvedId(this.sessionActiveBranch());
+      const activeWarehouseId = this.optionalNumber(this.sessionActiveWarehouse()?.id);
+      const fromBranchId = this.optionalNumber(payload['from_branch_id']);
+      const fromWarehouseId = this.optionalNumber(payload['from_warehouse_id']);
+
+      if (activeWarehouseId != null && fromWarehouseId !== activeWarehouseId) {
+        return `From: a Stock Transfer can only send stock out of `
+             + `${this.sessionActiveWarehouse()?.warehouse_name || 'your active warehouse'}. `
+             + `Switch your active location to transfer from somewhere else.`;
+      }
+      if (activeWarehouseId == null && activeBranchId != null && fromBranchId !== activeBranchId) {
+        return `From: a Stock Transfer can only send stock out of `
+             + `${this.sessionActiveBranch()?.branch_name || 'your active branch'}. `
+             + `Switch your active location to transfer from somewhere else.`;
+      }
+    }
 
     const toMessage = this.singleLocationValidationMessage({
       warehouseId: this.optionalNumber(payload['to_warehouse_id']),
@@ -4266,6 +4319,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         next: res => {
           const savedSegments = res.data ?? [];
           this.loadedSegmentObjects.set(savedSegments);
+          this.segmentsResolved.set(true);
           const names = savedSegments.map(item => item.segment_name).filter(Boolean) as string[];
           this.segmentOptionList.set(names);
           this.segmentCardList.set(savedSegments.map(item => ({
@@ -4276,13 +4330,38 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           })));
           const hasCurrentSegment = savedSegments.some(item => this.optionEquals(item.segment_name, this.selectedSegment()));
           if ((!this.selectedSegment() || !hasCurrentSegment) && names.length) {
-            this.selectedSegment.set(names[0]);
+            // Prefer the segment this user last worked in, so moving from one
+            // screen to the next keeps their context. Falls back to the first
+            // segment when there is nothing remembered, or when what was
+            // remembered no longer exists for this company.
+            const recalled = names.find(name => this.optionEquals(name, this.recalledSegment()));
+            this.selectedSegment.set(recalled || names[0]);
           } else {
             this.refreshSegmentScopedOptions();
             this.loadSegmentScopedLookups();
+            // The segment signal did not change (it was already valid, or the
+            // remembered one matched the default), so the effect that normally
+            // reloads reference documents never fires. Without this, the load
+            // skipped above — while the segment was still unresolved — would
+            // never be retried and the picker would stay empty.
+            this.transactionReferenceRequestKey = '';
+            if (!this.usesReferenceTrayOnly()) {
+              this.loadTransactionReferenceDocs(true);
+            }
           }
         },
-        error: () => {}
+        error: () => {
+          // Fail OPEN, not closed. loadTransactionReferenceDocs() waits for
+          // this flag before firing, so leaving it false when the segment call
+          // errors means reference pickers stay permanently empty — the
+          // Sales Return "no invoices listed" case. A failed segment fetch
+          // should degrade to the old unscoped behaviour, not to no data.
+          this.segmentsResolved.set(true);
+          this.transactionReferenceRequestKey = '';
+          if (!this.usesReferenceTrayOnly()) {
+            this.loadTransactionReferenceDocs(true);
+          }
+        }
       });
 
     this.inventoryConfigService.getCategories(true)
@@ -4538,6 +4617,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           this.loadedProductObjects.set(products);
           const names = products.map((item: ProductItem) => item.product_name).filter(Boolean) as string[];
           this.productOptionList.set(this.mergeOptions([], names));
+          this.applyPendingCreatedProductBind();
         },
         error: () => {}
       });
@@ -6141,14 +6221,34 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.closeAddMaster();
   }
 
+  // The Business Segment a user picked on one screen is almost always the one
+  // they want on the next — they are working within a segment, not switching
+  // between them per document. Remembered for the session so moving between
+  // screens carries it, instead of every screen resetting to the first segment
+  // in the list. Session-scoped on purpose: a fresh login starts clean rather
+  // than resurrecting a segment from days ago.
+  private static readonly LAST_SEGMENT_KEY = 'inventory.lastSegment';
+
+  private rememberSegment(segment: string): void {
+    const value = String(segment || '').trim();
+    if (!value) return;
+    try { sessionStorage.setItem(InventoryScreenShell.LAST_SEGMENT_KEY, value); } catch { /* private mode */ }
+  }
+
+  private recalledSegment(): string {
+    try { return sessionStorage.getItem(InventoryScreenShell.LAST_SEGMENT_KEY) || ''; } catch { return ''; }
+  }
+
   changeSegment(segment: string): void {
     this.selectedSegment.set(segment);
+    this.rememberSegment(segment);
   }
 
   onSegmentChangedByUser(segment: string): void {
     if (!segment || this.optionEquals(this.selectedSegment(), segment)) return;
     this.clearConfigForm();
     this.selectedSegment.set(segment);
+    this.rememberSegment(segment);
   }
 
   setPosEnabled(enabled: boolean): void {
@@ -6395,6 +6495,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.productQcRequired.set(required);
   }
 
+  setProductWarrantyApplicable(required: boolean): void {
+    this.productWarrantyApplicable.set(required);
+  }
+
   setProductTaxUomRequired(required: boolean): void {
     this.productTaxUomRequired.set(required);
   }
@@ -6467,6 +6571,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       this.setProductSerialApplicable(false);
       this.productExpiryApplicable.set(false);
       this.productQcRequired.set(false);
+      this.productWarrantyApplicable.set(false);
     }
   }
 
@@ -6521,6 +6626,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const label = String(column || '').trim().toLowerCase();
     return label.includes('date')
       || label.includes('expiry')
+      || label.includes('warranty')
       || label === 'valid till'
       || label === 'required by'
       || label === 'effective from'
@@ -7582,13 +7688,83 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.config?.key === 'salesReturn' ? this.customerOptions : this.vendorOptions;
   }
 
+  // Screens whose save procedure allocates the document number itself, via
+  // inventory.fn_resolve_sales_doc_number (migration 227). For these the
+  // browser must NOT invent a number: generateTransactionDocNumber() counts the
+  // rows in this grid, which is filtered to the session's Branch/Warehouse,
+  // while the uniqueness constraints are company-wide — so in a company with a
+  // second location the count stops matching the sequence and every save
+  // collided (uq_sales_invoice_doc, 23505).
+  //
+  // The purchase family is deliberately NOT in this list: sp_save_grn,
+  // sp_save_purchase_invoice and the rest have no server-side generator, so
+  // sending them a null number would break them.
+  private serverAssignsDocNumber(): boolean {
+    return ['salesInvoice', 'salesQuotation', 'salesOrder', 'salesReturn',
+            'creditNote', 'estimation', 'proformaInvoice',
+            // Delivery Challan joined this set in migration 231 — it used to
+            // number itself inline, which is why it kept failing on uq_dc_doc.
+            'deliveryChallan'].includes(this.config?.key || '');
+  }
+
+  // Payload value for a server-assigned number: whatever the user actually
+  // typed, else null so the server allocates. Never a browser-side guess.
+  serverDocNo(key: string): string | null {
+    return String(this.formValues()[key] ?? '').trim() || null;
+  }
+
+  // The number the server will assign, fetched for display before posting.
+  // Advisory: it allocates nothing, so it costs no sequence gap, and if
+  // someone else saves first the server hands this document the next free
+  // number instead (fn_resolve_sales_doc_number). Blank until it arrives.
+  readonly previewDocNumber = signal('');
+  private previewDocNumberKey = '';
+
+  private loadPreviewDocNumber(): void {
+    if (!this.serverAssignsDocNumber() || this.editingId() !== null) {
+      this.previewDocNumber.set('');
+      this.previewDocNumberKey = '';
+      return;
+    }
+    const docType = this.config?.key || '';
+    if (!docType || this.previewDocNumberKey === docType) return;
+
+    this.previewDocNumberKey = docType;
+    this.txService.peekNextDocNumber(docType)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: res => this.previewDocNumber.set(String(res?.data ?? '')),
+        // A preview must never break the screen it decorates: on failure the
+        // field just stays blank and the server still numbers correctly.
+        error: () => this.previewDocNumber.set('')
+      });
+  }
+
   transactionNumberValue(field: InventoryField): string {
     const live = this.formValues()[field.key];
     const existing = String(live || this.txDocNumber() || '').trim();
-    return existing || this.generateTransactionDocNumber(field);
+    if (existing) return existing;
+
+    // On a server-numbered screen show what the server will actually assign,
+    // rather than a browser-side guess it would then override. Falls back to
+    // blank (with an explanatory placeholder) until the preview arrives.
+    if (this.serverAssignsDocNumber() && this.editingId() === null) {
+      this.loadPreviewDocNumber();
+      return this.previewDocNumber();
+    }
+
+    return this.generateTransactionDocNumber(field);
   }
 
   transactionNumberPlaceholder(field: InventoryField): string {
+    // On a server-numbered screen the field is deliberately blank for a new
+    // document, so the placeholder has to say why — otherwise it reads as a
+    // field the user forgot to fill in. Typing one is still allowed and still
+    // wins, as long as it is not already taken.
+    if (this.serverAssignsDocNumber() && this.editingId() === null) {
+      // Only seen in the moment before the preview lands, or if it failed.
+      return `Auto (${this.transactionDocPrefix(field)}-YY-…) — assigned on save`;
+    }
     return `${this.transactionDocPrefix(field)}-YY-00001`;
   }
 
@@ -9014,8 +9190,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // (declutters the view), not a permissions gate. Session-only, same as
   // isLineGridFullscreen's own toggle — no persistence across reloads.
   readonly hideMrpSellingPrice = signal(false);
-  readonly showPurchaseInvoiceMrpColumn = signal(true);
-  readonly showPurchaseInvoiceSellingPriceColumn = signal(true);
+  // Default OFF on procurement: MRP and Selling Price are sales figures, and on
+  // a purchase document what is being agreed with the vendor is the Rate. A
+  // buyer who does want to record them at inward ticks the boxes above the
+  // grid. Sales screens are unaffected — there the two columns are the point.
+  readonly showPurchaseInvoiceMrpColumn = signal(false);
+  readonly showPurchaseInvoiceSellingPriceColumn = signal(false);
 
   toggleMrpSellingPriceColumns(): void {
     this.hideMrpSellingPrice.update(v => !v);
@@ -10242,24 +10422,38 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     );
     const costPrice = this.productCostPriceForLineUom(product, row);
 
+    // MRP / Selling Price are reference figures on a Sales Invoice, not inputs:
+    // they are captured at Purchase Invoice (which writes them back to the
+    // product) and shown here purely as guidance. They impose NO condition —
+    // a product can be sold at any rate — so this only ever appends context to
+    // the hint, and only for the figures the product actually carries.
+    const productMrpForLineUom = this.productSalesPriceForLineUom(product, row, this.productMrp(product));
+    const reference: string[] = [];
+    if (productMrpForLineUom > 0) reference.push(`MRP Rs. ${fmt(productMrpForLineUom)}`);
+    if (sellingPrice > 0) reference.push(`Selling Rs. ${fmt(sellingPrice)}`);
+    const withReference = (message: string) =>
+      reference.length ? `${message} (${reference.join(' · ')})` : message;
+
     if (costPrice > 0 && preview.rate < costPrice) {
       const loss = costPrice - preview.rate;
       return {
         severity: 'warn',
         fingerprint,
-        message: `${formula}. Below cost Rs. ${fmt(costPrice)}; loss Rs. ${fmt(loss)}/unit.`
+        message: withReference(`${formula}. Below cost Rs. ${fmt(costPrice)}; loss Rs. ${fmt(loss)}/unit.`)
       };
     }
     if (sellingPrice > 0 && preview.rate !== sellingPrice) {
       const diff = preview.rate - sellingPrice;
       const pct = (Math.abs(diff) / sellingPrice) * 100;
       return {
-        severity: diff < 0 ? 'warn' : 'info',
+        // Informational either way — a rate above or below the selling price is
+        // a normal commercial decision, not something to flag as a problem.
+        severity: 'info',
         fingerprint,
-        message: `${formula}. ${fmt(Math.abs(diff))} (${fmt(pct)}%) ${diff < 0 ? 'below' : 'above'} selling price Rs. ${fmt(sellingPrice)}.`
+        message: withReference(`${formula}. ${fmt(Math.abs(diff))} (${fmt(pct)}%) ${diff < 0 ? 'below' : 'above'} selling price Rs. ${fmt(sellingPrice)}.`)
       };
     }
-    return { severity: 'info', fingerprint, message: formula };
+    return { severity: 'info', fingerprint, message: withReference(formula) };
   }
 
   // A Sales Invoice line rated above the product's MRP is surfaced as an
@@ -10293,12 +10487,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private transactionMrpCeilingValidationMessage(): string {
     const key = this.config?.key || '';
-    // Sales Invoice is deliberately absent here (item 32): its MRP ceiling
-    // is no longer a hard block on Save Draft / Post -- see
-    // salesRateBoundsNotice(), which surfaces the same "exceeds MRP" case as
-    // a non-blocking advisory notice next to the save confirmation instead.
-    if (!['salesOrder', 'purchaseInvoice'].includes(key)) return '';
-    const rows = key === 'purchaseInvoice' ? this.activePurchaseLineRows() : this.activeSalesLineRows();
+    // No MRP ceiling on a SALE. A product may be sold at any rate, so neither
+    // Sales Invoice nor Sales Order is bounded here — MRP and Selling Price
+    // reach the sales screens as reference text next to Rate
+    // (transactionPriceHint) and never as a condition.
+    //
+    // Purchase Invoice keeps the check: there the ceiling guards the MRP being
+    // recorded against the product, which is a data-quality concern rather
+    // than a commercial one.
+    if (key !== 'purchaseInvoice') return '';
+    const rows = this.activePurchaseLineRows();
     const fmt = (n: number) => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
 
     for (const row of rows) {
@@ -11159,6 +11357,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return key.includes('batch')
       || key.includes('lot')
       || key.includes('expiry')
+      || key.includes('warranty')
       || this.isSerialPolicyColumnName(column);
   }
 
@@ -11195,6 +11394,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const key = String(column || '').toLowerCase();
     const batch = !!product.batch_applicable;
     const serial = !!product.serial_applicable;
+    // Warranty is the serial-side counterpart of expiry: a batch expires, a
+    // serialised unit carries a warranty. Same visibility rule, driven by the
+    // product's own Warranty Applicable flag (migration 224).
+    if (key.includes('warranty')) return !!product.warranty_applicable;
     if (key.includes('expiry')) return !!product.expiry_applicable;
     if (this.isStandaloneSerialPolicyColumn(column)) return serial;
     if ((key.includes('batch') || key.includes('lot')) && !this.isSerialPolicyColumnName(column)) return batch;
@@ -11220,6 +11423,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return this.variantAttributeValueInputType(this.variantLineAttributeName(row));
     }
     if (this.config?.key === 'productionEntry' && key.includes('expiry')) return 'date';
+    // Warranty Upto is a new column, so unlike Expiry Date (a text cell for
+    // historical reasons on these grids) it gets a real date picker.
+    if (key.includes('warranty')) return 'date';
     if (this.config?.key === 'attributeMaster' && key.includes('sort order')) return 'number';
     return 'text';
   }
@@ -11846,6 +12052,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   private loadTransactionReferenceDocs(force = false, allowAutoOpen = true): void {
+    // Hold off until the segment is known. This runs from ngOnInit, before the
+    // segment list has come back, so the first request used to go out with no
+    // segment_id at all — and the server reads a missing segment_id as EVERY
+    // segment. The result was cached under an ':all' request key that nothing
+    // later invalidated, which is why a Solar Group user kept seeing General
+    // Trading references. The segment load path re-triggers this once resolved.
+    if (!this.segmentsResolved()) {
+      this.transactionReferenceLoading.set(false);
+      return;
+    }
+    if (this.loadedSegmentObjects().length && this.selectedSegmentId() == null) {
+      this.transactionReferenceLoading.set(false);
+      return;
+    }
+
     if (this.config?.key === 'deliveryChallan') {
       this.loadDeliveryChallanReferenceDocs(force, allowAutoOpen);
       return;
@@ -13245,8 +13466,18 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       // same "in loop" auto-carry from the referenced Sales Invoice as DC.
       patch['channelPartnerId'] = doc.channel_partner_id ?? null;
       patch['channelPartner'] = doc.channel_partner_name || this.formValues()['channelPartner'] || '';
+      // The goods can only come back into the location the invoice sold them
+      // from, so the location is taken from the SI verbatim — it is never
+      // merged with, or fallen back to, whatever the session default had
+      // already dropped into the field. A branch-raised SI (warehouse_id null)
+      // used to leave both halves empty and keep the pre-filled session
+      // warehouse, which is how SR-26-00003 and SRET-26-46105 came to return
+      // stock into Warehouse 29 for invoices raised at Branch 126.
+      // sp_get_sales_docs_for_ref now carries the branch (migration 228).
       patch['returnToWarehouseId'] = doc.warehouse_id ?? null;
-      patch['returnToWarehouse'] = doc.warehouse_name || doc.remarks || this.formValues()['returnToWarehouse'] || '';
+      patch['branchId'] = doc.branch_id ?? null;
+      patch['branch'] = doc.branch_name || '';
+      patch['returnToWarehouse'] = doc.warehouse_name || doc.branch_name || '';
     } else if (key === 'creditNote') {
       // Item 18: mirror of the debitNote branch in selectPurchaseReference —
       // route into the matching id/number pair (Return vs Invoice) and null
@@ -14569,6 +14800,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.productSerialApplicable.set(false);
     this.productExpiryApplicable.set(false);
     this.productQcRequired.set(false);
+    this.productWarrantyApplicable.set(false);
     this.productStockControlsRequired.set(false);
     this.productTrackingRequired.set(false);
     this.productAdditionalInfoRequired.set(false);
@@ -14681,6 +14913,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
     if (key === 'segment' && normalizedValue && !this.optionEquals(this.selectedSegment(), normalizedValue)) {
       this.selectedSegment.set(normalizedValue);
+      this.rememberSegment(normalizedValue);
     }
     if (this.config?.key === 'salesInvoice' && (key === 'customer' || key === 'soReference')) {
       this.checkPendingDcBanner();
@@ -14722,8 +14955,33 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     next['branch'] = selectedBranch?.branch_name || '';
   }
 
+  // Interbranch Sale is admin-only. It moves stock between branches on the
+  // user's behalf — the auto-transfer posts before the invoice saves — so it
+  // is not something an ordinary branch user should be able to trigger. A
+  // non-admin simply never sees the switch (interbranchSaleFieldVisible), and
+  // this computed is the belt-and-braces half: even if 'Yes' reached the form
+  // some other way (a restored draft, a stale snapshot), the interbranch path
+  // stays off and the save falls through to the ordinary stock check.
+  // Referral Business: most sales are direct, so Channel Partner is off and
+  // hidden by default. Ticking this declares the sale came through a partner,
+  // which is when the field appears and becomes required. Turning it back off
+  // clears any partner already chosen, so a document can never be saved as
+  // direct business while still carrying a partner underneath.
+  readonly referralBusinessEnabled = computed(() =>
+    String(this.formValues()['referralBusiness'] || '').toLowerCase() === 'yes'
+  );
+
+  setReferralBusiness(enabled: boolean): void {
+    this.formValues.update(values => ({
+      ...values,
+      referralBusiness: enabled ? 'Yes' : 'No',
+      ...(enabled ? {} : { channelPartner: '', channelPartnerId: null })
+    }));
+  }
+
   readonly interbranchSaleEnabled = computed(() =>
-    this.config?.key === 'salesInvoice' && String(this.formValues()['interbranchSale'] || '').toLowerCase() === 'yes'
+    this.isAdmin()
+    && this.config?.key === 'salesInvoice' && String(this.formValues()['interbranchSale'] || '').toLowerCase() === 'yes'
   );
 
   // Item 13: keeps the Interbranch Sale switch/Branch field in sync with
@@ -15774,7 +16032,11 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Captured after validation passes, shown after the save succeeds — the
     // MRP ceiling on a Sales Invoice line is advisory, never a blocker, so it
     // must not short-circuit Save Draft or Post the way validatePayload() does.
-    this.pendingSaveNotice = this.salesRateBoundsNotice();
+    // No rate condition on a sale: a product may be sold at any rate. MRP and
+    // Selling Price are shown next to Rate as reference only
+    // (transactionPriceHint), so the old "Rate exceeds MRP" advisory that used
+    // to appear beside the save confirmation is gone.
+    this.pendingSaveNotice = '';
 
     // Rule 11 / Item 13: posting an SI with any line over its available
     // stock is never hard-blocked — just confirmed first. Interbranch Sale
@@ -16464,6 +16726,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const typedName = String(this.activatedRoute?.snapshot.queryParamMap.get('productName') || '').trim();
     if (!typedName) return;
     if (String(this.formValues()['productName'] || '').trim()) return;
+    // Survives the initial segment resolution — see onSelectedSegmentChanged().
+    this.skipClearOnInitialSegmentResolve = true;
     this.productName.set(typedName);
     this.collectFormField('productName', typedName);
     this.onProductNameChange(typedName);
@@ -16543,6 +16807,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.transportDetailsForm.set(snap.transportDetailsForm || {});
     if (Array.isArray(snap.pendingRows)) this.pendingRows.set(snap.pendingRows);
 
+    // The document was snapshotted under a segment (onSelectedSegmentChanged
+    // stamps it into formValues); make sure that is the segment this screen
+    // resolves to — not whatever Product Master was last switched to — and
+    // let that first resolution keep the restored form (see
+    // onSelectedSegmentChanged()).
+    const resumedSegment = String(snap.formValues?.['segment'] || '').trim();
+    if (resumedSegment) this.rememberSegment(resumedSegment);
+    this.skipClearOnInitialSegmentResolve = true;
+
     // The trip started from a line grid cell and a product was actually
     // created: put it in that cell, so the user comes back to a finished line
     // rather than having to find and pick what they just created.
@@ -16551,14 +16824,37 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     if (!createdProduct || !pendingLine) return;
     if (!Number.isFinite(pendingLine.rowIndex) || pendingLine.rowIndex < 0) return;
     if (!Number.isFinite(pendingLine.columnIndex) || pendingLine.columnIndex < 0) return;
-    // After the rows above have been restored, and after loadLookupOptions()
-    // has had a chance to bring the new product into the option lists — the
-    // cell write itself triggers the same UOM/GST/rate defaulting a manual
-    // pick does, which needs the product to be resolvable.
+    // Written straight away so the name shows in the cell at once, then
+    // written AGAIN once the product list has actually landed (see the
+    // getProducts() handler in loadSegmentScopedLookups()): the cell write is
+    // what triggers the same UOM/GST/variant/rate defaulting a manual pick
+    // does, and that needs the product to be resolvable — which it never is
+    // this early, the products request has only just been sent.
+    this.pendingCreatedProductBind = { rowIndex: pendingLine.rowIndex, columnIndex: pendingLine.columnIndex, productName: createdProduct };
     setTimeout(() => {
-      if (pendingLine.rowIndex >= this.entryLineRows().length) return;
+      if (pendingLine.rowIndex >= this.entryLineRows().length) { this.pendingCreatedProductBind = null; return; }
       this.setEntryLineCell(pendingLine.rowIndex, pendingLine.columnIndex, createdProduct);
+      if (this.findProductBySelection(createdProduct)) this.pendingCreatedProductBind = null;
     });
+  }
+
+  // One-shot: set by restoreProcurementResumeIfReturning() and
+  // applyProductMasterTypedName(), consumed by the first
+  // onSelectedSegmentChanged() so the initial segment resolution does not
+  // clearConfigForm() over what ngOnInit just put on the form.
+  private skipClearOnInitialSegmentResolve = false;
+
+  // The created product still waiting for the product list, so the cell can
+  // be re-written once it resolves (set by restoreProcurementResumeIfReturning()).
+  private pendingCreatedProductBind: { rowIndex: number; columnIndex: number; productName: string } | null = null;
+
+  private applyPendingCreatedProductBind(): void {
+    const pending = this.pendingCreatedProductBind;
+    if (!pending) return;
+    if (!this.findProductBySelection(pending.productName)) return;
+    this.pendingCreatedProductBind = null;
+    if (pending.rowIndex >= this.entryLineRows().length) return;
+    this.setEntryLineCell(pending.rowIndex, pending.columnIndex, pending.productName);
   }
 
   private navigateBackAfterProductMasterSave(savedProduct?: any): void {
@@ -16697,7 +16993,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   // uniformly on every transaction screen regardless of whether that screen
   // has its own dedicated posted-form check.
   showGridToolbarExportIcons(): boolean {
-    return String(this.formValues()['status'] || 'Draft').toLowerCase() !== 'draft';
+    // Always shown. This gates the SAVED-RECORDS toolbar, and it used to read
+    // the status of the record open in the FORM above (item 16): a Draft there
+    // hid export on a grid full of posted documents that had nothing to do
+    // with it. Since the form is on a fresh Draft most of the time, the icons
+    // were hidden almost always. The two are unrelated — saved records are
+    // exportable whatever the form is doing, and runGridToolbarAction()
+    // already reports "No rows available" when there is nothing to export.
+    return true;
   }
 
   isCurrentRecordPosted(): boolean {
@@ -16848,6 +17151,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       formSnapshot['__productSerialApplicable'] = this.productSerialApplicable();
       formSnapshot['__productExpiryApplicable'] = this.productExpiryApplicable();
       formSnapshot['__productQcRequired']       = this.productQcRequired();
+      formSnapshot['__productWarrantyApplicable'] = this.productWarrantyApplicable();
       formSnapshot['__entryLineRows']           = JSON.stringify(this.entryLineRows());
     }
     if (this.config?.key === 'uomMaster' || this.config?.key === 'variantMaster') {
@@ -16883,6 +17187,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (s['__productSerialApplicable'] !== undefined) this.productSerialApplicable.set(s['__productSerialApplicable']);
       if (s['__productExpiryApplicable'] !== undefined) this.productExpiryApplicable.set(s['__productExpiryApplicable']);
       if (s['__productQcRequired'] !== undefined)       this.productQcRequired.set(s['__productQcRequired']);
+      if (s['__productWarrantyApplicable'] !== undefined) this.productWarrantyApplicable.set(s['__productWarrantyApplicable']);
       if (s['__entryLineRows']) {
         try {
           const rows = JSON.parse(s['__entryLineRows']);
@@ -18138,7 +18443,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         }
         break;
       case 'serialNumberPolicy':
-        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', serialFormat: record.serial_format || '', captureStage: record.capture_stage || '', allowDuplicate: record.allow_duplicate ? 'Yes' : 'No', status: cap(record.status || 'active') });
+        this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', serialFormat: record.serial_format || '', captureStage: record.capture_stage || '', allowDuplicate: record.allow_duplicate ? 'Yes' : 'No', warrantyApplicable: record.warranty_applicable ? 'Yes' : 'No', status: cap(record.status || 'active') });
         break;
       case 'batchLotPolicy':
         this.formValues.set({ policyCode: record.policy_code || '', policyName: record.policy_name || '', applicableCategory: record.category_name || '', batchFormat: record.batch_format || '', expiryRequired: record.expiry_required ? 'Yes' : 'No', qcRequired: record.qc_required ? 'Yes' : 'No', status: cap(record.status || 'active') });
@@ -18259,7 +18564,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         this.productSerialApplicable.set(!!record.serial_applicable);
         this.productExpiryApplicable.set(!!record.expiry_applicable);
         this.productQcRequired.set(!!record.qc_required);
-        this.productTrackingRequired.set(!!record.batch_applicable || !!record.serial_applicable || !!record.expiry_applicable || !!record.qc_required);
+        this.productWarrantyApplicable.set(!!record.warranty_applicable);
+        this.productTrackingRequired.set(!!record.batch_applicable || !!record.serial_applicable || !!record.expiry_applicable || !!record.qc_required || !!record.warranty_applicable);
         const savedVariants: ProductApplicableVariant[] = Array.isArray(record.applicable_variants) ? record.applicable_variants : [];
         const brandVariantValuationRequired = !!record.brand_name || !!record.variant_name || !!record.variant_label || savedVariants.length > 0 || !!record.valuation_method;
         this.productBrandRequired.set(brandVariantValuationRequired);
@@ -19352,7 +19658,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         const categoryId = categoryName
           ? this.loadedCategoryObjects().find(item => this.optionEquals(item.category_name, categoryName))?.id ?? null
           : null;
-        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_id: categoryId, category_name: categoryName, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), allow_duplicate: bool(v['allowDuplicate']), status: lc(v['status']) };
+        return { segment_id: selectedSegmentId, policy_code: v['policyCode'] || null, policy_name: v['policyName'] || '', category_id: categoryId, category_name: categoryName, serial_format: v['serialFormat'] || null, capture_stage: captureStage(v['captureStage']), allow_duplicate: bool(v['allowDuplicate']), warranty_applicable: bool(v['warrantyApplicable']), status: lc(v['status']) };
       }
       case 'batchLotPolicy': {
         const categoryName = v['applicableCategory'] || v['applicableFor'] || null;
@@ -19464,6 +19770,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           serial_applicable: this.productSerialApplicable() || bool(v['serialApplicable']),
           expiry_applicable: this.productExpiryApplicable() || bool(v['expiryApplicable']),
           qc_required: this.productQcRequired() || bool(v['qcRequired']),
+          warranty_applicable: this.productWarrantyApplicable() || bool(v['warrantyApplicable']),
           description: v['description'] || null,
           pricing_type: InventoryScreenShell.PRICING_TYPE_NATURES.has(v['productNatureName']) ? (v['pricingType'] || null) : null,
           rental_unit: v['pricingType'] === 'Rental' ? (v['rentalUnit'] || null) : null,
@@ -20081,7 +20388,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
-        doc_number: docNo('invoiceNo', 'Invoice No'),
+        doc_number: this.serverDocNo('invoiceNo'),
         doc_date: docDate('invoiceDate'),
         due_date: v['dueDate'] || null,
         so_id: this.optionalNumber(v['soId']),
@@ -20116,7 +20423,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
-        doc_number: docNo('quotationNo', 'Quotation No'),
+        doc_number: this.serverDocNo('quotationNo'),
         doc_date: docDate('quotationDate'),
         valid_till: v['validTill'] || null,
         customer_id: customerId,
@@ -20135,7 +20442,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
-        doc_number: docNo('soNo', 'SO Number'),
+        doc_number: this.serverDocNo('soNo'),
         doc_date: docDate('soDate'),
         due_date: creditSale ? (v['dueDate'] || null) : null,
         delivery_date: v['deliveryDate'] || null,
@@ -20171,7 +20478,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
-        dc_number: docNo('dcNo', 'DC Number'),
+        dc_number: this.serverDocNo('dcNo'),
         dc_date: docDate('dcDate'),
         so_id: this.optionalNumber(v['soId']),
         so_number: this.optionalNumber(v['soId']) ? (v['soReference'] || null) : null,
@@ -20214,7 +20521,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         id: this.editingId(),
         segment_id: segmentId,
         segment_name: selectedSegmentName,
-        return_number: docNo('returnNo', 'Return Number'),
+        return_number: this.serverDocNo('returnNo'),
         return_date: docDate('returnDate'),
         customer_id: customerId,
         customer_name: customerName,
@@ -20239,7 +20546,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         segment_name: selectedSegmentName,
         customer_id: customerId,
         customer_name: customerName,
-        credit_note_number: docNo('creditNoteNo', 'Credit Note Number'),
+        credit_note_number: this.serverDocNo('creditNoteNo'),
         credit_note_date: docDate('creditNoteDate'),
         // Item 18: mirror of the debitNote payload fix above — gate each
         // number field on its own id being present.
@@ -20594,11 +20901,21 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         remarks: this.lineValue(row, ['remarks']) || null
       };
       if (this.config?.key === 'salesInvoice') {
-        base['mrp'] = this.lineNumber(row, ['mrp']);
-        base['selling_price'] = this.lineNumber(row, ['selling price']);
+        // MRP / Selling Price are no longer columns on this grid — they are
+        // reference figures captured at Purchase Invoice. Still recorded on the
+        // invoice line, read from the product, so the document keeps a record
+        // of what the prices were at the time of sale.
+        {
+          const priceProduct = this.lineRowProduct(row);
+          base['mrp'] = this.lineNumber(row, ['mrp'])
+            || this.productSalesPriceForLineUom(priceProduct, row, this.productMrp(priceProduct));
+          base['selling_price'] = this.lineNumber(row, ['selling price'])
+            || this.productSalesPriceForLineUom(priceProduct, row, this.productSellingPrice(priceProduct, row));
+        }
         base['batch_no'] = this.lineValue(row, ['batch']) || null;
         base['serial_no'] = this.lineValue(row, ['serial']) || null;
         base['expiry_date'] = this.lineValue(row, ['expiry']) || null;
+        base['warranty_upto'] = this.isoDateValue(this.lineValue(row, ['warranty'])) || null;
         // Workstream D: the grid's own per-line Warehouse column is gone
         // (inventory-screen.model.ts's salesInvoiceConfig.lineColumns) -- it
         // was forced read-only and always carried the same value as the
@@ -21089,6 +21406,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         serial_no: this.transactionLineSerialText(row, index),
         serial_numbers: this.lineSerialUnitsMap()[index] || null,
         expiry_date: this.lineValue(row, ['expiry']) || null,
+        warranty_upto: this.isoDateValue(this.lineValue(row, ['warranty'])) || null,
         amount: this.lineNumber(row, ['amount']) || taxPayload.amount,
         remarks: this.lineValue(row, ['remarks']) || null
       };
@@ -21641,18 +21959,53 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Sales Invoice — Delivery Challan and Sales Return auto-carry it from
     // whichever SO/SI they were created against (see selectSalesReference())
     // without exposing their own editable field for it.
+    // ...and only when the sale is actually referred business. Most sales are
+    // direct, so demanding a Channel Partner on every one blocked the ordinary
+    // case. The "Referral Business" switch declares the intent; the partner is
+    // required only once it is on, and the field is hidden entirely when it is
+    // off (see referralBusinessEnabled()).
     const salesTransactionChannelPartnerRequiredKeys = new Set(['salesOrder', 'salesInvoice']);
-    if (salesTransactionChannelPartnerRequiredKeys.has(this.config?.key || '')) {
-      if (!hasValue(payload['channel_partner_name'])) return `Channel Partner is required for ${this.config?.title || 'this document'}.`;
+    if (salesTransactionChannelPartnerRequiredKeys.has(this.config?.key || '') && this.referralBusinessEnabled()) {
+      if (!hasValue(payload['channel_partner_name'])) {
+        return `Channel Partner is required when ${this.config?.title || 'this document'} is marked as Referral Business.`;
+      }
     }
 
     if (this.config?.key === 'salesReturn') {
       const returnItemsError = this.validateSalesReturnLineItems(payload['items']);
       if (returnItemsError) return returnItemsError;
+
+      // A return against an invoice must come back into the location that
+      // invoice sold from — never another branch or warehouse. The binding in
+      // selectSalesReference() already fills it from the SI, so this catches
+      // the case where it was changed afterwards. A direct return (no invoice
+      // referenced) has no source to match and is left alone.
+      const srcDoc = this.transactionReferenceDocs()
+        .find(d => d.id === this.optionalNumber(payload['invoice_id']));
+      if (srcDoc) {
+        const srcBranch = srcDoc.branch_id ?? null;
+        const srcWarehouse = srcDoc.warehouse_id ?? null;
+        const retBranch = this.optionalNumber(payload['branch_id']);
+        const retWarehouse = this.optionalNumber(payload['return_to_warehouse_id']);
+
+        if ((srcBranch ?? null) !== (retBranch ?? null)
+            || (srcWarehouse ?? null) !== (retWarehouse ?? null)) {
+          const where = srcDoc.warehouse_name || srcDoc.branch_name || 'the invoice location';
+          return `Sales Return must go back to ${where}, the location `
+               + `${srcDoc.doc_number || 'the referenced invoice'} sold from.`;
+        }
+      }
     }
 
     if (this.config?.key === 'salesInvoice') {
-      if (!hasValue(payload['doc_number'])) return 'Invoice No. is required for Sales Invoice.';
+      // A blank number is only an error when the user is expected to supply
+      // one. On a new Sales Invoice the server allocates it
+      // (inventory.fn_resolve_sales_doc_number, migration 227), so blank is the
+      // normal case and demanding a value here would block every save.
+      // Editing an existing invoice still requires the number it already has.
+      if (!hasValue(payload['doc_number']) && !this.serverAssignsDocNumber()) {
+        return 'Invoice No. is required for Sales Invoice.';
+      }
       if (!hasValue(payload['doc_date'])) return 'Invoice Date is required for Sales Invoice.';
     }
 
@@ -21894,7 +22247,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
           cap(r.status || 'active')
         ]);
       case 'serialNumberPolicy':
-        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.serial_format || '', r.capture_stage || '', r.allow_duplicate ? 'Yes' : 'No', cap(r.status || 'active')]);
+        return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.serial_format || '', r.capture_stage || '', r.allow_duplicate ? 'Yes' : 'No', r.warranty_applicable ? 'Yes' : 'No', cap(r.status || 'active')]);
       case 'batchLotPolicy':
         return records.map(r => [r.policy_code || '', r.policy_name || '', r.category_name || '', r.batch_format || '', r.expiry_required ? 'Yes' : 'No', r.qc_required ? 'Yes' : 'No', cap(r.status || 'active')]);
       case 'barcodeConfiguration':

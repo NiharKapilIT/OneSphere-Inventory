@@ -348,6 +348,100 @@ describe('InventoryScreenShell — GRN/PI "Add Product" routes to Product Master
     });
   });
 
+  // Found live 2026-09-11: every fresh screen starts with selectedSegment ''
+  // and only resolves its real segment once getSegments() lands, and that
+  // resolution runs onSelectedSegmentChanged() -> clearConfigForm(). On the
+  // return leg that wiped the restored GRN/PI (and, on the way out, the
+  // typed name Product Master had been opened with) a few hundred ms after
+  // ngOnInit -- none of the specs above saw it because their getSegments()
+  // call simply fails with no backend. The created-product cell write had the
+  // same blind spot in reverse: it fired before getProducts() could land, so
+  // the product was never resolvable and none of the UOM/GST defaulting a
+  // manual pick does ever happened.
+  describe('the restored document survives the screen finishing its own load', () => {
+    const SEGMENT = { id: 39, segment_name: 'Solar Group', status: 'active' } as any;
+
+    function segmentsLand(fixture: any, component: any) {
+      (component as any).loadedSegmentObjects.set([SEGMENT]);
+      component.selectedSegment.set('Solar Group');
+      fixture.detectChanges(); // runs the selectedSegment effect
+    }
+
+    it('the initial segment resolution keeps the restored GRN instead of clearing it', () => {
+      sessionStorage.setItem(storageKeyFor('goodsReceipt'), JSON.stringify({
+        formValues: { vendor: 'Acme Supplies', segment: 'Solar Group' },
+        entryLineRows: [['LED Display', '', '', 'Nos', '2', '2', '', '', '', '', '', '', '']],
+        editingId: null,
+        savedAt: Date.now()
+      }));
+
+      const { fixture, component } = createComponent(grnConfig, { resumed: '1' });
+      segmentsLand(fixture, component);
+
+      expect(component.formValues()['vendor']).toBe('Acme Supplies');
+      expect(component.formValues()['segment']).toBe('Solar Group');
+      expect(component.entryLineRows()[0][0]).toBe('LED Display');
+    });
+
+    it('a segment change the user makes afterwards still clears the form as before', () => {
+      sessionStorage.setItem(storageKeyFor('goodsReceipt'), JSON.stringify({
+        formValues: { vendor: 'Acme Supplies', segment: 'Solar Group' },
+        entryLineRows: [['LED Display', '', '', 'Nos', '2', '2', '', '', '', '', '', '', '']],
+        editingId: null,
+        savedAt: Date.now()
+      }));
+
+      const { fixture, component } = createComponent(grnConfig, { resumed: '1' });
+      segmentsLand(fixture, component);
+      (component as any).loadedSegmentObjects.set([SEGMENT, { id: 40, segment_name: 'General Trading', status: 'active' }]);
+      component.onSegmentChangedByUser('General Trading');
+      fixture.detectChanges();
+
+      expect(component.formValues()['vendor']).toBeUndefined();
+      expect(component.entryLineRows()[0][0]).toBe('');
+    });
+
+    it('re-applies the created product once the product list lands, so UOM/GST default like a manual pick', async () => {
+      sessionStorage.setItem(storageKeyFor('goodsReceipt'), JSON.stringify({
+        formValues: { segment: 'Solar Group' },
+        entryLineRows: [['', '', '', '', '', '', '', '', '', '', '', '', '']],
+        editingId: null,
+        pendingLine: { rowIndex: 0, columnIndex: 0, productName: 'Copper Wire' },
+        savedAt: Date.now()
+      }));
+      const { fixture, component } = createComponent(grnConfig, { resumed: '1', createdProduct: 'Copper Wire' });
+      vi.spyOn((component as any).inventoryConfigService, 'getProducts').mockReturnValue(of({
+        success: true, message: '', data: [{ id: 601, product_name: 'Copper Wire', base_uom_name: 'Kg', gst_rate: 18, status: 'active' }]
+      }));
+      await new Promise(resolve => setTimeout(resolve));
+
+      // Written straight away -- the name shows even before products land...
+      expect(component.entryLineRows()[0][0]).toBe('Copper Wire');
+      const uomIdx = grnConfig.lineColumns!.findIndex(c => c.toLowerCase().includes('uom'));
+      const gstIdx = grnConfig.lineColumns!.findIndex(c => c.toLowerCase().includes('gst'));
+      expect(component.entryLineRows()[0][uomIdx]).toBe('');
+
+      // ...and once they do, the cell is written again with the product resolvable.
+      segmentsLand(fixture, component);
+      expect(component.entryLineRows()[0][0]).toBe('Copper Wire');
+      expect(component.entryLineRows()[0][uomIdx]).toBe('Kg');
+      expect(component.entryLineRows()[0][gstIdx]).toBe('18%');
+    });
+
+    it('Product Master keeps the name it was opened with through its own segment resolution', () => {
+      const { fixture, component } = createComponent(productMasterConfig, {
+        returnTo: 'goodsReceipt',
+        returnRoute: '/dashboard/inventory/transactions/goods-receipt',
+        productName: 'Copper Wire'
+      });
+      expect(component.formValues()['productName']).toBe('Copper Wire');
+
+      segmentsLand(fixture, component);
+
+      expect(component.formValues()['productName']).toBe('Copper Wire');
+    });
+  });
+
   describe('Product Master save — navigates back only when it actually arrived via this flow', () => {
     it('navigates back to GRN with ?resumed=1 after a successful save that carried returnTo/returnRoute', async () => {
       const { component, router } = createComponent(productMasterConfig, {

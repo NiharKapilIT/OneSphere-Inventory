@@ -463,6 +463,7 @@ export interface SerialPolicyItem {
   serial_format?: string;
   capture_stage?: string;
   allow_duplicate: boolean;
+  warranty_applicable: boolean;
   description?: string;
   status: string;
 }
@@ -699,6 +700,7 @@ export interface ProductItem {
   serial_applicable: boolean;
   expiry_applicable: boolean;
   qc_required: boolean;
+  warranty_applicable: boolean;
   pricing_type?: string;
   rental_unit?: string;
   description?: string;
@@ -1511,6 +1513,7 @@ export class InventoryConfigService {
       serial_format: this.value(item, 'serial_format', 'serialFormat'),
       capture_stage: this.value(item, 'capture_stage', 'captureStage'),
       allow_duplicate: this.value(item, 'allow_duplicate', 'allowDuplicate', false),
+      warranty_applicable: this.value(item, 'warranty_applicable', 'warrantyApplicable', false),
       description: this.value(item, 'description', 'description'),
       status: this.value(item, 'status', 'status', 'active')
     };
@@ -1754,6 +1757,7 @@ export class InventoryConfigService {
       serial_applicable: this.value(item, 'serial_applicable', 'serialApplicable', false),
       expiry_applicable: this.value(item, 'expiry_applicable', 'expiryApplicable', false),
       qc_required: this.value(item, 'qc_required', 'qcRequired', false),
+      warranty_applicable: this.value(item, 'warranty_applicable', 'warrantyApplicable', false),
       pricing_type: this.value(item, 'pricing_type', 'pricingType'),
       rental_unit: this.value(item, 'rental_unit', 'rentalUnit'),
       description: this.value(item, 'description', 'description'),

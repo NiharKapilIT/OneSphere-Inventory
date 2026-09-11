@@ -11,6 +11,7 @@
       [ngModel]="inputValue()"
       (ngModelChange)="onSearchInput($event)"
       (focus)="onSearchFocus()"
+      (keydown)="onSearchKeydown($event)"
       placeholder="Search product" />
 
     <!-- Rendered into document.body (see ensureSuggestRendered) and positioned
@@ -23,8 +24,11 @@
         [style.left.px]="suggestLeft()"
         [style.top.px]="suggestTop()"
         [style.width.px]="suggestWidth()">
-        @for (option of matches(); track option) {
-          <button type="button" class="inventory-line-product-suggest-item" (click)="chooseMatch(option)">
+        @for (option of matches(); track option; let idx = $index) {
+          <button type="button" class="inventory-line-product-suggest-item"
+            [class.is-active]="idx === activeIndex()"
+            (mouseenter)="activeIndex.set(idx)"
+            (click)="chooseMatch(option)">
             {{ option }}
           </button>
         }

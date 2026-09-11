@@ -64,22 +64,38 @@
                 </button>
               </div>
             </div>
-            <div class="erp-form-group inventory-header-col-6">
-              <label class="erp-label">Channel Partner <span class="text-danger">*</span></label>
-              <div class="inventory-field-with-add">
-                <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
-                  [items]="channelPartnerOptions" [searchable]="true" [clearable]="true"
-                  [ngModel]="formValues()['channelPartner'] || ''"
-                  (ngModelChange)="collectFormField('channelPartner', $event)"
-                  placeholder="Search name or phone">
-                </ng-select>
-                <button type="button" class="erp-btn btn-white btn-icon"
-                  title="Add Channel Partner"
-                  (click)="openAddMaster('Channel Partner', 'channelPartner')">
-                  <i class="pi pi-plus"></i>
-                </button>
-              </div>
+            <!-- Most sales are direct. Channel Partner only applies to referred
+                 business, so it is declared here first and the field below only
+                 appears once it is. -->
+            <div class="erp-form-group">
+              <label class="erp-label">Referral Business</label>
+              <label class="inventory-labeled-switch yes-no">
+                <input type="checkbox" [checked]="referralBusinessEnabled()"
+                  (change)="setReferralBusiness($any($event.target).checked)" />
+                <span class="inventory-switch-track">
+                  <span class="switch-text switch-on">Yes</span>
+                  <span class="switch-text switch-off">No</span>
+                </span>
+              </label>
             </div>
+            @if (referralBusinessEnabled()) {
+              <div class="erp-form-group inventory-header-col-6">
+                <label class="erp-label">Channel Partner <span class="text-danger">*</span></label>
+                <div class="inventory-field-with-add">
+                  <ng-select class="erp-ng-select inventory-ng-select" appendTo="body"
+                    [items]="channelPartnerOptions" [searchable]="true" [clearable]="true"
+                    [ngModel]="formValues()['channelPartner'] || ''"
+                    (ngModelChange)="collectFormField('channelPartner', $event)"
+                    placeholder="Search name or phone">
+                  </ng-select>
+                  <button type="button" class="erp-btn btn-white btn-icon"
+                    title="Add Channel Partner"
+                    (click)="openAddMaster('Channel Partner', 'channelPartner')">
+                    <i class="pi pi-plus"></i>
+                  </button>
+                </div>
+              </div>
+            }
           }
           @if (transactionReferenceField(); as refField) {
             <div class="erp-form-group">

@@ -1186,6 +1186,13 @@
                   }
                 </div>
                 <div class="erp-form-group">
+                  <label class="erp-label">Warranty Applicable</label>
+                  <label class="inventory-labeled-switch yes-no">
+                    <input type="checkbox" [checked]="productWarrantyApplicable()" (change)="setProductWarrantyApplicable($any($event.target).checked)" />
+                    <span class="inventory-switch-track"><span class="switch-text switch-on">Yes</span><span class="switch-text switch-off">No</span></span>
+                  </label>
+                </div>
+                <div class="erp-form-group">
                   <label class="erp-label">QC Required</label>
                   <label class="inventory-labeled-switch yes-no">
                     <input type="checkbox" [checked]="productQcRequired()" (change)="setProductQcRequired($any($event.target).checked)" />
@@ -1200,13 +1207,13 @@
                 </div>
               </div>
               } @else {
-              <!-- Serial No., Batch/Lot, Expiry and QC all live inside this
+              <!-- Serial No., Batch/Lot, Expiry, Warranty and QC all live inside this
                    section, and switching it to No both hides and clears them.
                    Without this note the controls simply vanish and there is
                    nothing on screen to say how to get them back. -->
               <div class="inventory-optional-hint">
                 <i class="pi pi-info-circle"></i>
-                Serial Number, Batch / Lot, Expiry and QC options are part of this section.
+                Serial Number, Batch / Lot, Expiry, Warranty and QC options are part of this section.
                 Set <strong>Tracking Policies</strong> to <strong>Yes</strong> above to add or change them.
               </div>
               }
