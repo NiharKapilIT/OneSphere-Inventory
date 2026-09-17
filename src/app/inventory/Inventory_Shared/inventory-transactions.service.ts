@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiResponse } from './inventory-config.service';
+import { currentAccessToken } from './inventory-auth-token.util';
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -870,7 +871,7 @@ export class InventoryTransactionsService {
 
   private base(): string { return sessionStorage.getItem('apiURL') || ''; }
   private headers(): HttpHeaders {
-    return new HttpHeaders({ Authorization: `Bearer ${sessionStorage.getItem('token') || ''}` });
+    return new HttpHeaders({ Authorization: `Bearer ${currentAccessToken()}` });
   }
   private url(path: string): string { return `${this.base()}/inventory/transactions/${path}`; }
 

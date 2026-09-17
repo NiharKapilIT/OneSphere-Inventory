@@ -13955,6 +13955,97 @@ body .ng-dropdown-panel.ap-switch-ng-select .ng-option.ng-option-selected::after
   }
 }
 
+// Import Data popup (breadcrumb "Import Data" button, Inventory_Config/import-data/)
+// -- wide enough for the 6-column results table, same footprint as the
+// Category quick-add dialog above. NOTE: this Inventory copy is DEAD once
+// federated into the Accounts-hosted shell (see erp_inventory_accounts_shared_css_duplication
+// memory) -- the matching rule in OneSphere-Accounts/src/styles.scss is what
+// actually renders for real users. Keep both in sync.
+.inv-popup-box--import-data {
+  width: min(1180px, 96vw);
+  max-height: 90vh;
+
+  .inv-popup-body {
+    overflow: auto;
+    min-height: 0;
+  }
+}
+
+// Bulk Import review step (parse -> review -> submit redesign, 2026-09-17
+// follow-up) -- the reviewable per-row table between parsing a workbook and
+// actually calling a save endpoint. Ported to both styles.scss identically,
+// same reason as the popup width rule above -- this Inventory copy is dead
+// once federated into the Accounts-hosted shell (see
+// erp_inventory_accounts_shared_css_duplication memory) -- kept in sync anyway.
+.inv-import-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.inv-import-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.inv-import-segment-gate {
+  border: 1px solid #dbe8f9;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+
+  &.inv-import-segment-gate--required {
+    border-color: #f0b429;
+    background: #fffaf0;
+  }
+
+  select {
+    max-width: 420px;
+  }
+}
+
+.inv-import-required-mark {
+  color: #c05621;
+  font-weight: 600;
+  font-size: 0.8em;
+}
+
+.inv-import-sheet {
+  border: 1px solid #e5eaf2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.inv-import-sheet-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.inv-import-tbl-wrap {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.inv-import-row-excluded {
+  opacity: 0.45;
+}
+
+.inv-import-warning {
+  color: #c05621;
+  font-size: 0.82em;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+
+  .pi { margin-top: 2px; }
+}
+
 .inv-category-staged {
   border: 1px solid #e5eaf2;
   border-radius: 10px;

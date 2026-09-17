@@ -41,6 +41,17 @@ export const inventoryRoutes: Routes = [
         loadComponent: () => import('./Inventory_Config/tax-code-import/tax-code-import')
           .then(m => m.InventoryTaxCodeImportComponent)
       },
+      {
+        // Reachable from the "Import Data" breadcrumb button (any Inventory
+        // screen, OneSphere-Accounts main-layout.component.html's
+        // .bc-pay-toggle group), not just Business Segment Data where this
+        // used to live -- same screen permission it always had there, since
+        // it's the same feature relocated, not a new one.
+        path: 'import-data',
+        canActivate: [screenPermissionGuard('INV_CFG_SEGMENTS')],
+        loadComponent: () => import('./Inventory_Config/import-data/import-data')
+          .then(m => m.InventoryImportDataComponent)
+      },
       { path: '', redirectTo: 'business-segments', pathMatch: 'full' }
     ]
   },

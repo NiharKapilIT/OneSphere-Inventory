@@ -19,6 +19,7 @@ import { AbstractControl } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { environment } from '../../../../envir/environment';
 import { PageCriteria } from '../../models/pagecriteria';
+import { currentAccessToken } from '../../../inventory/Inventory_Shared/inventory-auth-token.util';
 
 
 
@@ -2289,7 +2290,7 @@ export class CommonService {
 
   fileUploadS3(formName: string, data: any) {
     const urldata = environment.apiUrl;
-    const headers = new HttpHeaders({ Authorization: `Bearer ${sessionStorage.getItem('token') || ''}` });
+    const headers = new HttpHeaders({ Authorization: `Bearer ${currentAccessToken()}` });
 
     return this.http.get(urldata).pipe(
       mergeMap((json: any) =>

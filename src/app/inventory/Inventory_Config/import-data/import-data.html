@@ -1,0 +1,188 @@
+<div class="inv-popup-backdrop" (click)="close()"></div>
+<div class="inv-popup-box inv-popup-box--import-data">
+  <div class="inv-popup-head">
+    <h4><i class="pi pi-file-import"></i> Import Data</h4>
+    <button type="button" class="erp-btn btn-white btn-icon btn-sm" (click)="close()" title="Close" [disabled]="importing() || parsing()">
+      <i class="pi pi-times"></i>
+    </button>
+  </div>
+
+  <div class="inv-popup-body">
+    @if (loading()) {
+      <div class="inventory-loading"><i class="pi pi-spin pi-spinner"></i> Loading...</div>
+    }
+    @if (loadError()) {
+      <div class="inventory-save-msg save-err">
+        <i class="pi pi-times-circle"></i> {{ loadError() }}
+      </div>
+    }
+
+    <!-- ── Phase 1: choose + parse the file (no save calls happen here) ── -->
+    @if (phase() === 'select') {
+      <p class="erp-label-hint">Download the template, fill it offline, then upload it to preview UOM, Category, Brand, HSN/SAC, Item, Vendor, Customer and Opening Stock records before anything is saved.</p>
+
+      <div class="inventory-form-actions" style="justify-content:flex-start; flex-wrap:wrap; gap:12px;">
+        <a class="erp-btn btn-white" [href]="importTemplateUrl" download="Inventory_Master_Data_Template.xlsx">
+          <i class="pi pi-download"></i> Download Template
+        </a>
+        <input #importFileInput type="file" accept=".xlsx" style="display:none" (change)="onImportFileChosen($event)" />
+        <button type="button" class="erp-btn btn-white" [disabled]="parsing()" (click)="importFileInput.click()">
+          <i class="pi pi-upload"></i> Choose File
+        </button>
+        @if (importFile()) {
+          <span class="erp-label-hint">{{ importFile()!.name }}</span>
+        }
+        <button type="button" class="erp-btn btn-primary" [disabled]="!importFile() || parsing()" (click)="parseFile()">
+          @if (parsing()) {
+            <i class="pi pi-spin pi-spinner"></i> Reading file...
+          } @else {
+            <i class="pi pi-eye"></i> Preview
+          }
+        </button>
+      </div>
+
+      @if (importOverallError()) {
+        <div class="inventory-save-msg save-err">
+          <i class="pi pi-times-circle"></i> {{ importOverallError() }}
+        </div>
+      }
+    }
+
+    <!-- ── Phase 2: review the parsed rows, then Submit (this is the only ── -->
+    <!-- ── phase that ever calls a save endpoint)                        ── -->
+    @if (phase() === 'review') {
+      <div class="inv-import-toolbar">
+        <button type="button" class="erp-btn btn-white btn-sm" [disabled]="importing()" (click)="backToFileSelect()">
+          <i class="pi pi-arrow-left"></i> Choose a different file
+        </button>
+        <span class="erp-label-hint">{{ importFile()?.name }} — {{ totalIncluded() }} row(s) selected to import</span>
+        <span class="inv-import-toolbar-spacer"></span>
+        @if (totalFailed() > 0) {
+          <button type="button" class="erp-btn btn-white btn-sm" [disabled]="importing()" (click)="retryAllFailed()">
+            <i class="pi pi-refresh"></i> Retry All Failed ({{ totalFailed() }})
+          </button>
+        }
+        <button type="button" class="erp-btn btn-primary" [disabled]="!canSubmit()" (click)="submitImport()">
+          @if (importing()) {
+            <i class="pi pi-spin pi-spinner"></i> Submitting...
+          } @else {
+            <i class="pi pi-check"></i> Submit {{ totalIncluded() }} Row(s)
+          }
+        </button>
+      </div>
+
+      <!-- Business Segment resolution -- deliberately part of this review -->
+      <!-- step, not a skippable field on the upload screen. A company with -->
+      <!-- more than one Business Segment must make an explicit choice here -->
+      <!-- (a real segment, or "No segment link") before Submit is enabled; -->
+      <!-- see segmentGateSatisfied()/rowSegmentInfo(). -->
+      @if (savedSegments().length > 0) {
+        <div class="inv-import-segment-gate" [class.inv-import-segment-gate--required]="segmentPickerRequired() && !segmentGateSatisfied()">
+          <label class="erp-label">
+            Business Segment
+            @if (segmentPickerRequired()) { <span class="inv-import-required-mark">(required — choose one)</span> }
+          </label>
+          <select class="erp-input" [ngModel]="selectedSegmentId()" (ngModelChange)="selectedSegmentId.set($event)">
+            @if (selectedSegmentId() === undefined) {
+              <option [ngValue]="undefined" disabled selected>— Choose one —</option>
+            }
+            <option [ngValue]="null">No segment link (I understand this may hide rows on segment-scoped Master screens)</option>
+            @for (seg of savedSegments(); track seg.id) {
+              <option [ngValue]="seg.id">{{ seg.segment_name }}</option>
+            }
+          </select>
+          <small class="erp-field-hint">Applied to any row that doesn't already name its own Business Segment (UOM Master and Brand Master have no such column at all). The "Segment Link" column below shows exactly where each row will land — check it before submitting.</small>
+        </div>
+      }
+
+      @if (importOverallError()) {
+        <div class="inventory-save-msg save-err">
+          <i class="pi pi-times-circle"></i> {{ importOverallError() }}
+        </div>
+      }
+
+      @for (sheet of previewSheets(); track sheet.sheet) {
+        <div class="inv-import-sheet">
+          <div class="inv-import-sheet-head">
+            <strong>{{ sheet.sheet }}</strong>
+            @if (!sheet.found) {
+              <span class="erp-badge badge-warning">Not found in file</span>
+            } @else {
+              <span class="erp-label-hint">
+                {{ sheet.rows.length }} row(s) parsed
+                @if (sheet.skippedBlankInFile > 0) { · {{ sheet.skippedBlankInFile }} blank row(s) skipped }
+                · {{ sheetIncludedCount(sheet) }} selected
+                @if (anySubmitAttempted()) { · {{ sheetCreatedCount(sheet) }} created · {{ sheetFailedCount(sheet) }} failed }
+              </span>
+              <span class="inv-import-toolbar-spacer"></span>
+              @if (sheet.rows.length > 0) {
+                <button type="button" class="erp-btn btn-white btn-sm" [disabled]="importing()" (click)="setSheetInclude(sheet.sheet, true)">Select All</button>
+                <button type="button" class="erp-btn btn-white btn-sm" [disabled]="importing()" (click)="setSheetInclude(sheet.sheet, false)">Select None</button>
+              }
+              @if (sheetFailedCount(sheet) > 0) {
+                <button type="button" class="erp-btn btn-white btn-sm" [disabled]="importing()" (click)="retrySheetFailed(sheet.sheet)">
+                  <i class="pi pi-refresh"></i> Retry Failed ({{ sheetFailedCount(sheet) }})
+                </button>
+              }
+            }
+          </div>
+
+          @if (sheet.found && sheet.rows.length > 0) {
+            <div class="tbl-wrap inv-import-tbl-wrap">
+              <table class="erp-table compact">
+                <thead>
+                  <tr>
+                    <th class="text-center" style="width:36px;"></th>
+                    <th style="width:56px;">Row</th>
+                    <th>Details</th>
+                    <th>Segment Link</th>
+                    <th>Warnings</th>
+                    <th style="width:110px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of sheet.rows; track row.rowNumber) {
+                    <tr [class.inv-import-row-excluded]="!row.include">
+                      <td class="text-center">
+                        <input type="checkbox" [checked]="row.include" [disabled]="importing()" (change)="toggleRowInclude(sheet.sheet, row.rowNumber)" />
+                      </td>
+                      <td>{{ row.rowNumber }}</td>
+                      <td>
+                        <div>{{ row.primary || '(no name)' }}</div>
+                        @if (row.secondary) { <div class="erp-label-hint">{{ row.secondary }}</div> }
+                      </td>
+                      <td>{{ rowSegmentInfo(sheet, row).label }}</td>
+                      <td>
+                        @for (w of rowSegmentInfo(sheet, row).warnings; track w) {
+                          <div class="inv-import-warning"><i class="pi pi-exclamation-triangle"></i> {{ w }}</div>
+                        }
+                      </td>
+                      <td>
+                        @switch (row.status) {
+                          @case ('created') { <span class="erp-badge badge-success">Created</span> }
+                          @case ('failed') { <span class="erp-badge badge-danger" [title]="row.resultMessage">Failed</span> }
+                          @default {
+                            @if (row.include) { <span class="erp-label-hint">Pending</span> } @else { <span class="erp-label-hint">Excluded</span> }
+                          }
+                        }
+                        @if (row.status === 'failed' && row.resultMessage) {
+                          <div class="erp-label-hint">{{ row.resultMessage }}</div>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (sheet.found) {
+            <p class="erp-label-hint">No data rows found in this sheet.</p>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  <div class="inv-popup-foot">
+    <button type="button" class="erp-btn btn-white" [disabled]="importing() || parsing()" (click)="close()">Close</button>
+  </div>
+</div>

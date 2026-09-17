@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { ApiResponse } from './inventory-config.service';
+import { currentAccessToken } from './inventory-auth-token.util';
 
 export interface OutstandingInvoice {
   invoice_type: 'purchase_invoice' | 'sales_invoice';
@@ -124,7 +125,7 @@ export class PaymentsService {
 
   private base(): string { return sessionStorage.getItem('apiURL') || ''; }
   private headers(): HttpHeaders {
-    return new HttpHeaders({ Authorization: `Bearer ${sessionStorage.getItem('token') || ''}` });
+    return new HttpHeaders({ Authorization: `Bearer ${currentAccessToken()}` });
   }
   private url(path: string): string { return `${this.base()}/inventory/payments/${path}`; }
   private accountsUrl(path: string): string { return `${this.base()}/Accounts/${path}`; }

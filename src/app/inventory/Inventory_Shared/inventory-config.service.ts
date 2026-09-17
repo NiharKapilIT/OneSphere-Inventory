@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
+import { currentAccessToken } from './inventory-auth-token.util';
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -779,8 +780,7 @@ export class InventoryConfigService {
   }
 
   private headers(): HttpHeaders {
-    const token = sessionStorage.getItem('token') || '';
-    return new HttpHeaders({ Authorization: `Bearer ${token}` });
+    return new HttpHeaders({ Authorization: `Bearer ${currentAccessToken()}` });
   }
 
   private url(path: string): string {
