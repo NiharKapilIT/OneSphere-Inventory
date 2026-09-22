@@ -480,6 +480,14 @@ export class InventoryImportDataComponent implements OnInit {
 
     this.setIfPresent(payload, 'base_uom_name', this.cell(row, 'Base UOM'));
     this.setIfPresent(payload, 'hsn_sac_code', this.cell(row, 'HSN-SAC Code'));
+    // Resolved server-side by name against inventory.inv_product_types, the
+    // same fallback sp_upsert_product already uses for base_uom_name/
+    // category_name/brand_name/hsn_sac_code -- no client-side id lookup
+    // needed. Optional: product_nature_id is nullable and sp_upsert_product
+    // never rejects a row for lacking it, so an unrecognized or blank cell
+    // just leaves nature unset, per the standing "never hard-require a field
+    // the import doesn't need to" rule -- it does NOT gate row success.
+    this.setIfPresent(payload, 'product_nature_name', this.cell(row, 'Product Nature'));
 
     const gstRate = this.cellNumber(row, 'GST %');
     if (gstRate !== undefined) payload['gst_rate'] = gstRate;

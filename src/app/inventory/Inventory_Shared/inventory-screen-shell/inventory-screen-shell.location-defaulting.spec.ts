@@ -87,7 +87,7 @@ describe('InventoryScreenShell — session Warehouse/Branch defaulting (populate
     sessionStorage.removeItem('branchId');
   });
 
-  describe('merged screens (goodsReceipt/receivingLocation, purchaseInvoice/receivingLocation, purchaseReturn/warehouse, deliveryChallan/fromWarehouse, salesInvoice/warehouse)', () => {
+  describe('merged screens (goodsReceipt/receivingLocation, purchaseInvoice/receivingLocation, purchaseReturn/warehouse, deliveryChallan/fromWarehouse, salesInvoice/warehouse, salesReturn/returnToWarehouse)', () => {
     it('prefers the session Warehouse when active', () => {
       sessionStorage.setItem('warehouseId', String(WH_OTHER.id));
       sessionStorage.setItem('branchId', String(BRANCH_OTHER.branch_id));
@@ -141,6 +141,27 @@ describe('InventoryScreenShell — session Warehouse/Branch defaulting (populate
       expect(values['warehouseId']).toBe(WH_OTHER.id);
       expect(values['branchId']).toBeNull();
     });
+
+    // Sales Return moved from warehouseOnly to merged once
+    // fn_post_sales_return_stock gained branch support (migration 241) --
+    // it now behaves exactly like every other Warehouse-first merged screen
+    // above (deliveryChallan is the closest sibling: single field, no
+    // preferBranch), just on its own 'returnToWarehouse' field name instead
+    // of the shared 'warehouse' key.
+    it('prefers the session Warehouse on Sales Return\'s own returnToWarehouse field', () => {
+      sessionStorage.setItem('warehouseId', String(WH_OTHER.id));
+      makeComponent(transaction('salesReturn', 'Sales Return'));
+      applyDefaults();
+      expect(component.formValues()['returnToWarehouse']).toBe('Annex WH');
+      expect(component.formValues()['returnToWarehouseId']).toBe(WH_OTHER.id);
+    });
+
+    it('falls back to today\'s branch heuristic (Head Office first) on Sales Return when no session Warehouse is active', () => {
+      makeComponent(transaction('salesReturn', 'Sales Return'));
+      applyDefaults();
+      expect(component.formValues()['returnToWarehouse']).toBe('Head Office');
+      expect(component.formValues()['branchId']).toBe(BRANCH_HO.branch_id);
+    });
   });
 
   describe('branchOnly screens (purchaseRequisition/branch, salesInvoice/branch — Interbranch Sale)', () => {
@@ -177,14 +198,7 @@ describe('InventoryScreenShell — session Warehouse/Branch defaulting (populate
     });
   });
 
-  describe('warehouseOnly screens (salesReturn/returnToWarehouse, purchaseOrder/receivingWarehouse)', () => {
-    it('prefers the session Warehouse when active', () => {
-      sessionStorage.setItem('warehouseId', String(WH_OTHER.id));
-      makeComponent(transaction('salesReturn', 'Sales Return'));
-      applyDefaults();
-      expect(component.formValues()['returnToWarehouse']).toBe('Annex WH');
-    });
-
+  describe('warehouseOnly screens (purchaseOrder/receivingWarehouse)', () => {
     it('a session Branch is NEVER stuffed into a warehouse-only field -- falls to the warehouse heuristic instead', () => {
       sessionStorage.setItem('branchId', String(BRANCH_OTHER.branch_id));
       makeComponent(transaction('purchaseOrder', 'Purchase Order'));

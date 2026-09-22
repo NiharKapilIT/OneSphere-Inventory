@@ -191,6 +191,27 @@ describe('InventoryImportDataComponent — Bulk Import Master Data', () => {
     }]);
   });
 
+  // ── Product Nature: resolved server-side by name, same as base_uom_name/ ──
+  // ── category_name/brand_name/hsn_sac_code -- 2026-09-17 addition after ────
+  // ── finding 5 of the 7 standard system Product Nature rows were missing ───
+  // ── on the live database (migration 021 registration gap, see migration ──
+  // ── 238_product_nature_standard_types_backfill.sql). Optional: never ──────
+  // ── gates row success, matching the standing "don't hard-require a field ──
+  // ── the import doesn't need to" rule. ──────────────────────────────────────
+  it('sends product_nature_name when the Product Nature column is filled, and omits it entirely when blank', () => {
+    const withNature = (component as any).productImportPayload(
+      { 'SKU': 'PN1', 'Item Name': 'Item With Nature', 'Base UOM': 'Nos', 'Product Nature': 'Physical Stock' },
+      new Map(), null, 0, 0
+    );
+    expect(withNature.product_nature_name).toBe('Physical Stock');
+
+    const withoutNature = (component as any).productImportPayload(
+      { 'SKU': 'PN2', 'Item Name': 'Item Without Nature', 'Base UOM': 'Nos', 'Product Nature': '' },
+      new Map(), null, 0, 1
+    );
+    expect('product_nature_name' in withoutNature).toBe(false);
+  });
+
   it('generateSequentialCode/generateSequentialSku produce the same PREFIX-YY-SEQ / part-joined shape as the manual-entry generators', () => {
     const yy = new Date().getFullYear().toString().slice(-2);
     expect((component as any).generateSequentialCode('Kilogram', 12, 0)).toBe(`KIL-${yy}-00013`);

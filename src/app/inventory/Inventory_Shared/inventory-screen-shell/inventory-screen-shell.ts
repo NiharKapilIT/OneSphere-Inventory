@@ -3029,7 +3029,12 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     'openingInventoryBalance', 'openingStockEntry',
     // Stock Adjustment was the last stockLocationScreenKeys-style screen still
     // Warehouse-only ("in stock adjustment should add even branches too").
-    'stockAdjustment'
+    'stockAdjustment',
+    // Sales Return was warehouse-only until fn_post_sales_return_stock
+    // gained branch support (migration 241) — a branch-raised Sales Invoice
+    // (e.g. INV-26-00002 / SECUNDERABAD HO, branch_id 12) could never have
+    // its goods returned to the location they actually left from.
+    'salesReturn'
   ]);
 
   /**
@@ -3419,7 +3424,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     // Only fromWarehouse defaults -- toWarehouse is deliberately left blank
     // so the existing mutual-exclusivity logic isn't pre-violated.
     stockTransfer:       [{ field: 'fromWarehouse', kind: 'merged' }],
-    salesReturn:         [{ field: 'returnToWarehouse', kind: 'warehouseOnly' }],
+    // Was 'warehouseOnly' — fn_post_sales_return_stock is now branch-aware
+    // (migration 241), matching Purchase Return's merged picker.
+    salesReturn:         [{ field: 'returnToWarehouse', kind: 'merged' }],
     purchaseOrder:       [{ field: 'receivingWarehouse', kind: 'warehouseOnly' }],
     // Opening Inventory Balance and Opening Stock Entry were missed by the
     // original Full Warehouse/Branch Independence migration -- both used to
@@ -3490,6 +3497,24 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     next['branch'] = selectedBranch?.branch_name || '';
   }
 
+  // Mirror of applyPurchaseReturnLocationSelection above, keyed to Sales
+  // Return's own 'returnToWarehouse' field name (its picker predates this
+  // fix and was never renamed to 'warehouse') rather than writing generic
+  // 'warehouse'/'warehouseId' companions. 'branchId'/'branch' stay the
+  // generic names — selectSalesReference()'s reference-pick path already
+  // writes those two off the referenced invoice's own location (migration
+  // 228), so buildPayload's salesReturn case and this manual-pick path both
+  // feed the same pair.
+  private applySalesReturnLocationSelection(next: Record<string, any>, value: any): void {
+    const selected = String(value || '').trim();
+    const selectedWarehouse = this.findWarehouseBySelection(selected);
+    const selectedBranch = selectedWarehouse ? null : this.findBranchBySelection(selected);
+    next['returnToWarehouseId'] = selectedWarehouse?.id ?? null;
+    next['returnToWarehouse'] = selectedWarehouse?.warehouse_name || selectedBranch?.branch_name || selected;
+    next['branchId'] = this.branchResolvedId(selectedBranch);
+    next['branch'] = selectedBranch?.branch_name || '';
+  }
+
   // Re-dispatches a resolved display name through the exact per-field
   // selection handler that already runs when a user manually picks a value
   // in that screen's own merged picker (applyReceivingLocationSelection /
@@ -3510,6 +3535,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         break;
       case 'purchaseReturn':
         if (field === 'warehouse') this.applyPurchaseReturnLocationSelection(next, value);
+        break;
+      case 'salesReturn':
+        if (field === 'returnToWarehouse') this.applySalesReturnLocationSelection(next, value);
         break;
       case 'deliveryChallan':
         if (field === 'fromWarehouse') this.applyDeliveryChallanFieldDefaults(next, field, value);
@@ -7846,7 +7874,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   }
 
   transactionDateFieldMaxDate(field: InventoryField): Date | null {
-    if (this.config?.key === 'productionEntry' && field.key === 'productionDate') return null;
+    // The productionEntry/productionDate carve-out that used to live here
+    // (uncapped, future dates allowed) had no comment explaining a business
+    // reason, and productionDate is this screen's only header transaction-
+    // date field (same role as invoiceDate/returnDate/etc. elsewhere, just
+    // named differently -- see productionEntryConfig in
+    // inventory-screen.model.ts) -- not a distinct "logged after the fact"
+    // field. Per the 2026-09-20 business rule ("every transactional screen
+    // ... don't allow future date, back dates are allowed"), removed so
+    // Production Entry gets the same today-cap as every other screen.
     return this.maxTransactionDate;
   }
 
@@ -8653,6 +8689,14 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         || this.config?.key === 'stockAdjustment')
       && key === 'warehouse'
     ) {
+      return this.grnReceivingLocationOptions();
+    }
+
+    // Sales Return's own field is named 'returnToWarehouse' rather than the
+    // shared 'warehouse' key the block above matches on, but it is now the
+    // same merged Warehouse/Branch picker (fn_post_sales_return_stock,
+    // migration 241).
+    if (this.config?.key === 'salesReturn' && key === 'returntowarehouse') {
       return this.grnReceivingLocationOptions();
     }
 
@@ -12331,7 +12375,13 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     this.transactionReferenceLoading.set(true);
     forkJoin({
       so: this.txService.getRefDocs('SO', this.selectedSegmentId(), customerId),
-      si: this.txService.getRefDocs('SI', this.selectedSegmentId(), customerId)
+      // SI_FOR_DC, not the plain 'SI' Sales Return/Credit Note use -- picking
+      // an SI here creates a NEW Delivery Challan from it, so the backend
+      // must still exclude SI items that already dispatched via a DC (either
+      // direction: DC-sourced items, or items a later DC was already made
+      // from) to avoid double-dispatching the same stock. See
+      // sp_get_sales_docs_for_ref's WHEN 'SI_FOR_DC' branch (migration 239).
+      si: this.txService.getRefDocs('SI_FOR_DC', this.selectedSegmentId(), customerId)
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -12570,7 +12620,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const customerId = this.deliveryChallanReferenceCustomerId();
     forkJoin({
       so: this.txService.getRefDocs('SO', this.selectedSegmentId(), customerId),
-      si: this.txService.getRefDocs('SI', this.selectedSegmentId(), customerId)
+      // See loadDeliveryChallanReferenceDocs()'s identical comment above.
+      si: this.txService.getRefDocs('SI_FOR_DC', this.selectedSegmentId(), customerId)
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -15080,6 +15131,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       if (this.config?.key === 'purchaseReturn' && key === 'warehouse') {
         this.applyPurchaseReturnLocationSelection(next, normalizedValue);
       }
+      if (this.config?.key === 'salesReturn' && key === 'returnToWarehouse') {
+        this.applySalesReturnLocationSelection(next, normalizedValue);
+      }
       if (this.config?.key === 'deliveryChallan') {
         this.applyDeliveryChallanFieldDefaults(next, key, normalizedValue);
       }
@@ -16146,8 +16200,15 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       customer_name: siPayload['customer_name'] ?? null,
       channel_partner_id: siPayload['channel_partner_id'] ?? null,
       channel_partner_name: siPayload['channel_partner_name'] ?? null,
-      branch_id: null,
-      branch_name: null,
+      // The source SI's location comes through whichever half of its own
+      // merged Warehouse/Branch picker it actually resolved to (see the
+      // 'salesInvoice' branch of buildPayload(): siBranchId/siWarehouseId
+      // are mutually exclusive there already) — carry over BOTH pairs
+      // instead of hardcoding branch_id/branch_name to null, or a
+      // Branch-located Direct SI auto-creates a DC with no location at all
+      // (fn_post_delivery_challan_dispatch requires one to post).
+      branch_id: siPayload['branch_id'] ?? null,
+      branch_name: siPayload['branch_name'] ?? null,
       from_warehouse_id: siPayload['warehouse_id'] ?? null,
       from_warehouse_name: siPayload['warehouse_name'] ?? null,
       vehicle: siPayload['vehicle_no'] ?? null,
@@ -19374,7 +19435,23 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         channelPartner: record.channel_partner_name || '',
         placeOfSupply: record.place_of_supply || '',
         warehouseId: record.warehouse_id ?? null,
-        warehouse: record.warehouse_name || '',
+        // Bug fix (2026-09-20): a Branch pick on this merged Warehouse/Branch
+        // field saves with warehouse_name NULL and the real location carried
+        // in branch_name instead (see buildPayload's salesInvoice case,
+        // siWarehouseId/siBranchId). Restoring only warehouse_name here left
+        // the field blank the moment a branch-located draft was reopened, so
+        // Draft saved fine (location isn't validated for a draft) but the
+        // very next Save Draft/Post silently wrote warehouse_id AND branch_id
+        // back out as NULL, since buildPayload always re-resolves this field
+        // fresh from formValues()['warehouse'] via resolveMergedLocation().
+        // Live casualty: company 7's INV-26-00001, created against Branch
+        // "SECUNDERABAD HO", ended up with both ids NULL after a reopen +
+        // re-save -- exactly the "posted document with no real location"
+        // failure mode postedStockLocationMessages['salesInvoice'] exists to
+        // catch. Same fallback pattern already used by goodsReceipt/
+        // purchaseInvoice (receivingLocation) and deliveryChallan
+        // (fromWarehouse) above.
+        warehouse: record.warehouse_name || record.branch_name || record.branchName || '',
         transportMode: record.transport_mode || '',
         vehicleNo: record.vehicle_no || '',
         paymentTerms: record.payment_terms || '',
@@ -19541,7 +19618,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         invoiceReference: record.invoice_number || '',
         creditNoteRef: record.credit_note_ref || '',
         returnToWarehouseId: record.return_to_warehouse_id ?? null,
-        returnToWarehouse: record.return_to_warehouse_name || '',
+        returnToWarehouse: record.return_to_warehouse_name || record.branch_name || '',
+        branchId: record.branch_id ?? null,
+        branch: record.branch_name || '',
         returnReason: record.return_reason || '',
         status: cap(record.status || 'draft'),
         remarks: record.remarks || ''
@@ -20733,17 +20812,36 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     }
 
     if (this.config?.key === 'salesReturn') {
-      // Same NULL-warehouse hazard as Sales Invoice above: a posted return
-      // puts stock back at this warehouse, so an unresolved selection would
-      // credit the shared "Unassigned" pool instead. Sales Return has no
-      // branch-aware posting path (out of scope for the Warehouse/Branch
-      // independence project — fn_post_sales_return_stock is untouched), so
-      // a branch pick here simply stays unresolved to a warehouse, same as
-      // it already did whenever the branch had zero or several linked
-      // warehouses; anything still unresolved is refused by validatePayload().
-      const pickedRetWarehouse = this.findWarehouseBySelection(v['returnToWarehouse'] || v['warehouse']);
-      const retWarehouse = pickedRetWarehouse;
-      const retWarehouseId = retWarehouse?.id ?? this.optionalNumber(v['returnToWarehouseId']);
+      // Same merged Warehouse/Branch picker as Purchase Return — a branch
+      // pick posts stock directly against the branch itself
+      // (fn_post_sales_return_stock, migration 241), never resolved to "the
+      // one warehouse it's linked to". See the Purchase Return branch above.
+      //
+      // Previously warehouse-only (findWarehouseBySelection alone, with no
+      // branch_id/branch_name written at all): a return against a
+      // branch-raised Sales Invoice (e.g. INV-26-00002 / SECUNDERABAD HO,
+      // branch_id 12, warehouse_id null) always failed
+      // mergedLocationValidationMessage()'s "not a Warehouse in this
+      // company" check, even when SECUNDERABAD HO was exactly what the user
+      // (manually, or via selectSalesReference()'s own branchId/branch
+      // write-through off the referenced invoice, migration 228) had
+      // picked — this buildPayload case just never read it back out.
+      const retLocation = v['returnToWarehouse'] || v['warehouse'];
+      const retPicked = this.resolveMergedLocation(retLocation);
+      const retFallbackBranch = this.findBranchBySelection(v['branch']);
+      const retPickedWarehouse = retPicked.warehouse;
+      const retBranch = retPickedWarehouse ? null : (retPicked.branch || retFallbackBranch);
+      const retWarehouse = retPickedWarehouse;
+      const retWarehouseId = retWarehouse?.id ?? (retBranch ? null : this.optionalNumber(v['returnToWarehouseId']));
+      const retBranchId = retBranch
+        ? this.branchResolvedId(retBranch)
+        : (retWarehouse ? null : this.optionalNumber(v['branchId']));
+      // See the analogous Purchase Return comment above: the raw unresolved
+      // location string must not fall back into branch_name, or a stale
+      // name would silently pass the "a branch was picked" check instead of
+      // being refused as "not a Warehouse in this company".
+      const retBranchName = retBranch?.branch_name || (retWarehouse ? null : (v['branch'] || null));
+      const retWarehouseName = retWarehouse?.warehouse_name || (retBranch ? null : (v['returnToWarehouse'] || retLocation || null));
       return {
         id: this.editingId(),
         segment_id: segmentId,
@@ -20757,8 +20855,10 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         invoice_id: this.optionalNumber(v['invoiceId']),
         invoice_number: v['invoiceReference'] || null,
         credit_note_ref: v['creditNoteRef'] || null,
+        branch_id: retBranchId,
+        branch_name: retBranchName,
         return_to_warehouse_id: retWarehouseId,
-        return_to_warehouse_name: retWarehouse?.warehouse_name || v['returnToWarehouse'] || null,
+        return_to_warehouse_name: retWarehouseName,
         return_reason: v['returnReason'] || null,
         remarks: v['remarks'] || null,
         status: status(v['status'], 'draft'),

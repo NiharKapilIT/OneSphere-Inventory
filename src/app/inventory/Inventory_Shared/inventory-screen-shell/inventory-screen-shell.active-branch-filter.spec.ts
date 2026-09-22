@@ -5,18 +5,18 @@ import { InventoryScreenShell } from './inventory-screen-shell';
 import { InventoryScreenConfig } from '../inventory-screen.model';
 
 // Item 2: GRN, Purchase Invoice, Purchase Return, Delivery Challan, Sales
-// Invoice and Stock Transfer all share the one merged Warehouse/Branch
-// picker (mergedLocationEntries()/grnReceivingLocationOptions()/
-// grnReceivingLocationGroups()) -- an inactive branch must never be
-// offered there for a fresh pick, but an already-saved document that
-// references a branch since deactivated must keep resolving/displaying it
-// (resolveMergedLocation() already falls back to findBranchBySelection(),
-// unfiltered by status, for exactly this reason).
+// Invoice, Sales Return and Stock Transfer all share the one merged
+// Warehouse/Branch picker (mergedLocationEntries()/
+// grnReceivingLocationOptions()/grnReceivingLocationGroups()) -- an inactive
+// branch must never be offered there for a fresh pick, but an already-saved
+// document that references a branch since deactivated must keep resolving/
+// displaying it (resolveMergedLocation() already falls back to
+// findBranchBySelection(), unfiltered by status, for exactly this reason).
 //
-// Sales Return is deliberately absent from this coverage: its own location
-// field ('returnToWarehouse') never joined the merged picker in the first
-// place (it is warehouse-only, per its own INVENTORY_OPTIONS.locations
-// config) -- there is no Branch option on that screen to filter yet.
+// Sales Return joined this shared picker in migration 241
+// (fn_post_sales_return_stock gained branch support) -- previously its own
+// location field ('returnToWarehouse') was warehouse-only, per its own
+// INVENTORY_OPTIONS.locations config, with no Branch option to filter.
 describe('InventoryScreenShell — merged picker offers only ACTIVE branches (item 2)', () => {
   let fixture: ComponentFixture<InventoryScreenShell>;
   let component: InventoryScreenShell;
@@ -82,6 +82,23 @@ describe('InventoryScreenShell — merged picker offers only ACTIVE branches (it
     it('does not leak the carve-out to a DIFFERENT branch that is also inactive', () => {
       component.formValues.set({ receivingLocation: 'Head Office' }); // active branch selected, not the inactive one
       expect((component as any).grnReceivingLocationOptions()).not.toContain('Closed Branch');
+    });
+  });
+
+  describe('Sales Return (returnToWarehouse joined the shared merged picker in migration 241)', () => {
+    beforeEach(() => makeComponent('salesReturn', ['Product', 'Variant', 'Attribute', 'Invoiced Qty', 'Return Qty', 'UOM', 'Rate', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Return Amount', 'Reason']));
+
+    it('excludes the inactive branch from the grouped/tagged option list used by returnToWarehouse', () => {
+      const labels = component.grnReceivingLocationGroups().map(o => o.label);
+      expect(labels).not.toContain('Closed Branch');
+      expect(labels).toEqual(['Secunderabad', 'Head Office', 'Legacy Branch']);
+    });
+
+    it('still resolves an already-saved inactive branch correctly even though it is filtered from fresh picks', () => {
+      component.formValues.set({ returnToWarehouse: 'Closed Branch' });
+      const resolved = (component as any).resolveMergedLocation('Closed Branch');
+      expect(resolved.type).toBe('branch');
+      expect(resolved.branch.branch_name).toBe('Closed Branch');
     });
   });
 
