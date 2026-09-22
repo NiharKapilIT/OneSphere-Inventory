@@ -130,6 +130,14 @@ export class PaymentReceiptVoucherComponent {
   readonly narration = signal('');
   readonly tdsSection = signal<string>('');
   readonly voucherDate = signal<string>(new Date().toISOString().slice(0, 10));
+  // Bug fix (2026-09-20): this screen renders its own Voucher Date picker
+  // instead of going through the shared shell's transactionDateField()/
+  // transactionDateValue()/maxTransactionDate machinery (it isn't a
+  // config-driven field render at all -- see payment-receipt-voucher.html),
+  // so it never picked up the "no future transaction dates" rule every other
+  // Inventory transaction screen enforces via [maxDate]="maxTransactionDate".
+  // Backdating stays unrestricted (no minDate), matching every other screen.
+  readonly maxVoucherDate = new Date();
 
   readonly drawerInvoice = signal<OutstandingInvoice | null>(null);
   readonly drawerHistory = signal<{ voucherNumber: string; date?: string; amount: number }[]>([]);

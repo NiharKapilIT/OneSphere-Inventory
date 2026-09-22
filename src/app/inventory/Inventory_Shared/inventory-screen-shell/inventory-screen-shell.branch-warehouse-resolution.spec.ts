@@ -390,9 +390,56 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
       payload['channel_partner_name'] = 'Test Partner';
       expect((component as any).validatePayload(payload)).toBe('');
     });
+
+    // Bug fix (2026-09-20): a Branch pick saves with warehouse_name NULL and
+    // the real location carried in branch_name (see the branch-only tests
+    // above) -- applySalesRecordToForm() used to restore this merged field
+    // from warehouse_name alone, so reopening a branch-located draft showed
+    // it blank. Draft save doesn't validate location, so this went unnoticed
+    // until the very next Save Draft/Post re-resolved the now-blank field
+    // and silently wrote warehouse_id AND branch_id back out as NULL. Live
+    // casualty: company 7's INV-26-00001 (Branch "SECUNDERABAD HO"), which
+    // ended up with both ids NULL after a reopen + re-save.
+    it('reopening a branch-located draft restores the branch into the merged Warehouse field (regression)', () => {
+      (component as any).applySalesRecordToForm({
+        id: 34,
+        doc_number: 'INV-26-00001',
+        status: 'draft',
+        warehouse_id: null,
+        warehouse_name: null,
+        branch_id: 37,
+        branch_name: 'Head Office',
+        items: []
+      });
+
+      expect(component.formValues()['warehouse']).toBe('Head Office');
+
+      // Re-saving from this restored state must resolve back to the same
+      // branch, not silently drop it the way the pre-fix code did.
+      stockLine();
+      const payload = (component as any).buildPayload();
+      expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
+      expect(payload['warehouse_id']).toBeFalsy();
+    });
+
+    it('reopening a warehouse-located draft still restores the warehouse (regression, unaffected by the branch fallback)', () => {
+      (component as any).applySalesRecordToForm({
+        id: 35,
+        doc_number: 'INV-26-00002',
+        status: 'posted',
+        warehouse_id: 6,
+        warehouse_name: 'Secunderabad',
+        branch_id: null,
+        branch_name: null,
+        items: []
+      });
+
+      expect(component.formValues()['warehouse']).toBe('Secunderabad');
+    });
   });
 
-  describe('Sales Return (out of scope for branch-aware posting -- fn_post_sales_return_stock untouched)', () => {
+  describe('Sales Return (now wired into the same merged Warehouse/Branch picker, migration 241)', () => {
     beforeEach(() => makeComponent(transaction('salesReturn', 'Sales Return',
       ['Product', 'Variant', 'Attribute', 'Invoiced Qty', 'Return Qty', 'UOM', 'Rate', 'GST', 'Batch No', 'Serial No', 'Expiry Date', 'Return Amount', 'Reason'])));
 
@@ -402,24 +449,52 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
       ]);
     }
 
-    // Full Warehouse/Branch Independence: Sales Return never gained a
-    // branch_id column or a branch-aware posting path (deliberately out of
-    // scope), and the shared branch->single-warehouse resolver it used to
-    // borrow (singleWarehouseForBranch()) is deleted entirely -- a branch
-    // name typed into Return To Warehouse no longer resolves to anything.
-    it('a branch name in Return To Warehouse no longer resolves to a warehouse', () => {
+    // Full Warehouse/Branch Independence, completed for Sales Return:
+    // fn_post_sales_return_stock is now branch-aware (migration 241,
+    // mirroring 165's fix for Purchase Return), so a branch pick posts stock
+    // directly against the branch itself, never resolved to "the one
+    // warehouse it's linked to" -- same rule as every other merged-picker
+    // screen above. Live bug this closes: INV-26-00002 (company 7) sold
+    // from Branch "SECUNDERABAD HO" (branch_id 12, warehouse_id null)
+    // could never have its Sales Return saved at all -- the return_to_
+    // warehouse_name carried the branch's name as stale free text, which
+    // singleLocationValidationMessage() refused as "not a Warehouse in this
+    // company" even though it was exactly the right location.
+    it('picking a branch posts branch-only, even with exactly one linked warehouse -- no more auto-collapse', () => {
       returnLine();
-      component.formValues.set({ returnToWarehouse: 'Head Office' });
+      component.formValues.set({ returnToWarehouse: 'Head Office', customer: 'Test Customer' });
       const payload = (component as any).buildPayload();
       expect(payload['return_to_warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
+      expect((component as any).validatePayload(payload)).toBe('');
     });
 
-    it('a directly picked warehouse still resolves exactly as before', () => {
+    it('a branch with several linked warehouses is no longer ambiguous -- posts branch-only just the same', () => {
+      returnLine();
+      component.formValues.set({ returnToWarehouse: 'Hanamkonda', customer: 'Test Customer' });
+      const payload = (component as any).buildPayload();
+      expect(payload['return_to_warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(38);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('a branch with no linked warehouse is no longer blocked -- posts branch-only', () => {
+      returnLine();
+      component.formValues.set({ returnToWarehouse: 'Nizamabad', customer: 'Test Customer' });
+      const payload = (component as any).buildPayload();
+      expect(payload['return_to_warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(39);
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    it('a directly picked warehouse still resolves exactly as before (branch stays null)', () => {
       returnLine();
       component.formValues.set({ returnToWarehouse: 'Floating WH' });
       const payload = (component as any).buildPayload();
       expect(payload['return_to_warehouse_id']).toBe(9);
       expect(payload['return_to_warehouse_name']).toBe('Floating WH');
+      expect(payload['branch_id']).toBeFalsy();
     });
 
     it('refuses to POST a return with no location at all', () => {
@@ -430,11 +505,70 @@ describe('InventoryScreenShell — Branch selection posts branch-only (no resolu
       expect((component as any).validatePayload(payload)).toContain('Select the Return To Warehouse');
     });
 
-    it('blocks a stale return warehouse name that matches nothing', () => {
+    it('blocks a stale return location name that matches no warehouse and no branch', () => {
       returnLine();
       component.formValues.set({ returnToWarehouse: 'HYD Main WH' });
       const payload = (component as any).buildPayload();
       expect((component as any).validatePayload(payload)).toContain('is not a Warehouse in this company');
+    });
+
+    // The INV-26-00002 regression itself: selectSalesReference() writes
+    // branchId/branch off the referenced invoice's own location (migration
+    // 228) and mirrors it into the locked returnToWarehouse display field --
+    // buildPayload must read those companions back out even though nothing
+    // was picked through the merged dropdown directly.
+    it('a branch inherited from the referenced Sales Invoice (branchId/branch companions, no direct pick) still resolves', () => {
+      returnLine();
+      component.formValues.set({
+        returnToWarehouse: 'Head Office',
+        returnToWarehouseId: null,
+        branchId: 37,
+        branch: 'Head Office',
+        invoiceId: 35,
+        invoiceReference: 'INV-26-00002',
+        customer: 'Test Customer'
+      });
+      const payload = (component as any).buildPayload();
+      expect(payload['return_to_warehouse_id']).toBeFalsy();
+      expect(payload['branch_id']).toBe(37);
+      expect(payload['branch_name']).toBe('Head Office');
+      expect((component as any).validatePayload(payload)).toBe('');
+    });
+
+    // Regression, same shape as the Sales Invoice one above: reopening a
+    // saved branch-located return used to show the field blank because
+    // applySalesRecordToForm() only ever restored return_to_warehouse_name/
+    // returnToWarehouseId, never branch_id/branch_name.
+    it('reopening a branch-located saved return restores the branch into the merged Return To field (regression)', () => {
+      (component as any).applySalesRecordToForm({
+        id: 9,
+        return_number: 'SRET-26-00001',
+        status: 'posted',
+        return_to_warehouse_id: null,
+        return_to_warehouse_name: null,
+        branch_id: 12,
+        branch_name: 'SECUNDERABAD HO',
+        items: []
+      });
+
+      expect(component.formValues()['returnToWarehouse']).toBe('SECUNDERABAD HO');
+      expect(component.formValues()['branchId']).toBe(12);
+      expect(component.formValues()['branch']).toBe('SECUNDERABAD HO');
+    });
+
+    it('reopening a warehouse-located saved return still restores the warehouse (regression, unaffected by the branch fallback)', () => {
+      (component as any).applySalesRecordToForm({
+        id: 1,
+        return_number: 'SRET-26-00000',
+        status: 'posted',
+        return_to_warehouse_id: 9,
+        return_to_warehouse_name: 'Floating WH',
+        branch_id: null,
+        branch_name: null,
+        items: []
+      });
+
+      expect(component.formValues()['returnToWarehouse']).toBe('Floating WH');
     });
   });
 

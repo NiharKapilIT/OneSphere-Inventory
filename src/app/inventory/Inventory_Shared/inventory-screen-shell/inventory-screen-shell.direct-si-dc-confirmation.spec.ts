@@ -328,6 +328,45 @@ describe('InventoryScreenShell — Direct Sales Invoice / DC confirmation (item 
       expect(dcPayload.items[0].product_id).toBe(14);
     });
 
+    it('carries over branch_id/branch_name when the source SI was Branch-located (no warehouse) -- a location-less DC cannot be posted or found on the DC screen', () => {
+      const siPayload = {
+        segment_id: 1, segment_name: 'Electronics',
+        customer_id: 88, customer_name: 'Acme',
+        branch_id: 12, branch_name: 'SECUNDERABAD HO',
+        warehouse_id: null, warehouse_name: null,
+        doc_number: 'SI-26-00002'
+      };
+      const savedSi = { id: 501, doc_number: 'SI-26-00002', items: [{ id: 9001, sno: 1 }] };
+
+      const dcPayload = (component as any).buildAutoDeliveryChallanPayload(
+        siPayload, savedSi, 'posted', (component as any).salesLineItems(), (component as any).lineSerialUnitsMap()
+      );
+
+      expect(dcPayload.branch_id).toBe(12);
+      expect(dcPayload.branch_name).toBe('SECUNDERABAD HO');
+      expect(dcPayload.from_warehouse_id).toBeNull();
+      expect(dcPayload.from_warehouse_name).toBeNull();
+    });
+
+    it('still carries over from_warehouse_id/from_warehouse_name (and leaves branch null) when the source SI was Warehouse-located', () => {
+      const siPayload = {
+        customer_id: 88, customer_name: 'Acme',
+        warehouse_id: 101, warehouse_name: 'HYD Main WH',
+        branch_id: null, branch_name: null,
+        doc_number: 'SI-26-00010'
+      };
+      const savedSi = { id: 501, doc_number: 'SI-26-00010', items: [{ id: 9001, sno: 1 }] };
+
+      const dcPayload = (component as any).buildAutoDeliveryChallanPayload(
+        siPayload, savedSi, 'posted', (component as any).salesLineItems(), (component as any).lineSerialUnitsMap()
+      );
+
+      expect(dcPayload.from_warehouse_id).toBe(101);
+      expect(dcPayload.from_warehouse_name).toBe('HYD Main WH');
+      expect(dcPayload.branch_id).toBeNull();
+      expect(dcPayload.branch_name).toBeNull();
+    });
+
     it('maps multiple DC line items to the corresponding SI item ids in sno order, even if the API returned them out of order', () => {
       component.entryLineRows.set([
         ['LED Display 32 inch', '', '', 'Nos', '10', '100', '', '', '', '', '', '', '', '', '1000'],
