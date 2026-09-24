@@ -9082,12 +9082,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return primary.length ? primary : (fallback || []);
   }
 
+  // Shared empty value for untouched multiselects. Must be the SAME reference on
+  // every call: a fresh [] per change-detection pass makes [ngModel] see a
+  // "changed" value every time, schedule a writeValue microtask, which triggers
+  // another CD pass -> infinite loop that freezes the whole app (Barcode
+  // Configuration / BOM Master). ng-select never mutates its model array.
+  private static readonly EMPTY_MULTISELECT_VALUE: string[] = [];
+
   defaultFieldValue(field: InventoryField): string | string[] | undefined {
     const sourceValue = this.sourceFieldValue(field);
     if (sourceValue) return sourceValue;
 
     if (this.isApiWired() || this.config?.kind === 'transaction') {
-      if (field.type === 'multiselect') return [];
+      if (field.type === 'multiselect') return InventoryScreenShell.EMPTY_MULTISELECT_VALUE;
       if (this.isStatusSwitchField(field)) return 'Active';
       if (this.isYesNoSwitchField(field)) return 'No';
       return '';
