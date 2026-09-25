@@ -147,21 +147,21 @@ export class NavigationService {
               id: 'inventory-reports',
               name: 'Reports',
               screens: [
-                { id: 'stock-summary', name: 'Stock Summary Report', route: '/dashboard/inventory/reports/stock-summary', group: 'Stock Reports', disabled: true },
-                { id: 'stock-ledger', name: 'Stock Ledger Report', route: '/dashboard/inventory/reports/stock-ledger', group: 'Stock Reports', disabled: true },
-                { id: 'warehouse-wise-stock', name: 'Warehouse-wise Stock Report', route: '/dashboard/inventory/reports/warehouse-wise-stock', group: 'Stock Reports', disabled: true },
-                { id: 'purchase-order-register', name: 'Purchase Order Register', route: '/dashboard/inventory/reports/purchase-order-register', group: 'Purchase Reports', disabled: true },
-                { id: 'grn-register', name: 'GRN Register', route: '/dashboard/inventory/reports/grn-register', group: 'Purchase Reports', disabled: true },
-                { id: 'purchase-invoice-register', name: 'Purchase Invoice Register', route: '/dashboard/inventory/reports/purchase-invoice-register', group: 'Purchase Reports', disabled: true },
-                { id: 'sales-order-register', name: 'Sales Order Register', route: '/dashboard/inventory/reports/sales-order-register', group: 'Sales Reports', disabled: true },
-                { id: 'delivery-challan-register', name: 'Delivery Challan Register', route: '/dashboard/inventory/reports/delivery-challan-register', group: 'Sales Reports', disabled: true },
-                { id: 'sales-invoice-register', name: 'Sale Invoice Register', route: '/dashboard/inventory/reports/sales-invoice-register', group: 'Sales Reports', disabled: true },
-                { id: 'hsn-summary', name: 'HSN/SAC Summary Report', route: '/dashboard/inventory/reports/hsn-summary', group: 'GST & Compliance Reports', disabled: true },
-                { id: 'batch-serial-expiry', name: 'Batch / Serial / Expiry Report', route: '/dashboard/inventory/reports/batch-serial-expiry', group: 'Batch / Serial / Expiry Reports', disabled: true },
-                { id: 'product-profitability', name: 'Product Profitability Report', route: '/dashboard/inventory/reports/product-profitability', group: 'Costing & Profitability Reports', disabled: true },
-                { id: 'low-stock-alert', name: 'Low Stock Alert Report', route: '/dashboard/inventory/reports/low-stock-alert', group: 'Alert & Exception Reports', disabled: true },
-                { id: 'pending-document', name: 'Pending Document Report', route: '/dashboard/inventory/reports/pending-document', group: 'Alert & Exception Reports', disabled: true },
-                { id: 'inventory-audit-trail', name: 'Inventory Audit Trail Report', route: '/dashboard/inventory/reports/inventory-audit-trail', group: 'Audit & Control Reports', disabled: true }
+                { id: 'stock-summary', name: 'Stock Summary Report', route: '/dashboard/inventory/reports/stock-summary', group: 'Stock Reports' },
+                { id: 'stock-ledger', name: 'Stock Ledger Report', route: '/dashboard/inventory/reports/stock-ledger', group: 'Stock Reports' },
+                { id: 'warehouse-wise-stock', name: 'Warehouse-wise Stock Report', route: '/dashboard/inventory/reports/warehouse-wise-stock', group: 'Stock Reports' },
+                { id: 'purchase-order-register', name: 'Purchase Order Register', route: '/dashboard/inventory/reports/purchase-order-register', group: 'Purchase Reports' },
+                { id: 'grn-register', name: 'GRN Register', route: '/dashboard/inventory/reports/grn-register', group: 'Purchase Reports' },
+                { id: 'purchase-invoice-register', name: 'Purchase Invoice Register', route: '/dashboard/inventory/reports/purchase-invoice-register', group: 'Purchase Reports' },
+                { id: 'sales-order-register', name: 'Sales Order Register', route: '/dashboard/inventory/reports/sales-order-register', group: 'Sales Reports' },
+                { id: 'delivery-challan-register', name: 'Delivery Challan Register', route: '/dashboard/inventory/reports/delivery-challan-register', group: 'Sales Reports' },
+                { id: 'sales-invoice-register', name: 'Sale Invoice Register', route: '/dashboard/inventory/reports/sales-invoice-register', group: 'Sales Reports' },
+                { id: 'hsn-summary', name: 'HSN/SAC Summary Report', route: '/dashboard/inventory/reports/hsn-summary', group: 'GST & Compliance Reports' },
+                { id: 'batch-serial-expiry', name: 'Batch / Serial / Expiry Report', route: '/dashboard/inventory/reports/batch-serial-expiry', group: 'Batch / Serial / Expiry Reports' },
+                { id: 'product-profitability', name: 'Product Profitability Report', route: '/dashboard/inventory/reports/product-profitability', group: 'Costing & Profitability Reports' },
+                { id: 'low-stock-alert', name: 'Low Stock Alert Report', route: '/dashboard/inventory/reports/low-stock-alert', group: 'Alert & Exception Reports' },
+                { id: 'pending-document', name: 'Pending Document Report', route: '/dashboard/inventory/reports/pending-document', group: 'Alert & Exception Reports' },
+                { id: 'inventory-audit-trail', name: 'Inventory Audit Trail Report', route: '/dashboard/inventory/reports/inventory-audit-trail', group: 'Audit & Control Reports' }
               ]
             }
           ]
