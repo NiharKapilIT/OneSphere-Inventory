@@ -12,6 +12,7 @@ import { PasswordModule } from 'primeng/password';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
 import { environment } from '../../../envir/environment.prod';
+import { resolveApiUrlForHost } from '../../../envir/api-host';
 import { AuthPayload, AuthService, LoginTenantOption, OtpIssueResponse } from '../../core/services/auth.service';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { SubscriptionService, ModulePricingItem } from '../../core/services/subscription/subscription.service';
@@ -259,7 +260,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const url = new URL(res[0].apiURL);
+      const url = new URL(resolveApiUrlForHost() ?? res[0].apiURL);
       const apiURL = url.origin + '/api';
       sessionStorage.setItem('apiURL', apiURL);
     } catch {

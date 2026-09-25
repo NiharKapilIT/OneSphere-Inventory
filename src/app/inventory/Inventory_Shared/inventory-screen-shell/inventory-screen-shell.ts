@@ -6716,25 +6716,70 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     ));
   }
 
+  // Per-tableId memo of the last gridRows() result, keyed on the exact
+  // inputs that can change its output. This shell has no OnPush change
+  // detection, so gridRows()/pagedRows() used to re-filter+re-sort the full
+  // source array from scratch on every change-detection pass triggered
+  // anywhere in the app (any click/keystroke/timer), not just when the
+  // grid's own data/search/sort actually changed -- the main cause of
+  // Inventory screens becoming unresponsive on large lists. liveRows() is
+  // itself now a computed() (see _stableLiveRows above), so it returns the
+  // same array reference across calls until savedRecordObjects()/the
+  // selected segment change, which makes reference-equality caching here
+  // both correct and cheap.
+  private readonly _gridRowsCache = new Map<string, { sourceRef: unknown; search: string; sortKey: string; result: string[][] }>();
+
+  // Old version, kept for reference (recomputed filter+sort from scratch on
+  // every single call, with no caching):
+  //
+  // gridRows(tableId: string, rows: string[][]): string[][] {
+  //   const rawSourceRows = tableId === 'records' && this.isApiWired() ? this.liveRows() : rows;
+  //   const sourceRows = this.formatGridDateRows(rawSourceRows);
+  //   const search = this.activeGridSearch() === tableId ? this.gridSearchText().trim().toLowerCase() : '';
+  //   const filtered = search
+  //     ? sourceRows.filter(row => row.some(cell => String(cell).toLowerCase().includes(search)))
+  //     : [...sourceRows];
+  //   const sort = this.sortState();
+  //
+  //   if (sort?.tableId !== tableId) {
+  //     return filtered;
+  //   }
+  //
+  //   return filtered.sort((a, b) => {
+  //     const left = String(a[sort.columnIndex] ?? '');
+  //     const right = String(b[sort.columnIndex] ?? '');
+  //     const result = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+  //     return sort.direction === 'asc' ? result : -result;
+  //   });
+  // }
+
   gridRows(tableId: string, rows: string[][]): string[][] {
     const rawSourceRows = tableId === 'records' && this.isApiWired() ? this.liveRows() : rows;
-    const sourceRows = this.formatGridDateRows(rawSourceRows);
     const search = this.activeGridSearch() === tableId ? this.gridSearchText().trim().toLowerCase() : '';
+    const sort = this.sortState();
+    const sortKey = sort?.tableId === tableId ? `${sort.columnIndex}:${sort.direction}` : '';
+
+    const cached = this._gridRowsCache.get(tableId);
+    if (cached && cached.sourceRef === rawSourceRows && cached.search === search && cached.sortKey === sortKey) {
+      return cached.result;
+    }
+
+    const sourceRows = this.formatGridDateRows(rawSourceRows);
     const filtered = search
       ? sourceRows.filter(row => row.some(cell => String(cell).toLowerCase().includes(search)))
       : [...sourceRows];
-    const sort = this.sortState();
 
-    if (sort?.tableId !== tableId) {
-      return filtered;
-    }
+    const result = sortKey
+      ? filtered.sort((a, b) => {
+          const left = String(a[sort!.columnIndex] ?? '');
+          const right = String(b[sort!.columnIndex] ?? '');
+          const cmp = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+          return sort!.direction === 'asc' ? cmp : -cmp;
+        })
+      : filtered;
 
-    return filtered.sort((a, b) => {
-      const left = String(a[sort.columnIndex] ?? '');
-      const right = String(b[sort.columnIndex] ?? '');
-      const result = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
-      return sort.direction === 'asc' ? result : -result;
-    });
+    this._gridRowsCache.set(tableId, { sourceRef: rawSourceRows, search, sortKey, result });
+    return result;
   }
 
   // ── Pagination (search/sort-aware, per grid tableId) ──────────────────────
@@ -7613,7 +7658,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return this.config?.kind === 'transaction';
   }
 
-  bodyDisplayFields(): InventoryField[] {
+  // Stable computed cache — see _stableLiveRows above for why: this was a
+  // plain method rebuilding the filtered field list on every CD cycle.
+  private readonly _stableBodyDisplayFields = computed((): InventoryField[] => {
     if (!this.showTransactionHeader()) return this.displayFields();
 
     const numberKey = this.transactionNumberField()?.key;
@@ -7634,6 +7681,36 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       && !(this.config?.key === 'goodsReceipt' && field.key === 'status')
       && !(this.config?.key === 'goodsReceipt' && field.key === 'poReference')
     );
+  });
+
+  // Old version, kept for reference (plain method, re-filtered the field
+  // list from scratch on every call instead of caching):
+  //
+  // bodyDisplayFields(): InventoryField[] {
+  //   if (!this.showTransactionHeader()) return this.displayFields();
+  //
+  //   const numberKey = this.transactionNumberField()?.key;
+  //   const dateKey = this.transactionDateField()?.key;
+  //   const referenceKey = this.transactionReferenceField()?.key || this.segmentBarTransactionReferenceField()?.key;
+  //   const procurementVendorKey = this.procurementVendorHeaderField()?.key;
+  //
+  //   return this.displayFields().filter(field =>
+  //     !this.isBusinessSegmentField(field)
+  //     && field.key !== numberKey
+  //     && field.key !== dateKey
+  //     && field.key !== referenceKey
+  //     && field.key !== procurementVendorKey
+  //     && !(this.config?.key === 'salesOrder' && (field.key === 'customer' || field.key === 'creditSale' || field.key === 'paymentTerms' || field.key === 'dueDate' || field.key === 'deliveryDate' || field.key === 'deliveryAddress'))
+  //     && !(this.config?.key === 'salesInvoice' && (field.key === 'customer' || field.key === 'channelPartner' || field.key === 'referenceNo' || field.key === 'paymentTerms' || field.key === 'dueDate' || field.key === 'placeOfSupply' || field.key === 'warehouse' || field.key === 'interbranchSale' || field.key === 'branch' || field.key === 'transportMode' || field.key === 'vehicleNo' || field.key === 'deliveryAddress' || field.key === 'customerNotes' || field.key === 'internalNotes'))
+  //     && !(this.config?.key === 'purchaseInvoice' && field.key === 'grnReference')
+  //     && !(this.config?.key === 'purchaseInvoice' && field.key === 'status')
+  //     && !(this.config?.key === 'goodsReceipt' && field.key === 'status')
+  //     && !(this.config?.key === 'goodsReceipt' && field.key === 'poReference')
+  //   );
+  // }
+
+  bodyDisplayFields(): InventoryField[] {
+    return this._stableBodyDisplayFields();
   }
 
   bodyFieldByKey(key: string): InventoryField | null {
@@ -9005,12 +9082,19 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return primary.length ? primary : (fallback || []);
   }
 
+  // Shared empty value for untouched multiselects. Must be the SAME reference on
+  // every call: a fresh [] per change-detection pass makes [ngModel] see a
+  // "changed" value every time, schedule a writeValue microtask, which triggers
+  // another CD pass -> infinite loop that freezes the whole app (Barcode
+  // Configuration / BOM Master). ng-select never mutates its model array.
+  private static readonly EMPTY_MULTISELECT_VALUE: string[] = [];
+
   defaultFieldValue(field: InventoryField): string | string[] | undefined {
     const sourceValue = this.sourceFieldValue(field);
     if (sourceValue) return sourceValue;
 
     if (this.isApiWired() || this.config?.kind === 'transaction') {
-      if (field.type === 'multiselect') return [];
+      if (field.type === 'multiselect') return InventoryScreenShell.EMPTY_MULTISELECT_VALUE;
       if (this.isStatusSwitchField(field)) return 'Active';
       if (this.isYesNoSwitchField(field)) return 'No';
       return '';
@@ -15818,11 +15902,30 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     return records.filter(record => this.recordBelongsToSelectedSegment(record));
   }
 
-  liveRows(): string[][] {
+  // Stable computed cache — only recomputed when savedRecordObjects()/the
+  // selected segment actually change, never on every CD cycle (this used to
+  // be a plain method re-running mapToGridRows()/segmentFilteredRecords()
+  // on every change-detection pass across the whole app, since this shell
+  // has no OnPush and every unrelated click/keystroke retriggers it).
+  private readonly _stableLiveRows = computed((): string[][] => {
     if (this.isApiWired()) {
       return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
     }
     return this.config?.kind === 'transaction' ? [] : (this.config?.rows || []);
+  });
+
+  // Old version, kept for reference (plain method, rebuilt the array from
+  // scratch on every call instead of caching):
+  //
+  // liveRows(): string[][] {
+  //   if (this.isApiWired()) {
+  //     return this.mapToGridRows(this.segmentFilteredRecords(this.savedRecordObjects()));
+  //   }
+  //   return this.config?.kind === 'transaction' ? [] : (this.config?.rows || []);
+  // }
+
+  liveRows(): string[][] {
+    return this._stableLiveRows();
   }
 
   // Columns explicitly hidden from the grid for a given screen, keyed by
