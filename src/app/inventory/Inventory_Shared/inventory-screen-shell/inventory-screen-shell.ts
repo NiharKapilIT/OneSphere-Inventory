@@ -13023,7 +13023,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
 
   private shouldAutoOpenPrimaryReferencePicker(): boolean {
     const key = this.config?.key || '';
-    return (key === 'salesInvoice' || key === 'deliveryChallan')
+    return (key === 'salesInvoice' || key === 'deliveryChallan' || key === 'salesReturn')
       && !this.refPickerOpen()
       && !this.refPickerLoading();
   }
