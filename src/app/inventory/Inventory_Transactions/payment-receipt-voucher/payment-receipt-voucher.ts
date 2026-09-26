@@ -129,7 +129,16 @@ export class PaymentReceiptVoucherComponent {
   private readonly bankDetailsRequested = new Set<string>();
   readonly narration = signal('');
   readonly tdsSection = signal<string>('');
-  readonly voucherDate = signal<string>(new Date().toISOString().slice(0, 10));
+  // Stored as a local-date 'YYYY-MM-DD' string (what the save API expects).
+  // p-datepicker can't parse that string against dateFormat="dd-M-yy" and
+  // rendered blank, so the template binds voucherDateValue() (a real Date)
+  // and writes back through onVoucherDateChange(). toISOString() was also
+  // avoided because it is UTC and gave yesterday's date before 05:30 IST.
+  readonly voucherDate = signal<string>(this.toLocalIsoDate(new Date()));
+  readonly voucherDateValue = computed<Date | null>(() => {
+    const [y, m, d] = (this.voucherDate() || '').split('-').map(Number);
+    return y && m && d ? new Date(y, m - 1, d) : null;
+  });
   // Bug fix (2026-09-20): this screen renders its own Voucher Date picker
   // instead of going through the shared shell's transactionDateField()/
   // transactionDateValue()/maxTransactionDate machinery (it isn't a
@@ -324,7 +333,13 @@ export class PaymentReceiptVoucherComponent {
     this.loadPaymentAccountSetup();
   }
 
-  today(): string { return new Date().toISOString().slice(0, 10); }
+  today(): string { return this.toLocalIsoDate(new Date()); }
+  onVoucherDateChange(value: Date | null): void {
+    this.voucherDate.set(value instanceof Date && !isNaN(value.getTime()) ? this.toLocalIsoDate(value) : '');
+  }
+  private toLocalIsoDate(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
   daysBetween(a: string, b: string): number { return Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000); }
   fmtDate(d?: string): string { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
   fmt(n: number | undefined): string { return '₹ ' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
