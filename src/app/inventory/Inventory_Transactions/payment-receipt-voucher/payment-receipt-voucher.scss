@@ -76,6 +76,12 @@
   }
 }
 
+// The page-level summary has only three cards and the full page width, so it
+// sits on a single row instead of the drawer's two columns.
+.pay-kpi-grid.pay-kpi-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 // Outstanding is the figure the whole panel exists to answer, so it reads first.
 .pay-kpi-emphasis {
   border-color: #fcd9b6;
@@ -85,7 +91,8 @@
 }
 
 @media (max-width: 560px) {
-  .pay-kpi-grid {
+  .pay-kpi-grid,
+  .pay-kpi-grid.pay-kpi-row {
     grid-template-columns: minmax(0, 1fr);
   }
 }
