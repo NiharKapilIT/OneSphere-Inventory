@@ -10,6 +10,7 @@ import { Observable, Subject, catchError, concatMap, debounceTime, distinctUntil
 import { ApiResponse, AttributeItem, BomItem, BomLineItem, PriceListItem, WorkCenterItem, AttributeValueItem, BranchInvItem, CategoryItem, ChannelPartnerItem, ContactItem, CustomerItem, GstRateGuide, HsnSacItem, InventoryConfigService, PaymentTermItem, ProductApplicableVariant, ProductBundleItem, ProductItem, ProductTypeItem, ProductUomConversion, ProductVariantStockAttribute, ProductVariantStockControl, SegmentItem, SerialPolicyItem, TaxCodeSuggestion, UomItem, VariantCombinationRow, VariantItem, VendorItem, WarehouseItem } from '../inventory-config.service';
 import { AvailableStock, InventoryTransactionsService, PurchaseRefDoc, ServiceBundleConsumption, TransportDetails } from '../inventory-transactions.service';
 import { applyInventoryTextCase, inventoryTextCaseForField, inventoryTextCaseForLineColumn, toInventoryTitleCase } from '../inventory-text-case.util';
+import { InventoryExportService } from '../inventory-export.service';
 import {
   INVENTORY_KPIS,
   INVENTORY_OPTIONS,
@@ -62,7 +63,9 @@ interface GridExportPayload {
   fields: Array<[string, string]>;
   columns: string[];
   rows: string[][];
-  documentHtml?: string;
+  summary?: Array<[string, string]>;
+  notes?: string;
+  notesLabel?: string;
   mailBody?: string;
   fileName?: string;
 }
@@ -235,6 +238,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
   private readonly _dragScroll = inject(HorizDragScrollService);
   private readonly inventoryConfigService = inject(InventoryConfigService);
   protected readonly txService = inject(InventoryTransactionsService);
+  private readonly exportService = inject(InventoryExportService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   // Item 26: optional — dozens of existing specs instantiate InventoryScreenShell
@@ -6874,7 +6878,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       return;
     }
 
-    this.downloadGridCsv(payload);
+    this.downloadGridExcel(payload);
   }
 
   private gridToolbarActionFromTitle(title: string): 'print' | 'pdf' | 'excel' | 'mail' | 'whatsapp' | '' {
@@ -6905,7 +6909,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const rows = this.gridRows(tableId, source)
       .map(row => row.slice(0, columns.length).map(cell => String(cell ?? '')));
     return {
-      title: `${this.config?.title || 'Inventory'} - ${tableId === 'records' ? 'Saved Records' : 'Grid'}`,
+      title: tableId === 'records' ? (this.config?.title || 'Inventory') : `${this.config?.title || 'Inventory'} - Grid`,
       fields: [],
       columns,
       rows
@@ -7164,6 +7168,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ['PI Date', this.gridDateDisplay(String(record.pi_date || record.piDate || ''))],
       ['Vendor', vendorName],
       ['GSTIN', vendorGstin],
+      ['Vendor Phone', String(vendor?.mobile || vendor?.contact_mobile || '')],
+      ['Vendor Address', String(vendor?.address || '')],
       ['Branch / Warehouse', locationName],
       ['GRN Reference', String(record.grn_number || record.grnNumber || 'Direct')],
       ['Vendor Invoice No', String(record.vendor_invoice_no || record.vendorInvoiceNo || '')],
@@ -7173,7 +7179,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ['Status', toInventoryTitleCase(String(record.status || 'draft'))],
       ['Total', this.formatCurrency(totals.total)]
     ];
-    const safe = (value: any) => this.escapeHtml(value);
     const summaryRows = [
       ['Sub total', this.moneyValue(totals.gross)],
       ['Discount', totals.discount ? `-${this.moneyValue(totals.discount)}` : this.moneyValue(0)],
@@ -7183,65 +7188,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         : [['CGST', this.moneyValue(totals.cgst)], ['SGST', this.moneyValue(totals.sgst)]]),
       ['Round off', this.moneyValue(totals.roundOff)]
     ];
-    const documentHtml = `
-      <section class="inventory-print-doc">
-        <header class="print-doc-title">
-          <div>
-            <span>Purchase Invoice</span>
-            <h1>${safe(docNo || 'Draft')}</h1>
-          </div>
-          <strong>${safe(toInventoryTitleCase(String(record.status || 'draft')))}</strong>
-        </header>
-        <div class="print-meta-grid">
-          <div><strong>Invoice no.</strong><span>${safe(docNo)}</span></div>
-          <div><strong>Invoice date</strong><span>${safe(this.gridDateDisplay(String(record.pi_date || record.piDate || '')))}</span></div>
-          <div><strong>Due date</strong><span>${safe(this.gridDateDisplay(String(record.due_date || record.dueDate || '')))}</span></div>
-          <div><strong>Payment terms</strong><span>${safe(record.payment_terms || record.paymentTerms || '-')}</span></div>
-        </div>
-        <div class="print-party-grid">
-          <section>
-            <h2>Vendor</h2>
-            <label>Bill from</label>
-            <p>${safe(vendorName || '-')}</p>
-            <div class="print-party-inline">
-              <div><label>GSTIN</label><p>${safe(vendorGstin || '-')}</p></div>
-              <div><label>Phone</label><p>${safe(vendor?.mobile || vendor?.contact_mobile || '-')}</p></div>
-            </div>
-            <label>Email</label>
-            <p>${safe(vendor?.email || vendor?.contact_email || '-')}</p>
-            <label>Address</label>
-            <p>${safe(vendor?.address || '-')}</p>
-          </section>
-          <section>
-            <h2>Inventory</h2>
-            <label>Branch / Warehouse</label>
-            <p>${safe(locationName || '-')}</p>
-            <label>GRN Reference</label>
-            <p>${safe(record.grn_number || record.grnNumber || 'Direct')}</p>
-            <label>Vendor invoice</label>
-            <p>${safe(record.vendor_invoice_no || record.vendorInvoiceNo || '-')}</p>
-          </section>
-        </div>
-        <section class="print-items">
-          <h2>Products / Items</h2>
-          <table>
-            <thead><tr>${exportColumns.map(column => `<th>${safe(column)}</th>`).join('')}</tr></thead>
-            <tbody>${exportRows.map(row => `<tr>${row.map(cell => `<td>${safe(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </section>
-        <div class="print-bottom-grid">
-          <section>
-            <h2>Notes / Terms</h2>
-            <p>${safe(record.remarks || 'Thank you for your business.')}</p>
-          </section>
-          <section class="print-summary">
-            <h2>Summary</h2>
-            ${summaryRows.map(([label, value]) => `<div><span>${safe(label)}</span><strong>${safe(value)}</strong></div>`).join('')}
-            <div class="grand"><span>Grand total</span><strong>${safe(this.formatCurrency(totals.total))}</strong></div>
-          </section>
-        </div>
-      </section>
-    `;
     const mailBody = [
       `Purchase Invoice: ${docNo}`,
       '',
@@ -7257,7 +7203,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       fields,
       columns: exportColumns,
       rows: exportRows,
-      documentHtml,
+      summary: [...summaryRows, ['Grand Total', this.formatCurrency(totals.total)]] as Array<[string, string]>,
+      notes: String(record.remarks || ''),
+      notesLabel: 'Notes / Terms',
       mailBody,
       fileName: `Purchase_Invoice_${docNo || 'Selected_Record'}`
     };
@@ -7302,14 +7250,16 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ['Due Date', this.gridDateDisplay(String(record.due_date || record.dueDate || ''))],
       ['Customer', customerName],
       ['GSTIN', customerGstin],
+      ['Customer Phone', String(customer?.mobile || '')],
+      ['Customer Address', String(customer?.address || '')],
       ['Place of Supply', String(record.place_of_supply || record.placeOfSupply || '')],
       ['Warehouse', warehouseName],
+      ['Vehicle No', String(record.vehicle_no || record.vehicleNo || '')],
       ['SO Reference', soReference],
       ['Payment Terms', String(record.payment_terms || record.paymentTerms || '')],
       ['Status', toInventoryTitleCase(String(record.status || 'draft'))],
       ['Total', this.formatCurrency(totals.total)]
     ];
-    const safe = (value: any) => this.escapeHtml(value);
     const summaryRows = [
       ['Sub total', this.moneyValue(totals.gross)],
       ['Discount', totals.discount ? `-${this.moneyValue(totals.discount)}` : this.moneyValue(0)],
@@ -7318,65 +7268,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
         ? [['IGST', this.moneyValue(totals.igst)]]
         : [['CGST', this.moneyValue(totals.cgst)], ['SGST', this.moneyValue(totals.sgst)]])
     ];
-    const documentHtml = `
-      <section class="inventory-print-doc">
-        <header class="print-doc-title">
-          <div>
-            <span>Sales Invoice</span>
-            <h1>${safe(docNo || 'Draft')}</h1>
-          </div>
-          <strong>${safe(toInventoryTitleCase(String(record.status || 'draft')))}</strong>
-        </header>
-        <div class="print-meta-grid">
-          <div><strong>Invoice no.</strong><span>${safe(docNo)}</span></div>
-          <div><strong>Invoice date</strong><span>${safe(this.gridDateDisplay(String(record.doc_date || record.docDate || '')))}</span></div>
-          <div><strong>Due date</strong><span>${safe(this.gridDateDisplay(String(record.due_date || record.dueDate || '')))}</span></div>
-          <div><strong>SO reference</strong><span>${safe(soReference)}</span></div>
-        </div>
-        <div class="print-party-grid">
-          <section>
-            <h2>Customer</h2>
-            <label>Bill to</label>
-            <p>${safe(customerName || '-')}</p>
-            <div class="print-party-inline">
-              <div><label>GSTIN</label><p>${safe(customerGstin || '-')}</p></div>
-              <div><label>Phone</label><p>${safe(customer?.mobile || '-')}</p></div>
-            </div>
-            <label>Email</label>
-            <p>${safe(customer?.email || '-')}</p>
-            <label>Address</label>
-            <p>${safe(customer?.address || '-')}</p>
-          </section>
-          <section>
-            <h2>Dispatch</h2>
-            <label>Warehouse</label>
-            <p>${safe(warehouseName || '-')}</p>
-            <label>Place of Supply</label>
-            <p>${safe(record.place_of_supply || record.placeOfSupply || '-')}</p>
-            <label>Vehicle No</label>
-            <p>${safe(record.vehicle_no || record.vehicleNo || '-')}</p>
-          </section>
-        </div>
-        <section class="print-items">
-          <h2>Products / Items</h2>
-          <table>
-            <thead><tr>${exportColumns.map(column => `<th>${safe(column)}</th>`).join('')}</tr></thead>
-            <tbody>${exportRows.map(row => `<tr>${row.map(cell => `<td>${safe(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </section>
-        <div class="print-bottom-grid">
-          <section>
-            <h2>Notes / Terms</h2>
-            <p>${safe(record.customer_notes || record.customerNotes || 'Thank you for your business.')}</p>
-          </section>
-          <section class="print-summary">
-            <h2>Summary</h2>
-            ${summaryRows.map(([label, value]) => `<div><span>${safe(label)}</span><strong>${safe(value)}</strong></div>`).join('')}
-            <div class="grand"><span>Grand total</span><strong>${safe(this.formatCurrency(totals.total))}</strong></div>
-          </section>
-        </div>
-      </section>
-    `;
     const mailBody = [
       `Sales Invoice: ${docNo}`,
       '',
@@ -7392,7 +7283,9 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       fields,
       columns: exportColumns,
       rows: exportRows,
-      documentHtml,
+      summary: [...summaryRows, ['Grand Total', this.formatCurrency(totals.total)]] as Array<[string, string]>,
+      notes: String(record.customer_notes || record.customerNotes || ''),
+      notesLabel: 'Notes / Terms',
       mailBody,
       fileName: `Sales_Invoice_${docNo || 'Selected_Record'}`
     };
@@ -7435,6 +7328,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ['DC No', docNo],
       ['DC Date', this.gridDateDisplay(String(record.dc_date || record.dcDate || ''))],
       ['Customer', customerName],
+      ['Delivery Address', String(record.delivery_address || record.deliveryAddress || '')],
       ['Vehicle', String(record.vehicle || '')],
       ['Transporter', String(record.transporter || '')],
       ['LR No', String(record.lr_no || record.lrNo || '')],
@@ -7442,60 +7336,6 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       ['SI Reference', siReference],
       ['Status', toInventoryTitleCase(String(record.display_status || record.displayStatus || record.status || 'draft'))]
     ];
-    const safe = (value: any) => this.escapeHtml(value);
-    const documentHtml = `
-      <section class="inventory-print-doc">
-        <header class="print-doc-title">
-          <div>
-            <span>Delivery Challan</span>
-            <h1>${safe(docNo || 'Draft')}</h1>
-          </div>
-          <strong>${safe(toInventoryTitleCase(String(record.display_status || record.displayStatus || record.status || 'draft')))}</strong>
-        </header>
-        <div class="print-meta-grid">
-          <div><strong>DC no.</strong><span>${safe(docNo)}</span></div>
-          <div><strong>DC date</strong><span>${safe(this.gridDateDisplay(String(record.dc_date || record.dcDate || '')))}</span></div>
-          <div><strong>SO reference</strong><span>${safe(soReference)}</span></div>
-          <div><strong>SI reference</strong><span>${safe(siReference)}</span></div>
-        </div>
-        <div class="print-party-grid">
-          <section>
-            <h2>Customer</h2>
-            <label>Deliver to</label>
-            <p>${safe(customerName || '-')}</p>
-            <label>Delivery Address</label>
-            <p>${safe(record.delivery_address || record.deliveryAddress || '-')}</p>
-          </section>
-          <section>
-            <h2>Transport</h2>
-            <label>Vehicle</label>
-            <p>${safe(record.vehicle || '-')}</p>
-            <label>Transporter</label>
-            <p>${safe(record.transporter || '-')}</p>
-            <label>LR No</label>
-            <p>${safe(record.lr_no || record.lrNo || '-')}</p>
-          </section>
-        </div>
-        <section class="print-items">
-          <h2>Dispatched Items</h2>
-          <table>
-            <thead><tr>${exportColumns.map(column => `<th>${safe(column)}</th>`).join('')}</tr></thead>
-            <tbody>${exportRows.map(row => `<tr>${row.map(cell => `<td>${safe(cell)}</td>`).join('')}</tr>`).join('')}</tbody>
-          </table>
-        </section>
-        <div class="print-bottom-grid">
-          <section>
-            <h2>Notes / Remarks</h2>
-            <p>${safe(record.remarks || 'Goods dispatched in good condition.')}</p>
-          </section>
-          <section class="print-summary">
-            <h2>Summary</h2>
-            <div><span>Items</span><strong>${safe(String(items.length))}</strong></div>
-            <div class="grand"><span>Total Dispatch Qty</span><strong>${safe(this.moneyValue(totalDispatchQty))}</strong></div>
-          </section>
-        </div>
-      </section>
-    `;
     const mailBody = [
       `Delivery Challan: ${docNo}`,
       '',
@@ -7511,74 +7351,31 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
       fields,
       columns: exportColumns,
       rows: exportRows,
-      documentHtml,
+      summary: [['Items', String(items.length)], ['Total Dispatch Qty', this.moneyValue(totalDispatchQty)]],
+      notes: String(record.remarks || ''),
+      notesLabel: 'Notes / Remarks',
       mailBody,
       fileName: `Delivery_Challan_${docNo || 'Selected_Record'}`
     };
   }
 
+  // Same output as Accounts (letterhead, #0b4093 grid, printed-on/page footer):
+  // PDF downloads a real .pdf, Print opens the print dialog for that PDF.
   private printGridPayload(payload: GridExportPayload, asPdf: boolean): void {
-    const fieldHtml = payload.fields.length
-      ? `<div class="fields">${payload.fields.map(([label, value]) => `<div><strong>${this.escapeHtml(label)}</strong><span>${this.escapeHtml(value)}</span></div>`).join('')}</div>`
-      : '';
-    const headerHtml = payload.columns.map(column => `<th>${this.escapeHtml(column)}</th>`).join('');
-    const bodyHtml = payload.rows.map(row => `<tr>${row.map(cell => `<td>${this.escapeHtml(cell)}</td>`).join('')}</tr>`).join('');
-    const popup = window.open('', '_blank', 'width=1100,height=760');
-    if (!popup) {
-      this.saveError.set('Popup blocked. Allow popups to print or save PDF.');
-      setTimeout(() => this.saveError.set(''), 3000);
-      return;
-    }
+    this.exportService.pdf(this.exportDocument(payload), asPdf ? 'Pdf' : 'Print');
+  }
 
-    popup.document.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <title>${this.escapeHtml(payload.title)}</title>
-          <style>
-            body { font-family: Arial, sans-serif; color: #0f172a; margin: 24px; }
-            h1 { font-size: 20px; margin: 0 0 6px; }
-            .hint { color: #64748b; font-size: 12px; margin-bottom: 14px; }
-            .fields { display: grid; grid-template-columns: repeat(2, minmax(180px, 1fr)); gap: 8px 20px; margin: 12px 0 18px; }
-            .fields div { border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
-            .fields strong { display: block; color: #475569; font-size: 11px; text-transform: uppercase; }
-            .fields span { font-size: 13px; }
-            table { border-collapse: collapse; width: 100%; font-size: 12px; }
-            th, td { border: 1px solid #cbd5e1; padding: 7px 8px; text-align: left; vertical-align: top; }
-            th { background: #f1f5f9; color: #334155; }
-            .inventory-print-doc { color: #001b33; }
-            .print-doc-title { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
-            .print-doc-title span, .inventory-print-doc h2 { color:#667085; font-size:11px; letter-spacing:2px; text-transform:uppercase; margin:0 0 10px; }
-            .print-doc-title h1 { font-size:22px; margin:0; }
-            .print-doc-title strong { border:1px solid #b7d7ce; border-radius:6px; padding:8px 12px; color:#00584f; text-transform:uppercase; font-size:11px; }
-            .print-meta-grid, .print-party-grid, .print-bottom-grid { display:grid; gap:14px; margin-bottom:18px; }
-            .print-meta-grid { grid-template-columns: repeat(4, minmax(130px, 1fr)); }
-            .print-party-grid, .print-bottom-grid { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
-            .print-meta-grid > div, .print-party-grid > section, .print-bottom-grid > section { border:1px solid #ddd8cf; border-radius:8px; padding:14px; }
-            .print-meta-grid strong, .inventory-print-doc label { display:block; color:#5f6b7a; font-size:11px; font-weight:700; margin-bottom:5px; }
-            .print-meta-grid span, .inventory-print-doc p { margin:0 0 12px; font-size:13px; }
-            .print-party-inline { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-            .print-items { margin-bottom:18px; }
-            .print-items table { border:0; }
-            .print-items th { border:0; border-bottom:2px solid #243041; background:white; font-size:10px; letter-spacing:1px; text-transform:uppercase; }
-            .print-items td { border:0; border-bottom:1px solid #e1ded7; padding:10px 8px; }
-            .print-summary div { display:flex; justify-content:space-between; border-bottom:1px dotted #d8d3ca; padding:7px 0; font-size:13px; }
-            .print-summary .grand { margin-top:10px; border:1px solid #b7d7ce; border-radius:8px; background:#f0fbf7; padding:12px; text-transform:uppercase; }
-            .print-summary .grand strong { color:#00584f; font-size:17px; }
-            @media (max-width: 800px) { .print-meta-grid, .print-party-grid, .print-bottom-grid { grid-template-columns: 1fr; } }
-            @media print { body { margin: 12mm; } .hint { display: none; } }
-          </style>
-        </head>
-        <body>
-          ${payload.documentHtml ? '' : `<h1>${this.escapeHtml(payload.title)}</h1>`}
-          <div class="hint">${asPdf ? 'Choose Save as PDF in the print dialog.' : 'Print preview'}</div>
-          ${payload.documentHtml || `${fieldHtml}<table><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`}
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    setTimeout(() => popup.print(), 250);
+  private exportDocument(payload: GridExportPayload) {
+    return {
+      title: payload.title,
+      fields: payload.fields,
+      columns: payload.columns,
+      rows: payload.rows,
+      summary: payload.summary,
+      notes: payload.notes,
+      notesLabel: payload.notesLabel,
+      fileName: payload.fileName || payload.title
+    };
   }
 
   private mailGridPayload(payload: GridExportPayload): void {
@@ -7600,41 +7397,8 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     setTimeout(() => this.saveMsg.set(''), 3000);
   }
 
-  private downloadGridCsv(payload: GridExportPayload): void {
-    const fieldRows = payload.fields.map(([label, value]) => [label, value]);
-    const csvRows = [
-      [payload.title],
-      ...fieldRows,
-      ...(fieldRows.length ? [[]] : []),
-      payload.columns,
-      ...payload.rows
-    ];
-    const csv = '\ufeff' + csvRows.map(row => row.map(cell => this.csvCell(cell)).join(',')).join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${this.fileSafeName(payload.fileName || payload.title)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  private escapeHtml(value: any): string {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  private csvCell(value: any): string {
-    const text = String(value ?? '');
-    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-  }
-
-  private fileSafeName(value: string): string {
-    return String(value || 'inventory-grid').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'inventory-grid';
+  private downloadGridExcel(payload: GridExportPayload): void {
+    this.exportService.excel(this.exportDocument(payload));
   }
 
   private formatCurrency(value: any): string {
@@ -16339,7 +16103,7 @@ export class InventoryScreenShell implements OnInit, AfterViewInit, AfterViewChe
     const payload = kind === 'salesInvoice'
       ? this.salesInvoiceDocumentExportPayload(record, docNo, [], [], [])
       : this.deliveryChallanDocumentExportPayload(record, docNo, [], [], []);
-    this.printGridPayload(payload, true);
+    this.printGridPayload(payload, false);
   }
 
   saveConfigRecord(forceDocumentStatus?: 'draft' | 'posted' | 'sent'): void {

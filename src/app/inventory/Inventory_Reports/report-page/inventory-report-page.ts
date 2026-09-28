@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -25,6 +25,7 @@ import {
 } from '../shared/inventory-report.registry';
 import { InventoryReportsService } from '../shared/inventory-reports.service';
 import { InventoryConfigService } from '../../Inventory_Shared/inventory-config.service';
+import { InventoryExportDocument, InventoryExportService } from '../../Inventory_Shared/inventory-export.service';
 import { StatCardComponent } from '../../Inventory_Shared/stat-card/stat-card.component';
 
 interface BranchWarehouseOption {
@@ -56,6 +57,7 @@ export class InventoryReportPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly reportsService = inject(InventoryReportsService);
   private readonly configService = inject(InventoryConfigService);
+  private readonly exportService = inject(InventoryExportService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly pageSizes = [10, 25, 50, 100];
@@ -617,94 +619,35 @@ export class InventoryReportPageComponent implements OnInit {
     }));
   }
 
-  async exportExcel(): Promise<void> {
-    // xlsx and file-saver are both CommonJS packages -- depending on the
-    // build's CJS/ESM interop, a dynamic import() can land the real exports
-    // either at the top level or nested under .default. Unwrapping
-    // defensively (rather than destructuring one shape outright) avoids a
-    // silent "X is not a function" if the bundler picks the other one.
-    const [xlsxModule, fileSaverModule] = await Promise.all([
-      import('xlsx'),
-      import('file-saver')
-    ]);
-    const XLSX: typeof import('xlsx') = (xlsxModule as any).default ?? xlsxModule;
-    const saveAs: typeof import('file-saver').saveAs =
-      (fileSaverModule as any).saveAs ?? (fileSaverModule as any).default?.saveAs ?? (fileSaverModule as any).default;
-
-    const exportRows = this.exportRows();
-    const worksheet = XLSX.utils.json_to_sheet(exportRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([excelBuffer], { type: 'application/octet-stream' }), `${this.report().slug}.xlsx`);
+  // Print / PDF / Excel use the same Accounts-style output as every other
+  // Inventory screen (company letterhead, #0b4093 grid, printed-on footer).
+  exportExcel(): void {
+    this.exportService.excel(this.exportDocument());
   }
 
-  async exportPdf(): Promise<void> {
-    const [jsPdfModule] = await Promise.all([
-      import('jspdf'),
-      // jspdf-autotable's package.json "exports" map points its default
-      // condition at the UMD "plugin" build (dist/jspdf.plugin.autotable.js,
-      // not the ESM functional-API build under its /es subpath) -- that
-      // build's whole job is a side effect: it patches an autoTable()
-      // instance method onto jsPDF's own prototype. It doesn't hand back a
-      // standalone `autoTable(doc, opts)` function to call, which is what
-      // the previous version of this code assumed (silently "not a
-      // function" at runtime for exactly that reason).
-      import('jspdf-autotable')
-    ]);
-    const jsPDF: typeof import('jspdf').default = (jsPdfModule as any).default ?? (jsPdfModule as any).jsPDF ?? jsPdfModule;
-    const doc = new jsPDF({ orientation: 'landscape' }) as InstanceType<typeof jsPDF> & {
-      autoTable: (options: Record<string, unknown>) => void;
-    };
-    doc.setFontSize(13);
-    doc.text(this.report().title, 14, 14);
-    doc.setFontSize(9);
-    doc.text(`${this.groupTitle()} / ${this.rowStart()}-${this.rowEnd()} of ${this.totalRecords()}`, 14, 20);
-    doc.autoTable({
-      head: [this.visibleColumns().map(column => column.label)],
-      body: this.sortedRows().map(row => this.visibleColumns().map(column => this.formatCell(row[column.key], column))),
-      startY: 26,
-      styles: { fontSize: 8, cellPadding: 2 },
-      headStyles: { fillColor: [12, 74, 110] }
-    });
-    doc.save(`${this.report().slug}.pdf`);
+  exportPdf(): void {
+    this.exportService.pdf(this.exportDocument(), 'Pdf');
   }
 
   printReport(): void {
-    const popup = window.open('', '_blank', 'width=1200,height=760');
-    if (!popup) {
-      this.errorMessage.set('Popup blocked. Please allow popups to print this report.');
-      return;
-    }
+    this.exportService.pdf(this.exportDocument(), 'Print');
+  }
 
-    const headers = this.visibleColumns().map(column => `<th>${this.escapeHtml(column.label)}</th>`).join('');
-    const body = this.sortedRows()
-      .map(row => `<tr>${this.visibleColumns().map(column => `<td>${this.escapeHtml(this.formatCell(row[column.key], column))}</td>`).join('')}</tr>`)
-      .join('');
-
-    popup.document.write(`
-      <html>
-        <head>
-          <title>${this.escapeHtml(this.report().title)}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; color: #111827; }
-            h2 { margin: 0 0 4px; font-size: 20px; }
-            p { margin: 0 0 14px; color: #64748b; font-size: 12px; }
-            table { width: 100%; border-collapse: collapse; font-size: 11px; }
-            th, td { border: 1px solid #dbe8f9; padding: 7px; text-align: left; vertical-align: top; }
-            th { background: #f8fafc; color: #334155; }
-          </style>
-        </head>
-        <body>
-          <h2>${this.escapeHtml(this.report().title)}</h2>
-          <p>${this.escapeHtml(this.groupTitle())} / ${this.escapeHtml(String(this.rowStart()))}-${this.escapeHtml(String(this.rowEnd()))} of ${this.escapeHtml(String(this.totalRecords()))}</p>
-          <table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table>
-        </body>
-      </html>
-    `);
-    popup.document.close();
-    popup.focus();
-    popup.print();
+  private exportDocument(): InventoryExportDocument {
+    const columns = this.visibleColumns();
+    const from = this.filterDateValue('fromDate');
+    const to = this.filterDateValue('toDate');
+    const pdfDate = (value: Date) => formatDate(value, 'dd-MMM-yyyy', 'en-US');
+    const periodText = from && to
+      ? `Between: ${pdfDate(from)} And ${pdfDate(to)}`
+      : from ? `From: ${pdfDate(from)}` : to ? `As on: ${pdfDate(to)}` : '';
+    return {
+      title: this.report().title,
+      columns: columns.map(column => column.label),
+      rows: this.sortedRows().map(row => columns.map(column => this.formatCell(row[column.key], column))),
+      periodText,
+      fileName: this.report().title
+    };
   }
 
   formatCell(value: InventoryReportRow[string], column: InventoryReportColumn): string {
@@ -845,15 +788,6 @@ export class InventoryReportPageComponent implements OnInit {
     this.infoMessage.set(message);
   }
 
-  private exportRows(): Array<Record<string, string>> {
-    return this.sortedRows().map(row =>
-      this.visibleColumns().reduce<Record<string, string>>((record, column) => {
-        record[column.label] = this.formatCell(row[column.key], column);
-        return record;
-      }, {})
-    );
-  }
-
   private sortValue(value: InventoryReportRow[string], column: InventoryReportColumn | undefined): string | number {
     if (column?.type === 'number' || column?.type === 'currency' || column?.type === 'percent') {
       return this.numberValue(value);
@@ -886,15 +820,6 @@ export class InventoryReportPageComponent implements OnInit {
 
   private shortDate(value: Date): string {
     return value.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-  }
-
-  private escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
   }
 
   private matchesActiveFilters(row: InventoryReportRow): boolean {
