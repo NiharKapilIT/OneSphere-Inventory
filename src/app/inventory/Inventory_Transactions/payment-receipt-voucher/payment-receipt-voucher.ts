@@ -788,6 +788,12 @@ export class PaymentReceiptVoucherComponent {
             life: 4500
           });
           this.clearAllocations();
+          // Re-fetch cheque lists so the leaf just used is no longer offered.
+          this.bankDetailsRequested.clear();
+          this.bankDetailsByBankId.set({});
+          this.modeRows.update(rows => rows.map(r =>
+            r.details.bankSubType === 'CHEQUE' ? { ...r, details: { ...r.details, refNumber: '' } } : r));
+          this.modeRows().forEach(r => this.loadBankDetails(r.details.bankId));
           this.narration.set('');
           this.loadVouchers();
           if (this.selectedPartyId()) this.onPartyChange(this.selectedPartyId());
